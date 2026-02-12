@@ -87,7 +87,7 @@ These were resolved interactively before schema design:
 |----------------|-------------|--------------------------------------|
 | `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
 | `username`     | TEXT         | NOT NULL UNIQUE COLLATE NOCASE       |
-| `email`        | TEXT         | NOT NULL UNIQUE COLLATE NOCASE       |
+| `email`        | TEXT         | NULL UNIQUE COLLATE NOCASE            |
 | `password_hash`| TEXT         | NOT NULL                             |
 | `athlete_id`   | INTEGER      | NULL, FK → athletes(id)              |
 | `is_coach`     | INTEGER      | NOT NULL DEFAULT 0, CHECK(is_coach IN (0, 1)) |
@@ -95,7 +95,7 @@ These were resolved interactively before schema design:
 | `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - Login accounts, not training subjects. Separate from athletes.
-- `email` for password reset or notifications in the future.
+- `email` for password reset or notifications in the future. Required for coaches, optional for kids.
 - `athlete_id` links the user to "their" athlete profile. NULL for coach-only accounts without a personal training profile.
 - `is_coach = 1` → full access to all athletes. `is_coach = 0` → can only view/log/edit workouts for their linked athlete.
 - `COLLATE NOCASE` prevents "Admin" and "admin" or duplicate emails.
@@ -205,7 +205,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     username        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-    email           TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    email           TEXT    UNIQUE COLLATE NOCASE,
     password_hash   TEXT    NOT NULL,
     athlete_id      INTEGER REFERENCES athletes(id) ON DELETE SET NULL,
     is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
