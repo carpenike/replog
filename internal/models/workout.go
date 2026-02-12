@@ -114,8 +114,19 @@ func DeleteWorkout(db *sql.DB, id int64) error {
 	return nil
 }
 
+// WorkoutPageSize is the number of workouts returned per page.
+const WorkoutPageSize = 50
+
+// WorkoutPage holds a page of workouts and whether more rows exist.
+type WorkoutPage struct {
+	Workouts []*Workout
+	HasMore  bool
+}
+
 // ListWorkouts returns workouts for an athlete, ordered by date descending.
-func ListWorkouts(db *sql.DB, athleteID int64) ([]*Workout, error) {
+// Pass offset=0 for the first page. Returns up to WorkoutPageSize rows and
+// sets HasMore if additional rows exist beyond the current page.
+func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error) {
 	rows, err := db.Query(`
 		SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, a.name,
 		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
@@ -123,7 +134,7 @@ func ListWorkouts(db *sql.DB, athleteID int64) ([]*Workout, error) {
 		JOIN athletes a ON a.id = w.athlete_id
 		WHERE w.athlete_id = ?
 		ORDER BY w.date DESC
-		LIMIT 100`, athleteID)
+		LIMIT ? OFFSET ?`, athleteID, WorkoutPageSize+1, offset)
 	if err != nil {
 		return nil, fmt.Errorf("models: list workouts for athlete %d: %w", athleteID, err)
 	}
@@ -137,5 +148,13 @@ func ListWorkouts(db *sql.DB, athleteID int64) ([]*Workout, error) {
 		}
 		workouts = append(workouts, w)
 	}
-	return workouts, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	hasMore := len(workouts) > WorkoutPageSize
+	if hasMore {
+		workouts = workouts[:WorkoutPageSize]
+	}
+	return &WorkoutPage{Workouts: workouts, HasMore: hasMore}, nil
 }

@@ -145,12 +145,13 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Load recent workouts for the athlete detail page.
-	recentWorkouts, err := models.ListWorkouts(h.DB, id)
+	recentPage, err := models.ListWorkouts(h.DB, id, 0)
 	if err != nil {
 		log.Printf("handlers: list workouts for athlete %d: %v", id, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	recentWorkouts := recentPage.Workouts
 	// Limit to 5 most recent for the summary view.
 	if len(recentWorkouts) > 5 {
 		recentWorkouts = recentWorkouts[:5]

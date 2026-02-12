@@ -92,7 +92,8 @@ func ListTrainingMaxHistory(db *sql.DB, athleteID, exerciseID int64) ([]*Trainin
 		FROM training_maxes tm
 		JOIN exercises e ON e.id = tm.exercise_id
 		WHERE tm.athlete_id = ? AND tm.exercise_id = ?
-		ORDER BY tm.effective_date DESC`, athleteID, exerciseID)
+		ORDER BY tm.effective_date DESC
+		LIMIT 100`, athleteID, exerciseID)
 	if err != nil {
 		return nil, fmt.Errorf("models: list training max history: %w", err)
 	}
@@ -123,7 +124,8 @@ func ListCurrentTrainingMaxes(db *sql.DB, athleteID int64) ([]*TrainingMax, erro
 		      FROM training_maxes tm2
 		      WHERE tm2.athlete_id = tm.athlete_id AND tm2.exercise_id = tm.exercise_id
 		  )
-		ORDER BY e.name COLLATE NOCASE`, athleteID)
+		ORDER BY e.name COLLATE NOCASE
+		LIMIT 100`, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("models: list current training maxes for athlete %d: %w", athleteID, err)
 	}

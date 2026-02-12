@@ -93,7 +93,8 @@ func ListActiveAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, err
 		FROM athlete_exercises ae
 		JOIN exercises e ON e.id = ae.exercise_id
 		WHERE ae.athlete_id = ? AND ae.active = 1
-		ORDER BY e.name COLLATE NOCASE`, athleteID)
+		ORDER BY e.name COLLATE NOCASE
+		LIMIT 100`, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("models: list active assignments for athlete %d: %w", athleteID, err)
 	}
@@ -153,7 +154,8 @@ func ListDeactivatedAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise
 		  )
 		GROUP BY ae.exercise_id
 		HAVING ae.deactivated_at = MAX(ae.deactivated_at)
-		ORDER BY e.name COLLATE NOCASE`, athleteID, athleteID)
+		ORDER BY e.name COLLATE NOCASE
+		LIMIT 100`, athleteID, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("models: list deactivated assignments for athlete %d: %w", athleteID, err)
 	}
@@ -185,7 +187,8 @@ func ListAssignedAthletes(db *sql.DB, exerciseID int64) ([]*AssignedAthlete, err
 		FROM athlete_exercises ae
 		JOIN athletes a ON a.id = ae.athlete_id
 		WHERE ae.exercise_id = ? AND ae.active = 1
-		ORDER BY a.name COLLATE NOCASE`, exerciseID)
+		ORDER BY a.name COLLATE NOCASE
+		LIMIT 100`, exerciseID)
 	if err != nil {
 		return nil, fmt.Errorf("models: list assigned athletes for exercise %d: %w", exerciseID, err)
 	}

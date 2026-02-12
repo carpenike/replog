@@ -35,7 +35,9 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">{{ if .Athlete }}Save Changes{{ else }}Create Athlete{{ end }}</button>
+                <button type="submit" class="btn btn-primary"
+                    {{ if .Athlete }}hx-confirm="Are you sure you want to save changes to this athlete's profile?"{{ end }}
+                >{{ if .Athlete }}Save Changes{{ else }}Create Athlete{{ end }}</button>
                 <a href="/athletes" class="btn">Cancel</a>
             </div>
         </form>

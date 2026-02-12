@@ -185,16 +185,76 @@ type ExerciseHistoryDay struct {
 	Sets        []*ExerciseHistoryEntry
 }
 
-// ListExerciseHistory returns all sets for a specific exercise performed by an
-// athlete, grouped by workout date (most recent first). Limited to 50 workouts.
-func ListExerciseHistory(db *sql.DB, athleteID, exerciseID int64) ([]*ExerciseHistoryDay, error) {
+// ExerciseHistoryPageSize is the max number of workout days returned per page
+// of exercise history.
+const ExerciseHistoryPageSize = 20
+
+// ExerciseHistoryPage holds a page of exercise history days and whether more exist.
+type ExerciseHistoryPage struct {
+	Days    []*ExerciseHistoryDay
+	HasMore bool
+}
+
+// ListExerciseHistory returns sets for a specific exercise performed by an
+// athlete, grouped by workout date (most recent first). Uses offset-based
+// pagination on distinct workout dates. Pass offset=0 for the first page.
+func ListExerciseHistory(db *sql.DB, athleteID, exerciseID int64, offset int) (*ExerciseHistoryPage, error) {
+	// First, get the distinct workout IDs for this athlete+exercise with pagination.
+	idRows, err := db.Query(`
+		SELECT DISTINCT w.id, w.date
+		FROM workout_sets ws
+		JOIN workouts w ON w.id = ws.workout_id
+		WHERE w.athlete_id = ? AND ws.exercise_id = ?
+		ORDER BY w.date DESC
+		LIMIT ? OFFSET ?`, athleteID, exerciseID, ExerciseHistoryPageSize+1, offset)
+	if err != nil {
+		return nil, fmt.Errorf("models: list exercise history workout ids for athlete %d exercise %d: %w", athleteID, exerciseID, err)
+	}
+	defer idRows.Close()
+
+	type workoutRef struct {
+		ID   int64
+		Date string
+	}
+	var refs []workoutRef
+	for idRows.Next() {
+		var ref workoutRef
+		if err := idRows.Scan(&ref.ID, &ref.Date); err != nil {
+			return nil, fmt.Errorf("models: scan exercise history workout ref: %w", err)
+		}
+		refs = append(refs, ref)
+	}
+	if err := idRows.Err(); err != nil {
+		return nil, err
+	}
+
+	hasMore := len(refs) > ExerciseHistoryPageSize
+	if hasMore {
+		refs = refs[:ExerciseHistoryPageSize]
+	}
+
+	if len(refs) == 0 {
+		return &ExerciseHistoryPage{Days: nil, HasMore: false}, nil
+	}
+
+	// Build placeholders and args for the IN clause.
+	placeholders := make([]byte, 0, len(refs)*2)
+	args := make([]any, 0, len(refs)+1)
+	for i, ref := range refs {
+		if i > 0 {
+			placeholders = append(placeholders, ',')
+		}
+		placeholders = append(placeholders, '?')
+		args = append(args, ref.ID)
+	}
+	args = append(args, exerciseID)
+
 	rows, err := db.Query(`
 		SELECT ws.workout_id, w.date, ws.set_number, ws.reps, ws.weight, ws.notes
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id
-		WHERE w.athlete_id = ? AND ws.exercise_id = ?
-		ORDER BY w.date DESC, ws.set_number
-		LIMIT 500`, athleteID, exerciseID)
+		WHERE ws.workout_id IN (`+string(placeholders)+`) AND ws.exercise_id = ?
+		ORDER BY w.date DESC, ws.set_number`, args...)
 	if err != nil {
 		return nil, fmt.Errorf("models: list exercise history for athlete %d exercise %d: %w", athleteID, exerciseID, err)
 	}
@@ -229,7 +289,7 @@ func ListExerciseHistory(db *sql.DB, athleteID, exerciseID int64) ([]*ExerciseHi
 	for _, wid := range dayOrder {
 		days = append(days, dayMap[wid])
 	}
-	return days, nil
+	return &ExerciseHistoryPage{Days: days, HasMore: hasMore}, nil
 }
 
 // RecentExerciseSet represents a recently logged set for an exercise, with

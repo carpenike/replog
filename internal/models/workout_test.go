@@ -77,15 +77,15 @@ func TestListWorkouts(t *testing.T) {
 	CreateWorkout(db, a.ID, "2026-01-15", "")
 	CreateWorkout(db, a.ID, "2026-01-10", "")
 
-	workouts, err := ListWorkouts(db, a.ID)
+	workouts, err := ListWorkouts(db, a.ID, 0)
 	if err != nil {
 		t.Fatalf("list workouts: %v", err)
 	}
-	if len(workouts) != 3 {
-		t.Fatalf("count = %d, want 3", len(workouts))
+	if len(workouts.Workouts) != 3 {
+		t.Fatalf("count = %d, want 3", len(workouts.Workouts))
 	}
 	// Should be ordered by date descending.
-	if !strings.HasPrefix(workouts[0].Date, "2026-01-15") {
-		t.Errorf("first date = %q, want prefix 2026-01-15", workouts[0].Date)
+	if !strings.HasPrefix(workouts.Workouts[0].Date, "2026-01-15") {
+		t.Errorf("first date = %q, want prefix 2026-01-15", workouts.Workouts[0].Date)
 	}
 }

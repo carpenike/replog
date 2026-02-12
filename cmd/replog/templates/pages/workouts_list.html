@@ -31,6 +31,14 @@
                 {{ end }}
             </tbody>
         </table>
+        {{ if .HasMore }}
+        <div class="load-more">
+            <button class="btn"
+                hx-get="/athletes/{{ .Athlete.ID }}/workouts?offset={{ .NextOffset }}"
+                hx-target="closest .load-more"
+                hx-swap="outerHTML">Load More</button>
+        </div>
+        {{ end }}
         {{ else }}
         <div class="empty-state">
             <p>No workouts logged yet.</p>

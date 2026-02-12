@@ -144,6 +144,7 @@ func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 		FROM users u
 		LEFT JOIN athletes a ON u.athlete_id = a.id
 		ORDER BY u.username COLLATE NOCASE
+		LIMIT 100
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("models: list users: %w", err)

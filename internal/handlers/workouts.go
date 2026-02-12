@@ -57,7 +57,12 @@ func (h *Workouts) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workouts, err := models.ListWorkouts(h.DB, athleteID)
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	if offset < 0 {
+		offset = 0
+	}
+
+	page, err := models.ListWorkouts(h.DB, athleteID, offset)
 	if err != nil {
 		log.Printf("handlers: list workouts for athlete %d: %v", athleteID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -65,8 +70,10 @@ func (h *Workouts) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{
-		"Athlete":  athlete,
-		"Workouts": workouts,
+		"Athlete":    athlete,
+		"Workouts":   page.Workouts,
+		"HasMore":    page.HasMore,
+		"NextOffset": offset + models.WorkoutPageSize,
 	}
 	if err := h.Templates.Render(w, r, "workouts_list.html", data); err != nil {
 		log.Printf("handlers: workouts list template: %v", err)

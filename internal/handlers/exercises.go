@@ -331,7 +331,12 @@ func (h *Exercises) ExerciseHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	days, err := models.ListExerciseHistory(h.DB, athleteID, exerciseID)
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	if offset < 0 {
+		offset = 0
+	}
+
+	page, err := models.ListExerciseHistory(h.DB, athleteID, exerciseID, offset)
 	if err != nil {
 		log.Printf("handlers: list exercise history for athlete %d exercise %d: %v", athleteID, exerciseID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -339,9 +344,11 @@ func (h *Exercises) ExerciseHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{
-		"Athlete":  athlete,
-		"Exercise": exercise,
-		"Days":     days,
+		"Athlete":    athlete,
+		"Exercise":   exercise,
+		"Days":       page.Days,
+		"HasMore":    page.HasMore,
+		"NextOffset": offset + models.ExerciseHistoryPageSize,
 	}
 	if err := h.Templates.Render(w, r, "exercise_history.html", data); err != nil {
 		log.Printf("handlers: exercise history template: %v", err)
