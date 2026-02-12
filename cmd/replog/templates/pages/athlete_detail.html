@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <!-- Workouts Link -->
+        <!-- Workouts -->
         <section class="section">
             <div class="section-header">
                 <h2>Workouts</h2>
@@ -51,6 +51,32 @@
                     <a href="/athletes/{{ .Athlete.ID }}/workouts" class="btn">View All</a>
                 </div>
             </div>
+
+            {{ if .RecentWorkouts }}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Sets Logged</th>
+                        <th scope="col">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .RecentWorkouts }}
+                    <tr>
+                        <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Date }}</a></td>
+                        <td>{{ .SetCount }}</td>
+                        <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <div class="empty-state">
+                <p>No workouts logged yet.</p>
+                <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="btn btn-primary">Start First Workout</a>
+            </div>
+            {{ end }}
         </section>
 
         <!-- Assigned Exercises -->
@@ -66,6 +92,7 @@
                     <tr>
                         <th scope="col">Exercise</th>
                         <th scope="col">Tier</th>
+                        <th scope="col">Target Reps</th>
                         <th scope="col">Current TM</th>
                         <th scope="col">Assigned</th>
                         <th scope="col">Actions</th>
@@ -76,6 +103,7 @@
                     <tr>
                         <td>{{ .ExerciseName }}</td>
                         <td>{{ if .ExerciseTier.Valid }}{{ .ExerciseTier.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td>{{ if .TargetReps.Valid }}{{ .TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         <td>
                             {{ $tm := index $.TMByExercise .ExerciseID }}
                             {{ if $tm }}
@@ -105,6 +133,39 @@
             </div>
             {{ end }}
         </section>
+
+        <!-- Deactivated Exercises (reactivatable) -->
+        {{ if and .IsCoach .Deactivated }}
+        <section class="section">
+            <h2>Previously Assigned</h2>
+            <p class="text-muted">These exercises were previously assigned and can be reactivated.</p>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Tier</th>
+                        <th scope="col">Deactivated</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Deactivated }}
+                    <tr>
+                        <td>{{ .ExerciseName }}</td>
+                        <td>{{ if .ExerciseTier.Valid }}{{ .ExerciseTier.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td class="text-muted">{{ if .DeactivatedAt.Valid }}{{ .DeactivatedAt.Time.Format "Jan 2, 2006" }}{{ end }}</td>
+                        <td>
+                            <form method="POST" action="/athletes/{{ $.Athlete.ID }}/assignments/reactivate" class="inline-form">
+                                <input type="hidden" name="exercise_id" value="{{ .ExerciseID }}">
+                                <button type="submit" class="btn btn-small btn-primary">Reactivate</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </section>
+        {{ end }}
     </main>
 </body>
 </html>{{ end }}

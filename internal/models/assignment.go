@@ -137,6 +137,40 @@ func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 	return exercises, rows.Err()
 }
 
+// ListDeactivatedAssignments returns previously deactivated (but not re-activated)
+// assignments for an athlete. These are exercises that were once assigned and could
+// be reactivated.
+func ListDeactivatedAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, error) {
+	rows, err := db.Query(`
+		SELECT ae.id, ae.athlete_id, ae.exercise_id, ae.active, ae.assigned_at, ae.deactivated_at,
+		       e.name, e.tier, e.target_reps
+		FROM athlete_exercises ae
+		JOIN exercises e ON e.id = ae.exercise_id
+		WHERE ae.athlete_id = ? AND ae.active = 0
+		  AND ae.exercise_id NOT IN (
+		      SELECT exercise_id FROM athlete_exercises
+		      WHERE athlete_id = ? AND active = 1
+		  )
+		GROUP BY ae.exercise_id
+		HAVING ae.deactivated_at = MAX(ae.deactivated_at)
+		ORDER BY e.name COLLATE NOCASE`, athleteID, athleteID)
+	if err != nil {
+		return nil, fmt.Errorf("models: list deactivated assignments for athlete %d: %w", athleteID, err)
+	}
+	defer rows.Close()
+
+	var assignments []*AthleteExercise
+	for rows.Next() {
+		ae := &AthleteExercise{}
+		if err := rows.Scan(&ae.ID, &ae.AthleteID, &ae.ExerciseID, &ae.Active, &ae.AssignedAt, &ae.DeactivatedAt,
+			&ae.ExerciseName, &ae.ExerciseTier, &ae.TargetReps); err != nil {
+			return nil, fmt.Errorf("models: scan deactivated assignment: %w", err)
+		}
+		assignments = append(assignments, ae)
+	}
+	return assignments, rows.Err()
+}
+
 // AssignedAthlete represents an athlete with an active assignment for a specific exercise.
 type AssignedAthlete struct {
 	AthleteID   int64

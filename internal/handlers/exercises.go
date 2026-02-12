@@ -20,6 +20,7 @@ type Exercises struct {
 
 // List renders the exercise list page.
 func (h *Exercises) List(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
 	tierFilter := r.URL.Query().Get("tier")
 
 	exercises, err := models.ListExercises(h.DB, tierFilter)
@@ -33,6 +34,7 @@ func (h *Exercises) List(w http.ResponseWriter, r *http.Request) {
 		"Exercises":  exercises,
 		"TierFilter": tierFilter,
 		"Tiers":      tierFilterOptions(),
+		"IsCoach":    user.IsCoach,
 	}
 	if err := h.Templates.ExecuteTemplate(w, "exercises-list", data); err != nil {
 		log.Printf("handlers: exercises list template: %v", err)
@@ -40,8 +42,14 @@ func (h *Exercises) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// NewForm renders the new exercise form.
+// NewForm renders the new exercise form. Coach only.
 func (h *Exercises) NewForm(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	data := map[string]any{
 		"Tiers": tierOptions(),
 	}
@@ -51,8 +59,14 @@ func (h *Exercises) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Create processes the new exercise form submission.
+// Create processes the new exercise form submission. Coach only.
 func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -73,7 +87,7 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 	targetReps, _ := strconv.Atoi(r.FormValue("target_reps"))
 
 	exercise, err := models.CreateExercise(h.DB, name, r.FormValue("tier"), targetReps, r.FormValue("form_notes"))
-	if errors.Is(err, models.ErrDuplicateUsername) {
+	if errors.Is(err, models.ErrDuplicateExerciseName) {
 		data := map[string]any{
 			"Error": "An exercise with that name already exists",
 			"Tiers": tierOptions(),
@@ -94,6 +108,8 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 
 // Show renders the exercise detail page.
 func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid exercise ID", http.StatusBadRequest)
@@ -129,6 +145,7 @@ func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
 		"Exercise":         exercise,
 		"AssignedAthletes": assignedAthletes,
 		"RecentSets":       recentSets,
+		"IsCoach":          user.IsCoach,
 	}
 	if err := h.Templates.ExecuteTemplate(w, "exercise-detail", data); err != nil {
 		log.Printf("handlers: exercise detail template: %v", err)
@@ -136,8 +153,14 @@ func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// EditForm renders the edit exercise form.
+// EditForm renders the edit exercise form. Coach only.
 func (h *Exercises) EditForm(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid exercise ID", http.StatusBadRequest)
@@ -165,8 +188,14 @@ func (h *Exercises) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Update processes the edit exercise form submission.
+// Update processes the edit exercise form submission. Coach only.
 func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid exercise ID", http.StatusBadRequest)
@@ -199,7 +228,7 @@ func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Exercise not found", http.StatusNotFound)
 		return
 	}
-	if errors.Is(err, models.ErrDuplicateUsername) {
+	if errors.Is(err, models.ErrDuplicateExerciseName) {
 		exercise, _ := models.GetExerciseByID(h.DB, id)
 		data := map[string]any{
 			"Error":    "An exercise with that name already exists",
@@ -220,8 +249,14 @@ func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/exercises/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
-// Delete removes an exercise.
+// Delete removes an exercise. Coach only.
 func (h *Exercises) Delete(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid exercise ID", http.StatusBadRequest)

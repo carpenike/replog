@@ -145,11 +145,35 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		tmByExercise[tm.ExerciseID] = tm
 	}
 
+	// Load recent workouts for the athlete detail page.
+	recentWorkouts, err := models.ListWorkouts(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: list workouts for athlete %d: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	// Limit to 5 most recent for the summary view.
+	if len(recentWorkouts) > 5 {
+		recentWorkouts = recentWorkouts[:5]
+	}
+
+	// Load deactivated assignments for reactivation UI (coach only).
+	var deactivated []*models.AthleteExercise
+	if user.IsCoach {
+		deactivated, err = models.ListDeactivatedAssignments(h.DB, id)
+		if err != nil {
+			log.Printf("handlers: list deactivated assignments for athlete %d: %v", id, err)
+			// Non-fatal — continue without deactivated list.
+		}
+	}
+
 	data := map[string]any{
-		"Athlete":       athlete,
-		"Assignments":   assignments,
-		"TMByExercise":  tmByExercise,
-		"IsCoach":       user.IsCoach,
+		"Athlete":        athlete,
+		"Assignments":    assignments,
+		"TMByExercise":   tmByExercise,
+		"IsCoach":        user.IsCoach,
+		"RecentWorkouts": recentWorkouts,
+		"Deactivated":    deactivated,
 	}
 	if err := h.Templates.ExecuteTemplate(w, "athlete-detail", data); err != nil {
 		log.Printf("handlers: athlete detail template: %v", err)

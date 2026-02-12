@@ -235,12 +235,25 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Load current training maxes for the athlete to display in the daily view.
+	currentTMs, err := models.ListCurrentTrainingMaxes(h.DB, athleteID)
+	if err != nil {
+		log.Printf("handlers: list training maxes for athlete %d: %v", athleteID, err)
+		// Non-fatal — continue without TM data.
+	}
+	tmByExercise := make(map[int64]*models.TrainingMax)
+	for _, tm := range currentTMs {
+		tmByExercise[tm.ExerciseID] = tm
+	}
+
 	data := map[string]any{
-		"Athlete":     athlete,
-		"Workout":     workout,
-		"Groups":      groups,
-		"Assigned":    assigned,
-		"Unassigned":  unassigned,
+		"Athlete":      athlete,
+		"Workout":      workout,
+		"Groups":       groups,
+		"Assigned":     assigned,
+		"Unassigned":   unassigned,
+		"IsCoach":      middleware.UserFromContext(r.Context()).IsCoach,
+		"TMByExercise": tmByExercise,
 	}
 	if err := h.Templates.ExecuteTemplate(w, "workout-detail", data); err != nil {
 		log.Printf("handlers: workout detail template: %v", err)
@@ -280,8 +293,14 @@ func (h *Workouts) UpdateNotes(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10)+"/workouts/"+strconv.FormatInt(workoutID, 10), http.StatusSeeOther)
 }
 
-// Delete removes a workout and all its sets.
+// Delete removes a workout and all its sets. Coach only.
 func (h *Workouts) Delete(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	if !checkAthleteAccess(w, r) {
 		return
 	}

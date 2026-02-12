@@ -146,6 +146,7 @@ func main() {
 	mux.Handle("GET /athletes/{id}/assignments/new", requireAuth(assignments.AssignForm))
 	mux.Handle("POST /athletes/{id}/assignments", requireAuth(assignments.Assign))
 	mux.Handle("POST /athletes/{id}/assignments/{assignmentID}/deactivate", requireAuth(assignments.Deactivate))
+	mux.Handle("POST /athletes/{id}/assignments/reactivate", requireAuth(assignments.Reactivate))
 
 	// Training Maxes.
 	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/training-maxes", requireAuth(trainingMaxes.History))

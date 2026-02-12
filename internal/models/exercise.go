@@ -11,6 +11,9 @@ import (
 // been logged in workout sets (ON DELETE RESTRICT).
 var ErrExerciseInUse = errors.New("exercise is referenced by workout sets")
 
+// ErrDuplicateExerciseName is returned when an exercise name is already taken.
+var ErrDuplicateExerciseName = errors.New("duplicate exercise name")
+
 // Exercise represents a movement tracked in the system.
 type Exercise struct {
 	ID         int64
@@ -43,7 +46,7 @@ func CreateExercise(db *sql.DB, name, tier string, targetReps int, formNotes str
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
-			return nil, ErrDuplicateUsername // reuse for "duplicate name"
+			return nil, ErrDuplicateExerciseName
 		}
 		return nil, fmt.Errorf("models: create exercise %q: %w", name, err)
 	}
@@ -89,7 +92,7 @@ func UpdateExercise(db *sql.DB, id int64, name, tier string, targetReps int, for
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
-			return nil, ErrDuplicateUsername
+			return nil, ErrDuplicateExerciseName
 		}
 		return nil, fmt.Errorf("models: update exercise %d: %w", id, err)
 	}

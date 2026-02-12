@@ -20,6 +20,7 @@
 
         <div class="page-header">
             <h1>{{ .Exercise.Name }}</h1>
+            {{ if .IsCoach }}
             <div class="page-actions">
                 <a href="/exercises/{{ .Exercise.ID }}/edit" class="btn">Edit</a>
                 <form method="POST" action="/exercises/{{ .Exercise.ID }}/delete" class="inline-form"
@@ -27,6 +28,7 @@
                     <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
             </div>
+            {{ end }}
         </div>
 
         <div class="detail-grid">

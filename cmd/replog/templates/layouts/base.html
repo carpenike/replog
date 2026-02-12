@@ -12,6 +12,13 @@
         <nav>
             <a href="/" class="logo">RepLog</a>
             {{ if .User }}
+            <div class="nav-links">
+                {{ if .User.IsCoach }}
+                <a href="/athletes">Athletes</a>
+                <a href="/exercises">Exercises</a>
+                <a href="/users">Users</a>
+                {{ end }}
+            </div>
             <form method="POST" action="/logout" class="nav-logout">
                 <span class="nav-user">{{ .User.Username }}</span>
                 <button type="submit" class="btn btn-small">Sign Out</button>
