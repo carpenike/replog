@@ -41,7 +41,7 @@ Add this flake as an input to your nix-config:
 
 ```nix
 {
-  inputs.replog.url = "github:you/replog";
+  inputs.replog.url = "github:carpenike/replog";
 }
 ```
 

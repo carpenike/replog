@@ -318,20 +318,24 @@ CREATE INDEX IF NOT EXISTS idx_workout_sets_workout
     ON workout_sets(workout_id);
 
 -- Triggers for updated_at timestamps
+-- WHEN guard prevents infinite recursion (trigger fires UPDATE, which would fire trigger again)
 CREATE TRIGGER IF NOT EXISTS trigger_users_updated_at
-AFTER UPDATE ON users
+AFTER UPDATE ON users FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
 BEGIN
     UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS trigger_athletes_updated_at
-AFTER UPDATE ON athletes
+AFTER UPDATE ON athletes FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
 BEGIN
     UPDATE athletes SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS trigger_exercises_updated_at
-AFTER UPDATE ON exercises
+AFTER UPDATE ON exercises FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
 BEGIN
     UPDATE exercises SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
