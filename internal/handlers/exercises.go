@@ -3,7 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,6 +11,12 @@ import (
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
+
+// deleteErrorTmpl renders an inline error message for htmx fragment responses
+// (e.g. exercise delete that fails due to RESTRICT).
+var deleteErrorTmpl = template.Must(template.New("deleteError").Parse(
+	`<div class="alert alert-error">{{ . }}</div>`,
+))
 
 // Exercises holds dependencies for exercise handlers.
 type Exercises struct {
@@ -266,7 +272,10 @@ func (h *Exercises) Delete(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(err, models.ErrExerciseInUse) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusConflict)
-		fmt.Fprint(w, `<div class="alert alert-error">Cannot delete — exercise has been logged in workouts.</div>`)
+		err := deleteErrorTmpl.Execute(w, "Cannot delete — exercise has been logged in workouts.")
+		if err != nil {
+			log.Printf("handlers: delete exercise error template: %v", err)
+		}
 		return
 	}
 	if err != nil {

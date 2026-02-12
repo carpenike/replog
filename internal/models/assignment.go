@@ -121,7 +121,8 @@ func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 			SELECT exercise_id FROM athlete_exercises
 			WHERE athlete_id = ? AND active = 1
 		)
-		ORDER BY e.name COLLATE NOCASE`, athleteID)
+		ORDER BY e.name COLLATE NOCASE
+		LIMIT 200`, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("models: list unassigned exercises for athlete %d: %w", athleteID, err)
 	}

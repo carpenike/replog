@@ -23,7 +23,8 @@ type WorkoutSet struct {
 }
 
 // AddSet inserts a new set into a workout. set_number is auto-calculated as the
-// next number for the given workout+exercise.
+// next number for the given workout+exercise. The read-then-write is wrapped in
+// a transaction to prevent duplicate set numbers under concurrent requests.
 func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, notes string) (*WorkoutSet, error) {
 	var weightVal sql.NullFloat64
 	if weight > 0 {
@@ -34,9 +35,15 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, n
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("models: begin tx for add set: %w", err)
+	}
+	defer tx.Rollback()
+
 	// Compute next set_number for this workout+exercise.
 	var nextSet int
-	err := db.QueryRow(
+	err = tx.QueryRow(
 		`SELECT COALESCE(MAX(set_number), 0) + 1 FROM workout_sets WHERE workout_id = ? AND exercise_id = ?`,
 		workoutID, exerciseID,
 	).Scan(&nextSet)
@@ -44,12 +51,16 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, n
 		return nil, fmt.Errorf("models: compute next set number: %w", err)
 	}
 
-	result, err := db.Exec(
+	result, err := tx.Exec(
 		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, notes) VALUES (?, ?, ?, ?, ?, ?)`,
 		workoutID, exerciseID, nextSet, reps, weightVal, notesVal,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: add set to workout %d: %w", workoutID, err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("models: commit add set: %w", err)
 	}
 
 	id, _ := result.LastInsertId()
