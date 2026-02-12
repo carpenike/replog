@@ -130,7 +130,7 @@ erDiagram
 - `athlete_id` links the user to "their" athlete profile. NULL for coach-only accounts without a personal training profile.
 - `is_coach = 1` → full access to all athletes. `is_coach = 0` → can only view/log/edit workouts for their linked athlete.
 - `COLLATE NOCASE` prevents "Admin" and "admin" or duplicate emails.
-- Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` env vars with `is_coach = 1`.
+- Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL` env vars with `is_coach = 1`.
 
 ### `athletes`
 
@@ -169,7 +169,7 @@ erDiagram
 | `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
 | `athlete_id`   | INTEGER      | NOT NULL, FK → athletes(id)          |
 | `exercise_id`  | INTEGER      | NOT NULL, FK → exercises(id)         |
-| `active`       | BOOLEAN      | NOT NULL DEFAULT 1                   |
+| `active`       | INTEGER      | NOT NULL DEFAULT 1, CHECK(active IN (0, 1)) |
 | `assigned_at`  | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `deactivated_at`| DATETIME    | NULL                                 |
 
