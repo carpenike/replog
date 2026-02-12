@@ -461,3 +461,37 @@ header nav {
 .notes-form {
     margin-top: 0.5rem;
 }
+
+/* htmx loading indicator */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}
+
+.btn.htmx-request {
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+.spinner {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-left: 0.25rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

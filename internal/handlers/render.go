@@ -46,7 +46,33 @@ func NewTemplateCache(fsys fs.FS) (TemplateCache, error) {
 		cache[name] = ts
 	}
 
+	// Parse standalone partial templates (error fragments, etc.).
+	partials, err := fs.Glob(fsys, "templates/partials/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("handlers: glob partial templates: %w", err)
+	}
+	for _, partial := range partials {
+		ts, err := template.ParseFS(fsys, partial)
+		if err != nil {
+			return nil, fmt.Errorf("handlers: parse partial %s: %w", partial, err)
+		}
+		// Store with underscore prefix to distinguish from pages.
+		name := "_" + filepath.Base(partial)
+		name = name[:len(name)-len(filepath.Ext(name))]
+		cache[name] = ts
+	}
+
 	return cache, nil
+}
+
+// RenderErrorFragment writes a standalone error message HTML fragment. Used for
+// htmx responses that need to display an inline error (e.g., delete conflicts).
+func (tc TemplateCache) RenderErrorFragment(w http.ResponseWriter, msg string) error {
+	ts, ok := tc["_error_fragment"]
+	if !ok {
+		return fmt.Errorf("handlers: error fragment template not found in cache")
+	}
+	return ts.ExecuteTemplate(w, "error-fragment", msg)
 }
 
 // Render executes a page template with the base layout. It automatically injects

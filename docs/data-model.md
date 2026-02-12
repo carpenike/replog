@@ -87,6 +87,7 @@ erDiagram
         DATE date
         TEXT notes "nullable"
         DATETIME created_at
+        DATETIME updated_at
     }
 
     workout_sets {
@@ -98,6 +99,7 @@ erDiagram
         REAL weight "nullable"
         TEXT notes "nullable"
         DATETIME created_at
+        DATETIME updated_at
     }
 
     users ||--o| athletes : "linked profile"
@@ -203,6 +205,7 @@ erDiagram
 | `date`      | DATE         | NOT NULL                             |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - One row per training session.
 - `notes` holds session-level observations ("knee was bothering her today").
@@ -220,6 +223,7 @@ erDiagram
 | `weight`    | REAL         | NULL                                 |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - One row = one set.
 - `weight` is nullable — bodyweight exercises (push-ups, bear crawls) don't need it.
@@ -289,6 +293,7 @@ CREATE TABLE IF NOT EXISTS workouts (
     date        DATE    NOT NULL,
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(athlete_id, date)
 );
 
@@ -301,6 +306,7 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     weight      REAL,
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(workout_id, exercise_id, set_number)
 );
 
@@ -338,6 +344,20 @@ AFTER UPDATE ON exercises FOR EACH ROW
 WHEN OLD.updated_at = NEW.updated_at
 BEGIN
     UPDATE exercises SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trigger_workouts_updated_at
+AFTER UPDATE ON workouts FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE workouts SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trigger_workout_sets_updated_at
+AFTER UPDATE ON workout_sets FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE workout_sets SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 ```
 

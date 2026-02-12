@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS workouts (
     date        DATE    NOT NULL,
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(athlete_id, date)
 );
 
@@ -68,6 +69,7 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     weight      REAL,
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(workout_id, exercise_id, set_number)
 );
 
@@ -121,8 +123,28 @@ BEGIN
 END;
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE TRIGGER IF NOT EXISTS trigger_workouts_updated_at
+AFTER UPDATE ON workouts FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE workouts SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE TRIGGER IF NOT EXISTS trigger_workout_sets_updated_at
+AFTER UPDATE ON workout_sets FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE workout_sets SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+-- +goose StatementEnd
+
 -- +goose Down
 
+DROP TRIGGER IF EXISTS trigger_workout_sets_updated_at;
+DROP TRIGGER IF EXISTS trigger_workouts_updated_at;
 DROP TRIGGER IF EXISTS trigger_exercises_updated_at;
 DROP TRIGGER IF EXISTS trigger_athletes_updated_at;
 DROP TRIGGER IF EXISTS trigger_users_updated_at;

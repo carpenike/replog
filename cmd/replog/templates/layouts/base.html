@@ -30,6 +30,7 @@
                 {{ else if .User.AthleteID.Valid }}
                 <a href="/athletes/{{ .User.AthleteID.Int64 }}">My Profile</a>
                 <a href="/athletes/{{ .User.AthleteID.Int64 }}/workouts">My Workouts</a>
+                <a href="/exercises">Exercises</a>
                 {{ end }}
             </div>
             <form method="POST" action="/logout" class="nav-logout">

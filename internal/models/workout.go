@@ -17,6 +17,7 @@ type Workout struct {
 	Date      string // DATE as string (YYYY-MM-DD)
 	Notes     sql.NullString
 	CreatedAt time.Time
+	UpdatedAt time.Time
 
 	// Joined fields populated by list queries.
 	AthleteName string
@@ -49,12 +50,12 @@ func CreateWorkout(db *sql.DB, athleteID int64, date, notes string) (*Workout, e
 func GetWorkoutByID(db *sql.DB, id int64) (*Workout, error) {
 	w := &Workout{}
 	err := db.QueryRow(
-		`SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, a.name,
+		`SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, w.updated_at, a.name,
 		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
 		 FROM workouts w
 		 JOIN athletes a ON a.id = w.athlete_id
 		 WHERE w.id = ?`, id,
-	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.AthleteName, &w.SetCount)
+	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -68,12 +69,12 @@ func GetWorkoutByID(db *sql.DB, id int64) (*Workout, error) {
 func GetWorkoutByAthleteDate(db *sql.DB, athleteID int64, date string) (*Workout, error) {
 	w := &Workout{}
 	err := db.QueryRow(
-		`SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, a.name,
+		`SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, w.updated_at, a.name,
 		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
 		 FROM workouts w
 		 JOIN athletes a ON a.id = w.athlete_id
 		 WHERE w.athlete_id = ? AND w.date = ?`, athleteID, date,
-	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.AthleteName, &w.SetCount)
+	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -128,7 +129,7 @@ type WorkoutPage struct {
 // sets HasMore if additional rows exist beyond the current page.
 func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error) {
 	rows, err := db.Query(`
-		SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, a.name,
+		SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, w.updated_at, a.name,
 		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
 		FROM workouts w
 		JOIN athletes a ON a.id = w.athlete_id
@@ -143,7 +144,7 @@ func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error)
 	var workouts []*Workout
 	for rows.Next() {
 		w := &Workout{}
-		if err := rows.Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.AthleteName, &w.SetCount); err != nil {
+		if err := rows.Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount); err != nil {
 			return nil, fmt.Errorf("models: scan workout: %w", err)
 		}
 		workouts = append(workouts, w)

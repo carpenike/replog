@@ -17,6 +17,7 @@ type WorkoutSet struct {
 	Weight     sql.NullFloat64
 	Notes      sql.NullString
 	CreatedAt  time.Time
+	UpdatedAt  time.Time
 
 	// Joined fields populated by list queries.
 	ExerciseName string
@@ -71,12 +72,12 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, n
 func GetSetByID(db *sql.DB, id int64) (*WorkoutSet, error) {
 	s := &WorkoutSet{}
 	err := db.QueryRow(
-		`SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.notes, ws.created_at,
+		`SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.notes, ws.created_at, ws.updated_at,
 		        e.name
 		 FROM workout_sets ws
 		 JOIN exercises e ON e.id = ws.exercise_id
 		 WHERE ws.id = ?`, id,
-	).Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.Notes, &s.CreatedAt, &s.ExerciseName)
+	).Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.Notes, &s.CreatedAt, &s.UpdatedAt, &s.ExerciseName)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -134,7 +135,7 @@ type ExerciseGroup struct {
 // ListSetsByWorkout returns all sets for a workout, grouped by exercise.
 func ListSetsByWorkout(db *sql.DB, workoutID int64) ([]*ExerciseGroup, error) {
 	rows, err := db.Query(`
-		SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.notes, ws.created_at,
+		SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.notes, ws.created_at, ws.updated_at,
 		       e.name
 		FROM workout_sets ws
 		JOIN exercises e ON e.id = ws.exercise_id
@@ -150,7 +151,7 @@ func ListSetsByWorkout(db *sql.DB, workoutID int64) ([]*ExerciseGroup, error) {
 
 	for rows.Next() {
 		s := &WorkoutSet{}
-		if err := rows.Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.Notes, &s.CreatedAt, &s.ExerciseName); err != nil {
+		if err := rows.Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.Notes, &s.CreatedAt, &s.UpdatedAt, &s.ExerciseName); err != nil {
 			return nil, fmt.Errorf("models: scan set: %w", err)
 		}
 
