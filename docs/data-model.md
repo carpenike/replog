@@ -1,0 +1,262 @@
+# Data Model
+
+> RepLog v1 schema — designed during bootstrap, Feb 2026.
+
+## Design Decisions
+
+These were resolved interactively before schema design:
+
+1. **Tier lives on both athlete and exercise.** Exercise tier is classification (lunges are Foundational). Athlete tier is the coach's current assessment. The assignment table is the source of truth for "what does this person do today" — tier is not a hard constraint.
+
+2. **Renamed `kids` → `athletes`.** The app tracks both kids (tier-based progression) and adults (percentage-based programs like 5/3/1). Tier is nullable — adults don't need it.
+
+3. **Logging is per-set.** One row = one set = reps + weight. You can see set-to-set fatigue and partial completions. Easy to aggregate up, impossible to disaggregate down.
+
+4. **A thin `workouts` table groups sets.** Without it you'd query by date and hope timestamps cluster. A workout row gives you a clean FK, a place for session-level notes, and simple history queries.
+
+5. **Training maxes are a first-class entity.** Required for percentage-based programs (5/3/1, GZCL). Multiple rows per exercise track TM progression over time. Even without a program engine, seeing "that was 85% of my TM" is useful.
+
+6. **Assignments use an `active` flag, not hard deletes.** Deactivating preserves history. `assigned_at` / `deactivated_at` give you a timeline. Reactivation is a flag flip or a new row.
+
+7. **No program/prescription engine in v1.** The app is a logbook. The coach (or spreadsheet) decides what to do; the app records what happened. Program templates are a clean additive migration for v1.1+.
+
+## Entity Relationship Diagram
+
+```
+┌──────────────┐       ┌───────────────────┐       ┌──────────────┐
+│   athletes   │       │ athlete_exercises  │       │  exercises   │
+├──────────────┤       ├───────────────────┤       ├──────────────┤
+│ id       PK  │──┐    │ id            PK  │    ┌──│ id       PK  │
+│ name         │  ├───>│ athlete_id    FK  │    │  │ name         │
+│ tier (null)  │  │    │ exercise_id   FK  │<───┘  │ tier (null)  │
+│ notes        │  │    │ active            │       │ target_reps  │
+│ created_at   │  │    │ assigned_at       │       │ form_notes   │
+│ updated_at   │  │    │ deactivated_at    │       │ created_at   │
+└──────────────┘  │    └───────────────────┘       │ updated_at   │
+                  │                                └──────────────┘
+                  │                                       │
+                  │    ┌───────────────────┐              │
+                  │    │  training_maxes   │              │
+                  │    ├───────────────────┤              │
+                  │    │ id            PK  │              │
+                  ├───>│ athlete_id    FK  │              │
+                  │    │ exercise_id   FK  │<─────────────┘
+                  │    │ weight            │
+                  │    │ effective_date    │
+                  │    │ notes             │
+                  │    │ created_at        │
+                  │    └───────────────────┘
+                  │
+                  │    ┌──────────────┐    ┌──────────────────┐
+                  │    │   workouts   │    │  workout_sets    │
+                  │    ├──────────────┤    ├──────────────────┤
+                  │    │ id       PK  │───>│ workout_id   FK  │
+                  └───>│ athlete_id FK│    │ exercise_id  FK  │──> exercises
+                       │ date         │    │ set_number       │
+                       │ notes        │    │ reps             │
+                       │ created_at   │    │ weight           │
+                       └──────────────┘    │ notes            │
+                                           │ created_at       │
+                                           └──────────────────┘
+```
+
+## Schema
+
+### `athletes`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `name`      | TEXT         | NOT NULL                             |
+| `tier`      | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
+| `notes`     | TEXT         | NULL                                 |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- `tier` is nullable — adults running their own programs don't use the tier system.
+- `notes` holds free-form coaching observations ("ready to try intermediate bench").
+
+### `exercises`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `name`      | TEXT         | NOT NULL UNIQUE                      |
+| `tier`      | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
+| `target_reps`| INTEGER     | NULL                                 |
+| `form_notes`| TEXT         | NULL                                 |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- `tier` is nullable — general lifts (squat, bench, deadlift) exist independent of the kids' tier system.
+- `target_reps` is the default prescription. Can be overridden per-assignment in the future.
+- `form_notes` holds static coaching cues ("keep elbows tucked").
+
+### `athlete_exercises`
+
+| Column          | Type         | Constraints                          |
+|----------------|-------------|--------------------------------------|
+| `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`   | INTEGER      | NOT NULL, FK → athletes(id)          |
+| `exercise_id`  | INTEGER      | NOT NULL, FK → exercises(id)         |
+| `active`       | BOOLEAN      | NOT NULL DEFAULT 1                   |
+| `assigned_at`  | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `deactivated_at`| DATETIME    | NULL                                 |
+
+- UNIQUE(athlete_id, exercise_id, assigned_at) — prevents duplicate active assignments.
+- Deactivation sets `active = 0` and populates `deactivated_at`.
+- History is preserved; query `WHERE active = 1` for current assignments.
+
+### `training_maxes`
+
+| Column          | Type         | Constraints                          |
+|----------------|-------------|--------------------------------------|
+| `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`   | INTEGER      | NOT NULL, FK → athletes(id)          |
+| `exercise_id`  | INTEGER      | NOT NULL, FK → exercises(id)         |
+| `weight`       | REAL         | NOT NULL                             |
+| `effective_date`| DATE        | NOT NULL                             |
+| `notes`        | TEXT         | NULL                                 |
+| `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Multiple rows per athlete+exercise track TM progression over time.
+- `effective_date` allows backdating or planning ahead.
+- Current TM = most recent row by `effective_date` for a given athlete+exercise.
+
+### `workouts`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`| INTEGER      | NOT NULL, FK → athletes(id)          |
+| `date`      | DATE         | NOT NULL                             |
+| `notes`     | TEXT         | NULL                                 |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- One row per training session.
+- `notes` holds session-level observations ("knee was bothering her today").
+- UNIQUE(athlete_id, date) — one workout per athlete per day for v1.
+
+### `workout_sets`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `workout_id`| INTEGER      | NOT NULL, FK → workouts(id)          |
+| `exercise_id`| INTEGER     | NOT NULL, FK → exercises(id)         |
+| `set_number`| INTEGER      | NOT NULL                             |
+| `reps`      | INTEGER      | NOT NULL                             |
+| `weight`    | REAL         | NULL                                 |
+| `notes`     | TEXT         | NULL                                 |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- One row = one set.
+- `weight` is nullable — bodyweight exercises (push-ups, bear crawls) don't need it.
+- `set_number` preserves ordering within exercise within workout.
+- `notes` holds per-set observations ("form broke down on rep 18").
+
+## SQLite DDL
+
+```sql
+PRAGMA journal_mode = WAL;
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS athletes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL,
+    tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
+    notes       TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS exercises (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL UNIQUE,
+    tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
+    target_reps INTEGER,
+    form_notes  TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS athlete_exercises (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id      INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    exercise_id     INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    active          INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+    assigned_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deactivated_at  DATETIME,
+    UNIQUE(athlete_id, exercise_id, assigned_at)
+);
+
+CREATE TABLE IF NOT EXISTS training_maxes (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id      INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    exercise_id     INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    weight          REAL    NOT NULL,
+    effective_date  DATE    NOT NULL,
+    notes           TEXT,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS workouts (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id  INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    date        DATE    NOT NULL,
+    notes       TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(athlete_id, date)
+);
+
+CREATE TABLE IF NOT EXISTS workout_sets (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    workout_id  INTEGER NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
+    exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE RESTRICT,
+    set_number  INTEGER NOT NULL,
+    reps        INTEGER NOT NULL,
+    weight      REAL,
+    notes       TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_athlete_exercises_active
+    ON athlete_exercises(athlete_id, active) WHERE active = 1;
+
+CREATE INDEX IF NOT EXISTS idx_workouts_athlete_date
+    ON workouts(athlete_id, date);
+
+CREATE INDEX IF NOT EXISTS idx_workout_sets_workout
+    ON workout_sets(workout_id);
+
+CREATE INDEX IF NOT EXISTS idx_training_maxes_athlete_exercise
+    ON training_maxes(athlete_id, exercise_id, effective_date);
+```
+
+## Seed Data (Development)
+
+```sql
+-- Tier exercises
+INSERT INTO exercises (name, tier, target_reps, form_notes) VALUES
+    ('Lunges', 'foundational', 20, 'Keep front knee over ankle, torso upright'),
+    ('Push-ups', 'foundational', 20, 'Full range of motion, elbows at 45 degrees'),
+    ('Goblet Squats', 'foundational', 20, 'Hold weight at chest, sit back into heels'),
+    ('Bear Crawls', 'foundational', 20, 'Keep hips low, opposite hand-foot movement'),
+    ('Bench Press', 'intermediate', 15, 'Training bar. Feet flat, arch back slightly, control the descent'),
+    ('Dumbbell Snatch', 'intermediate', 15, 'Start from hang position, explosive hip drive'),
+    ('Cleans', 'sport_performance', NULL, 'Full clean from floor, catch in front rack'),
+    ('Deadlifts', 'sport_performance', NULL, 'Traditional stance, neutral spine throughout');
+
+-- General lifts (no tier)
+INSERT INTO exercises (name, tier, target_reps, form_notes) VALUES
+    ('Back Squat', NULL, NULL, 'Break parallel, drive knees out'),
+    ('Overhead Press', NULL, NULL, 'Strict press, no leg drive');
+```
+
+## Future Considerations (v1.1+)
+
+- **Program templates**: `programs` + `program_templates` tables for structured periodization (5/3/1, GZCL). Additive migration, no v1 schema changes needed.
+- **RPE tracking**: Add `rpe` column to `workout_sets` for rate of perceived exertion.
+- **Exercise categories/tags**: Muscle group, movement pattern (push/pull/hinge/squat/carry).
+- **Body weight tracking**: Separate `weigh_ins` table for athletes who want it.
