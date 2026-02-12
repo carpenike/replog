@@ -28,55 +28,84 @@ These were resolved interactively before schema design:
 
 ## Entity Relationship Diagram
 
-```
-┌──────────────┐
-│    users     │
-├──────────────┤
-│ id       PK  │
-│ username     │
-│ email        │
-│ password_hash│
-│ athlete_id FK│──> athletes
-│ is_coach     │
-│ created_at   │
-│ updated_at   │
-└──────────────┘
+```mermaid
+erDiagram
+    users {
+        INTEGER id PK
+        TEXT username UK "COLLATE NOCASE"
+        TEXT email UK "COLLATE NOCASE, nullable"
+        TEXT password_hash
+        INTEGER athlete_id FK "nullable"
+        INTEGER is_coach "0 or 1"
+        DATETIME created_at
+        DATETIME updated_at
+    }
 
-┌──────────────┐       ┌───────────────────┐       ┌──────────────┐
-│   athletes   │       │ athlete_exercises  │       │  exercises   │
-├──────────────┤       ├───────────────────┤       ├──────────────┤
-│ id       PK  │──┐    │ id            PK  │    ┌──│ id       PK  │
-│ name         │  ├───>│ athlete_id    FK  │    │  │ name         │
-│ tier (null)  │  │    │ exercise_id   FK  │<───┘  │ tier (null)  │
-│ notes        │  │    │ active            │       │ target_reps  │
-│ created_at   │  │    │ assigned_at       │       │ form_notes   │
-│ updated_at   │  │    │ deactivated_at    │       │ created_at   │
-└──────────────┘  │    └───────────────────┘       │ updated_at   │
-                  │                                └──────────────┘
-                  │                                       │
-                  │    ┌───────────────────┐              │
-                  │    │  training_maxes   │              │
-                  │    ├───────────────────┤              │
-                  │    │ id            PK  │              │
-                  ├───>│ athlete_id    FK  │              │
-                  │    │ exercise_id   FK  │<─────────────┘
-                  │    │ weight            │
-                  │    │ effective_date    │
-                  │    │ notes             │
-                  │    │ created_at        │
-                  │    └───────────────────┘
-                  │
-                  │    ┌──────────────┐    ┌──────────────────┐
-                  │    │   workouts   │    │  workout_sets    │
-                  │    ├──────────────┤    ├──────────────────┤
-                  │    │ id       PK  │───>│ workout_id   FK  │
-                  └───>│ athlete_id FK│    │ exercise_id  FK  │──> exercises
-                       │ date         │    │ set_number       │
-                       │ notes        │    │ reps             │
-                       │ created_at   │    │ weight           │
-                       └──────────────┘    │ notes            │
-                                           │ created_at       │
-                                           └──────────────────┘
+    athletes {
+        INTEGER id PK
+        TEXT name "COLLATE NOCASE"
+        TEXT tier "nullable"
+        TEXT notes "nullable"
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    exercises {
+        INTEGER id PK
+        TEXT name UK "COLLATE NOCASE"
+        TEXT tier "nullable"
+        INTEGER target_reps "nullable"
+        TEXT form_notes "nullable"
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    athlete_exercises {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        INTEGER exercise_id FK
+        INTEGER active "0 or 1"
+        DATETIME assigned_at
+        DATETIME deactivated_at "nullable"
+    }
+
+    training_maxes {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        INTEGER exercise_id FK
+        REAL weight
+        DATE effective_date
+        TEXT notes "nullable"
+        DATETIME created_at
+    }
+
+    workouts {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        DATE date
+        TEXT notes "nullable"
+        DATETIME created_at
+    }
+
+    workout_sets {
+        INTEGER id PK
+        INTEGER workout_id FK
+        INTEGER exercise_id FK
+        INTEGER set_number
+        INTEGER reps
+        REAL weight "nullable"
+        TEXT notes "nullable"
+        DATETIME created_at
+    }
+
+    users ||--o| athletes : "linked profile"
+    athletes ||--o{ athlete_exercises : "has"
+    exercises ||--o{ athlete_exercises : "assigned via"
+    athletes ||--o{ training_maxes : "has"
+    exercises ||--o{ training_maxes : "for"
+    athletes ||--o{ workouts : "logs"
+    workouts ||--o{ workout_sets : "contains"
+    exercises ||--o{ workout_sets : "performed"
 ```
 
 ## Schema
