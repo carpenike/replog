@@ -109,9 +109,40 @@ go test ./...                  # Run tests
 nix build                     # Build via Nix flake
 ```
 
+## Issue Tracking (bd)
+
+This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --status in_progress  # Claim work
+bd close <id>         # Complete work
+bd sync               # Sync with git
+```
+
+## Session Completion
+
+When ending a work session, complete ALL steps. Work is NOT complete until `git push` succeeds.
+
+1. File issues for remaining work (`bd` or GitHub issues)
+2. Run quality gates if code changed — `go test ./...`, `go vet ./...`, `go build ./cmd/replog`
+3. Update issue status — close finished work, update in-progress items
+4. Push to remote:
+   ```bash
+   git pull --rebase
+   bd sync
+   git push
+   ```
+5. Verify `git status` shows "up to date with origin"
+
+**Critical rules:**
+- NEVER stop before pushing — that leaves work stranded locally
+- NEVER say "ready to push when you are" — YOU must push
+- If push fails, resolve and retry until it succeeds
+
 ## Resources
 
 - `docs/data-model.md` — complete schema, ERD, DDL, seed data, operational notes
 - `docs/requirements.md` — all v1.0 user stories with acceptance criteria
 - `docs/adr/` — architecture decision records
-- `AGENTS.md` — bd (beads) issue tracking workflow
