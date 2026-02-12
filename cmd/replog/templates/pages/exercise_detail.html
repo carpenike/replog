@@ -1,0 +1,48 @@
+{{ define "exercise-detail" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — {{ .Exercise.Name }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/exercises">Exercises</a> &rsaquo; {{ .Exercise.Name }}
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Exercise.Name }}</h1>
+            <div class="page-actions">
+                <a href="/exercises/{{ .Exercise.ID }}/edit" class="btn">Edit</a>
+                <form method="POST" action="/exercises/{{ .Exercise.ID }}/delete" class="inline-form"
+                      onsubmit="return confirm('Delete {{ .Exercise.Name }}? This cannot be undone.')">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="detail-grid">
+            <div class="detail-item">
+                <span class="detail-label">Tier</span>
+                <span class="detail-value">{{ if .Exercise.Tier.Valid }}{{ .Exercise.Tier.String }}{{ else }}None{{ end }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Target Reps</span>
+                <span class="detail-value">{{ if .Exercise.TargetReps.Valid }}{{ .Exercise.TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Form Notes</span>
+                <span class="detail-value">{{ if .Exercise.FormNotes.Valid }}{{ .Exercise.FormNotes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</span>
+            </div>
+        </div>
+    </main>
+</body>
+</html>{{ end }}

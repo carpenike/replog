@@ -1,0 +1,63 @@
+{{ define "exercise-form" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — {{ if .Exercise }}Edit {{ .Exercise.Name }}{{ else }}New Exercise{{ end }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/exercises">Exercises</a> &rsaquo; {{ if .Exercise }}Edit{{ else }}New{{ end }}
+        </div>
+
+        <h1>{{ if .Exercise }}Edit {{ .Exercise.Name }}{{ else }}New Exercise{{ end }}</h1>
+
+        {{ if .Error }}
+        <div class="alert alert-error">{{ .Error }}</div>
+        {{ end }}
+
+        <form method="POST" action="{{ if .Exercise }}/exercises/{{ .Exercise.ID }}{{ else }}/exercises{{ end }}" class="form-card">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required
+                       value="{{ if .Exercise }}{{ .Exercise.Name }}{{ end }}">
+            </div>
+
+            <div class="form-group">
+                <label for="tier">Tier</label>
+                <select id="tier" name="tier">
+                    {{ $currentTier := "" }}
+                    {{ if .Exercise }}{{ if .Exercise.Tier.Valid }}{{ $currentTier = .Exercise.Tier.String }}{{ end }}{{ end }}
+                    {{ range .Tiers }}
+                    <option value="{{ .Value }}" {{ if eq .Value $currentTier }}selected{{ end }}>{{ .Label }}</option>
+                    {{ end }}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="target_reps">Target Reps</label>
+                <input type="number" id="target_reps" name="target_reps" min="0"
+                       value="{{ if .Exercise }}{{ if .Exercise.TargetReps.Valid }}{{ .Exercise.TargetReps.Int64 }}{{ end }}{{ end }}">
+            </div>
+
+            <div class="form-group">
+                <label for="form_notes">Form Notes</label>
+                <textarea id="form_notes" name="form_notes" rows="3">{{ if .Exercise }}{{ if .Exercise.FormNotes.Valid }}{{ .Exercise.FormNotes.String }}{{ end }}{{ end }}</textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{{ if .Exercise }}Save Changes{{ else }}Create Exercise{{ end }}</button>
+                <a href="/exercises" class="btn">Cancel</a>
+            </div>
+        </form>
+    </main>
+</body>
+</html>{{ end }}

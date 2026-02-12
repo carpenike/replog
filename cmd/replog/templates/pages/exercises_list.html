@@ -1,0 +1,56 @@
+{{ define "exercises-list" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — Exercises</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="page-header">
+            <h1>Exercises</h1>
+            <a href="/exercises/new" class="btn btn-primary">New Exercise</a>
+        </div>
+
+        <div class="filter-bar">
+            {{ range .Tiers }}
+            <a href="/exercises{{ if .Value }}?tier={{ .Value }}{{ end }}"
+               class="filter-chip {{ if eq .Value $.TierFilter }}active{{ end }}">{{ .Label }}</a>
+            {{ end }}
+        </div>
+
+        {{ if .Exercises }}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Tier</th>
+                    <th scope="col">Target Reps</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Exercises }}
+                <tr>
+                    <td><a href="/exercises/{{ .ID }}">{{ .Name }}</a></td>
+                    <td>{{ if .Tier.Valid }}{{ .Tier.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    <td>{{ if .TargetReps.Valid }}{{ .TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        {{ else }}
+        <div class="empty-state">
+            <p>No exercises{{ if .TierFilter }} matching this filter{{ end }}.</p>
+            <a href="/exercises/new" class="btn btn-primary">Add your first exercise</a>
+        </div>
+        {{ end }}
+    </main>
+</body>
+</html>{{ end }}

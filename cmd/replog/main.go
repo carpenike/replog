@@ -79,6 +79,14 @@ func main() {
 	pages := &handlers.Pages{
 		Templates: templates,
 	}
+	athletes := &handlers.Athletes{
+		DB:        db,
+		Templates: templates,
+	}
+	exercises := &handlers.Exercises{
+		DB:        db,
+		Templates: templates,
+	}
 
 	// Set up routes.
 	mux := http.NewServeMux()
@@ -93,7 +101,29 @@ func main() {
 	mux.Handle("POST /logout", sessionManager.LoadAndSave(http.HandlerFunc(auth.Logout)))
 
 	// Authenticated routes — wrapped with RequireAuth middleware.
-	mux.Handle("GET /{$}", middleware.RequireAuth(sessionManager, db, http.HandlerFunc(pages.Index)))
+	requireAuth := func(h http.HandlerFunc) http.Handler {
+		return middleware.RequireAuth(sessionManager, db, http.HandlerFunc(h))
+	}
+
+	mux.Handle("GET /{$}", requireAuth(pages.Index))
+
+	// Athletes CRUD.
+	mux.Handle("GET /athletes", requireAuth(athletes.List))
+	mux.Handle("GET /athletes/new", requireAuth(athletes.NewForm))
+	mux.Handle("POST /athletes", requireAuth(athletes.Create))
+	mux.Handle("GET /athletes/{id}", requireAuth(athletes.Show))
+	mux.Handle("GET /athletes/{id}/edit", requireAuth(athletes.EditForm))
+	mux.Handle("POST /athletes/{id}", requireAuth(athletes.Update))
+	mux.Handle("POST /athletes/{id}/delete", requireAuth(athletes.Delete))
+
+	// Exercises CRUD.
+	mux.Handle("GET /exercises", requireAuth(exercises.List))
+	mux.Handle("GET /exercises/new", requireAuth(exercises.NewForm))
+	mux.Handle("POST /exercises", requireAuth(exercises.Create))
+	mux.Handle("GET /exercises/{id}", requireAuth(exercises.Show))
+	mux.Handle("GET /exercises/{id}/edit", requireAuth(exercises.EditForm))
+	mux.Handle("POST /exercises/{id}", requireAuth(exercises.Update))
+	mux.Handle("POST /exercises/{id}/delete", requireAuth(exercises.Delete))
 
 	// Start server.
 	log.Printf("RepLog listening on %s", addr)

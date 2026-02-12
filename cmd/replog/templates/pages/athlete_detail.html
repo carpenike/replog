@@ -1,0 +1,44 @@
+{{ define "athlete-detail" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — {{ .Athlete.Name }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; {{ .Athlete.Name }}
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Athlete.Name }}</h1>
+            <div class="page-actions">
+                <a href="/athletes/{{ .Athlete.ID }}/edit" class="btn">Edit</a>
+                <form method="POST" action="/athletes/{{ .Athlete.ID }}/delete" class="inline-form"
+                      onsubmit="return confirm('Delete {{ .Athlete.Name }}? This will also delete all their workouts, assignments, and training maxes.')">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="detail-grid">
+            <div class="detail-item">
+                <span class="detail-label">Tier</span>
+                <span class="detail-value">{{ if .Athlete.Tier.Valid }}{{ .Athlete.Tier.String }}{{ else }}None{{ end }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Notes</span>
+                <span class="detail-value">{{ if .Athlete.Notes.Valid }}{{ .Athlete.Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</span>
+            </div>
+        </div>
+    </main>
+</body>
+</html>{{ end }}

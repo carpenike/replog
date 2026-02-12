@@ -1,0 +1,57 @@
+{{ define "athlete-form" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — {{ if .Athlete }}Edit {{ .Athlete.Name }}{{ else }}New Athlete{{ end }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; {{ if .Athlete }}Edit{{ else }}New{{ end }}
+        </div>
+
+        <h1>{{ if .Athlete }}Edit {{ .Athlete.Name }}{{ else }}New Athlete{{ end }}</h1>
+
+        {{ if .Error }}
+        <div class="alert alert-error">{{ .Error }}</div>
+        {{ end }}
+
+        <form method="POST" action="{{ if .Athlete }}/athletes/{{ .Athlete.ID }}{{ else }}/athletes{{ end }}" class="form-card">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required
+                       value="{{ if .Athlete }}{{ .Athlete.Name }}{{ end }}">
+            </div>
+
+            <div class="form-group">
+                <label for="tier">Tier</label>
+                <select id="tier" name="tier">
+                    {{ $currentTier := "" }}
+                    {{ if .Athlete }}{{ if .Athlete.Tier.Valid }}{{ $currentTier = .Athlete.Tier.String }}{{ end }}{{ end }}
+                    {{ range .Tiers }}
+                    <option value="{{ .Value }}" {{ if eq .Value $currentTier }}selected{{ end }}>{{ .Label }}</option>
+                    {{ end }}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" rows="3">{{ if .Athlete }}{{ if .Athlete.Notes.Valid }}{{ .Athlete.Notes.String }}{{ end }}{{ end }}</textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{{ if .Athlete }}Save Changes{{ else }}Create Athlete{{ end }}</button>
+                <a href="/athletes" class="btn">Cancel</a>
+            </div>
+        </form>
+    </main>
+</body>
+</html>{{ end }}
