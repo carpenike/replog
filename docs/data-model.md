@@ -20,11 +20,23 @@ These were resolved interactively before schema design:
 
 7. **Athletes can log any exercise, not just assigned ones.** The daily view highlights assigned exercises, but the logging UI has access to the full exercise library. This allows accessory work, one-off movements, and trying new exercises without formal assignment.
 
-8. **No program/prescription engine in v1.** The app is a logbook. The coach (or spreadsheet) decides what to do; the app records what happened. Program templates are a clean additive migration for v1.1+.
+8. **Users and athletes are separate entities.** Users are login accounts (username + password hash). Athletes are training subjects. A family has one or two users (parents/coaches) managing multiple athletes (kids + themselves). The bootstrap logic auto-creates the first user from env vars on first run.
+
+9. **No program/prescription engine in v1.** The app is a logbook. The coach (or spreadsheet) decides what to do; the app records what happened. Program templates are a clean additive migration for v1.1+.
 
 ## Entity Relationship Diagram
 
 ```
+┌──────────────┐
+│    users     │
+├──────────────┤
+│ id       PK  │
+│ username     │
+│ password_hash│
+│ created_at   │
+│ updated_at   │
+└──────────────┘
+
 ┌──────────────┐       ┌───────────────────┐       ┌──────────────┐
 │   athletes   │       │ athlete_exercises  │       │  exercises   │
 ├──────────────┤       ├───────────────────┤       ├──────────────┤
@@ -63,6 +75,20 @@ These were resolved interactively before schema design:
 ```
 
 ## Schema
+
+### `users`
+
+| Column          | Type         | Constraints                          |
+|----------------|-------------|--------------------------------------|
+| `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `username`     | TEXT         | NOT NULL UNIQUE COLLATE NOCASE       |
+| `password_hash`| TEXT         | NOT NULL                             |
+| `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Login accounts, not training subjects. Separate from athletes.
+- `COLLATE NOCASE` prevents "Admin" and "admin" as distinct users.
+- Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` env vars.
 
 ### `athletes`
 
@@ -162,11 +188,20 @@ These were resolved interactively before schema design:
 
 ```sql
 PRAGMA journal_mode = WAL;
+PRAGMA busy_timeout = 5000;
 PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS users (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    username        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash   TEXT    NOT NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE IF NOT EXISTS athletes (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL,
+    name        TEXT    NOT NULL COLLATE NOCASE,
     tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -175,7 +210,7 @@ CREATE TABLE IF NOT EXISTS athletes (
 
 CREATE TABLE IF NOT EXISTS exercises (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL UNIQUE,
+    name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
     tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
     target_reps INTEGER,
     form_notes  TEXT,
@@ -199,7 +234,8 @@ CREATE TABLE IF NOT EXISTS training_maxes (
     weight          REAL    NOT NULL,
     effective_date  DATE    NOT NULL,
     notes           TEXT,
-    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(athlete_id, exercise_id, effective_date)
 );
 
 CREATE TABLE IF NOT EXISTS workouts (
@@ -219,7 +255,8 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     reps        INTEGER NOT NULL,
     weight      REAL,
     notes       TEXT,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(workout_id, exercise_id, set_number)
 );
 
 -- Indexes for common query patterns
@@ -236,6 +273,12 @@ CREATE INDEX IF NOT EXISTS idx_training_maxes_athlete_exercise
     ON training_maxes(athlete_id, exercise_id, effective_date);
 
 -- Triggers for updated_at timestamps
+CREATE TRIGGER IF NOT EXISTS trigger_users_updated_at
+AFTER UPDATE ON users
+BEGIN
+    UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
 CREATE TRIGGER IF NOT EXISTS trigger_athletes_updated_at
 AFTER UPDATE ON athletes
 BEGIN
@@ -268,6 +311,13 @@ INSERT INTO exercises (name, tier, target_reps, form_notes) VALUES
     ('Back Squat', NULL, NULL, 'Break parallel, drive knees out'),
     ('Overhead Press', NULL, NULL, 'Strict press, no leg drive');
 ```
+
+## Operational Notes
+
+- **Connection pooling:** Go's `database/sql` must be configured with `db.SetMaxOpenConns(1)` for SQLite's single-writer model.
+- **Busy timeout:** `PRAGMA busy_timeout = 5000` is set in the DDL — concurrent reads will wait up to 5s during writes instead of failing immediately.
+- **Backups:** Do NOT use `cp` on a live WAL-mode database. Use `sqlite3 replog.db ".backup backup.db"` or the SQLite backup API, which correctly handles the WAL file.
+- **WAL mode:** Set once; persists across connections. Provides concurrent reads with single-writer without blocking.
 
 ## Future Considerations (v1.1+)
 

@@ -32,7 +32,7 @@ We need a stack that produces a single static binary with zero runtime dependenc
 - 4 users, ~100 rows/month — PostgreSQL is wildly overkill
 - Embedded in the binary — no separate database service to manage
 - WAL mode handles concurrent reads with single-writer without issue at this scale
-- Backup is `cp replog.db replog.db.bak` (or restic file path)
+- Backup is `sqlite3 replog.db ".backup backup.db"` (safe for live WAL-mode DB) or restic file path
 - `StateDirectory` in systemd keeps the DB file in a predictable location
 - No connection pooling, no network latency, no auth configuration
 
