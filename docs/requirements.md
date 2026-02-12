@@ -61,9 +61,11 @@
 
 ### Auth & Session
 
-- [ ] **Auto-create admin on first run** — if no users exist, prompt for username/password (or read from env vars `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS`)
+- [ ] **Auto-create admin on first run** — if no users exist, create from env vars `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL` with `is_coach = 1`
 - [ ] **Simple login** — username/password, session cookie
-- [ ] **Athlete selector** — switch between athletes after login (family-only, no roles)
+- [ ] **Coach access** — coaches (`is_coach = 1`) can view/manage all athletes, exercises, assignments, and workouts
+- [ ] **Kid access** — non-coaches are linked to one athlete and can only view/log/edit their own workouts
+- [ ] **Athlete selector** — coaches can switch between athletes; non-coaches land directly on their profile
 - [ ] **Session persistence** — stay logged in across browser restarts
 
 ---
@@ -86,7 +88,7 @@
 - No automated tier progression — the coach decides, period
 - No multi-family / multi-coach support — single family, single deployment
 - No native mobile app — responsive web is sufficient
-- No complex permissions / role-based access — everyone sees everything
+- No complex permissions / role-based access — just coach vs non-coach (`is_coach` flag)
 - No data export (CSV, etc.) — SQLite file is the export
 - No exercise recommendation engine
 

@@ -20,9 +20,11 @@ These were resolved interactively before schema design:
 
 7. **Athletes can log any exercise, not just assigned ones.** The daily view highlights assigned exercises, but the logging UI has access to the full exercise library. This allows accessory work, one-off movements, and trying new exercises without formal assignment.
 
-8. **Users and athletes are separate entities.** Users are login accounts (username + password hash). Athletes are training subjects. A family has one or two users (parents/coaches) managing multiple athletes (kids + themselves). The bootstrap logic auto-creates the first user from env vars on first run.
+8. **Users and athletes are separate entities.** Users are login accounts (username + password hash + email). Athletes are training subjects. A user links to an athlete via `athlete_id` — coaches can manage all athletes, non-coaches can only view/log their own. The bootstrap logic auto-creates the first user (as coach) from env vars on first run.
 
-9. **No program/prescription engine in v1.** The app is a logbook. The coach (or spreadsheet) decides what to do; the app records what happened. Program templates are a clean additive migration for v1.1+.
+9. **Simple access control via `is_coach` flag.** Coaches see and manage all athletes. Non-coach users (kids) are linked to exactly one athlete and can only view/log/edit their own workouts. No roles table, no permissions matrix.
+
+10. **No program/prescription engine in v1.** The app is a logbook. The coach (or spreadsheet) decides what to do; the app records what happened. Program templates are a clean additive migration for v1.1+.
 
 ## Entity Relationship Diagram
 
@@ -32,7 +34,10 @@ These were resolved interactively before schema design:
 ├──────────────┤
 │ id       PK  │
 │ username     │
+│ email        │
 │ password_hash│
+│ athlete_id FK│──> athletes
+│ is_coach     │
 │ created_at   │
 │ updated_at   │
 └──────────────┘
@@ -82,13 +87,19 @@ These were resolved interactively before schema design:
 |----------------|-------------|--------------------------------------|
 | `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
 | `username`     | TEXT         | NOT NULL UNIQUE COLLATE NOCASE       |
+| `email`        | TEXT         | NOT NULL UNIQUE COLLATE NOCASE       |
 | `password_hash`| TEXT         | NOT NULL                             |
+| `athlete_id`   | INTEGER      | NULL, FK → athletes(id)              |
+| `is_coach`     | INTEGER      | NOT NULL DEFAULT 0, CHECK(is_coach IN (0, 1)) |
 | `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - Login accounts, not training subjects. Separate from athletes.
-- `COLLATE NOCASE` prevents "Admin" and "admin" as distinct users.
-- Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` env vars.
+- `email` for password reset or notifications in the future.
+- `athlete_id` links the user to "their" athlete profile. NULL for coach-only accounts without a personal training profile.
+- `is_coach = 1` → full access to all athletes. `is_coach = 0` → can only view/log/edit workouts for their linked athlete.
+- `COLLATE NOCASE` prevents "Admin" and "admin" or duplicate emails.
+- Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` env vars with `is_coach = 1`.
 
 ### `athletes`
 
@@ -194,7 +205,10 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     username        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    email           TEXT    NOT NULL UNIQUE COLLATE NOCASE,
     password_hash   TEXT    NOT NULL,
+    athlete_id      INTEGER REFERENCES athletes(id) ON DELETE SET NULL,
+    is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
