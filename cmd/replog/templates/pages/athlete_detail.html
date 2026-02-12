@@ -20,6 +20,7 @@
 
         <div class="page-header">
             <h1>{{ .Athlete.Name }}</h1>
+            {{ if .IsCoach }}
             <div class="page-actions">
                 <a href="/athletes/{{ .Athlete.ID }}/edit" class="btn">Edit</a>
                 <form method="POST" action="/athletes/{{ .Athlete.ID }}/delete" class="inline-form"
@@ -27,6 +28,7 @@
                     <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
             </div>
+            {{ end }}
         </div>
 
         <div class="detail-grid">
@@ -55,7 +57,7 @@
         <section class="section">
             <div class="section-header">
                 <h2>Assigned Exercises</h2>
-                <a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign Exercise</a>
+                {{ if .IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign Exercise</a>{{ end }}
             </div>
 
             {{ if .Assignments }}
@@ -66,7 +68,7 @@
                         <th scope="col">Tier</th>
                         <th scope="col">Current TM</th>
                         <th scope="col">Assigned</th>
-                        <th scope="col"></th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -83,11 +85,14 @@
                             {{ end }}
                         </td>
                         <td class="text-muted">{{ .AssignedAt.Format "Jan 2, 2006" }}</td>
-                        <td>
+                        <td class="set-actions">
+                            <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/history" class="btn btn-small">History</a>
+                            {{ if $.IsCoach }}
                             <form method="POST" action="/athletes/{{ $.Athlete.ID }}/assignments/{{ .ID }}/deactivate" class="inline-form"
                                   onsubmit="return confirm('Remove {{ .ExerciseName }} from {{ $.Athlete.Name }}?')">
                                 <button type="submit" class="btn btn-small btn-danger">Remove</button>
                             </form>
+                            {{ end }}
                         </td>
                     </tr>
                     {{ end }}
@@ -96,7 +101,7 @@
             {{ else }}
             <div class="empty-state">
                 <p>No exercises assigned yet.</p>
-                <a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign First Exercise</a>
+                {{ if .IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign First Exercise</a>{{ end }}
             </div>
             {{ end }}
         </section>

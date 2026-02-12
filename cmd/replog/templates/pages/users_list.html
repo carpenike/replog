@@ -1,0 +1,67 @@
+{{ define "users-list" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — Users</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/">Home</a> &rsaquo; Users
+        </div>
+
+        <div class="page-header">
+            <h1>Users</h1>
+            <a href="/users/new" class="btn btn-primary">New User</a>
+        </div>
+
+        {{ if .Users }}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th scope="col">Username</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Linked Athlete</th>
+                    <th scope="col">Created</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Users }}
+                <tr>
+                    <td>{{ .Username }}</td>
+                    <td>{{ if .Email.Valid }}{{ .Email.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    <td>{{ if .IsCoach }}Coach{{ else }}Kid{{ end }}</td>
+                    <td>
+                        {{ if .AthleteID.Valid }}
+                            <a href="/athletes/{{ .AthleteID.Int64 }}">{{ if .AthleteName.Valid }}{{ .AthleteName.String }}{{ else }}Athlete #{{ .AthleteID.Int64 }}{{ end }}</a>
+                        {{ else }}
+                            <span class="text-muted">None</span>
+                        {{ end }}
+                    </td>
+                    <td class="text-muted">{{ .CreatedAt.Format "Jan 2, 2006" }}</td>
+                    <td class="set-actions">
+                        <a href="/users/{{ .ID }}/edit" class="btn btn-small">Edit</a>
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        {{ else }}
+        <div class="empty-state">
+            <p>No users yet.</p>
+            <a href="/users/new" class="btn btn-primary">Create First User</a>
+        </div>
+        {{ end }}
+    </main>
+</body>
+</html>{{ end }}

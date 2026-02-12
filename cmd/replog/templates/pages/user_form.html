@@ -1,0 +1,84 @@
+{{ define "user-form" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — {{ if .User }}Edit {{ .User.Username }}{{ else }}New User{{ end }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/users">Users</a> &rsaquo; {{ if .User }}Edit{{ else }}New{{ end }}
+        </div>
+
+        <h1>{{ if .User }}Edit {{ .User.Username }}{{ else }}New User{{ end }}</h1>
+
+        {{ if .Error }}
+        <div class="alert alert-error">{{ .Error }}</div>
+        {{ end }}
+
+        <form method="POST" action="{{ if .User }}/users/{{ .User.ID }}{{ else }}/users{{ end }}" class="form-card">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required
+                       value="{{ if .User }}{{ .User.Username }}{{ end }}">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password{{ if .User }} <span class="text-muted">(leave blank to keep current)</span>{{ end }}</label>
+                <input type="password" id="password" name="password"
+                       {{ if not .User }}required{{ end }}
+                       minlength="6">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email"
+                       value="{{ if .User }}{{ if .User.Email.Valid }}{{ .User.Email.String }}{{ end }}{{ end }}">
+            </div>
+
+            <div class="form-group">
+                <label for="is_coach">Role</label>
+                <select id="is_coach" name="is_coach">
+                    <option value="0" {{ if .User }}{{ if not .User.IsCoach }}selected{{ end }}{{ end }}>Kid (non-coach)</option>
+                    <option value="1" {{ if .User }}{{ if .User.IsCoach }}selected{{ end }}{{ end }}>Coach</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="athlete_id">Linked Athlete</label>
+                <select id="athlete_id" name="athlete_id">
+                    <option value="">None</option>
+                    {{ $currentAthleteID := "" }}
+                    {{ if .User }}{{ if .User.AthleteID.Valid }}{{ $currentAthleteID = printf "%d" .User.AthleteID.Int64 }}{{ end }}{{ end }}
+                    {{ range .Athletes }}
+                    <option value="{{ .ID }}" {{ if eq (printf "%d" .ID) $currentAthleteID }}selected{{ end }}>{{ .Name }}</option>
+                    {{ end }}
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{{ if .User }}Save Changes{{ else }}Create User{{ end }}</button>
+                <a href="/users" class="btn">Cancel</a>
+            </div>
+        </form>
+
+        {{ if .User }}
+        <section class="section" style="margin-top: 2rem;">
+            <h2>Danger Zone</h2>
+            <form method="POST" action="/users/{{ .User.ID }}/delete" class="inline-form"
+                  onsubmit="return confirm('Delete user {{ .User.Username }}? This cannot be undone.')">
+                <button type="submit" class="btn btn-danger">Delete User</button>
+            </form>
+        </section>
+        {{ end }}
+    </main>
+</body>
+</html>{{ end }}

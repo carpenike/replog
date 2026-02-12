@@ -43,6 +43,62 @@
                 <span class="detail-value">{{ if .Exercise.FormNotes.Valid }}{{ .Exercise.FormNotes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</span>
             </div>
         </div>
+
+        <!-- Assigned Athletes -->
+        <section class="section">
+            <h2>Assigned Athletes</h2>
+            {{ if .AssignedAthletes }}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Athlete</th>
+                        <th scope="col">Assigned</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .AssignedAthletes }}
+                    <tr>
+                        <td><a href="/athletes/{{ .AthleteID }}">{{ .AthleteName }}</a></td>
+                        <td class="text-muted">{{ .AssignedAt.Format "Jan 2, 2006" }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p class="text-muted">Not assigned to any athletes.</p>
+            {{ end }}
+        </section>
+
+        <!-- Recent Log History -->
+        <section class="section">
+            <h2>Recent Activity</h2>
+            {{ if .RecentSets }}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Athlete</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Set</th>
+                        <th scope="col">Reps</th>
+                        <th scope="col">Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .RecentSets }}
+                    <tr>
+                        <td><a href="/athletes/{{ .AthleteID }}">{{ .AthleteName }}</a></td>
+                        <td>{{ .WorkoutDate }}</td>
+                        <td>{{ .SetNumber }}</td>
+                        <td>{{ .Reps }}</td>
+                        <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} lbs{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p class="text-muted">No sets logged for this exercise yet.</p>
+            {{ end }}
+        </section>
     </main>
 </body>
 </html>{{ end }}

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -18,8 +19,28 @@ type Workouts struct {
 	Templates *template.Template
 }
 
+// checkAthleteAccess verifies the user can access the given athlete.
+// Returns false and writes an error response if access is denied.
+func checkAthleteAccess(w http.ResponseWriter, r *http.Request) bool {
+	user := middleware.UserFromContext(r.Context())
+	athleteIDStr := r.PathValue("id")
+	athleteID, err := strconv.ParseInt(athleteIDStr, 10, 64)
+	if err != nil {
+		return true // let the handler catch the parse error
+	}
+	if !middleware.CanAccessAthlete(user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
 // List renders the workout history for an athlete.
 func (h *Workouts) List(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -56,6 +77,10 @@ func (h *Workouts) List(w http.ResponseWriter, r *http.Request) {
 
 // NewForm renders the new workout form.
 func (h *Workouts) NewForm(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -85,6 +110,10 @@ func (h *Workouts) NewForm(w http.ResponseWriter, r *http.Request) {
 
 // Create processes the new workout form submission.
 func (h *Workouts) Create(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -132,6 +161,10 @@ func (h *Workouts) Create(w http.ResponseWriter, r *http.Request) {
 
 // Show renders the workout detail page with logged sets and add-set form.
 func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -217,6 +250,10 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 
 // UpdateNotes updates workout-level notes.
 func (h *Workouts) UpdateNotes(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -245,6 +282,10 @@ func (h *Workouts) UpdateNotes(w http.ResponseWriter, r *http.Request) {
 
 // Delete removes a workout and all its sets.
 func (h *Workouts) Delete(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -273,6 +314,10 @@ func (h *Workouts) Delete(w http.ResponseWriter, r *http.Request) {
 
 // AddSet handles adding a set to a workout.
 func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -325,6 +370,10 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 
 // EditSetForm renders the edit set form.
 func (h *Workouts) EditSetForm(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -389,6 +438,10 @@ func (h *Workouts) EditSetForm(w http.ResponseWriter, r *http.Request) {
 
 // UpdateSet processes the edit set form.
 func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -445,6 +498,10 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 
 // DeleteSet removes a set from a workout.
 func (h *Workouts) DeleteSet(w http.ResponseWriter, r *http.Request) {
+	if !checkAthleteAccess(w, r) {
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)

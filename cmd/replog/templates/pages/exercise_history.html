@@ -1,0 +1,63 @@
+{{ define "exercise-history" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — {{ .Exercise.Name }} History</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo;
+            {{ .Exercise.Name }} History
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Exercise.Name }} — History</h1>
+        </div>
+
+        <p>{{ .Athlete.Name }}{{ if .Exercise.Tier.Valid }} &middot; {{ .Exercise.Tier.String }}{{ end }}</p>
+
+        {{ if .Days }}
+        {{ range .Days }}
+        <section class="section">
+            <h2><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .WorkoutID }}">{{ .WorkoutDate }}</a></h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Set</th>
+                        <th scope="col">Reps</th>
+                        <th scope="col">Weight</th>
+                        <th scope="col">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Sets }}
+                    <tr>
+                        <td>{{ .SetNumber }}</td>
+                        <td>{{ .Reps }}</td>
+                        <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} lbs{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                        <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </section>
+        {{ end }}
+        {{ else }}
+        <div class="empty-state">
+            <p>No sets logged for {{ .Exercise.Name }} yet.</p>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="btn btn-primary">Start a Workout</a>
+        </div>
+        {{ end }}
+    </main>
+</body>
+</html>{{ end }}

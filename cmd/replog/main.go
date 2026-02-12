@@ -77,6 +77,7 @@ func main() {
 		Templates: templates,
 	}
 	pages := &handlers.Pages{
+		DB:        db,
 		Templates: templates,
 	}
 	athletes := &handlers.Athletes{
@@ -96,6 +97,10 @@ func main() {
 		Templates: templates,
 	}
 	workouts := &handlers.Workouts{
+		DB:        db,
+		Templates: templates,
+	}
+	users := &handlers.Users{
 		DB:        db,
 		Templates: templates,
 	}
@@ -147,6 +152,9 @@ func main() {
 	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/training-maxes/new", requireAuth(trainingMaxes.NewForm))
 	mux.Handle("POST /athletes/{id}/exercises/{exerciseID}/training-maxes", requireAuth(trainingMaxes.Create))
 
+	// Exercise History per athlete.
+	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/history", requireAuth(exercises.ExerciseHistory))
+
 	// Workouts.
 	mux.Handle("GET /athletes/{id}/workouts", requireAuth(workouts.List))
 	mux.Handle("GET /athletes/{id}/workouts/new", requireAuth(workouts.NewForm))
@@ -158,6 +166,14 @@ func main() {
 	mux.Handle("GET /athletes/{id}/workouts/{workoutID}/sets/{setID}/edit", requireAuth(workouts.EditSetForm))
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}", requireAuth(workouts.UpdateSet))
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}/delete", requireAuth(workouts.DeleteSet))
+
+	// Users (coach-only).
+	mux.Handle("GET /users", requireAuth(users.List))
+	mux.Handle("GET /users/new", requireAuth(users.NewForm))
+	mux.Handle("POST /users", requireAuth(users.Create))
+	mux.Handle("GET /users/{id}/edit", requireAuth(users.EditForm))
+	mux.Handle("POST /users/{id}", requireAuth(users.Update))
+	mux.Handle("POST /users/{id}/delete", requireAuth(users.Delete))
 
 	// Start server.
 	log.Printf("RepLog listening on %s", addr)

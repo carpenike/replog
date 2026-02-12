@@ -136,3 +136,34 @@ func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 	}
 	return exercises, rows.Err()
 }
+
+// AssignedAthlete represents an athlete with an active assignment for a specific exercise.
+type AssignedAthlete struct {
+	AthleteID   int64
+	AthleteName string
+	AssignedAt  time.Time
+}
+
+// ListAssignedAthletes returns athletes with an active assignment for the given exercise.
+func ListAssignedAthletes(db *sql.DB, exerciseID int64) ([]*AssignedAthlete, error) {
+	rows, err := db.Query(`
+		SELECT a.id, a.name, ae.assigned_at
+		FROM athlete_exercises ae
+		JOIN athletes a ON a.id = ae.athlete_id
+		WHERE ae.exercise_id = ? AND ae.active = 1
+		ORDER BY a.name COLLATE NOCASE`, exerciseID)
+	if err != nil {
+		return nil, fmt.Errorf("models: list assigned athletes for exercise %d: %w", exerciseID, err)
+	}
+	defer rows.Close()
+
+	var athletes []*AssignedAthlete
+	for rows.Next() {
+		a := &AssignedAthlete{}
+		if err := rows.Scan(&a.AthleteID, &a.AthleteName, &a.AssignedAt); err != nil {
+			return nil, fmt.Errorf("models: scan assigned athlete: %w", err)
+		}
+		athletes = append(athletes, a)
+	}
+	return athletes, rows.Err()
+}

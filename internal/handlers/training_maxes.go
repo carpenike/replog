@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -18,8 +19,14 @@ type TrainingMaxes struct {
 	Templates *template.Template
 }
 
-// NewForm renders the form to set a new training max.
+// NewForm renders the form to set a new training max. Coach only.
 func (h *TrainingMaxes) NewForm(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -65,8 +72,14 @@ func (h *TrainingMaxes) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Create processes the new training max form submission.
+// Create processes the new training max form submission. Coach only.
 func (h *TrainingMaxes) Create(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -115,9 +128,16 @@ func (h *TrainingMaxes) Create(w http.ResponseWriter, r *http.Request) {
 
 // History renders training max history for an athlete+exercise.
 func (h *TrainingMaxes) History(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 

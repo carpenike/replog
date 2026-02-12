@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -17,8 +18,14 @@ type Assignments struct {
 	Templates *template.Template
 }
 
-// Assign creates a new active assignment for an athlete.
+// Assign creates a new active assignment for an athlete. Coach only.
 func (h *Assignments) Assign(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -56,8 +63,14 @@ func (h *Assignments) Assign(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10), http.StatusSeeOther)
 }
 
-// Deactivate removes an active assignment.
+// Deactivate removes an active assignment. Coach only.
 func (h *Assignments) Deactivate(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -84,8 +97,14 @@ func (h *Assignments) Deactivate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10), http.StatusSeeOther)
 }
 
-// AssignForm renders the form to assign an exercise to an athlete.
+// AssignForm renders the form to assign an exercise to an athlete. Coach only.
 func (h *Assignments) AssignForm(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)

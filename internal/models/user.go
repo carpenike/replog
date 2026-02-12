@@ -27,6 +27,12 @@ type User struct {
 	UpdatedAt    time.Time
 }
 
+// UserWithAthlete extends User with the linked athlete's name.
+type UserWithAthlete struct {
+	User
+	AthleteName sql.NullString
+}
+
 // HashPassword generates a bcrypt hash of the given plaintext password.
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -128,6 +134,83 @@ func CountUsers(db *sql.DB) (int, error) {
 		return 0, fmt.Errorf("models: count users: %w", err)
 	}
 	return count, nil
+}
+
+// ListUsers returns all users with linked athlete names, ordered by username.
+func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
+	rows, err := db.Query(`
+		SELECT u.id, u.username, u.email, u.password_hash, u.athlete_id, u.is_coach, u.created_at, u.updated_at,
+		       a.name
+		FROM users u
+		LEFT JOIN athletes a ON u.athlete_id = a.id
+		ORDER BY u.username COLLATE NOCASE
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("models: list users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*UserWithAthlete
+	for rows.Next() {
+		u := &UserWithAthlete{}
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.CreatedAt, &u.UpdatedAt, &u.AthleteName); err != nil {
+			return nil, fmt.Errorf("models: list users scan: %w", err)
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
+// UpdateUser updates a user's profile fields (not password).
+// Returns ErrDuplicateUsername if the new username conflicts.
+func UpdateUser(db *sql.DB, id int64, username, email string, athleteID sql.NullInt64, isCoach bool) (*User, error) {
+	var emailVal sql.NullString
+	if email != "" {
+		emailVal = sql.NullString{String: email, Valid: true}
+	}
+
+	coachInt := 0
+	if isCoach {
+		coachInt = 1
+	}
+
+	_, err := db.Exec(
+		`UPDATE users SET username = ?, email = ?, athlete_id = ?, is_coach = ? WHERE id = ?`,
+		username, emailVal, athleteID, coachInt, id,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrDuplicateUsername
+		}
+		return nil, fmt.Errorf("models: update user %d: %w", id, err)
+	}
+	return GetUserByID(db, id)
+}
+
+// UpdatePassword changes a user's password hash.
+func UpdatePassword(db *sql.DB, id int64, newPassword string) error {
+	hash, err := HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, hash, id)
+	if err != nil {
+		return fmt.Errorf("models: update password for user %d: %w", id, err)
+	}
+	return nil
+}
+
+// DeleteUser removes a user by ID.
+func DeleteUser(db *sql.DB, id int64) error {
+	result, err := db.Exec(`DELETE FROM users WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("models: delete user %d: %w", id, err)
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // isUniqueViolation checks if a SQLite error is a unique constraint violation.

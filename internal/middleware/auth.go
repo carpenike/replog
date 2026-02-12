@@ -42,3 +42,25 @@ func UserFromContext(ctx context.Context) *models.User {
 	u, _ := ctx.Value(userContextKey).(*models.User)
 	return u
 }
+
+// CanAccessAthlete checks whether the authenticated user is allowed to access
+// the given athlete. Coaches can access any athlete; non-coaches can only access
+// their own linked athlete. Returns true if access is allowed.
+func CanAccessAthlete(user *models.User, athleteID int64) bool {
+	if user.IsCoach {
+		return true
+	}
+	return user.AthleteID.Valid && user.AthleteID.Int64 == athleteID
+}
+
+// RequireCoach returns 403 if the user is not a coach.
+func RequireCoach(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := UserFromContext(r.Context())
+		if user == nil || !user.IsCoach {
+			http.Error(w, "Forbidden — coach access required", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}

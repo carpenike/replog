@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -110,8 +111,24 @@ func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	assignedAthletes, err := models.ListAssignedAthletes(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: list assigned athletes for exercise %d: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	recentSets, err := models.ListRecentSetsForExercise(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: list recent sets for exercise %d: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	data := map[string]any{
-		"Exercise": exercise,
+		"Exercise":         exercise,
+		"AssignedAthletes": assignedAthletes,
+		"RecentSets":       recentSets,
 	}
 	if err := h.Templates.ExecuteTemplate(w, "exercise-detail", data); err != nil {
 		log.Printf("handlers: exercise detail template: %v", err)
@@ -236,5 +253,66 @@ func tierFilterOptions() []struct{ Value, Label string } {
 		{"intermediate", "Intermediate"},
 		{"sport_performance", "Sport Performance"},
 		{"none", "No Tier"},
+	}
+}
+
+// ExerciseHistory renders the exercise history for a specific athlete+exercise.
+func (h *Exercises) ExerciseHistory(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	exerciseID, err := strconv.ParseInt(r.PathValue("exerciseID"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid exercise ID", http.StatusBadRequest)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get athlete %d for exercise history: %v", athleteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	exercise, err := models.GetExerciseByID(h.DB, exerciseID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Exercise not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get exercise %d for exercise history: %v", exerciseID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	days, err := models.ListExerciseHistory(h.DB, athleteID, exerciseID)
+	if err != nil {
+		log.Printf("handlers: list exercise history for athlete %d exercise %d: %v", athleteID, exerciseID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]any{
+		"Athlete":  athlete,
+		"Exercise": exercise,
+		"Days":     days,
+	}
+	if err := h.Templates.ExecuteTemplate(w, "exercise-history", data); err != nil {
+		log.Printf("handlers: exercise history template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }

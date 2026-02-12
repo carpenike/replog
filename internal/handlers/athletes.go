@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -17,8 +18,19 @@ type Athletes struct {
 	Templates *template.Template
 }
 
-// List renders the athlete list page.
+// List renders the athlete list page. Coaches see all athletes; non-coaches
+// are redirected to their own athlete profile.
 func (h *Athletes) List(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		if user.AthleteID.Valid {
+			http.Redirect(w, r, "/athletes/"+strconv.FormatInt(user.AthleteID.Int64, 10), http.StatusSeeOther)
+		} else {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+		}
+		return
+	}
+
 	athletes, err := models.ListAthletes(h.DB)
 	if err != nil {
 		log.Printf("handlers: list athletes: %v", err)
@@ -35,8 +47,14 @@ func (h *Athletes) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// NewForm renders the new athlete form.
+// NewForm renders the new athlete form. Coach only.
 func (h *Athletes) NewForm(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	data := map[string]any{
 		"Tiers": tierOptions(),
 	}
@@ -46,8 +64,14 @@ func (h *Athletes) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Create processes the new athlete form submission.
+// Create processes the new athlete form submission. Coach only.
 func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -77,9 +101,16 @@ func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
 
 // Show renders the athlete detail page.
 func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(user, id) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -118,6 +149,7 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		"Athlete":       athlete,
 		"Assignments":   assignments,
 		"TMByExercise":  tmByExercise,
+		"IsCoach":       user.IsCoach,
 	}
 	if err := h.Templates.ExecuteTemplate(w, "athlete-detail", data); err != nil {
 		log.Printf("handlers: athlete detail template: %v", err)
@@ -125,8 +157,14 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// EditForm renders the edit athlete form.
+// EditForm renders the edit athlete form. Coach only.
 func (h *Athletes) EditForm(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -154,8 +192,14 @@ func (h *Athletes) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Update processes the edit athlete form submission.
+// Update processes the edit athlete form submission. Coach only.
 func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
@@ -195,8 +239,14 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
-// Delete removes an athlete.
+// Delete removes an athlete. Coach only.
 func (h *Athletes) Delete(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)

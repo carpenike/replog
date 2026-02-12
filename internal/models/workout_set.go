@@ -166,3 +166,106 @@ func ListSetsByWorkout(db *sql.DB, workoutID int64) ([]*ExerciseGroup, error) {
 	}
 	return groups, nil
 }
+
+// ExerciseHistoryEntry represents a single set in the exercise history view,
+// enriched with workout date for grouping.
+type ExerciseHistoryEntry struct {
+	WorkoutID   int64
+	WorkoutDate string
+	SetNumber   int
+	Reps        int
+	Weight      sql.NullFloat64
+	Notes       sql.NullString
+}
+
+// ExerciseHistoryDay groups sets performed on a single workout date.
+type ExerciseHistoryDay struct {
+	WorkoutID   int64
+	WorkoutDate string
+	Sets        []*ExerciseHistoryEntry
+}
+
+// ListExerciseHistory returns all sets for a specific exercise performed by an
+// athlete, grouped by workout date (most recent first). Limited to 50 workouts.
+func ListExerciseHistory(db *sql.DB, athleteID, exerciseID int64) ([]*ExerciseHistoryDay, error) {
+	rows, err := db.Query(`
+		SELECT ws.workout_id, w.date, ws.set_number, ws.reps, ws.weight, ws.notes
+		FROM workout_sets ws
+		JOIN workouts w ON w.id = ws.workout_id
+		WHERE w.athlete_id = ? AND ws.exercise_id = ?
+		ORDER BY w.date DESC, ws.set_number
+		LIMIT 500`, athleteID, exerciseID)
+	if err != nil {
+		return nil, fmt.Errorf("models: list exercise history for athlete %d exercise %d: %w", athleteID, exerciseID, err)
+	}
+	defer rows.Close()
+
+	dayMap := make(map[int64]*ExerciseHistoryDay)
+	var dayOrder []int64
+
+	for rows.Next() {
+		e := &ExerciseHistoryEntry{}
+		if err := rows.Scan(&e.WorkoutID, &e.WorkoutDate, &e.SetNumber, &e.Reps, &e.Weight, &e.Notes); err != nil {
+			return nil, fmt.Errorf("models: scan exercise history entry: %w", err)
+		}
+
+		d, exists := dayMap[e.WorkoutID]
+		if !exists {
+			d = &ExerciseHistoryDay{
+				WorkoutID:   e.WorkoutID,
+				WorkoutDate: e.WorkoutDate,
+			}
+			dayMap[e.WorkoutID] = d
+			dayOrder = append(dayOrder, e.WorkoutID)
+		}
+		d.Sets = append(d.Sets, e)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	days := make([]*ExerciseHistoryDay, 0, len(dayOrder))
+	for _, wid := range dayOrder {
+		days = append(days, dayMap[wid])
+	}
+	return days, nil
+}
+
+// RecentExerciseSet represents a recently logged set for an exercise, with
+// athlete context for the exercise detail view.
+type RecentExerciseSet struct {
+	AthleteName string
+	AthleteID   int64
+	WorkoutDate string
+	SetNumber   int
+	Reps        int
+	Weight      sql.NullFloat64
+}
+
+// ListRecentSetsForExercise returns the most recent sets logged for an exercise
+// across all athletes, limited to 20 entries.
+func ListRecentSetsForExercise(db *sql.DB, exerciseID int64) ([]*RecentExerciseSet, error) {
+	rows, err := db.Query(`
+		SELECT a.name, a.id, w.date, ws.set_number, ws.reps, ws.weight
+		FROM workout_sets ws
+		JOIN workouts w ON w.id = ws.workout_id
+		JOIN athletes a ON a.id = w.athlete_id
+		WHERE ws.exercise_id = ?
+		ORDER BY w.date DESC, a.name COLLATE NOCASE, ws.set_number
+		LIMIT 20`, exerciseID)
+	if err != nil {
+		return nil, fmt.Errorf("models: list recent sets for exercise %d: %w", exerciseID, err)
+	}
+	defer rows.Close()
+
+	var sets []*RecentExerciseSet
+	for rows.Next() {
+		s := &RecentExerciseSet{}
+		if err := rows.Scan(&s.AthleteName, &s.AthleteID, &s.WorkoutDate, &s.SetNumber, &s.Reps, &s.Weight); err != nil {
+			return nil, fmt.Errorf("models: scan recent exercise set: %w", err)
+		}
+		sets = append(sets, s)
+	}
+	return sets, rows.Err()
+}
