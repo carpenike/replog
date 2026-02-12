@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,7 +14,7 @@ import (
 // Assignments holds dependencies for assignment handlers.
 type Assignments struct {
 	DB        *sql.DB
-	Templates *template.Template
+	Templates TemplateCache
 }
 
 // Assign creates a new active assignment for an athlete. Coach only.
@@ -133,7 +132,7 @@ func (h *Assignments) AssignForm(w http.ResponseWriter, r *http.Request) {
 		"Athlete":   athlete,
 		"Exercises": exercises,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "assign-exercise-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "assign_exercise_form.html", data); err != nil {
 		log.Printf("handlers: assign form template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}

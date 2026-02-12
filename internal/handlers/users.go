@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"database/sql"
-	"html/template"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,7 +14,7 @@ import (
 // Users handles user management (coach-only).
 type Users struct {
 	DB        *sql.DB
-	Templates *template.Template
+	Templates TemplateCache
 }
 
 // List renders all users.
@@ -35,7 +35,7 @@ func (h *Users) List(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Users": users,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "users-list", data); err != nil {
+	if err := h.Templates.Render(w, r, "users_list.html", data); err != nil {
 		log.Printf("handlers: render users list: %v", err)
 	}
 }
@@ -58,7 +58,7 @@ func (h *Users) NewForm(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Athletes": athletes,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "user-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "user_form.html", data); err != nil {
 		log.Printf("handlers: render new user form: %v", err)
 	}
 }
@@ -77,35 +77,31 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 	isCoach := r.FormValue("is_coach") == "1"
 
 	if username == "" || password == "" {
-		h.renderFormError(w, "Username and password are required.", nil)
+		h.renderFormError(w, r, "Username and password are required.", nil)
 		return
 	}
 	if len(password) < 6 {
-		h.renderFormError(w, "Password must be at least 6 characters.", nil)
+		h.renderFormError(w, r, "Password must be at least 6 characters.", nil)
 		return
 	}
 
-	newUser, err := models.CreateUser(h.DB, username, password, email, isCoach)
-	if err == models.ErrDuplicateUsername {
-		h.renderFormError(w, "Username already taken.", nil)
+	var athleteID sql.NullInt64
+	if aidStr := r.FormValue("athlete_id"); aidStr != "" {
+		aid, err := strconv.ParseInt(aidStr, 10, 64)
+		if err == nil {
+			athleteID = sql.NullInt64{Int64: aid, Valid: true}
+		}
+	}
+
+	_, err := models.CreateUser(h.DB, username, password, email, isCoach, athleteID)
+	if errors.Is(err, models.ErrDuplicateUsername) {
+		h.renderFormError(w, r, "Username already taken.", nil)
 		return
 	}
 	if err != nil {
 		log.Printf("handlers: create user: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
-	}
-
-	// If an athlete was selected, link it.
-	athleteIDStr := r.FormValue("athlete_id")
-	if athleteIDStr != "" {
-		athleteID, err := strconv.ParseInt(athleteIDStr, 10, 64)
-		if err == nil {
-			_, err = models.UpdateUser(h.DB, newUser.ID, newUser.Username, email, sql.NullInt64{Int64: athleteID, Valid: true}, isCoach)
-			if err != nil {
-				log.Printf("handlers: link athlete to new user: %v", err)
-			}
-		}
 	}
 
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
@@ -126,7 +122,7 @@ func (h *Users) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u, err := models.GetUserByID(h.DB, id)
-	if err == models.ErrNotFound {
+	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
@@ -144,10 +140,10 @@ func (h *Users) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{
-		"User":     u,
+		"EditUser": u,
 		"Athletes": athletes,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "user-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "user_form.html", data); err != nil {
 		log.Printf("handlers: render edit user form: %v", err)
 	}
 }
@@ -167,7 +163,7 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u, err := models.GetUserByID(h.DB, id)
-	if err == models.ErrNotFound {
+	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
@@ -182,7 +178,7 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 	isCoach := r.FormValue("is_coach") == "1"
 
 	if username == "" {
-		h.renderFormError(w, "Username is required.", u)
+		h.renderFormError(w, r, "Username is required.", u)
 		return
 	}
 
@@ -196,8 +192,8 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = models.UpdateUser(h.DB, id, username, email, athleteID, isCoach)
-	if err == models.ErrDuplicateUsername {
-		h.renderFormError(w, "Username already taken.", u)
+	if errors.Is(err, models.ErrDuplicateUsername) {
+		h.renderFormError(w, r, "Username already taken.", u)
 		return
 	}
 	if err != nil {
@@ -210,7 +206,7 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 	newPassword := r.FormValue("password")
 	if newPassword != "" {
 		if len(newPassword) < 6 {
-			h.renderFormError(w, "Password must be at least 6 characters.", u)
+			h.renderFormError(w, r, "Password must be at least 6 characters.", u)
 			return
 		}
 		if err := models.UpdatePassword(h.DB, id, newPassword); err != nil {
@@ -253,15 +249,15 @@ func (h *Users) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 // renderFormError re-renders the user form with an error message.
-func (h *Users) renderFormError(w http.ResponseWriter, msg string, u *models.User) {
+func (h *Users) renderFormError(w http.ResponseWriter, r *http.Request, msg string, u *models.User) {
 	athletes, _ := models.ListAthletes(h.DB)
 	data := map[string]any{
 		"Error":    msg,
-		"User":     u,
+		"EditUser": u,
 		"Athletes": athletes,
 	}
 	w.WriteHeader(http.StatusUnprocessableEntity)
-	if err := h.Templates.ExecuteTemplate(w, "user-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "user_form.html", data); err != nil {
 		log.Printf("handlers: render user form error: %v", err)
 	}
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"testing"
 )
 
@@ -8,7 +9,7 @@ func TestCreateUser(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("basic create", func(t *testing.T) {
-		u, err := CreateUser(db, "admin", "password123", "admin@test.com", true)
+		u, err := CreateUser(db, "admin", "password123", "admin@test.com", true, sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create user: %v", err)
 		}
@@ -24,14 +25,14 @@ func TestCreateUser(t *testing.T) {
 	})
 
 	t.Run("duplicate username", func(t *testing.T) {
-		_, err := CreateUser(db, "admin", "other", "", false)
+		_, err := CreateUser(db, "admin", "other", "", false, sql.NullInt64{})
 		if err != ErrDuplicateUsername {
 			t.Errorf("err = %v, want ErrDuplicateUsername", err)
 		}
 	})
 
 	t.Run("case insensitive duplicate", func(t *testing.T) {
-		_, err := CreateUser(db, "ADMIN", "other", "", false)
+		_, err := CreateUser(db, "ADMIN", "other", "", false, sql.NullInt64{})
 		if err != ErrDuplicateUsername {
 			t.Errorf("err = %v, want ErrDuplicateUsername", err)
 		}
@@ -41,7 +42,7 @@ func TestCreateUser(t *testing.T) {
 func TestAuthenticate(t *testing.T) {
 	db := testDB(t)
 
-	CreateUser(db, "testuser", "correct-password", "", false)
+	CreateUser(db, "testuser", "correct-password", "", false, sql.NullInt64{})
 
 	t.Run("valid credentials", func(t *testing.T) {
 		u, err := Authenticate(db, "testuser", "correct-password")
@@ -79,8 +80,8 @@ func TestCountUsers(t *testing.T) {
 		t.Errorf("count = %d, want 0", count)
 	}
 
-	CreateUser(db, "u1", "pass", "", false)
-	CreateUser(db, "u2", "pass", "", true)
+	CreateUser(db, "u1", "pass", "", false, sql.NullInt64{})
+	CreateUser(db, "u2", "pass", "", true, sql.NullInt64{})
 
 	count, err = CountUsers(db)
 	if err != nil {
@@ -94,7 +95,7 @@ func TestCountUsers(t *testing.T) {
 func TestUpdatePassword(t *testing.T) {
 	db := testDB(t)
 
-	u, _ := CreateUser(db, "pwuser", "old-password", "", false)
+	u, _ := CreateUser(db, "pwuser", "old-password", "", false, sql.NullInt64{})
 
 	if err := UpdatePassword(db, u.ID, "new-password"); err != nil {
 		t.Fatalf("update password: %v", err)
@@ -116,7 +117,7 @@ func TestUpdatePassword(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	db := testDB(t)
 
-	u, _ := CreateUser(db, "delme", "pass", "", false)
+	u, _ := CreateUser(db, "delme", "pass", "", false, sql.NullInt64{})
 
 	if err := DeleteUser(db, u.ID); err != nil {
 		t.Fatalf("delete user: %v", err)

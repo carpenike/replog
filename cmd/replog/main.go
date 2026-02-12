@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -57,10 +56,10 @@ func main() {
 	}
 
 	// Parse templates once at startup.
-	templates := template.Must(template.ParseFS(templateFS,
-		"templates/layouts/*.html",
-		"templates/pages/*.html",
-	))
+	tc, err := handlers.NewTemplateCache(templateFS)
+	if err != nil {
+		log.Fatalf("Failed to parse templates: %v", err)
+	}
 
 	// Set up session manager with SQLite store.
 	sessionManager := scs.New()
@@ -74,35 +73,35 @@ func main() {
 	auth := &handlers.Auth{
 		DB:        db,
 		Sessions:  sessionManager,
-		Templates: templates,
+		Templates: tc,
 	}
 	pages := &handlers.Pages{
 		DB:        db,
-		Templates: templates,
+		Templates: tc,
 	}
 	athletes := &handlers.Athletes{
 		DB:        db,
-		Templates: templates,
+		Templates: tc,
 	}
 	exercises := &handlers.Exercises{
 		DB:        db,
-		Templates: templates,
+		Templates: tc,
 	}
 	assignments := &handlers.Assignments{
 		DB:        db,
-		Templates: templates,
+		Templates: tc,
 	}
 	trainingMaxes := &handlers.TrainingMaxes{
 		DB:        db,
-		Templates: templates,
+		Templates: tc,
 	}
 	workouts := &handlers.Workouts{
 		DB:        db,
-		Templates: templates,
+		Templates: tc,
 	}
 	users := &handlers.Users{
 		DB:        db,
-		Templates: templates,
+		Templates: tc,
 	}
 
 	// Set up routes.
@@ -202,7 +201,7 @@ func bootstrapAdmin(db *sql.DB) error {
 		return fmt.Errorf("no users exist and REPLOG_ADMIN_USER / REPLOG_ADMIN_PASS env vars are not set")
 	}
 
-	user, err := models.CreateUser(db, username, password, email, true)
+	user, err := models.CreateUser(db, username, password, email, true, sql.NullInt64{})
 	if err != nil {
 		return fmt.Errorf("create admin user: %w", err)
 	}

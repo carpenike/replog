@@ -1,19 +1,6 @@
-{{ define "assign-exercise-form" }}<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RepLog — Assign Exercise to {{ .Athlete.Name }}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="/static/js/htmx.min.js"></script>
-</head>
-<body hx-boost="true">
-    <header>
-        <nav>
-            <a href="/" class="logo">RepLog</a>
-        </nav>
-    </header>
-    <main>
+{{ define "title" }}RepLog — Assign Exercise to {{ .Athlete.Name }}{{ end }}
+
+{{ define "content" }}
         <div class="breadcrumb">
             <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Assign Exercise
         </div>
@@ -46,6 +33,4 @@
             </div>
             {{ end }}
         </div>
-    </main>
-</body>
-</html>{{ end }}
+{{ end }}

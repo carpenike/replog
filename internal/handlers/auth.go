@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"html/template"
 	"log"
 	"net/http"
 
@@ -14,7 +13,7 @@ import (
 type Auth struct {
 	DB        *sql.DB
 	Sessions  *scs.SessionManager
-	Templates *template.Template
+	Templates TemplateCache
 }
 
 // LoginPage renders the login form.
@@ -28,7 +27,7 @@ func (a *Auth) LoginPage(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Error": r.URL.Query().Get("error"),
 	}
-	if err := a.Templates.ExecuteTemplate(w, "login", data); err != nil {
+	if err := a.Templates["login.html"].ExecuteTemplate(w, "login", data); err != nil {
 		log.Printf("handlers: login template error: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}

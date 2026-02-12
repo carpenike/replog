@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,7 +15,7 @@ import (
 // TrainingMaxes holds dependencies for training max handlers.
 type TrainingMaxes struct {
 	DB        *sql.DB
-	Templates *template.Template
+	Templates TemplateCache
 }
 
 // NewForm renders the form to set a new training max. Coach only.
@@ -66,7 +65,7 @@ func (h *TrainingMaxes) NewForm(w http.ResponseWriter, r *http.Request) {
 		"Exercise": exercise,
 		"Today":    time.Now().Format("2006-01-02"),
 	}
-	if err := h.Templates.ExecuteTemplate(w, "training-max-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "training_max_form.html", data); err != nil {
 		log.Printf("handlers: training max form template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -99,13 +98,13 @@ func (h *TrainingMaxes) Create(w http.ResponseWriter, r *http.Request) {
 
 	weightStr := r.FormValue("weight")
 	if weightStr == "" {
-		h.renderFormWithError(w, athleteID, exerciseID, "Weight is required")
+		h.renderFormWithError(w, r, athleteID, exerciseID, "Weight is required")
 		return
 	}
 
 	weight, err := strconv.ParseFloat(weightStr, 64)
 	if err != nil || weight <= 0 {
-		h.renderFormWithError(w, athleteID, exerciseID, "Weight must be a positive number")
+		h.renderFormWithError(w, r, athleteID, exerciseID, "Weight must be a positive number")
 		return
 	}
 
@@ -181,14 +180,14 @@ func (h *TrainingMaxes) History(w http.ResponseWriter, r *http.Request) {
 		"Exercise": exercise,
 		"History":  history,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "training-max-history", data); err != nil {
+	if err := h.Templates.Render(w, r, "training_max_history.html", data); err != nil {
 		log.Printf("handlers: training max history template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }
 
 // renderFormWithError re-renders the TM form with an error message.
-func (h *TrainingMaxes) renderFormWithError(w http.ResponseWriter, athleteID, exerciseID int64, errMsg string) {
+func (h *TrainingMaxes) renderFormWithError(w http.ResponseWriter, r *http.Request, athleteID, exerciseID int64, errMsg string) {
 	athlete, _ := models.GetAthleteByID(h.DB, athleteID)
 	exercise, _ := models.GetExerciseByID(h.DB, exerciseID)
 	data := map[string]any{
@@ -198,5 +197,5 @@ func (h *TrainingMaxes) renderFormWithError(w http.ResponseWriter, athleteID, ex
 		"Error":    errMsg,
 	}
 	w.WriteHeader(http.StatusUnprocessableEntity)
-	h.Templates.ExecuteTemplate(w, "training-max-form", data)
+	h.Templates.Render(w, r, "training_max_form.html", data)
 }

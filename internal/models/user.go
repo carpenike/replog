@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -49,8 +48,8 @@ func CheckPassword(hash, password string) bool {
 }
 
 // CreateUser inserts a new user. Returns ErrDuplicateUsername if the username
-// is already taken.
-func CreateUser(db *sql.DB, username, password, email string, isCoach bool) (*User, error) {
+// is already taken. When athleteID is valid the user is linked atomically.
+func CreateUser(db *sql.DB, username, password, email string, isCoach bool, athleteID sql.NullInt64) (*User, error) {
 	hash, err := HashPassword(password)
 	if err != nil {
 		return nil, err
@@ -67,8 +66,8 @@ func CreateUser(db *sql.DB, username, password, email string, isCoach bool) (*Us
 	}
 
 	result, err := db.Exec(
-		`INSERT INTO users (username, email, password_hash, is_coach) VALUES (?, ?, ?, ?)`,
-		username, emailVal, hash, coachInt,
+		`INSERT INTO users (username, email, password_hash, is_coach, athlete_id) VALUES (?, ?, ?, ?, ?)`,
+		username, emailVal, hash, coachInt, athleteID,
 	)
 	if err != nil {
 		// SQLite unique constraint error contains "UNIQUE constraint failed".
@@ -212,13 +211,4 @@ func DeleteUser(db *sql.DB, id int64) error {
 		return ErrNotFound
 	}
 	return nil
-}
-
-// isUniqueViolation checks if a SQLite error is a unique constraint violation.
-func isUniqueViolation(err error) bool {
-	return err != nil && (errContains(err, "UNIQUE constraint failed") || errContains(err, "constraint failed: UNIQUE"))
-}
-
-func errContains(err error, substr string) bool {
-	return err != nil && strings.Contains(err.Error(), substr)
 }

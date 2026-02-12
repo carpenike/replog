@@ -1,19 +1,6 @@
-{{ define "athletes-list" }}<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RepLog — Athletes</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="/static/js/htmx.min.js"></script>
-</head>
-<body hx-boost="true">
-    <header>
-        <nav>
-            <a href="/" class="logo">RepLog</a>
-        </nav>
-    </header>
-    <main>
+{{ define "title" }}RepLog — Athletes{{ end }}
+
+{{ define "content" }}
         <div class="page-header">
             <h1>Athletes</h1>
             <a href="/athletes/new" class="btn btn-primary">New Athlete</a>
@@ -44,6 +31,4 @@
             <a href="/athletes/new" class="btn btn-primary">Add your first athlete</a>
         </div>
         {{ end }}
-    </main>
-</body>
-</html>{{ end }}
+{{ end }}

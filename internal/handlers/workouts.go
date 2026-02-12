@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,7 +15,7 @@ import (
 // Workouts holds dependencies for workout handlers.
 type Workouts struct {
 	DB        *sql.DB
-	Templates *template.Template
+	Templates TemplateCache
 }
 
 // checkAthleteAccess verifies the user can access the given athlete.
@@ -69,7 +68,7 @@ func (h *Workouts) List(w http.ResponseWriter, r *http.Request) {
 		"Athlete":  athlete,
 		"Workouts": workouts,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "workouts-list", data); err != nil {
+	if err := h.Templates.Render(w, r, "workouts_list.html", data); err != nil {
 		log.Printf("handlers: workouts list template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -102,7 +101,7 @@ func (h *Workouts) NewForm(w http.ResponseWriter, r *http.Request) {
 		"Athlete": athlete,
 		"Today":   time.Now().Format("2006-01-02"),
 	}
-	if err := h.Templates.ExecuteTemplate(w, "workout-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "workout_form.html", data); err != nil {
 		log.Printf("handlers: workout form template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -147,7 +146,7 @@ func (h *Workouts) Create(w http.ResponseWriter, r *http.Request) {
 			"Error":   "A workout already exists for " + date,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		h.Templates.ExecuteTemplate(w, "workout-form", data)
+		h.Templates.Render(w, r, "workout_form.html", data)
 		return
 	}
 	if err != nil {
@@ -252,10 +251,9 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		"Groups":       groups,
 		"Assigned":     assigned,
 		"Unassigned":   unassigned,
-		"IsCoach":      middleware.UserFromContext(r.Context()).IsCoach,
 		"TMByExercise": tmByExercise,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "workout-detail", data); err != nil {
+	if err := h.Templates.Render(w, r, "workout_detail.html", data); err != nil {
 		log.Printf("handlers: workout detail template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -449,7 +447,7 @@ func (h *Workouts) EditSetForm(w http.ResponseWriter, r *http.Request) {
 		"Workout": workout,
 		"Set":     set,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "set-edit-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "set_edit_form.html", data); err != nil {
 		log.Printf("handlers: set edit form template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}

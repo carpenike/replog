@@ -1,29 +1,16 @@
-{{ define "workout-detail" }}<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RepLog — Workout {{ .Workout.Date }}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="/static/js/htmx.min.js"></script>
-</head>
-<body hx-boost="true">
-    <header>
-        <nav>
-            <a href="/" class="logo">RepLog</a>
-        </nav>
-    </header>
-    <main>
+{{ define "title" }}RepLog — Workout {{ .Workout.Date }}{{ end }}
+
+{{ define "content" }}
         <div class="breadcrumb">
             <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}/workouts">Workouts</a> &rsaquo; {{ .Workout.Date }}
         </div>
 
         <div class="page-header">
             <h1>{{ .Workout.Date }}</h1>
-            {{ if .IsCoach }}
+            {{ if .User.IsCoach }}
             <div class="page-actions">
                 <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/delete" class="inline-form"
-                      onsubmit="return confirm('Delete this workout and all its sets?')">
+                      hx-confirm="Delete this workout and all its sets?">
                     <button type="submit" class="btn btn-danger">Delete Workout</button>
                 </form>
             </div>
@@ -72,7 +59,7 @@
                             <td class="set-actions">
                                 <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/edit" class="btn btn-small">Edit</a>
                                 <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/delete" class="inline-form"
-                                      onsubmit="return confirm('Delete this set?')">
+                                      hx-confirm="Delete this set?">
                                     <button type="submit" class="btn btn-small btn-danger">✕</button>
                                 </form>
                             </td>
@@ -151,6 +138,4 @@
                 <button type="submit" class="btn btn-primary">Log Set</button>
             </form>
         </section>
-    </main>
-</body>
-</html>{{ end }}
+{{ end }}

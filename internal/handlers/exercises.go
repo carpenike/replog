@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,12 +14,11 @@ import (
 // Exercises holds dependencies for exercise handlers.
 type Exercises struct {
 	DB        *sql.DB
-	Templates *template.Template
+	Templates TemplateCache
 }
 
 // List renders the exercise list page.
 func (h *Exercises) List(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
 	tierFilter := r.URL.Query().Get("tier")
 
 	exercises, err := models.ListExercises(h.DB, tierFilter)
@@ -34,9 +32,8 @@ func (h *Exercises) List(w http.ResponseWriter, r *http.Request) {
 		"Exercises":  exercises,
 		"TierFilter": tierFilter,
 		"Tiers":      tierFilterOptions(),
-		"IsCoach":    user.IsCoach,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "exercises-list", data); err != nil {
+	if err := h.Templates.Render(w, r, "exercises_list.html", data); err != nil {
 		log.Printf("handlers: exercises list template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -53,7 +50,7 @@ func (h *Exercises) NewForm(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Tiers": tierOptions(),
 	}
-	if err := h.Templates.ExecuteTemplate(w, "exercise-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "exercise_form.html", data); err != nil {
 		log.Printf("handlers: exercise new form template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -80,7 +77,7 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 			"Form":  r.Form,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		h.Templates.ExecuteTemplate(w, "exercise-form", data)
+		h.Templates.Render(w, r, "exercise_form.html", data)
 		return
 	}
 
@@ -94,7 +91,7 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 			"Form":  r.Form,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		h.Templates.ExecuteTemplate(w, "exercise-form", data)
+		h.Templates.Render(w, r, "exercise_form.html", data)
 		return
 	}
 	if err != nil {
@@ -108,8 +105,6 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 
 // Show renders the exercise detail page.
 func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid exercise ID", http.StatusBadRequest)
@@ -145,9 +140,8 @@ func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
 		"Exercise":         exercise,
 		"AssignedAthletes": assignedAthletes,
 		"RecentSets":       recentSets,
-		"IsCoach":          user.IsCoach,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "exercise-detail", data); err != nil {
+	if err := h.Templates.Render(w, r, "exercise_detail.html", data); err != nil {
 		log.Printf("handlers: exercise detail template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -182,7 +176,7 @@ func (h *Exercises) EditForm(w http.ResponseWriter, r *http.Request) {
 		"Exercise": exercise,
 		"Tiers":    tierOptions(),
 	}
-	if err := h.Templates.ExecuteTemplate(w, "exercise-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "exercise_form.html", data); err != nil {
 		log.Printf("handlers: exercise edit form template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -217,7 +211,7 @@ func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 			"Form":     r.Form,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		h.Templates.ExecuteTemplate(w, "exercise-form", data)
+		h.Templates.Render(w, r, "exercise_form.html", data)
 		return
 	}
 
@@ -237,7 +231,7 @@ func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 			"Form":     r.Form,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		h.Templates.ExecuteTemplate(w, "exercise-form", data)
+		h.Templates.Render(w, r, "exercise_form.html", data)
 		return
 	}
 	if err != nil {
@@ -346,7 +340,7 @@ func (h *Exercises) ExerciseHistory(w http.ResponseWriter, r *http.Request) {
 		"Exercise": exercise,
 		"Days":     days,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "exercise-history", data); err != nil {
+	if err := h.Templates.Render(w, r, "exercise_history.html", data); err != nil {
 		log.Printf("handlers: exercise history template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}

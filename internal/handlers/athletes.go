@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,7 +14,7 @@ import (
 // Athletes holds dependencies for athlete handlers.
 type Athletes struct {
 	DB        *sql.DB
-	Templates *template.Template
+	Templates TemplateCache
 }
 
 // List renders the athlete list page. Coaches see all athletes; non-coaches
@@ -41,7 +40,7 @@ func (h *Athletes) List(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Athletes": athletes,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "athletes-list", data); err != nil {
+	if err := h.Templates.Render(w, r, "athletes_list.html", data); err != nil {
 		log.Printf("handlers: athletes list template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -58,7 +57,7 @@ func (h *Athletes) NewForm(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Tiers": tierOptions(),
 	}
-	if err := h.Templates.ExecuteTemplate(w, "athlete-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "athlete_form.html", data); err != nil {
 		log.Printf("handlers: athlete new form template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -85,7 +84,7 @@ func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
 			"Form":  r.Form,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		h.Templates.ExecuteTemplate(w, "athlete-form", data)
+		h.Templates.Render(w, r, "athlete_form.html", data)
 		return
 	}
 
@@ -171,11 +170,10 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		"Athlete":        athlete,
 		"Assignments":    assignments,
 		"TMByExercise":   tmByExercise,
-		"IsCoach":        user.IsCoach,
 		"RecentWorkouts": recentWorkouts,
 		"Deactivated":    deactivated,
 	}
-	if err := h.Templates.ExecuteTemplate(w, "athlete-detail", data); err != nil {
+	if err := h.Templates.Render(w, r, "athlete_detail.html", data); err != nil {
 		log.Printf("handlers: athlete detail template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -210,7 +208,7 @@ func (h *Athletes) EditForm(w http.ResponseWriter, r *http.Request) {
 		"Athlete": athlete,
 		"Tiers":   tierOptions(),
 	}
-	if err := h.Templates.ExecuteTemplate(w, "athlete-form", data); err != nil {
+	if err := h.Templates.Render(w, r, "athlete_form.html", data); err != nil {
 		log.Printf("handlers: athlete edit form template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
@@ -245,7 +243,7 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 			"Form":    r.Form,
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		h.Templates.ExecuteTemplate(w, "athlete-form", data)
+		h.Templates.Render(w, r, "athlete_form.html", data)
 		return
 	}
 

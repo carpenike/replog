@@ -1,19 +1,6 @@
-{{ define "exercise-form" }}<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RepLog — {{ if .Exercise }}Edit {{ .Exercise.Name }}{{ else }}New Exercise{{ end }}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="/static/js/htmx.min.js"></script>
-</head>
-<body hx-boost="true">
-    <header>
-        <nav>
-            <a href="/" class="logo">RepLog</a>
-        </nav>
-    </header>
-    <main>
+{{ define "title" }}RepLog — {{ if .Exercise }}Edit {{ .Exercise.Name }}{{ else }}New Exercise{{ end }}{{ end }}
+
+{{ define "content" }}
         <div class="breadcrumb">
             <a href="/exercises">Exercises</a> &rsaquo; {{ if .Exercise }}Edit{{ else }}New{{ end }}
         </div>
@@ -58,6 +45,4 @@
                 <a href="/exercises" class="btn">Cancel</a>
             </div>
         </form>
-    </main>
-</body>
-</html>{{ end }}
+{{ end }}

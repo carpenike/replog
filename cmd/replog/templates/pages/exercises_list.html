@@ -1,22 +1,9 @@
-{{ define "exercises-list" }}<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RepLog — Exercises</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="/static/js/htmx.min.js"></script>
-</head>
-<body hx-boost="true">
-    <header>
-        <nav>
-            <a href="/" class="logo">RepLog</a>
-        </nav>
-    </header>
-    <main>
+{{ define "title" }}RepLog — Exercises{{ end }}
+
+{{ define "content" }}
         <div class="page-header">
             <h1>Exercises</h1>
-            {{ if .IsCoach }}<a href="/exercises/new" class="btn btn-primary">New Exercise</a>{{ end }}
+            {{ if .User.IsCoach }}<a href="/exercises/new" class="btn btn-primary">New Exercise</a>{{ end }}
         </div>
 
         <div class="filter-bar">
@@ -48,9 +35,7 @@
         {{ else }}
         <div class="empty-state">
             <p>No exercises{{ if .TierFilter }} matching this filter{{ end }}.</p>
-            {{ if .IsCoach }}<a href="/exercises/new" class="btn btn-primary">Add your first exercise</a>{{ end }}
+            {{ if .User.IsCoach }}<a href="/exercises/new" class="btn btn-primary">Add your first exercise</a>{{ end }}
         </div>
         {{ end }}
-    </main>
-</body>
-</html>{{ end }}
+{{ end }}

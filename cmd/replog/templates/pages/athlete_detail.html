@@ -1,30 +1,17 @@
-{{ define "athlete-detail" }}<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RepLog — {{ .Athlete.Name }}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="/static/js/htmx.min.js"></script>
-</head>
-<body hx-boost="true">
-    <header>
-        <nav>
-            <a href="/" class="logo">RepLog</a>
-        </nav>
-    </header>
-    <main>
+{{ define "title" }}RepLog — {{ .Athlete.Name }}{{ end }}
+
+{{ define "content" }}
         <div class="breadcrumb">
             <a href="/athletes">Athletes</a> &rsaquo; {{ .Athlete.Name }}
         </div>
 
         <div class="page-header">
             <h1>{{ .Athlete.Name }}</h1>
-            {{ if .IsCoach }}
+            {{ if .User.IsCoach }}
             <div class="page-actions">
                 <a href="/athletes/{{ .Athlete.ID }}/edit" class="btn">Edit</a>
                 <form method="POST" action="/athletes/{{ .Athlete.ID }}/delete" class="inline-form"
-                      onsubmit="return confirm('Delete {{ .Athlete.Name }}? This will also delete all their workouts, assignments, and training maxes.')">
+                      hx-confirm="Delete {{ .Athlete.Name }}? This will also delete all their workouts, assignments, and training maxes.">
                     <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
             </div>
@@ -83,7 +70,7 @@
         <section class="section">
             <div class="section-header">
                 <h2>Assigned Exercises</h2>
-                {{ if .IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign Exercise</a>{{ end }}
+                {{ if .User.IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign Exercise</a>{{ end }}
             </div>
 
             {{ if .Assignments }}
@@ -115,9 +102,9 @@
                         <td class="text-muted">{{ .AssignedAt.Format "Jan 2, 2006" }}</td>
                         <td class="set-actions">
                             <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/history" class="btn btn-small">History</a>
-                            {{ if $.IsCoach }}
+                            {{ if $.User.IsCoach }}
                             <form method="POST" action="/athletes/{{ $.Athlete.ID }}/assignments/{{ .ID }}/deactivate" class="inline-form"
-                                  onsubmit="return confirm('Remove {{ .ExerciseName }} from {{ $.Athlete.Name }}?')">
+                                  hx-confirm="Remove {{ .ExerciseName }} from {{ $.Athlete.Name }}?">
                                 <button type="submit" class="btn btn-small btn-danger">Remove</button>
                             </form>
                             {{ end }}
@@ -129,13 +116,13 @@
             {{ else }}
             <div class="empty-state">
                 <p>No exercises assigned yet.</p>
-                {{ if .IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign First Exercise</a>{{ end }}
+                {{ if .User.IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign First Exercise</a>{{ end }}
             </div>
             {{ end }}
         </section>
 
         <!-- Deactivated Exercises (reactivatable) -->
-        {{ if and .IsCoach .Deactivated }}
+        {{ if and .User.IsCoach .Deactivated }}
         <section class="section">
             <h2>Previously Assigned</h2>
             <p class="text-muted">These exercises were previously assigned and can be reactivated.</p>
@@ -166,6 +153,4 @@
             </table>
         </section>
         {{ end }}
-    </main>
-</body>
-</html>{{ end }}
+{{ end }}

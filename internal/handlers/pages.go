@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,7 +13,7 @@ import (
 // Pages holds dependencies for page handlers.
 type Pages struct {
 	DB        *sql.DB
-	Templates *template.Template
+	Templates TemplateCache
 }
 
 // Index renders the home page for an authenticated user.
@@ -29,9 +28,7 @@ func (p *Pages) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]any{
-		"User": user,
-	}
+	data := map[string]any{}
 
 	if user.IsCoach {
 		// Coach dashboard — show athletes for quick navigation.
@@ -43,7 +40,7 @@ func (p *Pages) Index(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := p.Templates.ExecuteTemplate(w, "base", data); err != nil {
+	if err := p.Templates.Render(w, r, "index.html", data); err != nil {
 		log.Printf("handlers: index template error: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
