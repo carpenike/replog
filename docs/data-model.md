@@ -26,6 +26,8 @@ These were resolved interactively before schema design:
 
 10. **No program/prescription engine in v1.** The app is a logbook. The coach (or spreadsheet) decides what to do; the app records what happened. Program templates are a clean additive migration for v1.1+.
 
+11. **Foreign key delete behaviors are intentional.** Deleting an athlete cascades to their workouts, assignments, and training maxes. Deleting a user only unlinks their athlete profile (`SET NULL`). Deleting an exercise is restricted (`RESTRICT`) if it has been logged in any workout — prevents orphaned history.
+
 ## Entity Relationship Diagram
 
 ```mermaid
@@ -135,7 +137,7 @@ erDiagram
 | Column       | Type         | Constraints                          |
 |-------------|-------------|--------------------------------------|
 | `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
-| `name`      | TEXT         | NOT NULL                             |
+| `name`      | TEXT         | NOT NULL COLLATE NOCASE               |
 | `tier`      | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -149,7 +151,7 @@ erDiagram
 | Column       | Type         | Constraints                          |
 |-------------|-------------|--------------------------------------|
 | `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
-| `name`      | TEXT         | NOT NULL UNIQUE                      |
+| `name`      | TEXT         | NOT NULL UNIQUE COLLATE NOCASE        |
 | `tier`      | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
 | `target_reps`| INTEGER     | NULL                                 |
 | `form_notes`| TEXT         | NULL                                 |
@@ -231,6 +233,15 @@ PRAGMA journal_mode = WAL;
 PRAGMA busy_timeout = 5000;
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE IF NOT EXISTS athletes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL COLLATE NOCASE,
+    tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
+    notes       TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     username        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
@@ -240,15 +251,6 @@ CREATE TABLE IF NOT EXISTS users (
     is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS athletes (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL COLLATE NOCASE,
-    tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
-    notes       TEXT,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS exercises (
@@ -306,14 +308,14 @@ CREATE TABLE IF NOT EXISTS workout_sets (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_exercises_unique_active
     ON athlete_exercises(athlete_id, exercise_id) WHERE active = 1;
 
-CREATE INDEX IF NOT EXISTS idx_workouts_athlete_date
-    ON workouts(athlete_id, date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_unique_athlete_id
+    ON users(athlete_id) WHERE athlete_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_athlete_exercises_athlete_id
+    ON athlete_exercises(athlete_id);
 
 CREATE INDEX IF NOT EXISTS idx_workout_sets_workout
     ON workout_sets(workout_id);
-
-CREATE INDEX IF NOT EXISTS idx_training_maxes_athlete_exercise
-    ON training_maxes(athlete_id, exercise_id, effective_date);
 
 -- Triggers for updated_at timestamps
 CREATE TRIGGER IF NOT EXISTS trigger_users_updated_at

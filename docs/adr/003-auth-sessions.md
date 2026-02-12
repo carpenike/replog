@@ -15,7 +15,7 @@ We need the simplest auth approach that is still secure, with no external depend
 - **Session management:** `alexedwards/scs` with SQLite session store (or signed cookie store)
 - **Session transport:** HTTP cookies with `HttpOnly`, `SameSite=Lax`, configurable `Secure` flag
 - **Session lifetime:** 30 days (long-lived — family device, low-risk)
-- **Bootstrap:** On startup, if `users` table has zero rows, create an admin account from `REPLOG_ADMIN_USER` and `REPLOG_ADMIN_PASS` environment variables. Fail startup if env vars are missing and no users exist.
+- **Bootstrap:** On startup, if `users` table has zero rows, create an admin account from `REPLOG_ADMIN_USER`, `REPLOG_ADMIN_PASS`, and `REPLOG_ADMIN_EMAIL` environment variables with `is_coach = 1`. Fail startup if env vars are missing and no users exist.
 
 ## Rationale
 
@@ -23,7 +23,8 @@ We need the simplest auth approach that is still secure, with no external depend
 - Cookie-based sessions avoid a separate session table if using signed cookies, or provide server-side expiry if using the SQLite store. Either works at this scale.
 - `bcrypt` is the standard for password hashing in Go — no configuration needed, safe defaults.
 - 30-day sessions are appropriate for a family device. No need for refresh tokens or short-lived JWTs.
-- No roles/permissions in v1 — all authenticated users can do everything.
+- No roles/permissions beyond coach vs non-coach (`is_coach` flag). All coaches can do everything; non-coaches can only manage their linked athlete.
+- A non-coach user without a linked athlete profile sees an informative message and cannot take other actions.
 
 ## Consequences
 

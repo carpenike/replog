@@ -65,6 +65,7 @@
 - [ ] **Simple login** — username/password, session cookie
 - [ ] **Coach access** — coaches (`is_coach = 1`) can view/manage all athletes, exercises, assignments, and workouts
 - [ ] **Kid access** — non-coaches are linked to one athlete and can only view/log/edit their own workouts
+- [ ] **Unlinked non-coach** — if a non-coach user has no linked athlete, show an informative message (not a blank screen)
 - [ ] **Athlete selector** — coaches can switch between athletes; non-coaches land directly on their profile
 - [ ] **Session persistence** — stay logged in across browser restarts
 
