@@ -105,6 +105,8 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 
 // Show renders the exercise detail page.
 func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid exercise ID", http.StatusBadRequest)
@@ -134,6 +136,31 @@ func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: list recent sets for exercise %d: %v", id, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// Non-coaches should only see their own athlete data, not other athletes'.
+	if !user.IsCoach {
+		if user.AthleteID.Valid {
+			ownID := user.AthleteID.Int64
+			var filteredAthletes []*models.AssignedAthlete
+			for _, a := range assignedAthletes {
+				if a.AthleteID == ownID {
+					filteredAthletes = append(filteredAthletes, a)
+				}
+			}
+			assignedAthletes = filteredAthletes
+
+			var filteredSets []*models.RecentExerciseSet
+			for _, s := range recentSets {
+				if s.AthleteID == ownID {
+					filteredSets = append(filteredSets, s)
+				}
+			}
+			recentSets = filteredSets
+		} else {
+			assignedAthletes = nil
+			recentSets = nil
+		}
 	}
 
 	data := map[string]any{

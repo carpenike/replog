@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+// ErrDuplicateTrainingMax is returned when a training max already exists for
+// the given athlete+exercise+date combination.
+var ErrDuplicateTrainingMax = errors.New("training max already exists for this date")
+
 // TrainingMax represents a training max record for an athlete+exercise.
 type TrainingMax struct {
 	ID            int64
@@ -35,7 +39,7 @@ func SetTrainingMax(db *sql.DB, athleteID, exerciseID int64, weight float64, eff
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
-			return nil, fmt.Errorf("models: training max already exists for that date: %w", err)
+			return nil, ErrDuplicateTrainingMax
 		}
 		return nil, fmt.Errorf("models: set training max: %w", err)
 	}

@@ -95,6 +95,13 @@ func (tc TemplateCache) Render(w http.ResponseWriter, r *http.Request, name stri
 		}
 	}
 
+	// Inject CSRF token for forms.
+	if _, exists := data["CSRFToken"]; !exists {
+		if token := middleware.CSRFTokenFromContext(r.Context()); token != "" {
+			data["CSRFToken"] = token
+		}
+	}
+
 	// Non-boosted htmx requests get just the content fragment.
 	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Boosted") != "true" {
 		return ts.ExecuteTemplate(w, "content", data)

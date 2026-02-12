@@ -45,9 +45,11 @@ func CreateAthlete(db *sql.DB, name, tier, notes string) (*Athlete, error) {
 func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 	a := &Athlete{}
 	err := db.QueryRow(
-		`SELECT id, name, tier, notes, created_at, updated_at
-		 FROM athletes WHERE id = ?`, id,
-	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CreatedAt, &a.UpdatedAt)
+		`SELECT a.id, a.name, a.tier, a.notes, a.created_at, a.updated_at,
+		        COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
+		                  WHERE ae.athlete_id = a.id AND ae.active = 1), 0)
+		 FROM athletes a WHERE a.id = ?`, id,
+	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}

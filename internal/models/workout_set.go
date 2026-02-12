@@ -112,17 +112,72 @@ func UpdateSet(db *sql.DB, id int64, reps int, weight float64, notes string) (*W
 	return GetSetByID(db, id)
 }
 
-// DeleteSet removes a set from a workout.
+// DeleteSet removes a set from a workout and renumbers the remaining sets
+// for the same workout+exercise to maintain a contiguous sequence.
 func DeleteSet(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM workout_sets WHERE id = ?`, id)
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("models: begin tx for delete set: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Look up the set's workout and exercise before deleting.
+	var workoutID, exerciseID int64
+	err = tx.QueryRow(`SELECT workout_id, exercise_id FROM workout_sets WHERE id = ?`, id).Scan(&workoutID, &exerciseID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("models: lookup set %d for delete: %w", id, err)
+	}
+
+	// Delete the target set.
+	_, err = tx.Exec(`DELETE FROM workout_sets WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete set %d: %w", id, err)
 	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return ErrNotFound
+
+	// Renumber remaining sets for this workout+exercise.
+	// First negate all set_numbers to avoid unique constraint violations.
+	_, err = tx.Exec(
+		`UPDATE workout_sets SET set_number = -set_number WHERE workout_id = ? AND exercise_id = ?`,
+		workoutID, exerciseID,
+	)
+	if err != nil {
+		return fmt.Errorf("models: negate set numbers for renumber: %w", err)
 	}
-	return nil
+
+	// Read remaining set IDs in original order (negate back for ORDER BY).
+	rows, err := tx.Query(
+		`SELECT id FROM workout_sets WHERE workout_id = ? AND exercise_id = ? ORDER BY -set_number`,
+		workoutID, exerciseID,
+	)
+	if err != nil {
+		return fmt.Errorf("models: read sets for renumber: %w", err)
+	}
+	var ids []int64
+	for rows.Next() {
+		var setID int64
+		if err := rows.Scan(&setID); err != nil {
+			rows.Close()
+			return fmt.Errorf("models: scan set id for renumber: %w", err)
+		}
+		ids = append(ids, setID)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("models: iterate sets for renumber: %w", err)
+	}
+
+	// Assign new contiguous set_numbers starting at 1.
+	for i, setID := range ids {
+		_, err = tx.Exec(`UPDATE workout_sets SET set_number = ? WHERE id = ?`, i+1, setID)
+		if err != nil {
+			return fmt.Errorf("models: renumber set %d: %w", setID, err)
+		}
+	}
+
+	return tx.Commit()
 }
 
 // ExerciseGroup groups sets by exercise for a workout detail view.

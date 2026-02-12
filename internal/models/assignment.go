@@ -153,8 +153,14 @@ func ListDeactivatedAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise
 		      SELECT exercise_id FROM athlete_exercises
 		      WHERE athlete_id = ? AND active = 1
 		  )
-		GROUP BY ae.exercise_id
-		HAVING ae.deactivated_at = MAX(ae.deactivated_at)
+		  AND ae.id = (
+		      SELECT ae2.id FROM athlete_exercises ae2
+		      WHERE ae2.athlete_id = ae.athlete_id
+		        AND ae2.exercise_id = ae.exercise_id
+		        AND ae2.active = 0
+		      ORDER BY ae2.deactivated_at DESC
+		      LIMIT 1
+		  )
 		ORDER BY e.name COLLATE NOCASE
 		LIMIT 100`, athleteID, athleteID)
 	if err != nil {

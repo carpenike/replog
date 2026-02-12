@@ -194,9 +194,13 @@ func UpdatePassword(db *sql.DB, id int64, newPassword string) error {
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, hash, id)
+	result, err := db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, hash, id)
 	if err != nil {
 		return fmt.Errorf("models: update password for user %d: %w", id, err)
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
 	}
 	return nil
 }

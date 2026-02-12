@@ -182,6 +182,13 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate password early — before committing profile changes.
+	newPassword := r.FormValue("password")
+	if newPassword != "" && len(newPassword) < 6 {
+		h.renderFormError(w, r, "Password must be at least 6 characters.", u)
+		return
+	}
+
 	var athleteID sql.NullInt64
 	athleteIDStr := r.FormValue("athlete_id")
 	if athleteIDStr != "" {
@@ -202,13 +209,8 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update password if provided.
-	newPassword := r.FormValue("password")
+	// Update password if provided (already validated above).
 	if newPassword != "" {
-		if len(newPassword) < 6 {
-			h.renderFormError(w, r, "Password must be at least 6 characters.", u)
-			return
-		}
 		if err := models.UpdatePassword(h.DB, id, newPassword); err != nil {
 			log.Printf("handlers: update password for user %d: %v", id, err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

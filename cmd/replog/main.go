@@ -116,15 +116,15 @@ func main() {
 	mux.Handle("POST /login", sessionManager.LoadAndSave(http.HandlerFunc(auth.LoginSubmit)))
 	mux.Handle("POST /logout", sessionManager.LoadAndSave(http.HandlerFunc(auth.Logout)))
 
-	// Authenticated routes — wrapped with RequireAuth middleware.
+	// Authenticated routes — wrapped with RequireAuth + CSRF middleware.
 	requireAuth := func(h http.HandlerFunc) http.Handler {
-		return middleware.RequireAuth(sessionManager, db, http.HandlerFunc(h))
+		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, http.HandlerFunc(h)))
 	}
 
-	// Coach-only routes — RequireAuth + RequireCoach for defense-in-depth.
+	// Coach-only routes — RequireAuth + CSRF + RequireCoach for defense-in-depth.
 	// Handlers also check is_coach inline, but this provides an extra layer.
 	requireCoach := func(h http.HandlerFunc) http.Handler {
-		return middleware.RequireAuth(sessionManager, db, middleware.RequireCoach(http.HandlerFunc(h)))
+		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, middleware.RequireCoach(http.HandlerFunc(h))))
 	}
 
 	mux.Handle("GET /{$}", requireAuth(pages.Index))

@@ -509,6 +509,12 @@ func (h *Workouts) EditSetForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify the set belongs to the specified workout.
+	if set.WorkoutID != workoutID {
+		http.Error(w, "Set not found", http.StatusNotFound)
+		return
+	}
+
 	data := map[string]any{
 		"Athlete": athlete,
 		"Workout": workout,
@@ -582,6 +588,22 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 
 	notes := r.FormValue("notes")
 
+	// Verify the set belongs to the specified workout.
+	setCheck, err := models.GetSetByID(h.DB, setID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Set not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get set %d for update: %v", setID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if setCheck.WorkoutID != workoutID {
+		http.Error(w, "Set not found", http.StatusNotFound)
+		return
+	}
+
 	_, err = models.UpdateSet(h.DB, setID, reps, weight, notes)
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Set not found", http.StatusNotFound)
@@ -633,6 +655,22 @@ func (h *Workouts) DeleteSet(w http.ResponseWriter, r *http.Request) {
 	}
 	if workoutCheck.AthleteID != athleteID {
 		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify the set belongs to the specified workout.
+	setCheck, err := models.GetSetByID(h.DB, setID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Set not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get set %d for delete: %v", setID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if setCheck.WorkoutID != workoutID {
+		http.Error(w, "Set not found", http.StatusNotFound)
 		return
 	}
 
