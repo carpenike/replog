@@ -23,7 +23,7 @@ See [docs/adr/001-tech-stack.md](docs/adr/001-tech-stack.md) for rationale.
 ## Development
 
 ```bash
-# Prerequisites: Go 1.22+, Nix (optional, for flake build)
+# Prerequisites: Go 1.24+, Nix (optional, for flake build)
 
 # Run locally
 go run ./cmd/replog

@@ -8,7 +8,7 @@ RepLog is a self-hosted web app for tracking resistance training workouts. It se
 
 ## Tech Stack
 
-- **Go** (1.22+) with `html/template` — server-side rendering, no frontend framework
+- **Go** (1.24+) with `html/template` — server-side rendering, no frontend framework
 - **htmx** — all interactivity via `hx-get`, `hx-post`, `hx-swap` attributes; no JS build step
 - **SQLite** (WAL mode) via `modernc.org/sqlite` — pure Go driver, no CGO
 - **pressly/goose** — SQL migrations embedded in binary via `embed.FS`

@@ -6,7 +6,7 @@ applyTo: "**/*.go"
 
 ## General
 
-- Target Go 1.22+ — use `net/http` routing enhancements (method patterns in `ServeMux`)
+- Target Go 1.24+ — use `net/http` routing enhancements (method patterns in `ServeMux`)
 - Module path: `github.com/carpenike/replog`
 - All application code lives under `internal/` — it is not importable externally
 
