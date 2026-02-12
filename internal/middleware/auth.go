@@ -12,7 +12,9 @@ import (
 
 type contextKey string
 
-const userContextKey contextKey = "user"
+// UserContextKey is exported for use in handler tests that need to inject
+// an authenticated user into the request context.
+const UserContextKey contextKey = "user"
 
 // RequireAuth redirects unauthenticated users to the login page.
 func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Handler {
@@ -31,7 +33,7 @@ func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Han
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userContextKey, user)
+		ctx := context.WithValue(r.Context(), UserContextKey, user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}))
 }
@@ -39,7 +41,7 @@ func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Han
 // UserFromContext retrieves the authenticated user from the request context.
 // Returns nil if no user is set (should not happen behind RequireAuth).
 func UserFromContext(ctx context.Context) *models.User {
-	u, _ := ctx.Value(userContextKey).(*models.User)
+	u, _ := ctx.Value(UserContextKey).(*models.User)
 	return u
 }
 

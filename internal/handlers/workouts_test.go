@@ -1,0 +1,312 @@
+package handlers
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+
+	"github.com/carpenike/replog/internal/models"
+)
+
+func TestWorkouts_List_CoachCanView(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/workouts", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.List(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_List_NonCoachCanViewOwn(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/workouts", nil, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.List(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_List_NonCoachForbiddenOther(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	myAthlete := seedAthlete(t, db, "Kid", "")
+	otherAthlete := seedAthlete(t, db, "Other", "")
+	nonCoach := seedNonCoach(t, db, myAthlete.ID)
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(otherAthlete.ID)+"/workouts", nil, nonCoach)
+	req.SetPathValue("id", itoa(otherAthlete.ID))
+	rr := httptest.NewRecorder()
+	h.List(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_Create_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{"date": {"2026-02-10"}, "notes": {"Great session"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_Create_DuplicateDate(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	// Create first workout.
+	_, err := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	if err != nil {
+		t.Fatalf("create workout: %v", err)
+	}
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	// Try to create a second workout on the same date.
+	form := url.Values{"date": {"2026-02-10"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	// Should redirect to existing workout (303) since the handler redirects on duplicate.
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303 redirect to existing workout, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_Show_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	workout, err := models.CreateWorkout(db, athlete.ID, "2026-02-10", "test")
+	if err != nil {
+		t.Fatalf("create workout: %v", err)
+	}
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID), nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.Show(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_UpdateNotes(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{"notes": {"Updated notes"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/notes", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNotes(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	updated, err := models.GetWorkoutByID(db, workout.ID)
+	if err != nil {
+		t.Fatalf("get workout: %v", err)
+	}
+	if !updated.Notes.Valid || updated.Notes.String != "Updated notes" {
+		t.Errorf("expected notes 'Updated notes', got %v", updated.Notes)
+	}
+}
+
+func TestWorkouts_Delete_CoachOnly(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/delete", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.Delete(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_Delete_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/delete", nil, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.Delete(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_AddSet_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{
+		"exercise_id": {itoa(ex.ID)},
+		"reps":        {"5"},
+		"weight":      {"225"},
+		"notes":       {"felt good"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.AddSet(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_AddSet_InvalidReps(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{
+		"exercise_id": {itoa(ex.ID)},
+		"reps":        {"0"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.AddSet(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_UpdateSet_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{"reps": {"8"}, "weight": {"185"}, "notes": {"lighter"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets/"+itoa(set.ID), form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	req.SetPathValue("setID", itoa(set.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateSet(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	updated, _ := models.GetSetByID(db, set.ID)
+	if updated.Reps != 8 {
+		t.Errorf("expected 8 reps, got %d", updated.Reps)
+	}
+}
+
+func TestWorkouts_DeleteSet_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets/"+itoa(set.ID)+"/delete", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	req.SetPathValue("setID", itoa(set.ID))
+	rr := httptest.NewRecorder()
+	h.DeleteSet(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	_, err := models.GetSetByID(db, set.ID)
+	if err != models.ErrNotFound {
+		t.Errorf("expected set to be deleted, got %v", err)
+	}
+}

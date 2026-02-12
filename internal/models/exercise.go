@@ -130,14 +130,14 @@ func ListExercises(db *sql.DB, tierFilter string) ([]*Exercise, error) {
 
 	if tierFilter == "none" {
 		query = `SELECT id, name, tier, target_reps, form_notes, created_at, updated_at
-		         FROM exercises WHERE tier IS NULL ORDER BY name COLLATE NOCASE`
+		         FROM exercises WHERE tier IS NULL ORDER BY name COLLATE NOCASE LIMIT 200`
 	} else if tierFilter != "" {
 		query = `SELECT id, name, tier, target_reps, form_notes, created_at, updated_at
-		         FROM exercises WHERE tier = ? ORDER BY name COLLATE NOCASE`
+		         FROM exercises WHERE tier = ? ORDER BY name COLLATE NOCASE LIMIT 200`
 		args = append(args, tierFilter)
 	} else {
 		query = `SELECT id, name, tier, target_reps, form_notes, created_at, updated_at
-		         FROM exercises ORDER BY name COLLATE NOCASE`
+		         FROM exercises ORDER BY name COLLATE NOCASE LIMIT 200`
 	}
 
 	rows, err := db.Query(query, args...)

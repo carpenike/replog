@@ -105,7 +105,8 @@ func ListAthletes(db *sql.DB) ([]*Athlete, error) {
 		       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 		                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
 		FROM athletes a
-		ORDER BY a.name COLLATE NOCASE`)
+		ORDER BY a.name COLLATE NOCASE
+		LIMIT 100`)
 	if err != nil {
 		return nil, fmt.Errorf("models: list athletes: %w", err)
 	}
