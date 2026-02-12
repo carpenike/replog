@@ -1,0 +1,51 @@
+{{ define "assign-exercise-form" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — Assign Exercise to {{ .Athlete.Name }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Assign Exercise
+        </div>
+
+        <div class="form-card">
+            <h1>Assign Exercise</h1>
+            <p>Choose an exercise to assign to {{ .Athlete.Name }}.</p>
+
+            {{ if .Exercises }}
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/assignments">
+                <div class="form-group">
+                    <label for="exercise_id">Exercise</label>
+                    <select id="exercise_id" name="exercise_id" required>
+                        <option value="">— Select Exercise —</option>
+                        {{ range .Exercises }}
+                        <option value="{{ .ID }}">{{ .Name }}{{ if .Tier.Valid }} ({{ .Tier.String }}){{ end }}</option>
+                        {{ end }}
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Assign</button>
+                    <a href="/athletes/{{ .Athlete.ID }}" class="btn">Cancel</a>
+                </div>
+            </form>
+            {{ else }}
+            <div class="empty-state">
+                <p>All exercises are already assigned to this athlete.</p>
+                <a href="/athletes/{{ .Athlete.ID }}" class="btn">Back to {{ .Athlete.Name }}</a>
+            </div>
+            {{ end }}
+        </div>
+    </main>
+</body>
+</html>{{ end }}

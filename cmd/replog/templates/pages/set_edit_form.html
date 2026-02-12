@@ -1,0 +1,57 @@
+{{ define "set-edit-form" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — Edit Set</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}/workouts">Workouts</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}">{{ .Workout.Date }}</a> &rsaquo;
+            Edit Set
+        </div>
+
+        <div class="form-card">
+            <h1>Edit Set</h1>
+            <p>{{ .Set.ExerciseName }} — Set #{{ .Set.SetNumber }}</p>
+
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/sets/{{ .Set.ID }}">
+                <div class="form-group">
+                    <label for="reps">Reps</label>
+                    <input type="number" id="reps" name="reps" min="1" required value="{{ .Set.Reps }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="weight">Weight (lbs)</label>
+                    <input type="number" id="weight" name="weight" step="0.5" min="0"
+                           value="{{ if .Set.Weight.Valid }}{{ .Set.Weight.Float64 }}{{ end }}"
+                           placeholder="Leave blank for bodyweight">
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <input type="text" id="notes" name="notes"
+                           value="{{ if .Set.Notes.Valid }}{{ .Set.Notes.String }}{{ end }}"
+                           placeholder="Optional per-set note">
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a href="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}" class="btn">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </main>
+</body>
+</html>{{ end }}

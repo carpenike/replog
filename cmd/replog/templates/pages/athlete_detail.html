@@ -39,6 +39,67 @@
                 <span class="detail-value">{{ if .Athlete.Notes.Valid }}{{ .Athlete.Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</span>
             </div>
         </div>
+
+        <!-- Workouts Link -->
+        <section class="section">
+            <div class="section-header">
+                <h2>Workouts</h2>
+                <div class="page-actions">
+                    <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="btn btn-primary">New Workout</a>
+                    <a href="/athletes/{{ .Athlete.ID }}/workouts" class="btn">View All</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Assigned Exercises -->
+        <section class="section">
+            <div class="section-header">
+                <h2>Assigned Exercises</h2>
+                <a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign Exercise</a>
+            </div>
+
+            {{ if .Assignments }}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Tier</th>
+                        <th scope="col">Current TM</th>
+                        <th scope="col">Assigned</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Assignments }}
+                    <tr>
+                        <td>{{ .ExerciseName }}</td>
+                        <td>{{ if .ExerciseTier.Valid }}{{ .ExerciseTier.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td>
+                            {{ $tm := index $.TMByExercise .ExerciseID }}
+                            {{ if $tm }}
+                                <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/training-maxes">{{ $tm.Weight }} lbs</a>
+                            {{ else }}
+                                <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/training-maxes/new" class="text-muted">Set TM</a>
+                            {{ end }}
+                        </td>
+                        <td class="text-muted">{{ .AssignedAt.Format "Jan 2, 2006" }}</td>
+                        <td>
+                            <form method="POST" action="/athletes/{{ $.Athlete.ID }}/assignments/{{ .ID }}/deactivate" class="inline-form"
+                                  onsubmit="return confirm('Remove {{ .ExerciseName }} from {{ $.Athlete.Name }}?')">
+                                <button type="submit" class="btn btn-small btn-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <div class="empty-state">
+                <p>No exercises assigned yet.</p>
+                <a href="/athletes/{{ .Athlete.ID }}/assignments/new" class="btn btn-primary">Assign First Exercise</a>
+            </div>
+            {{ end }}
+        </section>
     </main>
 </body>
 </html>{{ end }}

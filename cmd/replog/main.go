@@ -87,6 +87,18 @@ func main() {
 		DB:        db,
 		Templates: templates,
 	}
+	assignments := &handlers.Assignments{
+		DB:        db,
+		Templates: templates,
+	}
+	trainingMaxes := &handlers.TrainingMaxes{
+		DB:        db,
+		Templates: templates,
+	}
+	workouts := &handlers.Workouts{
+		DB:        db,
+		Templates: templates,
+	}
 
 	// Set up routes.
 	mux := http.NewServeMux()
@@ -124,6 +136,28 @@ func main() {
 	mux.Handle("GET /exercises/{id}/edit", requireAuth(exercises.EditForm))
 	mux.Handle("POST /exercises/{id}", requireAuth(exercises.Update))
 	mux.Handle("POST /exercises/{id}/delete", requireAuth(exercises.Delete))
+
+	// Assignments.
+	mux.Handle("GET /athletes/{id}/assignments/new", requireAuth(assignments.AssignForm))
+	mux.Handle("POST /athletes/{id}/assignments", requireAuth(assignments.Assign))
+	mux.Handle("POST /athletes/{id}/assignments/{assignmentID}/deactivate", requireAuth(assignments.Deactivate))
+
+	// Training Maxes.
+	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/training-maxes", requireAuth(trainingMaxes.History))
+	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/training-maxes/new", requireAuth(trainingMaxes.NewForm))
+	mux.Handle("POST /athletes/{id}/exercises/{exerciseID}/training-maxes", requireAuth(trainingMaxes.Create))
+
+	// Workouts.
+	mux.Handle("GET /athletes/{id}/workouts", requireAuth(workouts.List))
+	mux.Handle("GET /athletes/{id}/workouts/new", requireAuth(workouts.NewForm))
+	mux.Handle("POST /athletes/{id}/workouts", requireAuth(workouts.Create))
+	mux.Handle("GET /athletes/{id}/workouts/{workoutID}", requireAuth(workouts.Show))
+	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/notes", requireAuth(workouts.UpdateNotes))
+	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/delete", requireAuth(workouts.Delete))
+	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets", requireAuth(workouts.AddSet))
+	mux.Handle("GET /athletes/{id}/workouts/{workoutID}/sets/{setID}/edit", requireAuth(workouts.EditSetForm))
+	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}", requireAuth(workouts.UpdateSet))
+	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}/delete", requireAuth(workouts.DeleteSet))
 
 	// Start server.
 	log.Printf("RepLog listening on %s", addr)

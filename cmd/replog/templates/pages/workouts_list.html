@@ -1,0 +1,55 @@
+{{ define "workouts-list" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — {{ .Athlete.Name }} Workouts</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+        </nav>
+    </header>
+    <main>
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Workouts
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Athlete.Name }} — Workouts</h1>
+            <div class="page-actions">
+                <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="btn btn-primary">New Workout</a>
+            </div>
+        </div>
+
+        {{ if .Workouts }}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Sets</th>
+                    <th scope="col">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Workouts }}
+                <tr>
+                    <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Date }}</a></td>
+                    <td>{{ .SetCount }}</td>
+                    <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        {{ else }}
+        <div class="empty-state">
+            <p>No workouts logged yet.</p>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="btn btn-primary">Start First Workout</a>
+        </div>
+        {{ end }}
+    </main>
+</body>
+</html>{{ end }}

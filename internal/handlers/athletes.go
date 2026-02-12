@@ -94,8 +94,30 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	assignments, err := models.ListActiveAssignments(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: list assignments for athlete %d: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	currentTMs, err := models.ListCurrentTrainingMaxes(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: list training maxes for athlete %d: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Build a map from exerciseID → current training max for easy lookup.
+	tmByExercise := make(map[int64]*models.TrainingMax)
+	for _, tm := range currentTMs {
+		tmByExercise[tm.ExerciseID] = tm
+	}
+
 	data := map[string]any{
-		"Athlete": athlete,
+		"Athlete":       athlete,
+		"Assignments":   assignments,
+		"TMByExercise":  tmByExercise,
 	}
 	if err := h.Templates.ExecuteTemplate(w, "athlete-detail", data); err != nil {
 		log.Printf("handlers: athlete detail template: %v", err)

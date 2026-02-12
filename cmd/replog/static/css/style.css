@@ -398,3 +398,66 @@ header nav {
 .btn-danger:hover {
     background: #fef2f2;
 }
+
+/* Sections */
+.section {
+    margin-top: 2rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.section-header h2 {
+    margin-bottom: 0;
+}
+
+/* Exercise group in workout detail */
+.exercise-group {
+    margin-bottom: 1.5rem;
+}
+
+.exercise-group h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+}
+
+/* Add set form */
+.add-set-form {
+    max-width: 36rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.75rem;
+    align-items: end;
+}
+
+.form-group-sm {
+    max-width: 6rem;
+}
+
+/* Set actions */
+.set-actions {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    white-space: nowrap;
+}
+
+/* Notes toggle */
+.notes-toggle summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    margin-bottom: 0.5rem;
+}
+
+.notes-form {
+    margin-top: 0.5rem;
+}
