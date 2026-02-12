@@ -1,0 +1,29 @@
+{{ define "base" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ block "title" . }}RepLog{{ end }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+    <header>
+        <nav>
+            <a href="/" class="logo">RepLog</a>
+            {{ if .User }}
+            <form method="POST" action="/logout" class="nav-logout">
+                <span class="nav-user">{{ .User.Username }}</span>
+                <button type="submit" class="btn btn-small">Sign Out</button>
+            </form>
+            {{ end }}
+        </nav>
+    </header>
+    <main>
+        {{ block "content" . }}{{ end }}
+    </main>
+    <footer>
+        <p>RepLog — workout tracking for the family</p>
+    </footer>
+</body>
+</html>{{ end }}

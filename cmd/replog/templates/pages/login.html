@@ -1,0 +1,33 @@
+{{ define "login" }}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepLog — Login</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="login-container">
+        <div class="login-card">
+            <h1>RepLog</h1>
+            <p>Sign in to continue</p>
+
+            {{ if .Error }}
+            <div class="alert alert-error">{{ .Error }}</div>
+            {{ end }}
+
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autofocus autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+            </form>
+        </div>
+    </main>
+</body>
+</html>{{ end }}

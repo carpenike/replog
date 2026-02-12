@@ -1,0 +1,8 @@
+# SQLite databases
+*.db
+*.db-wal
+*.db-shm
+
+# Build output
+/replog
+/result

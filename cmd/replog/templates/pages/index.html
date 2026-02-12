@@ -1,0 +1,8 @@
+{{ define "title" }}RepLog — Home{{ end }}
+
+{{ define "content" }}
+<section>
+    <h1>Welcome{{ if .User }}, {{ .User.Username }}{{ end }}</h1>
+    <p>Track your training. Review your progress. Stay consistent.</p>
+</section>
+{{ end }}
