@@ -16,9 +16,11 @@ These were resolved interactively before schema design:
 
 5. **Training maxes are a first-class entity.** Required for percentage-based programs (5/3/1, GZCL). Multiple rows per exercise track TM progression over time. Even without a program engine, seeing "that was 85% of my TM" is useful.
 
-6. **Assignments use an `active` flag, not hard deletes.** Deactivating preserves history. `assigned_at` / `deactivated_at` give you a timeline. Reactivation is a flag flip or a new row.
+6. **Assignments use an `active` flag, not hard deletes.** Deactivating preserves history. `assigned_at` / `deactivated_at` give you a timeline. Reactivation creates a **new row** (not a flag flip) — the new `assigned_at` reflects the reactivation date, preserving the full audit trail.
 
-7. **No program/prescription engine in v1.** The app is a logbook. The coach (or spreadsheet) decides what to do; the app records what happened. Program templates are a clean additive migration for v1.1+.
+7. **Athletes can log any exercise, not just assigned ones.** The daily view highlights assigned exercises, but the logging UI has access to the full exercise library. This allows accessory work, one-off movements, and trying new exercises without formal assignment.
+
+8. **No program/prescription engine in v1.** The app is a logbook. The coach (or spreadsheet) decides what to do; the app records what happened. Program templates are a clean additive migration for v1.1+.
 
 ## Entity Relationship Diagram
 
@@ -103,8 +105,9 @@ These were resolved interactively before schema design:
 | `assigned_at`  | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `deactivated_at`| DATETIME    | NULL                                 |
 
-- UNIQUE(athlete_id, exercise_id, assigned_at) — prevents duplicate active assignments.
+- Partial unique index ensures only one active assignment per athlete+exercise at a time.
 - Deactivation sets `active = 0` and populates `deactivated_at`.
+- Reactivation creates a new row (preserves audit trail with fresh `assigned_at`).
 - History is preserved; query `WHERE active = 1` for current assignments.
 
 ### `training_maxes`
@@ -186,8 +189,7 @@ CREATE TABLE IF NOT EXISTS athlete_exercises (
     exercise_id     INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
     active          INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
     assigned_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deactivated_at  DATETIME,
-    UNIQUE(athlete_id, exercise_id, assigned_at)
+    deactivated_at  DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS training_maxes (
@@ -221,8 +223,8 @@ CREATE TABLE IF NOT EXISTS workout_sets (
 );
 
 -- Indexes for common query patterns
-CREATE INDEX IF NOT EXISTS idx_athlete_exercises_active
-    ON athlete_exercises(athlete_id, active) WHERE active = 1;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_exercises_unique_active
+    ON athlete_exercises(athlete_id, exercise_id) WHERE active = 1;
 
 CREATE INDEX IF NOT EXISTS idx_workouts_athlete_date
     ON workouts(athlete_id, date);
@@ -232,6 +234,19 @@ CREATE INDEX IF NOT EXISTS idx_workout_sets_workout
 
 CREATE INDEX IF NOT EXISTS idx_training_maxes_athlete_exercise
     ON training_maxes(athlete_id, exercise_id, effective_date);
+
+-- Triggers for updated_at timestamps
+CREATE TRIGGER IF NOT EXISTS trigger_athletes_updated_at
+AFTER UPDATE ON athletes
+BEGIN
+    UPDATE athletes SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trigger_exercises_updated_at
+AFTER UPDATE ON exercises
+BEGIN
+    UPDATE exercises SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
 ```
 
 ## Seed Data (Development)

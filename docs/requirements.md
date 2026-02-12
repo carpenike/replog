@@ -33,7 +33,7 @@
 
 - [ ] **Assign exercise to athlete** — creates active assignment
 - [ ] **Unassign exercise** — deactivates (preserves history, does not delete)
-- [ ] **Reactivate assignment** — re-enable a previously deactivated assignment
+- [ ] **Reactivate assignment** — creates a new assignment row (preserves audit trail, fresh `assigned_at`)
 - [ ] **View active assignments** for an athlete — shows exercise name, tier, target reps
 
 ### Training Maxes
@@ -47,7 +47,7 @@
 
 - [ ] **Start workout** for an athlete on a date (creates workout record)
 - [ ] **Daily workout view** — shows athlete's active exercises with target reps and current TM
-- [ ] **Log a set** — select exercise, enter reps, optional weight, optional notes
+- [ ] **Log a set** — select exercise (assigned shown first, full library accessible), enter reps, optional weight, optional notes
 - [ ] **Edit a logged set** — fix typos in reps/weight/notes
 - [ ] **Delete a logged set** — remove an erroneous entry
 - [ ] **Add workout notes** — session-level observations
@@ -61,6 +61,7 @@
 
 ### Auth & Session
 
+- [ ] **Auto-create admin on first run** — if no users exist, prompt for username/password (or read from env vars `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS`)
 - [ ] **Simple login** — username/password, session cookie
 - [ ] **Athlete selector** — switch between athletes after login (family-only, no roles)
 - [ ] **Session persistence** — stay logged in across browser restarts
