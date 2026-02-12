@@ -310,3 +310,104 @@ func TestWorkouts_DeleteSet_Success(t *testing.T) {
 		t.Errorf("expected set to be deleted, got %v", err)
 	}
 }
+
+// Tests for workout-to-athlete ownership verification.
+// These ensure that accessing a workout via a different athlete's URL returns 404.
+
+func TestWorkouts_Show_WrongAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete1 := seedAthlete(t, db, "Alice", "")
+	athlete2 := seedAthlete(t, db, "Bob", "")
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	// Try to view athlete1's workout via athlete2's URL.
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete2.ID)+"/workouts/"+itoa(workout.ID), nil, coach)
+	req.SetPathValue("id", itoa(athlete2.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.Show(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for workout belonging to different athlete, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_UpdateNotes_WrongAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete1 := seedAthlete(t, db, "Alice", "")
+	athlete2 := seedAthlete(t, db, "Bob", "")
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{"notes": {"sneaky update"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete2.ID)+"/workouts/"+itoa(workout.ID)+"/notes", form, coach)
+	req.SetPathValue("id", itoa(athlete2.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNotes(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for workout belonging to different athlete, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_Delete_WrongAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete1 := seedAthlete(t, db, "Alice", "")
+	athlete2 := seedAthlete(t, db, "Bob", "")
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete2.ID)+"/workouts/"+itoa(workout.ID)+"/delete", nil, coach)
+	req.SetPathValue("id", itoa(athlete2.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.Delete(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for workout belonging to different athlete, got %d", rr.Code)
+	}
+
+	// Verify workout was NOT deleted.
+	_, err := models.GetWorkoutByID(db, workout.ID)
+	if err != nil {
+		t.Errorf("workout should still exist, got error: %v", err)
+	}
+}
+
+func TestWorkouts_AddSet_WrongAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete1 := seedAthlete(t, db, "Alice", "")
+	athlete2 := seedAthlete(t, db, "Bob", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{
+		"exercise_id": {itoa(ex.ID)},
+		"reps":        {"5"},
+		"weight":      {"225"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete2.ID)+"/workouts/"+itoa(workout.ID)+"/sets", form, coach)
+	req.SetPathValue("id", itoa(athlete2.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.AddSet(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for workout belonging to different athlete, got %d", rr.Code)
+	}
+}

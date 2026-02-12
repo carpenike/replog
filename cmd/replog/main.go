@@ -121,36 +121,42 @@ func main() {
 		return middleware.RequireAuth(sessionManager, db, http.HandlerFunc(h))
 	}
 
+	// Coach-only routes — RequireAuth + RequireCoach for defense-in-depth.
+	// Handlers also check is_coach inline, but this provides an extra layer.
+	requireCoach := func(h http.HandlerFunc) http.Handler {
+		return middleware.RequireAuth(sessionManager, db, middleware.RequireCoach(http.HandlerFunc(h)))
+	}
+
 	mux.Handle("GET /{$}", requireAuth(pages.Index))
 
 	// Athletes CRUD.
 	mux.Handle("GET /athletes", requireAuth(athletes.List))
-	mux.Handle("GET /athletes/new", requireAuth(athletes.NewForm))
-	mux.Handle("POST /athletes", requireAuth(athletes.Create))
+	mux.Handle("GET /athletes/new", requireCoach(athletes.NewForm))
+	mux.Handle("POST /athletes", requireCoach(athletes.Create))
 	mux.Handle("GET /athletes/{id}", requireAuth(athletes.Show))
-	mux.Handle("GET /athletes/{id}/edit", requireAuth(athletes.EditForm))
-	mux.Handle("POST /athletes/{id}", requireAuth(athletes.Update))
-	mux.Handle("POST /athletes/{id}/delete", requireAuth(athletes.Delete))
+	mux.Handle("GET /athletes/{id}/edit", requireCoach(athletes.EditForm))
+	mux.Handle("POST /athletes/{id}", requireCoach(athletes.Update))
+	mux.Handle("POST /athletes/{id}/delete", requireCoach(athletes.Delete))
 
 	// Exercises CRUD.
 	mux.Handle("GET /exercises", requireAuth(exercises.List))
-	mux.Handle("GET /exercises/new", requireAuth(exercises.NewForm))
-	mux.Handle("POST /exercises", requireAuth(exercises.Create))
+	mux.Handle("GET /exercises/new", requireCoach(exercises.NewForm))
+	mux.Handle("POST /exercises", requireCoach(exercises.Create))
 	mux.Handle("GET /exercises/{id}", requireAuth(exercises.Show))
-	mux.Handle("GET /exercises/{id}/edit", requireAuth(exercises.EditForm))
-	mux.Handle("POST /exercises/{id}", requireAuth(exercises.Update))
-	mux.Handle("POST /exercises/{id}/delete", requireAuth(exercises.Delete))
+	mux.Handle("GET /exercises/{id}/edit", requireCoach(exercises.EditForm))
+	mux.Handle("POST /exercises/{id}", requireCoach(exercises.Update))
+	mux.Handle("POST /exercises/{id}/delete", requireCoach(exercises.Delete))
 
-	// Assignments.
-	mux.Handle("GET /athletes/{id}/assignments/new", requireAuth(assignments.AssignForm))
-	mux.Handle("POST /athletes/{id}/assignments", requireAuth(assignments.Assign))
-	mux.Handle("POST /athletes/{id}/assignments/{assignmentID}/deactivate", requireAuth(assignments.Deactivate))
-	mux.Handle("POST /athletes/{id}/assignments/reactivate", requireAuth(assignments.Reactivate))
+	// Assignments (coach only).
+	mux.Handle("GET /athletes/{id}/assignments/new", requireCoach(assignments.AssignForm))
+	mux.Handle("POST /athletes/{id}/assignments", requireCoach(assignments.Assign))
+	mux.Handle("POST /athletes/{id}/assignments/{assignmentID}/deactivate", requireCoach(assignments.Deactivate))
+	mux.Handle("POST /athletes/{id}/assignments/reactivate", requireCoach(assignments.Reactivate))
 
 	// Training Maxes.
 	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/training-maxes", requireAuth(trainingMaxes.History))
-	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/training-maxes/new", requireAuth(trainingMaxes.NewForm))
-	mux.Handle("POST /athletes/{id}/exercises/{exerciseID}/training-maxes", requireAuth(trainingMaxes.Create))
+	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/training-maxes/new", requireCoach(trainingMaxes.NewForm))
+	mux.Handle("POST /athletes/{id}/exercises/{exerciseID}/training-maxes", requireCoach(trainingMaxes.Create))
 
 	// Exercise History per athlete.
 	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/history", requireAuth(exercises.ExerciseHistory))
@@ -161,19 +167,19 @@ func main() {
 	mux.Handle("POST /athletes/{id}/workouts", requireAuth(workouts.Create))
 	mux.Handle("GET /athletes/{id}/workouts/{workoutID}", requireAuth(workouts.Show))
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/notes", requireAuth(workouts.UpdateNotes))
-	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/delete", requireAuth(workouts.Delete))
+	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/delete", requireCoach(workouts.Delete))
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets", requireAuth(workouts.AddSet))
 	mux.Handle("GET /athletes/{id}/workouts/{workoutID}/sets/{setID}/edit", requireAuth(workouts.EditSetForm))
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}", requireAuth(workouts.UpdateSet))
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}/delete", requireAuth(workouts.DeleteSet))
 
 	// Users (coach-only).
-	mux.Handle("GET /users", requireAuth(users.List))
-	mux.Handle("GET /users/new", requireAuth(users.NewForm))
-	mux.Handle("POST /users", requireAuth(users.Create))
-	mux.Handle("GET /users/{id}/edit", requireAuth(users.EditForm))
-	mux.Handle("POST /users/{id}", requireAuth(users.Update))
-	mux.Handle("POST /users/{id}/delete", requireAuth(users.Delete))
+	mux.Handle("GET /users", requireCoach(users.List))
+	mux.Handle("GET /users/new", requireCoach(users.NewForm))
+	mux.Handle("POST /users", requireCoach(users.Create))
+	mux.Handle("GET /users/{id}/edit", requireCoach(users.EditForm))
+	mux.Handle("POST /users/{id}", requireCoach(users.Update))
+	mux.Handle("POST /users/{id}/delete", requireCoach(users.Delete))
 
 	// Start server.
 	log.Printf("RepLog listening on %s", addr)

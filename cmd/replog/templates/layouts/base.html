@@ -6,6 +6,16 @@
     <title>{{ block "title" . }}RepLog{{ end }}</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="/static/js/htmx.min.js"></script>
+    <script>
+        // Allow htmx to swap content on error responses (e.g., 409 Conflict for
+        // in-use exercise delete) so error messages display in hx-target.
+        document.addEventListener("htmx:beforeSwap", function(evt) {
+            if (evt.detail.xhr.status === 409 || evt.detail.xhr.status === 422) {
+                evt.detail.shouldSwap = true;
+                evt.detail.isError = false;
+            }
+        });
+    </script>
 </head>
 <body hx-boost="true">
     <header>
@@ -17,6 +27,9 @@
                 <a href="/athletes">Athletes</a>
                 <a href="/exercises">Exercises</a>
                 <a href="/users">Users</a>
+                {{ else if .User.AthleteID.Valid }}
+                <a href="/athletes/{{ .User.AthleteID.Int64 }}">My Profile</a>
+                <a href="/athletes/{{ .User.AthleteID.Int64 }}/workouts">My Workouts</a>
                 {{ end }}
             </div>
             <form method="POST" action="/logout" class="nav-logout">

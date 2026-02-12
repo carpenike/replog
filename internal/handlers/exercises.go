@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -263,7 +264,9 @@ func (h *Exercises) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if errors.Is(err, models.ErrExerciseInUse) {
-		http.Error(w, "Cannot delete — exercise has been logged in workouts", http.StatusConflict)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusConflict)
+		fmt.Fprint(w, `<div class="alert alert-error">Cannot delete — exercise has been logged in workouts.</div>`)
 		return
 	}
 	if err != nil {

@@ -198,6 +198,12 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify the workout belongs to the specified athlete.
+	if workout.AthleteID != athleteID {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+
 	groups, err := models.ListSetsByWorkout(h.DB, workoutID)
 	if err != nil {
 		log.Printf("handlers: list sets for workout %d: %v", workoutID, err)
@@ -282,6 +288,22 @@ func (h *Workouts) UpdateNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify the workout belongs to the specified athlete.
+	workout, err := models.GetWorkoutByID(h.DB, workoutID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get workout %d: %v", workoutID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if workout.AthleteID != athleteID {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+
 	if err := models.UpdateWorkoutNotes(h.DB, workoutID, r.FormValue("notes")); err != nil {
 		log.Printf("handlers: update workout %d notes: %v", workoutID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -312,6 +334,22 @@ func (h *Workouts) Delete(w http.ResponseWriter, r *http.Request) {
 	workoutID, err := strconv.ParseInt(r.PathValue("workoutID"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid workout ID", http.StatusBadRequest)
+		return
+	}
+
+	// Verify the workout belongs to the specified athlete.
+	workout, err := models.GetWorkoutByID(h.DB, workoutID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get workout %d: %v", workoutID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if workout.AthleteID != athleteID {
+		http.Error(w, "Workout not found", http.StatusNotFound)
 		return
 	}
 
@@ -373,6 +411,22 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Verify the workout belongs to the specified athlete.
+	workoutCheck, err := models.GetWorkoutByID(h.DB, workoutID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get workout %d: %v", workoutID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if workoutCheck.AthleteID != athleteID {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+
 	notes := r.FormValue("notes")
 
 	_, err = models.AddSet(h.DB, workoutID, exerciseID, reps, weight, notes)
@@ -428,6 +482,12 @@ func (h *Workouts) EditSetForm(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("handlers: get workout %d: %v", workoutID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Verify the workout belongs to the specified athlete.
+	if workout.AthleteID != athleteID {
+		http.Error(w, "Workout not found", http.StatusNotFound)
 		return
 	}
 
@@ -497,6 +557,22 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Verify the workout belongs to the specified athlete.
+	workoutCheck, err := models.GetWorkoutByID(h.DB, workoutID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get workout %d: %v", workoutID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if workoutCheck.AthleteID != athleteID {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+
 	notes := r.FormValue("notes")
 
 	_, err = models.UpdateSet(h.DB, setID, reps, weight, notes)
@@ -534,6 +610,22 @@ func (h *Workouts) DeleteSet(w http.ResponseWriter, r *http.Request) {
 	setID, err := strconv.ParseInt(r.PathValue("setID"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid set ID", http.StatusBadRequest)
+		return
+	}
+
+	// Verify the workout belongs to the specified athlete.
+	workoutCheck, err := models.GetWorkoutByID(h.DB, workoutID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Workout not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get workout %d: %v", workoutID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if workoutCheck.AthleteID != athleteID {
+		http.Error(w, "Workout not found", http.StatusNotFound)
 		return
 	}
 

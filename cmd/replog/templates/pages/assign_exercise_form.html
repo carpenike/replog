@@ -9,6 +9,10 @@
             <h1>Assign Exercise</h1>
             <p>Choose an exercise to assign to {{ .Athlete.Name }}.</p>
 
+            {{ if .Error }}
+            <div class="alert alert-error">{{ .Error }}</div>
+            {{ end }}
+
             {{ if .Exercises }}
             <form method="POST" action="/athletes/{{ .Athlete.ID }}/assignments">
                 <div class="form-group">
