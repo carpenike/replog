@@ -128,3 +128,68 @@ func TestDeleteUser(t *testing.T) {
 		t.Errorf("expected ErrNotFound after delete, got %v", err)
 	}
 }
+
+func TestListUsers(t *testing.T) {
+	db := testDB(t)
+
+	a, _ := CreateAthlete(db, "Linked Athlete", "", "")
+	CreateUser(db, "alice", "pass", "alice@test.com", true, sql.NullInt64{})
+	CreateUser(db, "bob", "pass", "", false, sql.NullInt64{Int64: a.ID, Valid: true})
+
+	users, err := ListUsers(db)
+	if err != nil {
+		t.Fatalf("list users: %v", err)
+	}
+	if len(users) != 2 {
+		t.Fatalf("count = %d, want 2", len(users))
+	}
+	// Ordered by username.
+	if users[0].Username != "alice" {
+		t.Errorf("first user = %q, want alice", users[0].Username)
+	}
+	if users[1].Username != "bob" {
+		t.Errorf("second user = %q, want bob", users[1].Username)
+	}
+	// Bob should have athlete name.
+	if !users[1].AthleteName.Valid || users[1].AthleteName.String != "Linked Athlete" {
+		t.Errorf("bob athlete name = %v, want Linked Athlete", users[1].AthleteName)
+	}
+}
+
+func TestUpdateUser(t *testing.T) {
+	db := testDB(t)
+
+	u, _ := CreateUser(db, "original", "pass", "orig@test.com", false, sql.NullInt64{})
+
+	t.Run("basic update", func(t *testing.T) {
+		updated, err := UpdateUser(db, u.ID, "renamed", "new@test.com", sql.NullInt64{}, true)
+		if err != nil {
+			t.Fatalf("update user: %v", err)
+		}
+		if updated.Username != "renamed" {
+			t.Errorf("username = %q, want renamed", updated.Username)
+		}
+		if !updated.IsCoach {
+			t.Error("is_coach should be true")
+		}
+	})
+
+	t.Run("duplicate username", func(t *testing.T) {
+		CreateUser(db, "taken", "pass", "", false, sql.NullInt64{})
+		_, err := UpdateUser(db, u.ID, "taken", "", sql.NullInt64{}, false)
+		if err != ErrDuplicateUsername {
+			t.Errorf("err = %v, want ErrDuplicateUsername", err)
+		}
+	})
+
+	t.Run("link athlete", func(t *testing.T) {
+		a, _ := CreateAthlete(db, "Kid", "", "")
+		updated, err := UpdateUser(db, u.ID, "renamed", "", sql.NullInt64{Int64: a.ID, Valid: true}, false)
+		if err != nil {
+			t.Fatalf("update user: %v", err)
+		}
+		if !updated.AthleteID.Valid || updated.AthleteID.Int64 != a.ID {
+			t.Errorf("athlete_id = %v, want %d", updated.AthleteID, a.ID)
+		}
+	})
+}

@@ -411,3 +411,259 @@ func TestWorkouts_AddSet_WrongAthlete(t *testing.T) {
 		t.Errorf("expected 404 for workout belonging to different athlete, got %d", rr.Code)
 	}
 }
+
+func TestWorkouts_NewForm_CoachCanView(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/workouts/new", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.NewForm(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_NewForm_NonCoachOwnAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/workouts/new", nil, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.NewForm(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_NewForm_NonCoachOtherForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	myAthlete := seedAthlete(t, db, "Kid", "")
+	otherAthlete := seedAthlete(t, db, "Other", "")
+	nonCoach := seedNonCoach(t, db, myAthlete.ID)
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(otherAthlete.ID)+"/workouts/new", nil, nonCoach)
+	req.SetPathValue("id", itoa(otherAthlete.ID))
+	rr := httptest.NewRecorder()
+	h.NewForm(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_NewForm_AthleteNotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/999/workouts/new", nil, coach)
+	req.SetPathValue("id", "999")
+	rr := httptest.NewRecorder()
+	h.NewForm(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_EditSetForm_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets/"+itoa(set.ID)+"/edit", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	req.SetPathValue("setID", itoa(set.ID))
+	rr := httptest.NewRecorder()
+	h.EditSetForm(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_EditSetForm_NonCoachOwnAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets/"+itoa(set.ID)+"/edit", nil, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	req.SetPathValue("setID", itoa(set.ID))
+	rr := httptest.NewRecorder()
+	h.EditSetForm(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_EditSetForm_NonCoachOtherForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	myAthlete := seedAthlete(t, db, "Kid", "")
+	otherAthlete := seedAthlete(t, db, "Other", "")
+	nonCoach := seedNonCoach(t, db, myAthlete.ID)
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(otherAthlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets/"+itoa(set.ID)+"/edit", nil, nonCoach)
+	req.SetPathValue("id", itoa(otherAthlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	req.SetPathValue("setID", itoa(set.ID))
+	rr := httptest.NewRecorder()
+	h.EditSetForm(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_EditSetForm_WrongWorkout(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout1, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout2, _ := models.CreateWorkout(db, athlete.ID, "2026-02-11", "")
+	set, _ := models.AddSet(db, workout1.ID, ex.ID, 5, 225, 0, "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	// Try to access set via the wrong workout ID.
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout2.ID)+"/sets/"+itoa(set.ID)+"/edit", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout2.ID))
+	req.SetPathValue("setID", itoa(set.ID))
+	rr := httptest.NewRecorder()
+	h.EditSetForm(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for set belonging to different workout, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_EditSetForm_WrongAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete1 := seedAthlete(t, db, "Alice", "")
+	athlete2 := seedAthlete(t, db, "Bob", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete2.ID)+"/workouts/"+itoa(workout.ID)+"/sets/"+itoa(set.ID)+"/edit", nil, coach)
+	req.SetPathValue("id", itoa(athlete2.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	req.SetPathValue("setID", itoa(set.ID))
+	rr := httptest.NewRecorder()
+	h.EditSetForm(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for workout belonging to different athlete, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_Create_NonCoachOtherForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	myAthlete := seedAthlete(t, db, "Kid", "")
+	otherAthlete := seedAthlete(t, db, "Other", "")
+	nonCoach := seedNonCoach(t, db, myAthlete.ID)
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{"date": {"2026-02-10"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(otherAthlete.ID)+"/workouts", form, nonCoach)
+	req.SetPathValue("id", itoa(otherAthlete.ID))
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_UpdateNotes_NonCoachForbiddenOther(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	myAthlete := seedAthlete(t, db, "Kid", "")
+	otherAthlete := seedAthlete(t, db, "Other", "")
+	nonCoach := seedNonCoach(t, db, myAthlete.ID)
+	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{"notes": {"sneaky"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(otherAthlete.ID)+"/workouts/"+itoa(workout.ID)+"/notes", form, nonCoach)
+	req.SetPathValue("id", itoa(otherAthlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNotes(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_AddSet_NonCoachForbiddenOther(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	myAthlete := seedAthlete(t, db, "Kid", "")
+	otherAthlete := seedAthlete(t, db, "Other", "")
+	nonCoach := seedNonCoach(t, db, myAthlete.ID)
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{"exercise_id": {itoa(ex.ID)}, "reps": {"5"}, "weight": {"225"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(otherAthlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets", form, nonCoach)
+	req.SetPathValue("id", itoa(otherAthlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.AddSet(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}

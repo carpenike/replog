@@ -192,3 +192,100 @@ func TestTrainingMaxes_History_NonCoachOtherForbidden(t *testing.T) {
 		t.Errorf("expected 403, got %d", rr.Code)
 	}
 }
+
+func TestTrainingMaxes_NewForm_AthleteNotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &TrainingMaxes{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/999/exercises/"+itoa(ex.ID)+"/training-max/new", nil, coach)
+	req.SetPathValue("id", "999")
+	req.SetPathValue("exerciseID", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.NewForm(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestTrainingMaxes_NewForm_ExerciseNotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	h := &TrainingMaxes{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/exercises/999/training-max/new", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("exerciseID", "999")
+	rr := httptest.NewRecorder()
+	h.NewForm(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestTrainingMaxes_History_AthleteNotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &TrainingMaxes{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/999/exercises/"+itoa(ex.ID)+"/training-max/history", nil, coach)
+	req.SetPathValue("id", "999")
+	req.SetPathValue("exerciseID", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.History(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestTrainingMaxes_History_ExerciseNotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	h := &TrainingMaxes{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/exercises/999/training-max/history", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("exerciseID", "999")
+	rr := httptest.NewRecorder()
+	h.History(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestTrainingMaxes_Create_InvalidWeight(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &TrainingMaxes{DB: db, Templates: tc}
+
+	form := url.Values{"weight": {"not-a-number"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/exercises/"+itoa(ex.ID)+"/training-max", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("exerciseID", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}

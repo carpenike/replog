@@ -338,3 +338,89 @@ func TestAthletes_Promote_NonCoachForbidden(t *testing.T) {
 		t.Errorf("expected 403, got %d", rr.Code)
 	}
 }
+
+func TestAthletes_EditForm_CoachCanView(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "foundational")
+
+	h := &Athletes{DB: db, Templates: tc}
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/edit", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.EditForm(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestAthletes_EditForm_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+
+	h := &Athletes{DB: db, Templates: tc}
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/edit", nil, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.EditForm(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestAthletes_EditForm_NotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	h := &Athletes{DB: db, Templates: tc}
+	req := requestWithUser("GET", "/athletes/999/edit", nil, coach)
+	req.SetPathValue("id", "999")
+	rr := httptest.NewRecorder()
+	h.EditForm(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestAthletes_Update_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+
+	h := &Athletes{DB: db, Templates: tc}
+	form := url.Values{"name": {"Hacked"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID), form, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.Update(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestAthletes_Update_EmptyName(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	h := &Athletes{DB: db, Templates: tc}
+	form := url.Values{"name": {""}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID), form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.Update(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}

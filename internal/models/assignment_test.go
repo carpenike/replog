@@ -112,3 +112,51 @@ func TestListUnassignedExercises(t *testing.T) {
 		t.Errorf("name = %q, want Free Ex", unassigned[0].Name)
 	}
 }
+
+func TestListAssignedAthletes(t *testing.T) {
+	db := testDB(t)
+
+	a1, _ := CreateAthlete(db, "Alice", "", "")
+	a2, _ := CreateAthlete(db, "Bob", "", "")
+	e, _ := CreateExercise(db, "Shared Exercise", "", 0, "", "", 0)
+
+	AssignExercise(db, a1.ID, e.ID)
+	AssignExercise(db, a2.ID, e.ID)
+
+	t.Run("both assigned", func(t *testing.T) {
+		athletes, err := ListAssignedAthletes(db, e.ID)
+		if err != nil {
+			t.Fatalf("list assigned: %v", err)
+		}
+		if len(athletes) != 2 {
+			t.Errorf("count = %d, want 2", len(athletes))
+		}
+	})
+
+	t.Run("deactivated not included", func(t *testing.T) {
+		active, _ := ListActiveAssignments(db, a1.ID)
+		DeactivateAssignment(db, active[0].ID)
+
+		athletes, err := ListAssignedAthletes(db, e.ID)
+		if err != nil {
+			t.Fatalf("list assigned: %v", err)
+		}
+		if len(athletes) != 1 {
+			t.Errorf("count = %d, want 1", len(athletes))
+		}
+		if athletes[0].AthleteName != "Bob" {
+			t.Errorf("name = %q, want Bob", athletes[0].AthleteName)
+		}
+	})
+
+	t.Run("empty for unassigned exercise", func(t *testing.T) {
+		e2, _ := CreateExercise(db, "Lonely Exercise", "", 0, "", "", 0)
+		athletes, err := ListAssignedAthletes(db, e2.ID)
+		if err != nil {
+			t.Fatalf("list assigned: %v", err)
+		}
+		if len(athletes) != 0 {
+			t.Errorf("count = %d, want 0", len(athletes))
+		}
+	})
+}

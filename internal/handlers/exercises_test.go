@@ -253,3 +253,261 @@ func TestExercises_ExerciseHistory_CoachCanView(t *testing.T) {
 		t.Errorf("expected 200, got %d", rr.Code)
 	}
 }
+
+func TestExercises_NewForm_CoachCanView(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/exercises/new", nil, coach)
+	rr := httptest.NewRecorder()
+	h.NewForm(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestExercises_NewForm_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	nonCoach := seedUnlinkedNonCoach(t, db)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/exercises/new", nil, nonCoach)
+	rr := httptest.NewRecorder()
+	h.NewForm(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestExercises_EditForm_CoachCanView(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/exercises/"+itoa(ex.ID)+"/edit", nil, coach)
+	req.SetPathValue("id", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.EditForm(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestExercises_EditForm_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	nonCoach := seedUnlinkedNonCoach(t, db)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/exercises/1/edit", nil, nonCoach)
+	req.SetPathValue("id", "1")
+	rr := httptest.NewRecorder()
+	h.EditForm(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestExercises_EditForm_NotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/exercises/999/edit", nil, coach)
+	req.SetPathValue("id", "999")
+	rr := httptest.NewRecorder()
+	h.EditForm(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestExercises_Update_EmptyName(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	form := url.Values{"name": {""}}
+	req := requestWithUser("POST", "/exercises/"+itoa(ex.ID), form, coach)
+	req.SetPathValue("id", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.Update(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}
+
+func TestExercises_Update_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	nonCoach := seedUnlinkedNonCoach(t, db)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	form := url.Values{"name": {"Hacked"}}
+	req := requestWithUser("POST", "/exercises/"+itoa(ex.ID), form, nonCoach)
+	req.SetPathValue("id", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.Update(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestExercises_Update_DuplicateName(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	seedExercise(t, db, "Squat", "", 0)
+	ex2 := seedExercise(t, db, "Bench", "", 0)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	form := url.Values{"name": {"Squat"}}
+	req := requestWithUser("POST", "/exercises/"+itoa(ex2.ID), form, coach)
+	req.SetPathValue("id", itoa(ex2.ID))
+	rr := httptest.NewRecorder()
+	h.Update(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}
+
+func TestExercises_Delete_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	nonCoach := seedUnlinkedNonCoach(t, db)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("POST", "/exercises/"+itoa(ex.ID)+"/delete", nil, nonCoach)
+	req.SetPathValue("id", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.Delete(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestExercises_ExerciseHistory_NonCoachOwnAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/exercises/"+itoa(ex.ID)+"/history", nil, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("exerciseID", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.ExerciseHistory(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestExercises_ExerciseHistory_NonCoachOtherForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	myAthlete := seedAthlete(t, db, "Kid", "")
+	otherAthlete := seedAthlete(t, db, "Other", "")
+	nonCoach := seedNonCoach(t, db, myAthlete.ID)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(otherAthlete.ID)+"/exercises/"+itoa(ex.ID)+"/history", nil, nonCoach)
+	req.SetPathValue("id", itoa(otherAthlete.ID))
+	req.SetPathValue("exerciseID", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.ExerciseHistory(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestExercises_ExerciseHistory_AthleteNotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/999/exercises/"+itoa(ex.ID)+"/history", nil, coach)
+	req.SetPathValue("id", "999")
+	req.SetPathValue("exerciseID", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.ExerciseHistory(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestExercises_ExerciseHistory_ExerciseNotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/exercises/999/history", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("exerciseID", "999")
+	rr := httptest.NewRecorder()
+	h.ExerciseHistory(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestExercises_Show_NonCoachCanView(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+	ex := seedExercise(t, db, "Squat", "", 0)
+
+	h := &Exercises{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/exercises/"+itoa(ex.ID), nil, nonCoach)
+	req.SetPathValue("id", itoa(ex.ID))
+	rr := httptest.NewRecorder()
+	h.Show(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
