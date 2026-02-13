@@ -8,23 +8,17 @@
     <p>Track your training. Review your progress. Stay consistent.</p>
 
     <div class="dashboard-grid">
-        <article>
-            <a href="/athletes">
-                <h2>Athletes</h2>
-                <p>Manage athlete profiles and tiers</p>
-            </a>
+        <article onclick="window.location='/athletes'">
+            <h2>Athletes</h2>
+            <p>Manage athlete profiles and tiers</p>
         </article>
-        <article>
-            <a href="/exercises">
-                <h2>Exercises</h2>
-                <p>Browse and manage the exercise library</p>
-            </a>
+        <article onclick="window.location='/exercises'">
+            <h2>Exercises</h2>
+            <p>Browse and manage the exercise library</p>
         </article>
-        <article>
-            <a href="/users">
-                <h2>Users</h2>
-                <p>Manage login accounts and roles</p>
-            </a>
+        <article onclick="window.location='/users'">
+            <h2>Users</h2>
+            <p>Manage login accounts and roles</p>
         </article>
     </div>
 
@@ -44,8 +38,8 @@
             </thead>
             <tbody>
                 {{ range .Athletes }}
-                <tr>
-                    <td><a href="/athletes/{{ .ID }}">{{ .Name }}</a></td>
+                <tr onclick="window.location='/athletes/{{ .ID }}'">
+                    <td>{{ .Name }}</td>
                     <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td>{{ .ActiveAssignments }}</td>
                     <td><a href="/athletes/{{ .ID }}/workouts/new" role="button" class="outline">New Workout</a></td>

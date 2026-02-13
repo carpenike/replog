@@ -151,8 +151,8 @@
                 </thead>
                 <tbody>
                     {{ range .RecentWorkouts }}
-                    <tr>
-                        <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Date }}</a></td>
+                    <tr onclick="window.location='/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}'">
+                        <td>{{ .Date }}</td>
                         <td>{{ .SetCount }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     </tr>

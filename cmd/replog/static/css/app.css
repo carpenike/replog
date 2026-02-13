@@ -1,29 +1,259 @@
 /* RepLog — app-specific overrides on top of Pico CSS v2 */
 
 /* =========================================================
-   Global Theme Overrides — Modern soft/rounded aesthetic
+   Design System — Linear-inspired dark theme
    ========================================================= */
 
 :root {
-    /* Softer border-radius — 8px cards, 6px inputs/buttons */
-    --pico-border-radius: 0.5rem;
+    /* ---- Spacing scale (8px base) ---- */
+    --space-xs: 0.25rem;   /* 4px  */
+    --space-sm: 0.5rem;    /* 8px  */
+    --space-md: 1rem;      /* 16px */
+    --space-lg: 1.5rem;    /* 24px */
+    --space-xl: 2rem;      /* 32px */
+    --space-2xl: 3rem;     /* 48px */
 
-    /* Elevation tokens */
+    /* ---- Border radius ---- */
+    --pico-border-radius: 0.5rem;
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-pill: 9999px;
+
+    /* ---- Elevation ---- */
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
 
-    /* Surface colors for layering */
-    --surface-ground: var(--pico-background-color);
-    --surface-card: var(--pico-card-background-color);
-    --surface-hover: color-mix(in srgb, var(--pico-primary) 6%, transparent);
-    --border-subtle: var(--pico-muted-border-color);
+    /* ---- Transition ---- */
+    --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+    --duration-fast: 0.15s;
 }
 
+/* ---- Dark theme color palette ---- */
 [data-theme="dark"] {
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+    /* Background layers — create depth */
+    --pico-background-color: #0c0c0c;
+    --pico-card-background-color: #161616;
+    --pico-card-sectioning-background-color: #1a1a1a;
+
+    --bg-0: #0c0c0c;
+    --bg-1: #141414;
+    --bg-2: #1a1a1a;
+    --bg-3: #242424;
+    --bg-4: #2e2e2e;
+
+    /* Text hierarchy */
+    --pico-color: #ececec;
+    --text-primary: #ececec;
+    --text-secondary: #a0a0a0;
+    --text-tertiary: #6b6b6b;
+
+    /* Accent — indigo */
+    --pico-primary: #818cf8;
+    --pico-primary-hover: #a5b4fc;
+    --pico-primary-focus: rgba(129, 140, 248, 0.2);
+    --pico-primary-inverse: #0c0c0c;
+
+    /* Borders */
+    --pico-muted-border-color: #262626;
+    --pico-muted-color: #6b6b6b;
+    --border-subtle: #1e1e1e;
+    --border-default: #303030;
+    --border-hover: #404040;
+
+    /* Semantic colors */
+    --color-success: #34d399;
+    --color-warning: #fbbf24;
+    --color-danger: #f87171;
+    --color-info: #38bdf8;
+
+    /* Elevation — deeper in dark mode */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+
+    /* Surfaces */
+    --surface-hover: rgba(255, 255, 255, 0.04);
+    --surface-active: rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Light theme palette ---- */
+[data-theme="light"] {
+    --bg-0: #ffffff;
+    --bg-1: #fafafa;
+    --bg-2: #f5f5f5;
+    --bg-3: #ebebeb;
+    --bg-4: #e0e0e0;
+
+    --text-primary: #171717;
+    --text-secondary: #525252;
+    --text-tertiary: #a3a3a3;
+
+    --border-subtle: #e5e5e5;
+    --border-default: #d4d4d4;
+    --border-hover: #a3a3a3;
+
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-info: #0ea5e9;
+
+    --surface-hover: rgba(0, 0, 0, 0.03);
+    --surface-active: rgba(0, 0, 0, 0.05);
+}
+
+/* =========================================================
+   Global Element Refinements
+   ========================================================= */
+
+/* ---- Typography hierarchy ---- */
+h1 {
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+}
+
+h2 {
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+}
+
+h3, h4 {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+small, .text-muted {
+    color: var(--text-secondary);
+}
+
+/* ---- Global transitions ---- */
+a, button, [role="button"], input, select, textarea {
+    transition: all var(--duration-fast) var(--ease-default);
+}
+
+/* ---- Articles / Cards ---- */
+article {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-xs);
+    transition: box-shadow var(--duration-fast) var(--ease-default),
+                border-color var(--duration-fast) var(--ease-default);
+}
+
+article > header {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+article > footer {
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* ---- Buttons ---- */
+[role="button"],
+button,
+input[type="submit"],
+input[type="button"] {
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+[role="button"]:focus-visible,
+button:focus-visible,
+input[type="submit"]:focus-visible,
+input[type="button"]:focus-visible {
+    outline: 2px solid var(--pico-primary);
+    outline-offset: 2px;
+}
+
+/* Press effect */
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+/* Compact action buttons */
+.outline.secondary,
+.outline.contrast {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
+}
+
+/* ---- Inputs ---- */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+    border-radius: var(--radius-sm);
+    border-color: var(--border-default);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+    border-color: var(--pico-primary);
+    box-shadow: 0 0 0 3px var(--pico-primary-focus);
+}
+
+/* ---- Tables ---- */
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+table thead th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    padding: 0.65rem 1rem;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+table tbody td {
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+
+table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+table tbody tr {
+    transition: background var(--duration-fast) var(--ease-default);
+}
+
+table tbody tr:hover {
+    background: var(--surface-hover);
+}
+
+/* Clickable table rows */
+tr[onclick], tr[hx-get] {
+    cursor: pointer;
+}
+
+tr[onclick]:hover, tr[hx-get]:hover {
+    background: var(--surface-active);
+}
+
+/* ---- Links inside tables — subtle, not underlined ---- */
+table a {
+    text-decoration: none;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+table a:hover {
+    color: var(--pico-primary);
 }
 
 /* =========================================================
@@ -33,8 +263,8 @@
 :root {
     --sidebar-width: 15rem;
     --topbar-height: 3.5rem;
-    --sidebar-bg: color-mix(in srgb, var(--pico-background-color) 97%, var(--pico-primary) 3%);
-    --sidebar-border: var(--pico-muted-border-color);
+    --sidebar-bg: var(--bg-1);
+    --sidebar-border: var(--border-subtle);
 }
 
 /* Sidebar — fixed left column */
@@ -130,7 +360,7 @@
     border-radius: 0.5rem;
     font-size: 0.9rem;
     font-weight: 500;
-    color: var(--pico-muted-color);
+    color: var(--text-tertiary);
     text-decoration: none;
     transition: background 0.15s, color 0.15s;
     /* Override Pico nav link defaults */
@@ -140,7 +370,7 @@
 }
 
 .sidebar-link:hover {
-    background: color-mix(in srgb, var(--pico-primary) 12%, transparent);
+    background: rgba(129, 140, 248, 0.12);
     color: var(--pico-primary);
     text-decoration: none;
 }
@@ -167,7 +397,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--pico-muted-color);
+    color: var(--text-tertiary);
     padding: 0.25rem 0.75rem;
     opacity: 0.7;
 }
@@ -187,7 +417,7 @@
 }
 
 .sidebar-user:hover {
-    background: color-mix(in srgb, var(--pico-primary) 8%, transparent);
+    background: rgba(129, 140, 248, 0.08);
 }
 
 .user-avatar {
@@ -222,7 +452,7 @@
 
 .user-role {
     font-size: 0.7rem;
-    color: var(--pico-muted-color);
+    color: var(--text-tertiary);
 }
 
 .sidebar-logout {
@@ -232,7 +462,7 @@
     margin: 0;
     width: auto;
     cursor: pointer;
-    color: var(--pico-muted-color);
+    color: var(--text-tertiary);
     border-radius: 0.375rem;
     display: flex;
     align-items: center;
@@ -242,8 +472,8 @@
 }
 
 .sidebar-logout:hover {
-    color: var(--pico-del-color, #e53e3e);
-    background: color-mix(in srgb, var(--pico-del-color, #e53e3e) 12%, transparent);
+    color: var(--color-danger);
+    background: rgba(248, 113, 113, 0.12);
 }
 
 .sidebar-logout svg {
@@ -293,7 +523,7 @@
 
 .content-footer {
     padding: 1rem 2rem;
-    color: var(--pico-muted-color);
+    color: var(--text-tertiary);
     text-align: center;
 }
 
@@ -361,105 +591,13 @@
 }
 
 /* =========================================================
-   Content Styles — Modern dashboard components
+   Domain Components
    ========================================================= */
 
 /* ---- Layout ---- */
 main.container {
-    padding-top: 1.5rem;
-    padding-bottom: 2rem;
-}
-
-/* ---- Global article / card refinements ---- */
-article {
-    border-radius: 0.75rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-subtle);
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-article > header {
-    border-radius: 0.75rem 0.75rem 0 0;
-}
-
-article > footer {
-    border-radius: 0 0 0.75rem 0.75rem;
-}
-
-/* ---- Global button refinements ---- */
-[role="button"],
-button,
-input[type="submit"],
-input[type="button"] {
-    border-radius: 0.375rem;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-[role="button"]:focus-visible,
-button:focus-visible,
-input[type="submit"]:focus-visible,
-input[type="button"]:focus-visible {
-    outline: 2px solid var(--pico-primary);
-    outline-offset: 2px;
-}
-
-/* Smaller action buttons (outline style) */
-.outline.secondary,
-.outline.contrast {
-    font-size: 0.85rem;
-    padding: 0.35rem 0.75rem;
-}
-
-/* ---- Global input / select refinements ---- */
-input:not([type="checkbox"]):not([type="radio"]),
-select,
-textarea {
-    border-radius: 0.375rem;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-input:not([type="checkbox"]):not([type="radio"]):focus,
-select:focus,
-textarea:focus {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pico-primary) 15%, transparent);
-}
-
-/* ---- Global table refinements ---- */
-table {
-    border-collapse: separate;
-    border-spacing: 0;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    border: 1px solid var(--border-subtle);
-}
-
-table thead th {
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--pico-muted-color);
-    padding: 0.6rem 1rem;
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-table tbody td {
-    padding: 0.65rem 1rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 50%, transparent);
-}
-
-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-table tbody tr {
-    transition: background 0.1s ease;
-}
-
-table tbody tr:hover {
-    background: var(--surface-hover);
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-xl);
 }
 
 /* ---- Tier Badges (pill style) ---- */
@@ -467,45 +605,32 @@ table tbody tr:hover {
     font-size: 0.7rem;
     font-weight: 600;
     padding: 0.2em 0.6em;
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
     vertical-align: middle;
     white-space: nowrap;
     letter-spacing: 0.02em;
+    border: 1px solid transparent;
 }
 
 .tier-badge[data-tier="foundational"] {
-    background: color-mix(in srgb, green 20%, transparent);
-    color: green;
+    background: rgba(52, 211, 153, 0.12);
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.2);
 }
 .tier-badge[data-tier="intermediate"] {
-    background: color-mix(in srgb, dodgerblue 20%, transparent);
-    color: dodgerblue;
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.2);
 }
 .tier-badge[data-tier="sport_performance"] {
-    background: color-mix(in srgb, mediumpurple 20%, transparent);
-    color: mediumpurple;
+    background: rgba(192, 132, 252, 0.12);
+    color: #c084fc;
+    border-color: rgba(192, 132, 252, 0.2);
 }
 .tier-badge[data-tier="none"] {
-    background: color-mix(in srgb, gray 20%, transparent);
-    color: gray;
-}
-
-/* Dark mode tier badge adjustments */
-[data-theme="dark"] .tier-badge[data-tier="foundational"] {
-    background: color-mix(in srgb, limegreen 15%, transparent);
-    color: limegreen;
-}
-[data-theme="dark"] .tier-badge[data-tier="intermediate"] {
-    background: color-mix(in srgb, lightskyblue 15%, transparent);
-    color: lightskyblue;
-}
-[data-theme="dark"] .tier-badge[data-tier="sport_performance"] {
-    background: color-mix(in srgb, plum 15%, transparent);
-    color: plum;
-}
-[data-theme="dark"] .tier-badge[data-tier="none"] {
-    background: color-mix(in srgb, darkgray 15%, transparent);
-    color: darkgray;
+    background: rgba(115, 115, 115, 0.12);
+    color: var(--text-tertiary);
+    border-color: rgba(115, 115, 115, 0.2);
 }
 
 /* ---- Page Headers ---- */
@@ -514,34 +639,31 @@ table tbody tr:hover {
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
 }
 
 .page-header h1,
 .page-header h2 {
     margin-bottom: 0;
-    font-weight: 700;
-    letter-spacing: -0.01em;
 }
 
 .page-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-sm);
     align-items: center;
 }
 
 /* ---- Breadcrumbs ---- */
 .breadcrumb {
     font-size: 0.8rem;
-    color: var(--pico-muted-color);
-    margin-bottom: 1rem;
-    padding: 0.4rem 0;
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-md);
+    padding: var(--space-xs) 0;
 }
 
 .breadcrumb a {
-    color: var(--pico-muted-color);
-    transition: color 0.15s;
+    color: var(--text-tertiary);
 }
 
 .breadcrumb a:hover {
@@ -583,21 +705,29 @@ table tbody tr:hover {
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-    margin-bottom: 1.5rem;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-lg);
 }
 
 .dashboard-grid > article {
     cursor: pointer;
     margin: 0;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    background: var(--bg-2);
+    border-color: var(--border-subtle);
+    transition: box-shadow var(--duration-fast) var(--ease-default),
+                border-color var(--duration-fast) var(--ease-default),
+                transform var(--duration-fast) var(--ease-default);
 }
 
 .dashboard-grid > article:hover {
-    border-color: var(--pico-primary);
+    border-color: var(--border-hover);
     box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+}
+
+.dashboard-grid > article[onclick] {
+    cursor: pointer;
 }
 
 .dashboard-grid > article a {
@@ -610,27 +740,34 @@ table tbody tr:hover {
 }
 
 .dashboard-grid > article h2 {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    font-weight: 600;
     margin-bottom: 0.25rem;
+    color: var(--text-primary);
 }
 
 .dashboard-grid > article p {
-    font-size: 0.85rem;
-    color: var(--pico-muted-color);
+    font-size: 0.825rem;
+    color: var(--text-secondary);
     margin-bottom: 0;
 }
 
 /* ---- Empty States ---- */
 article.empty-state {
     text-align: center;
-    margin: 2rem 0;
-    padding: 2.5rem 1.5rem;
+    margin: var(--space-xl) 0;
+    padding: var(--space-2xl) var(--space-lg);
     border-style: dashed;
+    border-color: var(--border-default);
 }
 
 article.empty-state p {
-    margin-bottom: 1rem;
-    color: var(--pico-muted-color);
+    margin-bottom: var(--space-md);
+    color: var(--text-secondary);
+}
+
+article.empty-state [role="button"] {
+    margin-top: var(--space-sm);
 }
 
 /* ---- Inline forms (delete buttons etc.) ---- */
@@ -652,7 +789,7 @@ form.inline button {
     padding: 0.25rem;
     font-size: 1.1rem;
     line-height: 1;
-    color: var(--pico-muted-color);
+    color: var(--text-tertiary);
 }
 
 .theme-toggle:hover {
@@ -681,7 +818,7 @@ form.inline button {
 
 /* ---- Misc ---- */
 .text-muted {
-    color: var(--pico-muted-color);
+    color: var(--text-secondary);
 }
 
 /* Coach badge in user lists (pill) */
@@ -689,7 +826,7 @@ mark.coach-badge {
     font-size: 0.7rem;
     font-weight: 600;
     padding: 0.15em 0.5em;
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
 }
 
 /* Numeric inputs — large touch targets on mobile */
@@ -699,22 +836,22 @@ input[inputmode="numeric"] {
 
 /* ---- Rest Timer ---- */
 .rest-timer {
-    margin-bottom: 1.5rem;
-    border: 2px solid var(--pico-primary);
-    border-radius: 0.75rem;
-    padding: 1rem 1.25rem;
-    background: color-mix(in srgb, var(--pico-primary) 8%, transparent);
+    margin-bottom: var(--space-lg);
+    border: 1px solid rgba(129, 140, 248, 0.3);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md) var(--space-lg);
+    background: rgba(129, 140, 248, 0.06);
 }
 
 .rest-timer.timer-done {
-    border-color: var(--pico-ins-color, green);
-    background: color-mix(in srgb, var(--pico-ins-color, green) 12%, transparent);
+    border-color: rgba(52, 211, 153, 0.3);
+    background: rgba(52, 211, 153, 0.06);
 }
 
 .timer-bar {
     height: 0.35rem;
-    background: var(--pico-muted-border-color);
-    border-radius: 9999px;
+    background: var(--bg-3);
+    border-radius: var(--radius-pill);
     overflow: hidden;
     margin-bottom: 0.5rem;
 }
@@ -727,7 +864,7 @@ input[inputmode="numeric"] {
 }
 
 .timer-done .timer-progress {
-    background: var(--pico-ins-color, green);
+    background: var(--color-success);
 }
 
 .timer-controls {
@@ -775,23 +912,23 @@ input[inputmode="numeric"] {
 }
 
 .streak-cell[data-status="complete"] {
-    background: color-mix(in srgb, green 25%, transparent);
-    color: green;
+    background: rgba(52, 211, 153, 0.15);
+    color: var(--color-success);
 }
 
 .streak-cell[data-status="partial"] {
-    background: color-mix(in srgb, orange 25%, transparent);
-    color: orange;
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--color-warning);
 }
 
 .streak-cell[data-status="missed"] {
-    background: color-mix(in srgb, var(--pico-del-color, red) 15%, transparent);
-    color: var(--pico-del-color, red);
+    background: rgba(248, 113, 113, 0.12);
+    color: var(--color-danger);
 }
 
 .streak-cell[data-status="none"] {
-    background: var(--pico-muted-border-color);
-    color: var(--pico-muted-color);
+    background: var(--bg-3);
+    color: var(--text-tertiary);
 }
 
 .streak-cell .streak-tooltip {
@@ -800,26 +937,17 @@ input[inputmode="numeric"] {
     bottom: 110%;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--pico-background-color);
-    border: 1px solid var(--pico-muted-border-color);
-    border-radius: 0.375rem;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
     padding: 0.35rem 0.6rem;
     font-size: 0.7rem;
     white-space: nowrap;
     z-index: 10;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
+    color: var(--text-primary);
 }
 
 .streak-cell:hover .streak-tooltip {
     display: block;
-}
-
-[data-theme="dark"] .streak-cell[data-status="complete"] {
-    background: color-mix(in srgb, limegreen 20%, transparent);
-    color: limegreen;
-}
-
-[data-theme="dark"] .streak-cell[data-status="partial"] {
-    background: color-mix(in srgb, orange 20%, transparent);
-    color: orange;
 }

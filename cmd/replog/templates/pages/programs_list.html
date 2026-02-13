@@ -17,8 +17,8 @@
             </thead>
             <tbody>
                 {{ range .Programs }}
-                <tr>
-                    <td><a href="/programs/{{ .ID }}">{{ .Name }}</a></td>
+                <tr onclick="window.location='/programs/{{ .ID }}'">
+                    <td>{{ .Name }}</td>
                     <td>{{ .NumWeeks }} week{{ if ne .NumWeeks 1 }}s{{ end }} × {{ .NumDays }} day{{ if ne .NumDays 1 }}s{{ end }}/week</td>
                     <td>{{ .AthleteCount }}</td>
                 </tr>

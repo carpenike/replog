@@ -17,8 +17,8 @@
             </thead>
             <tbody>
                 {{ range .Athletes }}
-                <tr>
-                    <td><a href="/athletes/{{ .ID }}">{{ .Name }}</a></td>
+                <tr onclick="window.location='/athletes/{{ .ID }}'">
+                    <td>{{ .Name }}</td>
                     <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td>{{ .ActiveAssignments }}</td>
                 </tr>
