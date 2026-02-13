@@ -15,58 +15,58 @@
 
 ### Exercise Management
 
-- [ ] **Create exercise** with name, optional tier, optional target reps, optional form notes
-- [ ] **Edit exercise** — update any field
-- [ ] **Delete exercise** — only if not referenced by any workout sets (prevent orphaned history)
-- [ ] **List exercises** — filterable by tier (including "no tier")
-- [ ] **View exercise detail** — shows form notes, which athletes are assigned, recent log history
+- [x] **Create exercise** with name, optional tier, optional target reps, optional form notes
+- [x] **Edit exercise** — update any field
+- [x] **Delete exercise** — only if not referenced by any workout sets (prevent orphaned history)
+- [x] **List exercises** — filterable by tier (including "no tier")
+- [x] **View exercise detail** — shows form notes, which athletes are assigned, recent log history
 
 ### Athlete Profiles
 
-- [ ] **Create athlete** with name and optional tier
-- [ ] **Edit athlete** — update name, tier, notes
-- [ ] **Promote athlete to next tier** — manual tier change with confirmation (coach decision)
-- [ ] **List athletes** — shows name, current tier, number of active assignments
-- [ ] **View athlete detail** — profile, active exercises, recent workouts, training maxes
+- [x] **Create athlete** with name and optional tier
+- [x] **Edit athlete** — update name, tier, notes
+- [x] **Promote athlete to next tier** — manual tier change with confirmation (coach decision)
+- [x] **List athletes** — shows name, current tier, number of active assignments
+- [x] **View athlete detail** — profile, active exercises, recent workouts, training maxes
 
 ### Exercise Assignments
 
-- [ ] **Assign exercise to athlete** — creates active assignment
-- [ ] **Unassign exercise** — deactivates (preserves history, does not delete)
-- [ ] **Reactivate assignment** — creates a new assignment row (preserves audit trail, fresh `assigned_at`)
-- [ ] **View active assignments** for an athlete — shows exercise name, tier, target reps
+- [x] **Assign exercise to athlete** — creates active assignment
+- [x] **Unassign exercise** — deactivates (preserves history, does not delete)
+- [x] **Reactivate assignment** — creates a new assignment row (preserves audit trail, fresh `assigned_at`)
+- [x] **View active assignments** for an athlete — shows exercise name, tier, target reps
 
 ### Training Maxes
 
-- [ ] **Set training max** for an athlete + exercise with weight and effective date
-- [ ] **Update training max** — adds a new row (history preserved, not overwritten)
-- [ ] **View current training max** per exercise for an athlete
-- [ ] **View training max history** for an athlete + exercise (progression over time)
+- [x] **Set training max** for an athlete + exercise with weight and effective date
+- [x] **Update training max** — adds a new row (history preserved, not overwritten)
+- [x] **View current training max** per exercise for an athlete
+- [x] **View training max history** for an athlete + exercise (progression over time)
 
 ### Workout Logging (Core Loop)
 
-- [ ] **Start workout** for an athlete on a date (creates workout record)
-- [ ] **Daily workout view** — shows athlete's active exercises with target reps and current TM
-- [ ] **Log a set** — select exercise (assigned shown first, full library accessible), enter reps, optional weight, optional notes
-- [ ] **Edit a logged set** — fix typos in reps/weight/notes
-- [ ] **Delete a logged set** — remove an erroneous entry
-- [ ] **Add workout notes** — session-level observations
-- [ ] **One workout per athlete per day** — enforced by schema
+- [x] **Start workout** for an athlete on a date (creates workout record)
+- [x] **Daily workout view** — shows athlete's active exercises with target reps and current TM
+- [x] **Log a set** — select exercise (assigned shown first, full library accessible), enter reps, optional weight, optional notes
+- [x] **Edit a logged set** — fix typos in reps/weight/notes
+- [x] **Delete a logged set** — remove an erroneous entry
+- [x] **Add workout notes** — session-level observations
+- [x] **One workout per athlete per day** — enforced by schema
 
 ### Workout History
 
-- [ ] **View workout history** per athlete — list of past workouts with date and summary
-- [ ] **View workout detail** — all sets logged, grouped by exercise, with notes
-- [ ] **View exercise history** per athlete — all sets for a specific exercise over time
+- [x] **View workout history** per athlete — list of past workouts with date and summary
+- [x] **View workout detail** — all sets logged, grouped by exercise, with notes
+- [x] **View exercise history** per athlete — all sets for a specific exercise over time
 
 ### Auth & Session
 
-- [ ] **Auto-create admin on first run** — if no users exist, create from env vars `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL` with `is_coach = 1`
-- [ ] **Simple login** — username/password, session cookie
-- [ ] **Coach access** — coaches (`is_coach = 1`) can view/manage all athletes, exercises, assignments, and workouts
-- [ ] **Kid access** — non-coaches are linked to one athlete and can only view/log/edit their own workouts
-- [ ] **Unlinked non-coach** — if a non-coach user has no linked athlete, show an informative message (not a blank screen)
-- [ ] **Athlete selector** — coaches can switch between athletes; non-coaches land directly on their profile
+- [x] **Auto-create admin on first run** — if no users exist, create from env vars `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL` with `is_coach = 1`
+- [x] **Simple login** — username/password, session cookie
+- [x] **Coach access** — coaches (`is_coach = 1`) can view/manage all athletes, exercises, assignments, and workouts
+- [x] **Kid access** — non-coaches are linked to one athlete and can only view/log/edit their own workouts
+- [x] **Unlinked non-coach** — if a non-coach user has no linked athlete, show an informative message (not a blank screen)
+- [x] **Athlete selector** — coaches can switch between athletes; non-coaches land directly on their profile
 - [x] **Session persistence** — stay logged in across browser restarts (scs defaults: Cookie.Persist=true + 30-day lifetime)
 
 ---
