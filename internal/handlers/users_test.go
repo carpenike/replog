@@ -419,3 +419,58 @@ func TestUsers_NewForm_NonCoachForbidden(t *testing.T) {
 		t.Errorf("expected 403, got %d", rr.Code)
 	}
 }
+
+func TestUsers_Create_DuplicateAthleteLink(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	// Link Alice to a user first.
+	seedNonCoach(t, db, athlete.ID)
+
+	h := &Users{DB: db, Templates: tc}
+
+	// Try to create another user linked to the same athlete.
+	form := url.Values{
+		"username":   {"another"},
+		"password":   {"secret123"},
+		"athlete_id": {itoa(athlete.ID)},
+	}
+	req := requestWithUser("POST", "/users", form, coach)
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}
+
+func TestUsers_Update_DuplicateAthleteLink(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	athlete1 := seedAthlete(t, db, "Alice", "")
+	athlete2 := seedAthlete(t, db, "Bob", "")
+
+	// Link Alice to user1, Bob to user2.
+	seedNonCoach(t, db, athlete1.ID)
+	user2 := seedNonCoachWithUsername(t, db, "bob_user", athlete2.ID)
+
+	h := &Users{DB: db, Templates: tc}
+
+	// Try to re-link user2 to Alice's athlete (already taken).
+	form := url.Values{
+		"username":   {"bob_user"},
+		"athlete_id": {itoa(athlete1.ID)},
+	}
+	req := requestWithUser("POST", "/users/"+itoa(user2.ID), form, coach)
+	req.SetPathValue("id", itoa(user2.ID))
+	rr := httptest.NewRecorder()
+	h.Update(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}

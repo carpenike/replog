@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"testing"
 )
 
@@ -224,4 +225,53 @@ func TestPromoteAthlete(t *testing.T) {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
 	})
+}
+
+func TestListAvailableAthletes(t *testing.T) {
+	db := testDB(t)
+
+	// Create 3 athletes.
+	a1, _ := CreateAthlete(db, "Alice", "", "")
+	a2, _ := CreateAthlete(db, "Bob", "", "")
+	a3, _ := CreateAthlete(db, "Charlie", "", "")
+
+	// Link Alice to a user.
+	CreateUser(db, "alice_user", "password123", "", false, sql.NullInt64{Int64: a1.ID, Valid: true})
+
+	t.Run("excludes linked athletes", func(t *testing.T) {
+		athletes, err := ListAvailableAthletes(db, 0)
+		if err != nil {
+			t.Fatalf("list available: %v", err)
+		}
+		for _, a := range athletes {
+			if a.ID == a1.ID {
+				t.Errorf("linked athlete %d (Alice) should not appear", a1.ID)
+			}
+		}
+		if len(athletes) != 2 {
+			t.Errorf("expected 2 available athletes, got %d", len(athletes))
+		}
+	})
+
+	t.Run("except preserves current link", func(t *testing.T) {
+		athletes, err := ListAvailableAthletes(db, a1.ID)
+		if err != nil {
+			t.Fatalf("list available: %v", err)
+		}
+		if len(athletes) != 3 {
+			t.Errorf("expected 3 athletes (including excepted), got %d", len(athletes))
+		}
+		found := false
+		for _, a := range athletes {
+			if a.ID == a1.ID {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("excepted athlete Alice should appear")
+		}
+	})
+
+	_ = a2
+	_ = a3
 }

@@ -84,6 +84,15 @@ func seedNonCoach(t testing.TB, db *sql.DB, athleteID int64) *models.User {
 	return user
 }
 
+func seedNonCoachWithUsername(t testing.TB, db *sql.DB, username string, athleteID int64) *models.User {
+	t.Helper()
+	user, err := models.CreateUser(db, username, "password123", "", false, sql.NullInt64{Int64: athleteID, Valid: true})
+	if err != nil {
+		t.Fatalf("seed non-coach %q: %v", username, err)
+	}
+	return user
+}
+
 // seedUnlinkedNonCoach creates a non-coach user with no linked athlete.
 func seedUnlinkedNonCoach(t testing.TB, db *sql.DB) *models.User {
 	t.Helper()

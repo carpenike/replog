@@ -162,3 +162,32 @@ func ListAthletes(db *sql.DB) ([]*Athlete, error) {
 	}
 	return athletes, rows.Err()
 }
+
+// ListAvailableAthletes returns athletes not yet linked to any user, plus the
+// athlete with exceptAthleteID (so the current link shows in an edit form).
+// Pass 0 for exceptAthleteID to exclude no one extra.
+func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error) {
+	rows, err := db.Query(`
+		SELECT a.id, a.name, a.tier, a.notes, a.created_at, a.updated_at,
+		       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
+		                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
+		FROM athletes a
+		WHERE a.id NOT IN (SELECT u.athlete_id FROM users u WHERE u.athlete_id IS NOT NULL)
+		   OR a.id = ?
+		ORDER BY a.name COLLATE NOCASE
+		LIMIT 100`, exceptAthleteID)
+	if err != nil {
+		return nil, fmt.Errorf("models: list available athletes: %w", err)
+	}
+	defer rows.Close()
+
+	var athletes []*Athlete
+	for rows.Next() {
+		a := &Athlete{}
+		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
+			return nil, fmt.Errorf("models: scan available athlete: %w", err)
+		}
+		athletes = append(athletes, a)
+	}
+	return athletes, rows.Err()
+}

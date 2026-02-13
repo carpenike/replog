@@ -37,6 +37,15 @@ func TestCreateUser(t *testing.T) {
 			t.Errorf("err = %v, want ErrDuplicateUsername", err)
 		}
 	})
+
+	t.Run("duplicate athlete link on create", func(t *testing.T) {
+		a, _ := CreateAthlete(db, "Solo", "", "")
+		CreateUser(db, "first_link", "password123", "", false, sql.NullInt64{Int64: a.ID, Valid: true})
+		_, err := CreateUser(db, "second_link", "password123", "", false, sql.NullInt64{Int64: a.ID, Valid: true})
+		if err != ErrAthleteAlreadyLinked {
+			t.Errorf("err = %v, want ErrAthleteAlreadyLinked", err)
+		}
+	})
 }
 
 func TestAuthenticate(t *testing.T) {
@@ -190,6 +199,17 @@ func TestUpdateUser(t *testing.T) {
 		}
 		if !updated.AthleteID.Valid || updated.AthleteID.Int64 != a.ID {
 			t.Errorf("athlete_id = %v, want %d", updated.AthleteID, a.ID)
+		}
+	})
+
+	t.Run("duplicate athlete link", func(t *testing.T) {
+		// "renamed" user is linked to "Kid" from the previous subtest.
+		// Try linking a new user to the same athlete.
+		a, _ := GetUserByUsername(db, "renamed")
+		other, _ := CreateUser(db, "other", "pass", "", false, sql.NullInt64{})
+		_, err := UpdateUser(db, other.ID, "other", "", sql.NullInt64{Int64: a.AthleteID.Int64, Valid: true}, false)
+		if err != ErrAthleteAlreadyLinked {
+			t.Errorf("err = %v, want ErrAthleteAlreadyLinked", err)
 		}
 	})
 }

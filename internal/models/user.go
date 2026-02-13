@@ -16,6 +16,9 @@ var ErrInvalidInput = errors.New("invalid input")
 // ErrDuplicateUsername is returned when a username already exists.
 var ErrDuplicateUsername = errors.New("duplicate username")
 
+// ErrAthleteAlreadyLinked is returned when an athlete is already linked to another user.
+var ErrAthleteAlreadyLinked = errors.New("athlete already linked to another user")
+
 // User represents a login account in the system.
 type User struct {
 	ID           int64
@@ -71,8 +74,10 @@ func CreateUser(db *sql.DB, username, password, email string, isCoach bool, athl
 		username, emailVal, hash, coachInt, athleteID,
 	)
 	if err != nil {
-		// SQLite unique constraint error contains "UNIQUE constraint failed".
 		if isUniqueViolation(err) {
+			if errContains(err, "athlete_id") {
+				return nil, ErrAthleteAlreadyLinked
+			}
 			return nil, ErrDuplicateUsername
 		}
 		return nil, fmt.Errorf("models: create user %q: %w", username, err)
@@ -182,6 +187,9 @@ func UpdateUser(db *sql.DB, id int64, username, email string, athleteID sql.Null
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
+			if errContains(err, "athlete_id") {
+				return nil, ErrAthleteAlreadyLinked
+			}
 			return nil, ErrDuplicateUsername
 		}
 		return nil, fmt.Errorf("models: update user %d: %w", id, err)

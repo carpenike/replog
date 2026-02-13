@@ -48,7 +48,7 @@ func (h *Users) NewForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athletes, err := models.ListAthletes(h.DB)
+	athletes, err := models.ListAvailableAthletes(h.DB, 0)
 	if err != nil {
 		log.Printf("handlers: list athletes for user form: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -98,6 +98,10 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 		h.renderFormError(w, r, "Username already taken.", nil)
 		return
 	}
+	if errors.Is(err, models.ErrAthleteAlreadyLinked) {
+		h.renderFormError(w, r, "This athlete is already linked to another user.", nil)
+		return
+	}
 	if err != nil {
 		log.Printf("handlers: create user: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -132,7 +136,7 @@ func (h *Users) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athletes, err := models.ListAthletes(h.DB)
+	athletes, err := models.ListAvailableAthletes(h.DB, u.AthleteID.Int64)
 	if err != nil {
 		log.Printf("handlers: list athletes for user form: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -203,6 +207,10 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 		h.renderFormError(w, r, "Username already taken.", u)
 		return
 	}
+	if errors.Is(err, models.ErrAthleteAlreadyLinked) {
+		h.renderFormError(w, r, "This athlete is already linked to another user.", u)
+		return
+	}
 	if err != nil {
 		log.Printf("handlers: update user %d: %v", id, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -252,7 +260,11 @@ func (h *Users) Delete(w http.ResponseWriter, r *http.Request) {
 
 // renderFormError re-renders the user form with an error message.
 func (h *Users) renderFormError(w http.ResponseWriter, r *http.Request, msg string, u *models.User) {
-	athletes, _ := models.ListAthletes(h.DB)
+	var exceptAthleteID int64
+	if u != nil && u.AthleteID.Valid {
+		exceptAthleteID = u.AthleteID.Int64
+	}
+	athletes, _ := models.ListAvailableAthletes(h.DB, exceptAthleteID)
 	data := map[string]any{
 		"Error":    msg,
 		"EditUser": u,
