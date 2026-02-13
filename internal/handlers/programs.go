@@ -113,31 +113,53 @@ func (h *Programs) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Organize sets by week and day for display.
-	type DaySets struct {
-		Day  int
-		Sets []*models.PrescribedSet
+	// Parse selected week from query string (default: 1).
+	currentWeek := 1
+	if wStr := r.URL.Query().Get("week"); wStr != "" {
+		if w, err := strconv.Atoi(wStr); err == nil && w >= 1 && w <= tmpl.NumWeeks {
+			currentWeek = w
+		}
 	}
-	type WeekDays struct {
-		Week int
-		Days []DaySets
+
+	// Organize sets by week and day; compute per-week set counts.
+	type DaySets struct {
+		Day      int
+		Sets     []*models.PrescribedSet
+		NextSet  int // next set_number for add form
+	}
+	type WeekTab struct {
+		Week     int
+		SetCount int
+		Active   bool
 	}
 
 	weekMap := make(map[int]map[int][]*models.PrescribedSet)
+	weekCounts := make(map[int]int)
 	for _, s := range sets {
 		if weekMap[s.Week] == nil {
 			weekMap[s.Week] = make(map[int][]*models.PrescribedSet)
 		}
 		weekMap[s.Week][s.Day] = append(weekMap[s.Week][s.Day], s)
+		weekCounts[s.Week]++
 	}
 
-	var weeks []WeekDays
+	// Build week tabs.
+	weekTabs := make([]WeekTab, 0, tmpl.NumWeeks)
 	for w := 1; w <= tmpl.NumWeeks; w++ {
-		wd := WeekDays{Week: w}
-		for d := 1; d <= tmpl.NumDays; d++ {
-			wd.Days = append(wd.Days, DaySets{Day: d, Sets: weekMap[w][d]})
+		weekTabs = append(weekTabs, WeekTab{Week: w, SetCount: weekCounts[w], Active: w == currentWeek})
+	}
+
+	// Build days for the current week only.
+	var days []DaySets
+	for d := 1; d <= tmpl.NumDays; d++ {
+		daySets := weekMap[currentWeek][d]
+		nextSet := 1
+		for _, s := range daySets {
+			if s.SetNumber >= nextSet {
+				nextSet = s.SetNumber + 1
+			}
 		}
-		weeks = append(weeks, wd)
+		days = append(days, DaySets{Day: d, Sets: daySets, NextSet: nextSet})
 	}
 
 	exercises, err := models.ListExercises(h.DB, "")
@@ -148,9 +170,11 @@ func (h *Programs) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{
-		"Program":   tmpl,
-		"Weeks":     weeks,
-		"Exercises": exercises,
+		"Program":     tmpl,
+		"WeekTabs":    weekTabs,
+		"CurrentWeek": currentWeek,
+		"Days":        days,
+		"Exercises":   exercises,
 	}
 	if err := h.Templates.Render(w, r, "program_detail.html", data); err != nil {
 		log.Printf("handlers: program detail template: %v", err)
@@ -329,7 +353,7 @@ func (h *Programs) AddSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/programs/%d", templateID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/programs/%d?week=%d", templateID, week), http.StatusSeeOther)
 }
 
 // DeleteSet removes a prescribed set from a program template. Coach only.
@@ -358,7 +382,16 @@ func (h *Programs) DeleteSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/programs/%d", templateID), http.StatusSeeOther)
+	// Preserve the current week tab on redirect.
+	weekParam := r.URL.Query().Get("week")
+	if weekParam == "" {
+		weekParam = r.FormValue("week")
+	}
+	redirectURL := fmt.Sprintf("/programs/%d", templateID)
+	if weekParam != "" {
+		redirectURL += "?week=" + weekParam
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 // AssignProgram assigns a program template to an athlete. Coach only.

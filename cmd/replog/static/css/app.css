@@ -701,6 +701,161 @@ main.container {
     margin: 0;
 }
 
+/* ---- Week Tabs (Program Detail) ---- */
+.week-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--space-lg);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Reset Pico nav defaults */
+    padding: 0;
+}
+
+.week-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 2px solid transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--duration-fast) var(--ease-default),
+                border-color var(--duration-fast) var(--ease-default);
+}
+
+.week-tab:hover {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.week-tab.active {
+    color: var(--pico-primary);
+    border-bottom-color: var(--pico-primary);
+}
+
+.tab-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: var(--bg-3);
+    color: var(--text-secondary);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-pill);
+    line-height: 1.2;
+}
+
+.week-tab.active .tab-badge {
+    background: rgba(129, 140, 248, 0.15);
+    color: var(--pico-primary);
+}
+
+/* ---- Day Sections (Accordion) ---- */
+.day-section {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-sm);
+    background: var(--bg-1);
+    overflow: hidden;
+}
+
+.day-section > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text-primary);
+    list-style: none;
+    transition: background var(--duration-fast) var(--ease-default);
+}
+
+.day-section > summary::-webkit-details-marker {
+    display: none;
+}
+
+.day-section > summary::before {
+    content: "▸";
+    margin-right: 0.5rem;
+    transition: transform var(--duration-fast) var(--ease-default);
+    color: var(--text-tertiary);
+}
+
+.day-section[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.day-section > summary:hover {
+    background: var(--bg-2);
+}
+
+.day-title {
+    font-size: 0.95rem;
+}
+
+.day-meta {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    font-weight: 400;
+}
+
+.day-section > table,
+.day-section > p,
+.day-section > .add-set-inline {
+    margin: 0 1rem;
+}
+
+.day-section > table {
+    width: calc(100% - 2rem);
+    margin-bottom: 0.75rem;
+}
+
+.day-section > p.text-muted {
+    padding: 0.5rem 0;
+}
+
+/* Inline Add Set Form */
+.add-set-inline {
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--border-subtle);
+    margin-bottom: 0.75rem !important;
+}
+
+.add-set-inline .grid {
+    margin-bottom: 0.5rem;
+}
+
+.add-set-inline label {
+    margin-bottom: 0;
+    font-size: 0.8rem;
+}
+
+.add-set-inline input,
+.add-set-inline select {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.add-set-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+}
+
+.add-set-notes {
+    flex: 1;
+}
+
+.add-set-row button {
+    white-space: nowrap;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
 /* ---- Dashboard Cards ---- */
 .dashboard-grid {
     display: grid;
