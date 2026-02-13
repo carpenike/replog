@@ -51,7 +51,7 @@
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         <td>
                             <form method="POST" action="/programs/{{ $.Program.ID }}/sets/{{ .ID }}/delete" class="inline">
-                                <button type="submit" class="outline contrast">×</button>
+                                <button type="submit" class="outline contrast">✕</button>
                             </form>
                         </td>
                     </tr>

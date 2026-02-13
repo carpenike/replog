@@ -42,7 +42,7 @@
                     <td>{{ .Name }}</td>
                     <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td>{{ .ActiveAssignments }}</td>
-                    <td><a href="/athletes/{{ .ID }}/workouts/new" role="button" class="outline">New Workout</a></td>
+                    <td><a href="/athletes/{{ .ID }}/workouts/new" role="button" class="outline secondary">New Workout</a></td>
                 </tr>
                 {{ end }}
             </tbody>

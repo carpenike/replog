@@ -16,7 +16,7 @@
                 {{ if .Athlete.Tier.Valid }}{{ if ne (nextTier .Athlete.Tier.String) "" }}
                 <form method="POST" action="/athletes/{{ .Athlete.ID }}/promote" class="inline"
                       hx-confirm="Promote {{ .Athlete.Name }} from {{ tierLabel .Athlete.Tier.String }} to {{ nextTierLabel .Athlete.Tier.String }}?">
-                    <button type="submit" class="outline">Promote ↑</button>
+                    <button type="submit" class="outline secondary">Promote ↑</button>
                 </form>
                 {{ end }}{{ end }}
                 <a href="/athletes/{{ .Athlete.ID }}/edit" role="button" class="outline secondary">Edit</a>
@@ -171,7 +171,7 @@
         <section>
             <div class="page-header">
                 <h2>Assigned Exercises</h2>
-                {{ if .User.IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/assignments/new" role="button">Assign Exercise</a>{{ end }}
+                {{ if .User.IsCoach }}<div class="page-actions"><a href="/athletes/{{ .Athlete.ID }}/assignments/new" role="button">Assign Exercise</a></div>{{ end }}
             </div>
 
             {{ if .Assignments }}
@@ -183,7 +183,7 @@
                         <th scope="col">Target Reps</th>
                         <th scope="col">Current TM</th>
                         <th scope="col">Assigned</th>
-                        <th scope="col">Actions</th>
+                        <th scope="col"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -245,7 +245,7 @@
                         <td>
                             <form method="POST" action="/athletes/{{ $.Athlete.ID }}/assignments/reactivate" class="inline">
                                 <input type="hidden" name="exercise_id" value="{{ .ExerciseID }}">
-                                <button type="submit" class="outline">Reactivate</button>
+                                <button type="submit" class="outline secondary">Reactivate</button>
                             </form>
                         </td>
                     </tr>

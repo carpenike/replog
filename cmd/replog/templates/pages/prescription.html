@@ -5,7 +5,9 @@
             <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Prescription
         </div>
 
-        <h1>Today's Prescription</h1>
+        <div class="page-header">
+            <h1>Today's Prescription</h1>
+        </div>
 
         {{ if .Prescription }}
         <hgroup>

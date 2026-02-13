@@ -1,10 +1,6 @@
 {{ define "title" }}RepLog — Users{{ end }}
 
 {{ define "content" }}
-        <div class="breadcrumb">
-            <a href="/">Home</a> &rsaquo; Users
-        </div>
-
         <div class="page-header">
             <h1>Users</h1>
             <a href="/users/new" role="button">New User</a>
@@ -19,7 +15,7 @@
                     <th scope="col">Role</th>
                     <th scope="col">Linked Athlete</th>
                     <th scope="col">Created</th>
-                    <th scope="col">Actions</th>
+                    <th scope="col"></th>
                 </tr>
             </thead>
             <tbody>
@@ -46,7 +42,7 @@
         {{ else }}
         <article class="empty-state">
             <p>No users yet.</p>
-            <a href="/users/new" role="button">Create First User</a>
+            <a href="/users/new" role="button">Add First User</a>
         </article>
         {{ end }}
 {{ end }}

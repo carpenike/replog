@@ -59,7 +59,7 @@
             <h2>Danger Zone</h2>
             <form method="POST" action="/users/{{ .EditUser.ID }}/delete" class="inline"
                   hx-confirm="Delete user {{ .EditUser.Username }}? This cannot be undone.">
-                <button type="submit" class="contrast outline">Delete User</button>
+                <button type="submit" class="outline contrast">Delete User</button>
             </form>
         </section>
         {{ end }}

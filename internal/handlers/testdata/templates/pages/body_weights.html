@@ -5,7 +5,9 @@
             <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Body Weight
         </div>
 
-        <h1>Body Weight — {{ .Athlete.Name }}</h1>
+        <div class="page-header">
+            <h1>Body Weight — {{ .Athlete.Name }}</h1>
+        </div>
 
         {{ if .Error }}
         <p><ins>{{ .Error }}</ins></p>
@@ -56,7 +58,12 @@
         </table>
 
         {{ if .HasMore }}
-        <p><a href="/athletes/{{ .Athlete.ID }}/body-weights?offset={{ .NextOffset }}">Load more &rarr;</a></p>
+        <div class="load-more">
+            <button class="outline"
+                hx-get="/athletes/{{ .Athlete.ID }}/body-weights?offset={{ .NextOffset }}"
+                hx-target="closest .load-more"
+                hx-swap="outerHTML">Load More</button>
+        </div>
         {{ end }}
         {{ else }}
         <article class="empty-state">

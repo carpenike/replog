@@ -35,7 +35,7 @@
         {{ else }}
         <article class="empty-state">
             <p>No exercises{{ if .TierFilter }} matching this filter{{ end }}.</p>
-            {{ if .User.IsCoach }}<a href="/exercises/new" role="button">Add your first exercise</a>{{ end }}
+            {{ if .User.IsCoach }}<a href="/exercises/new" role="button">Add First Exercise</a>{{ end }}
         </article>
         {{ end }}
 {{ end }}

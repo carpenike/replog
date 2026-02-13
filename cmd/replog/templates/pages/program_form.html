@@ -35,6 +35,9 @@
                 </label>
             </div>
 
-            <button type="submit">{{ if .Program }}Update{{ else }}Create{{ end }} Program</button>
+            <div role="group">
+                <button type="submit">{{ if .Program }}Save Changes{{ else }}Create Program{{ end }}</button>
+                <a href="/programs" role="button" class="secondary">Cancel</a>
+            </div>
         </form>
 {{ end }}
