@@ -13,7 +13,7 @@
         {{ end }}
 
         <form method="POST" action="/athletes/{{ .Athlete.ID }}/exercises/{{ .Exercise.ID }}/training-maxes">
-            <label for="weight">Weight (lbs)
+            <label for="weight">Weight ({{ weightUnit .Prefs }})
                 <input type="number" id="weight" name="weight" step="0.5" min="0.5" required
                        placeholder="e.g. 185" inputmode="numeric">
             </label>

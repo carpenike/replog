@@ -16,6 +16,9 @@ type contextKey string
 // an authenticated user into the request context.
 const UserContextKey contextKey = "user"
 
+// PrefsContextKey stores the user's preferences in request context.
+const PrefsContextKey contextKey = "prefs"
+
 // RequireAuth redirects unauthenticated users to the login page.
 func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Handler {
 	return sm.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +37,21 @@ func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Han
 		}
 
 		ctx := context.WithValue(r.Context(), UserContextKey, user)
+
+		// Load user preferences (defaults returned if no row exists).
+		prefs, err := models.GetUserPreferences(db, user.ID)
+		if err != nil {
+			log.Printf("middleware: failed to load preferences for user %d: %v", userID, err)
+			// Non-fatal — use defaults.
+			prefs = &models.UserPreferences{
+				UserID:     user.ID,
+				WeightUnit: models.DefaultWeightUnit,
+				Timezone:   models.DefaultTimezone,
+				DateFormat: models.DefaultDateFormat,
+			}
+		}
+		ctx = context.WithValue(ctx, PrefsContextKey, prefs)
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}))
 }
@@ -43,6 +61,13 @@ func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Han
 func UserFromContext(ctx context.Context) *models.User {
 	u, _ := ctx.Value(UserContextKey).(*models.User)
 	return u
+}
+
+// PrefsFromContext retrieves the user's preferences from the request context.
+// Returns nil if no preferences are set.
+func PrefsFromContext(ctx context.Context) *models.UserPreferences {
+	p, _ := ctx.Value(PrefsContextKey).(*models.UserPreferences)
+	return p
 }
 
 // CanAccessAthlete checks whether the authenticated user is allowed to access

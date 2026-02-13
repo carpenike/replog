@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/carpenike/replog/internal/middleware"
+	"github.com/carpenike/replog/internal/models"
 )
 
 // templateFuncs contains custom template helper functions.
@@ -57,6 +59,49 @@ var templateFuncs = template.FuncMap{
 		default:
 			return ""
 		}
+	},
+	// weightUnit returns the user's preferred weight unit label from the
+	// UserPreferences injected into the template data. Templates call it as
+	// {{ weightUnit .Prefs }} to get "lbs" or "kg".
+	"weightUnit": func(prefs *models.UserPreferences) string {
+		if prefs == nil {
+			return models.DefaultWeightUnit
+		}
+		return prefs.WeightUnit
+	},
+	// formatDate formats a time.Time using the user's preferred date format
+	// and timezone. Call as {{ formatDate .Prefs .SomeTime }}.
+	"formatDate": func(prefs *models.UserPreferences, t time.Time) string {
+		if t.IsZero() {
+			return ""
+		}
+		format := models.DefaultDateFormat
+		tz := "America/New_York"
+		if prefs != nil {
+			format = prefs.DateFormat
+			tz = prefs.Timezone
+		}
+		loc, err := time.LoadLocation(tz)
+		if err != nil {
+			loc = time.UTC
+		}
+		return t.In(loc).Format(format)
+	},
+	// formatDateStr formats a YYYY-MM-DD date string using the user's preferred
+	// date format. Call as {{ formatDateStr .Prefs "2025-01-15" }}.
+	"formatDateStr": func(prefs *models.UserPreferences, dateStr string) string {
+		if dateStr == "" {
+			return ""
+		}
+		t, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return dateStr
+		}
+		format := models.DefaultDateFormat
+		if prefs != nil {
+			format = prefs.DateFormat
+		}
+		return t.Format(format)
 	},
 }
 
@@ -142,6 +187,13 @@ func (tc TemplateCache) Render(w http.ResponseWriter, r *http.Request, name stri
 	if _, exists := data["User"]; !exists {
 		if user := middleware.UserFromContext(r.Context()); user != nil {
 			data["User"] = user
+		}
+	}
+
+	// Inject user preferences for template helpers (weightUnit, formatDate, etc.).
+	if _, exists := data["Prefs"]; !exists {
+		if prefs := middleware.PrefsFromContext(r.Context()); prefs != nil {
+			data["Prefs"] = prefs
 		}
 	}
 

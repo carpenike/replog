@@ -64,6 +64,12 @@ func (a *Auth) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	a.Sessions.Put(r.Context(), "userID", user.ID)
 
+	// Ensure default preferences exist for this user.
+	if err := models.EnsureUserPreferences(a.DB, user.ID); err != nil {
+		log.Printf("handlers: ensure preferences for user %d: %v", user.ID, err)
+		// Non-fatal — continue with login.
+	}
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

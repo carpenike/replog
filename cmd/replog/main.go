@@ -111,6 +111,10 @@ func main() {
 		DB:        db,
 		Templates: tc,
 	}
+	preferences := &handlers.Preferences{
+		DB:        db,
+		Templates: tc,
+	}
 
 	// Set up routes.
 	mux := http.NewServeMux()
@@ -194,6 +198,10 @@ func main() {
 	mux.Handle("GET /users/{id}/edit", requireCoach(users.EditForm))
 	mux.Handle("POST /users/{id}", requireCoach(users.Update))
 	mux.Handle("POST /users/{id}/delete", requireCoach(users.Delete))
+
+	// User Preferences (self-service — any authenticated user).
+	mux.Handle("GET /preferences", requireAuth(preferences.EditForm))
+	mux.Handle("POST /preferences", requireAuth(preferences.Update))
 
 	// Program Templates (coach-only for management).
 	mux.Handle("GET /programs", requireCoach(programs.List))

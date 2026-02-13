@@ -19,7 +19,7 @@
                 <label for="date">Date
                     <input type="date" id="date" name="date" value="{{ .Today }}" required>
                 </label>
-                <label for="bw_weight" class="field-sm">Weight (lbs)
+                <label for="bw_weight" class="field-sm">Weight ({{ weightUnit .Prefs }})
                     <input type="number" id="bw_weight" name="weight" step="0.1" min="0" required placeholder="0" inputmode="numeric">
                 </label>
                 <label for="bw_notes">Notes
@@ -44,7 +44,7 @@
                 {{ range .Entries }}
                 <tr>
                     <td>{{ .Date }}</td>
-                    <td>{{ .Weight }} lbs</td>
+                    <td>{{ .Weight }} {{ weightUnit $.Prefs }}</td>
                     <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td class="set-actions">
                         <form method="POST" action="/athletes/{{ $.Athlete.ID }}/body-weights/{{ .ID }}/delete" class="inline"

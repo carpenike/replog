@@ -123,9 +123,9 @@ func (h *Programs) Show(w http.ResponseWriter, r *http.Request) {
 
 	// Organize sets by week and day; compute per-week set counts.
 	type DaySets struct {
-		Day      int
-		Sets     []*models.PrescribedSet
-		NextSet  int // next set_number for add form
+		Day     int
+		Sets    []*models.PrescribedSet
+		NextSet int // next set_number for add form
 	}
 	type WeekTab struct {
 		Week     int

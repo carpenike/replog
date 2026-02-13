@@ -20,6 +20,16 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    weight_unit TEXT    NOT NULL DEFAULT 'lbs' CHECK(weight_unit IN ('lbs', 'kg')),
+    timezone    TEXT    NOT NULL DEFAULT 'America/New_York',
+    date_format TEXT    NOT NULL DEFAULT 'Jan 2, 2006',
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS exercises (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     name         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
@@ -82,6 +92,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_exercises_unique_active
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_unique_athlete_id
     ON users(athlete_id) WHERE athlete_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id
+    ON user_preferences(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_athlete_exercises_athlete_id
     ON athlete_exercises(athlete_id);
@@ -162,6 +175,15 @@ END;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
+CREATE TRIGGER IF NOT EXISTS trigger_user_preferences_updated_at
+AFTER UPDATE ON user_preferences FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE user_preferences SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
 CREATE TRIGGER IF NOT EXISTS trigger_athletes_updated_at
 AFTER UPDATE ON athletes FOR EACH ROW
 WHEN OLD.updated_at = NEW.updated_at
@@ -224,9 +246,11 @@ DROP TRIGGER IF EXISTS trigger_workout_sets_updated_at;
 DROP TRIGGER IF EXISTS trigger_workouts_updated_at;
 DROP TRIGGER IF EXISTS trigger_exercises_updated_at;
 DROP TRIGGER IF EXISTS trigger_athletes_updated_at;
+DROP TRIGGER IF EXISTS trigger_user_preferences_updated_at;
 DROP TRIGGER IF EXISTS trigger_users_updated_at;
 
 DROP INDEX IF EXISTS idx_sessions_expiry;
+DROP INDEX IF EXISTS idx_user_preferences_user_id;
 DROP INDEX IF EXISTS idx_athlete_programs_active;
 DROP INDEX IF EXISTS idx_prescribed_sets_template;
 DROP INDEX IF EXISTS idx_body_weights_athlete_date;
@@ -245,5 +269,6 @@ DROP TABLE IF EXISTS workouts;
 DROP TABLE IF EXISTS training_maxes;
 DROP TABLE IF EXISTS athlete_exercises;
 DROP TABLE IF EXISTS exercises;
+DROP TABLE IF EXISTS user_preferences;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS athletes;

@@ -54,7 +54,7 @@
                         <tr>
                             <td>{{ .SetNumber }}</td>
                             <td>{{ .Reps }}</td>
-                            <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} lbs{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                            <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
                             <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td class="set-actions">
@@ -110,7 +110,7 @@
                         <tr>
                             <td>{{ .ExerciseName }}</td>
                             <td>{{ if .TargetReps.Valid }}{{ .TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                            <td>{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }}{{ $tm.Weight }} lbs{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                            <td>{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }}{{ $tm.Weight }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         </tr>
                         {{ end }}
                     </tbody>
@@ -126,7 +126,7 @@
                             {{ if .Assigned }}
                             <optgroup label="Assigned">
                                 {{ range .Assigned }}
-                                <option value="{{ .ExerciseID }}">{{ .ExerciseName }}{{ if .TargetReps.Valid }} ({{ .TargetReps.Int64 }} reps){{ end }}{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }} — TM: {{ $tm.Weight }} lbs{{ end }}</option>
+                                <option value="{{ .ExerciseID }}">{{ .ExerciseName }}{{ if .TargetReps.Valid }} ({{ .TargetReps.Int64 }} reps){{ end }}{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }} — TM: {{ $tm.Weight }} {{ weightUnit $.Prefs }}{{ end }}</option>
                                 {{ end }}
                             </optgroup>
                             {{ end }}
@@ -142,8 +142,8 @@
                     <label for="reps" class="field-sm">Reps
                         <input type="number" id="reps" name="reps" min="1" required placeholder="0" inputmode="numeric">
                     </label>
-                    <label for="weight" class="field-sm">Weight
-                        <input type="number" id="weight" name="weight" step="0.5" min="0" placeholder="lbs" inputmode="numeric">
+                    <label for="weight" class="field-sm">Weight ({{ weightUnit .Prefs }})
+                        <input type="number" id="weight" name="weight" step="0.5" min="0" placeholder="{{ weightUnit .Prefs }}" inputmode="numeric">
                     </label>
                     <label for="rpe" class="field-sm">RPE
                         <input type="number" id="rpe" name="rpe" step="0.5" min="1" max="10" placeholder="1-10" inputmode="numeric">

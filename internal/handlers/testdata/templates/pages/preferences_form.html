@@ -1,0 +1,54 @@
+{{ define "title" }}RepLog — Preferences{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/">Home</a> &rsaquo; Preferences
+        </div>
+
+        <h1>Preferences</h1>
+
+        {{ if .Success }}
+        <p><ins>Preferences saved successfully.</ins></p>
+        {{ end }}
+
+        {{ if .Error }}
+        <p><ins>{{ .Error }}</ins></p>
+        {{ end }}
+
+        <form method="POST" action="/preferences">
+            <label for="weight_unit">Weight Unit
+                <select id="weight_unit" name="weight_unit">
+                    {{ $currentUnit := "" }}
+                    {{ if .EditPrefs }}{{ $currentUnit = .EditPrefs.WeightUnit }}{{ end }}
+                    {{ range .WeightUnits }}
+                    <option value="{{ . }}" {{ if eq . $currentUnit }}selected{{ end }}>{{ . }}</option>
+                    {{ end }}
+                </select>
+            </label>
+
+            <label for="timezone">Timezone
+                <select id="timezone" name="timezone">
+                    {{ $currentTZ := "" }}
+                    {{ if .EditPrefs }}{{ $currentTZ = .EditPrefs.Timezone }}{{ end }}
+                    {{ range .CommonTimezones }}
+                    <option value="{{ . }}" {{ if eq . $currentTZ }}selected{{ end }}>{{ . }}</option>
+                    {{ end }}
+                </select>
+            </label>
+
+            <label for="date_format">Date Format
+                <select id="date_format" name="date_format">
+                    {{ $currentFmt := "" }}
+                    {{ if .EditPrefs }}{{ $currentFmt = .EditPrefs.DateFormat }}{{ end }}
+                    {{ range $format, $label := .DateFormats }}
+                    <option value="{{ $format }}" {{ if eq $format $currentFmt }}selected{{ end }}>{{ $label }}</option>
+                    {{ end }}
+                </select>
+            </label>
+
+            <div role="group">
+                <button type="submit">Save Preferences</button>
+                <a href="/" role="button" class="secondary">Cancel</a>
+            </div>
+        </form>
+{{ end }}

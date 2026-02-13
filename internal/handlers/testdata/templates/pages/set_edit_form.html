@@ -22,7 +22,7 @@
                        value="{{ .Set.Reps }}" inputmode="numeric">
             </label>
 
-            <label for="weight">Weight (lbs)
+            <label for="weight">Weight ({{ weightUnit .Prefs }})
                 <input type="number" id="weight" name="weight" step="0.5" min="0"
                        value="{{ if .Set.Weight.Valid }}{{ .Set.Weight.Float64 }}{{ end }}"
                        placeholder="Leave blank for bodyweight" inputmode="numeric">

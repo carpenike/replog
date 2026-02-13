@@ -43,6 +43,16 @@ erDiagram
         DATETIME updated_at
     }
 
+    user_preferences {
+        INTEGER id PK
+        INTEGER user_id FK "UNIQUE"
+        TEXT weight_unit "lbs or kg"
+        TEXT timezone "IANA timezone"
+        TEXT date_format "Go format string"
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
     athletes {
         INTEGER id PK
         TEXT name "COLLATE NOCASE"
@@ -115,6 +125,7 @@ erDiagram
     }
 
     users ||--o| athletes : "linked profile"
+    users ||--o| user_preferences : "has preferences"
     athletes ||--o{ athlete_exercises : "has"
     exercises ||--o{ athlete_exercises : "assigned via"
     athletes ||--o{ training_maxes : "has"
@@ -183,6 +194,25 @@ erDiagram
 - `is_coach = 1` → full access to all athletes. `is_coach = 0` → can only view/log/edit workouts for their linked athlete.
 - `COLLATE NOCASE` prevents "Admin" and "admin" or duplicate emails.
 - Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL` env vars with `is_coach = 1`.
+
+### `user_preferences`
+
+| Column        | Type         | Constraints                          |
+|--------------|-------------|--------------------------------------|
+| `id`         | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `user_id`    | INTEGER      | NOT NULL UNIQUE, FK → users(id) ON DELETE CASCADE |
+| `weight_unit`| TEXT         | NOT NULL DEFAULT 'lbs', CHECK(weight_unit IN ('lbs', 'kg')) |
+| `timezone`   | TEXT         | NOT NULL DEFAULT 'America/New_York'  |
+| `date_format`| TEXT         | NOT NULL DEFAULT 'Jan 2, 2006'       |
+| `created_at` | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at` | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- One row per user — stores display and locale preferences.
+- `weight_unit` controls how weights are labeled throughout the UI ('lbs' or 'kg'). Weights are stored in the user's chosen unit — no automatic conversion.
+- `timezone` is an IANA timezone identifier (e.g. 'America/New_York', 'Europe/London'). Used for displaying dates in the user's local time.
+- `date_format` is a Go `time.Format` string (e.g. 'Jan 2, 2006', '2006-01-02', '01/02/2006').
+- Default preferences are seeded on login if no row exists.
+- Deleting a user cascades to their preferences.
 
 ### `athletes`
 
@@ -382,6 +412,16 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    weight_unit TEXT    NOT NULL DEFAULT 'lbs' CHECK(weight_unit IN ('lbs', 'kg')),
+    timezone    TEXT    NOT NULL DEFAULT 'America/New_York',
+    date_format TEXT    NOT NULL DEFAULT 'Jan 2, 2006',
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS exercises (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     name         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
@@ -471,6 +511,13 @@ AFTER UPDATE ON users FOR EACH ROW
 WHEN OLD.updated_at = NEW.updated_at
 BEGIN
     UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trigger_user_preferences_updated_at
+AFTER UPDATE ON user_preferences FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE user_preferences SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS trigger_athletes_updated_at
