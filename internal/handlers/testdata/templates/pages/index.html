@@ -1,2 +1,68 @@
-{{ define "title" }}Home{{ end }}
-{{ define "content" }}<div>index</div>{{ end }}
+{{ define "title" }}RepLog — Home{{ end }}
+
+{{ define "content" }}
+<section>
+    <h1>Welcome{{ if .User }}, {{ .User.Username }}{{ end }}</h1>
+
+    {{ if .User.IsCoach }}
+    <p>Track your training. Review your progress. Stay consistent.</p>
+
+    <div class="dashboard-grid">
+        <article>
+            <a href="/athletes">
+                <h2>Athletes</h2>
+                <p>Manage athlete profiles and tiers</p>
+            </a>
+        </article>
+        <article>
+            <a href="/exercises">
+                <h2>Exercises</h2>
+                <p>Browse and manage the exercise library</p>
+            </a>
+        </article>
+        <article>
+            <a href="/users">
+                <h2>Users</h2>
+                <p>Manage login accounts and roles</p>
+            </a>
+        </article>
+    </div>
+
+    {{ if .Athletes }}
+    <section>
+        <h2>Quick Start</h2>
+        <p class="text-muted">Select an athlete to start logging workouts.</p>
+        <div role="group">
+        <table class="striped">
+            <thead>
+                <tr>
+                    <th scope="col">Athlete</th>
+                    <th scope="col">Tier</th>
+                    <th scope="col">Assignments</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Athletes }}
+                <tr>
+                    <td><a href="/athletes/{{ .ID }}">{{ .Name }}</a></td>
+                    <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    <td>{{ .ActiveAssignments }}</td>
+                    <td><a href="/athletes/{{ .ID }}/workouts/new" role="button" class="outline">New Workout</a></td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        </div>
+    </section>
+    {{ end }}
+
+    {{ else }}
+    {{/* Non-coach without linked athlete (linked non-coaches are redirected by handler) */}}
+    <article class="empty-state">
+        <p>Your account is not linked to an athlete profile yet.</p>
+        <p>Ask your coach to link your account so you can start logging workouts.</p>
+    </article>
+    {{ end }}
+</section>
+{{ end }}

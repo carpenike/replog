@@ -6,40 +6,39 @@
         </div>
 
         <div class="page-header">
-            <h1>{{ .Workout.Date }}</h1>
+            <hgroup>
+                <h1>{{ .Workout.Date }}</h1>
+                <p>{{ .Athlete.Name }} &mdash; {{ .Workout.SetCount }} sets logged</p>
+            </hgroup>
             {{ if .User.IsCoach }}
             <div class="page-actions">
-                <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/delete" class="inline-form"
+                <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/delete" class="inline"
                       hx-confirm="Delete this workout and all its sets?">
-                    <button type="submit" class="btn btn-danger">Delete Workout</button>
+                    <button type="submit" class="outline contrast">Delete Workout</button>
                 </form>
             </div>
             {{ end }}
         </div>
 
-        <p>{{ .Athlete.Name }} &mdash; {{ .Workout.SetCount }} sets logged</p>
-
         <!-- Workout Notes -->
-        <section class="section">
-            <details class="notes-toggle">
-                <summary>Session Notes</summary>
-                <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/notes" class="notes-form">
-                    <div class="form-group">
-                        <textarea name="notes" rows="2" placeholder="Add session-level notes">{{ if .Workout.Notes.Valid }}{{ .Workout.Notes.String }}{{ end }}</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-small">Save Notes</button>
-                </form>
-            </details>
-        </section>
+        <details>
+            <summary>Session Notes</summary>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/notes">
+                <label for="notes">
+                    <textarea id="notes" name="notes" rows="2" placeholder="Add session-level notes">{{ if .Workout.Notes.Valid }}{{ .Workout.Notes.String }}{{ end }}</textarea>
+                </label>
+                <button type="submit" class="outline secondary">Save Notes</button>
+            </form>
+        </details>
 
         <!-- Logged Sets -->
         {{ if .Groups }}
-        <section class="section">
+        <section>
             <h2>Logged Sets</h2>
             {{ range .Groups }}
-            <div class="exercise-group">
-                <h3>{{ .ExerciseName }}</h3>
-                <table class="data-table">
+            <article>
+                <header><strong>{{ .ExerciseName }}</strong></header>
+                <table class="striped">
                     <thead>
                         <tr>
                             <th scope="col">Set</th>
@@ -57,33 +56,33 @@
                             <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} lbs{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
                             <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td class="set-actions">
-                                <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/edit" class="btn btn-small">Edit</a>
-                                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/delete" class="inline-form"
+                                <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
+                                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/delete" class="inline"
                                       hx-confirm="Delete this set?">
-                                    <button type="submit" class="btn btn-small btn-danger">✕</button>
+                                    <button type="submit" class="outline contrast">✕</button>
                                 </form>
                             </td>
                         </tr>
                         {{ end }}
                     </tbody>
                 </table>
-            </div>
+            </article>
             {{ end }}
         </section>
         {{ end }}
 
         <!-- Add Set Form -->
-        <section class="section">
+        <section>
             <h2>Log a Set</h2>
 
             {{ if .SetError }}
-            <div class="alert alert-error">{{ .SetError }}</div>
+            <p><ins>{{ .SetError }}</ins></p>
             {{ end }}
 
             {{ if .Assigned }}
-            <details class="notes-toggle">
+            <details>
                 <summary>Prescribed Exercises</summary>
-                <table class="data-table">
+                <table class="striped">
                     <thead>
                         <tr>
                             <th scope="col">Exercise</th>
@@ -104,10 +103,9 @@
             </details>
             {{ end }}
 
-            <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/sets" class="add-set-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="exercise_id">Exercise</label>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/sets">
+                <div class="log-set-grid">
+                    <label for="exercise_id">Exercise
                         <select id="exercise_id" name="exercise_id" required>
                             <option value="">— Select —</option>
                             {{ if .Assigned }}
@@ -125,21 +123,18 @@
                             </optgroup>
                             {{ end }}
                         </select>
-                    </div>
-                    <div class="form-group form-group-sm">
-                        <label for="reps">Reps</label>
-                        <input type="number" id="reps" name="reps" min="1" required placeholder="0">
-                    </div>
-                    <div class="form-group form-group-sm">
-                        <label for="weight">Weight</label>
-                        <input type="number" id="weight" name="weight" step="0.5" min="0" placeholder="lbs">
-                    </div>
+                    </label>
+                    <label for="reps" class="field-sm">Reps
+                        <input type="number" id="reps" name="reps" min="1" required placeholder="0" inputmode="numeric">
+                    </label>
+                    <label for="weight" class="field-sm">Weight
+                        <input type="number" id="weight" name="weight" step="0.5" min="0" placeholder="lbs" inputmode="numeric">
+                    </label>
                 </div>
-                <div class="form-group">
-                    <label for="set_notes">Notes</label>
+                <label for="set_notes">Notes
                     <input type="text" id="set_notes" name="notes" placeholder="Optional per-set note">
-                </div>
-                <button type="submit" class="btn btn-primary">Log Set <span class="htmx-indicator spinner"></span></button>
+                </label>
+                <button type="submit" aria-busy="false">Log Set</button>
             </form>
         </section>
 {{ end }}

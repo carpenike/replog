@@ -1,2 +1,41 @@
-{{ define "title" }}Exercises{{ end }}
-{{ define "content" }}<div>exercises_list</div>{{ end }}
+{{ define "title" }}RepLog — Exercises{{ end }}
+
+{{ define "content" }}
+        <div class="page-header">
+            <h1>Exercises</h1>
+            {{ if .User.IsCoach }}<a href="/exercises/new" role="button">New Exercise</a>{{ end }}
+        </div>
+
+        <fieldset role="group">
+            {{ range .Tiers }}
+            <a href="/exercises{{ if .Value }}?tier={{ .Value }}{{ end }}" role="button"
+               class="{{ if eq .Value $.TierFilter }}{{ else }}outline{{ end }} secondary">{{ .Label }}</a>
+            {{ end }}
+        </fieldset>
+
+        {{ if .Exercises }}
+        <table class="striped">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Tier</th>
+                    <th scope="col">Target Reps</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Exercises }}
+                <tr>
+                    <td><a href="/exercises/{{ .ID }}">{{ .Name }}</a></td>
+                    <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    <td>{{ if .TargetReps.Valid }}{{ .TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        {{ else }}
+        <article class="empty-state">
+            <p>No exercises{{ if .TierFilter }} matching this filter{{ end }}.</p>
+            {{ if .User.IsCoach }}<a href="/exercises/new" role="button">Add your first exercise</a>{{ end }}
+        </article>
+        {{ end }}
+{{ end }}

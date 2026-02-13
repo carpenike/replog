@@ -8,18 +8,17 @@
         <h1>{{ if .Athlete }}Edit {{ .Athlete.Name }}{{ else }}New Athlete{{ end }}</h1>
 
         {{ if .Error }}
-        <div class="alert alert-error">{{ .Error }}</div>
+        <p><ins>{{ .Error }}</ins></p>
         {{ end }}
 
-        <form method="POST" action="{{ if .Athlete }}/athletes/{{ .Athlete.ID }}{{ else }}/athletes{{ end }}" class="form-card">
-            <div class="form-group">
-                <label for="name">Name</label>
+        <form method="POST" action="{{ if .Athlete }}/athletes/{{ .Athlete.ID }}{{ else }}/athletes{{ end }}">
+            <label for="name">Name
                 <input type="text" id="name" name="name" required
-                       value="{{ if .Athlete }}{{ .Athlete.Name }}{{ end }}">
-            </div>
+                       value="{{ if .Athlete }}{{ .Athlete.Name }}{{ end }}"
+                       {{ if .Error }}aria-invalid="true"{{ end }}>
+            </label>
 
-            <div class="form-group">
-                <label for="tier">Tier</label>
+            <label for="tier">Tier
                 <select id="tier" name="tier">
                     {{ $currentTier := "" }}
                     {{ if .Athlete }}{{ if .Athlete.Tier.Valid }}{{ $currentTier = .Athlete.Tier.String }}{{ end }}{{ end }}
@@ -27,18 +26,17 @@
                     <option value="{{ .Value }}" {{ if eq .Value $currentTier }}selected{{ end }}>{{ .Label }}</option>
                     {{ end }}
                 </select>
-            </div>
+            </label>
 
-            <div class="form-group">
-                <label for="notes">Notes</label>
+            <label for="notes">Notes
                 <textarea id="notes" name="notes" rows="3">{{ if .Athlete }}{{ if .Athlete.Notes.Valid }}{{ .Athlete.Notes.String }}{{ end }}{{ end }}</textarea>
-            </div>
+            </label>
 
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary"
+            <div role="group">
+                <button type="submit"
                     {{ if .Athlete }}hx-confirm="Are you sure you want to save changes to this athlete's profile?"{{ end }}
                 >{{ if .Athlete }}Save Changes{{ else }}Create Athlete{{ end }}</button>
-                <a href="/athletes" class="btn">Cancel</a>
+                <a href="/athletes" role="button" class="secondary">Cancel</a>
             </div>
         </form>
 {{ end }}

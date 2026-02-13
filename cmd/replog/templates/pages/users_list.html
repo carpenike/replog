@@ -7,11 +7,11 @@
 
         <div class="page-header">
             <h1>Users</h1>
-            <a href="/users/new" class="btn btn-primary">New User</a>
+            <a href="/users/new" role="button">New User</a>
         </div>
 
         {{ if .Users }}
-        <table class="data-table">
+        <table class="striped">
             <thead>
                 <tr>
                     <th scope="col">Username</th>
@@ -26,27 +26,27 @@
                 {{ range .Users }}
                 <tr>
                     <td>{{ .Username }}</td>
-                    <td>{{ if .Email.Valid }}{{ .Email.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                    <td>{{ if .IsCoach }}Coach{{ else }}Kid{{ end }}</td>
+                    <td>{{ if .Email.Valid }}{{ .Email.String }}{{ else }}<small>—</small>{{ end }}</td>
+                    <td>{{ if .IsCoach }}<mark>Coach</mark>{{ else }}Kid{{ end }}</td>
                     <td>
                         {{ if .AthleteID.Valid }}
                             <a href="/athletes/{{ .AthleteID.Int64 }}">{{ if .AthleteName.Valid }}{{ .AthleteName.String }}{{ else }}Athlete #{{ .AthleteID.Int64 }}{{ end }}</a>
                         {{ else }}
-                            <span class="text-muted">None</span>
+                            <small>None</small>
                         {{ end }}
                     </td>
-                    <td class="text-muted">{{ .CreatedAt.Format "Jan 2, 2006" }}</td>
-                    <td class="set-actions">
-                        <a href="/users/{{ .ID }}/edit" class="btn btn-small">Edit</a>
+                    <td><small>{{ .CreatedAt.Format "Jan 2, 2006" }}</small></td>
+                    <td>
+                        <a href="/users/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
                     </td>
                 </tr>
                 {{ end }}
             </tbody>
         </table>
         {{ else }}
-        <div class="empty-state">
+        <article class="empty-state">
             <p>No users yet.</p>
-            <a href="/users/new" class="btn btn-primary">Create First User</a>
-        </div>
+            <a href="/users/new" role="button">Create First User</a>
+        </article>
         {{ end }}
 {{ end }}

@@ -1,2 +1,42 @@
-{{ define "title" }}Edit Set{{ end }}
-{{ define "content" }}<div>set_edit_form</div>{{ end }}
+{{ define "title" }}RepLog — Edit Set{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}/workouts">Workouts</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}">{{ .Workout.Date }}</a> &rsaquo;
+            Edit Set
+        </div>
+
+        <h1>Edit Set</h1>
+        <p>{{ .Set.ExerciseName }} — Set #{{ .Set.SetNumber }}</p>
+
+        {{ if .Error }}
+        <p><ins>{{ .Error }}</ins></p>
+        {{ end }}
+
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/sets/{{ .Set.ID }}">
+            <label for="reps">Reps
+                <input type="number" id="reps" name="reps" min="1" required
+                       value="{{ .Set.Reps }}" inputmode="numeric">
+            </label>
+
+            <label for="weight">Weight (lbs)
+                <input type="number" id="weight" name="weight" step="0.5" min="0"
+                       value="{{ if .Set.Weight.Valid }}{{ .Set.Weight.Float64 }}{{ end }}"
+                       placeholder="Leave blank for bodyweight" inputmode="numeric">
+            </label>
+
+            <label for="notes">Notes
+                <input type="text" id="notes" name="notes"
+                       value="{{ if .Set.Notes.Valid }}{{ .Set.Notes.String }}{{ end }}"
+                       placeholder="Optional per-set note">
+            </label>
+
+            <div role="group">
+                <button type="submit">Save</button>
+                <a href="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}" role="button" class="secondary">Cancel</a>
+            </div>
+        </form>
+{{ end }}

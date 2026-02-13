@@ -144,3 +144,84 @@ func TestListAthletes(t *testing.T) {
 		t.Errorf("first athlete = %q, want Aaron", athletes[0].Name)
 	}
 }
+
+func TestNextTier(t *testing.T) {
+	tests := []struct {
+		current  string
+		wantNext string
+		wantOK   bool
+	}{
+		{"foundational", "intermediate", true},
+		{"intermediate", "sport_performance", true},
+		{"sport_performance", "", false},
+		{"", "", false},
+		{"unknown", "", false},
+	}
+	for _, tt := range tests {
+		next, ok := NextTier(tt.current)
+		if next != tt.wantNext || ok != tt.wantOK {
+			t.Errorf("NextTier(%q) = (%q, %v), want (%q, %v)", tt.current, next, ok, tt.wantNext, tt.wantOK)
+		}
+	}
+}
+
+func TestPromoteAthlete(t *testing.T) {
+	db := testDB(t)
+
+	t.Run("promote foundational to intermediate", func(t *testing.T) {
+		a, err := CreateAthlete(db, "PromoKid", "foundational", "")
+		if err != nil {
+			t.Fatalf("create: %v", err)
+		}
+		promoted, err := PromoteAthlete(db, a.ID)
+		if err != nil {
+			t.Fatalf("promote: %v", err)
+		}
+		if !promoted.Tier.Valid || promoted.Tier.String != "intermediate" {
+			t.Errorf("tier = %v, want intermediate", promoted.Tier)
+		}
+	})
+
+	t.Run("promote intermediate to sport_performance", func(t *testing.T) {
+		a, err := CreateAthlete(db, "PromoKid2", "intermediate", "")
+		if err != nil {
+			t.Fatalf("create: %v", err)
+		}
+		promoted, err := PromoteAthlete(db, a.ID)
+		if err != nil {
+			t.Fatalf("promote: %v", err)
+		}
+		if !promoted.Tier.Valid || promoted.Tier.String != "sport_performance" {
+			t.Errorf("tier = %v, want sport_performance", promoted.Tier)
+		}
+	})
+
+	t.Run("already at highest tier", func(t *testing.T) {
+		a, err := CreateAthlete(db, "MaxTier", "sport_performance", "")
+		if err != nil {
+			t.Fatalf("create: %v", err)
+		}
+		_, err = PromoteAthlete(db, a.ID)
+		if err == nil {
+			t.Fatal("expected error for highest tier, got nil")
+		}
+	})
+
+	t.Run("no tier set", func(t *testing.T) {
+		a, err := CreateAthlete(db, "NoTier", "", "")
+		if err != nil {
+			t.Fatalf("create: %v", err)
+		}
+		_, err = PromoteAthlete(db, a.ID)
+		if err == nil {
+			t.Fatal("expected error for no tier, got nil")
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		_, err := PromoteAthlete(db, 99999)
+		if err != ErrNotFound {
+			t.Errorf("err = %v, want ErrNotFound", err)
+		}
+	})
+}

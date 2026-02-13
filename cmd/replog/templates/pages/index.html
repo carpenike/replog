@@ -7,26 +7,33 @@
     {{ if .User.IsCoach }}
     <p>Track your training. Review your progress. Stay consistent.</p>
 
-    <div class="dashboard-nav">
-        <a href="/athletes" class="dashboard-card">
-            <h2>Athletes</h2>
-            <p>Manage athlete profiles and tiers</p>
-        </a>
-        <a href="/exercises" class="dashboard-card">
-            <h2>Exercises</h2>
-            <p>Browse and manage the exercise library</p>
-        </a>
-        <a href="/users" class="dashboard-card">
-            <h2>Users</h2>
-            <p>Manage login accounts and roles</p>
-        </a>
+    <div class="dashboard-grid">
+        <article>
+            <a href="/athletes">
+                <h2>Athletes</h2>
+                <p>Manage athlete profiles and tiers</p>
+            </a>
+        </article>
+        <article>
+            <a href="/exercises">
+                <h2>Exercises</h2>
+                <p>Browse and manage the exercise library</p>
+            </a>
+        </article>
+        <article>
+            <a href="/users">
+                <h2>Users</h2>
+                <p>Manage login accounts and roles</p>
+            </a>
+        </article>
     </div>
 
     {{ if .Athletes }}
-    <section class="section">
+    <section>
         <h2>Quick Start</h2>
         <p class="text-muted">Select an athlete to start logging workouts.</p>
-        <table class="data-table">
+        <div role="group">
+        <table class="striped">
             <thead>
                 <tr>
                     <th scope="col">Athlete</th>
@@ -39,22 +46,23 @@
                 {{ range .Athletes }}
                 <tr>
                     <td><a href="/athletes/{{ .ID }}">{{ .Name }}</a></td>
-                    <td>{{ if .Tier.Valid }}{{ .Tier.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td>{{ .ActiveAssignments }}</td>
-                    <td><a href="/athletes/{{ .ID }}/workouts/new" class="btn btn-small btn-primary">New Workout</a></td>
+                    <td><a href="/athletes/{{ .ID }}/workouts/new" role="button" class="outline">New Workout</a></td>
                 </tr>
                 {{ end }}
             </tbody>
         </table>
+        </div>
     </section>
     {{ end }}
 
     {{ else }}
     {{/* Non-coach without linked athlete (linked non-coaches are redirected by handler) */}}
-    <div class="empty-state" style="margin-top: 2rem;">
+    <article class="empty-state">
         <p>Your account is not linked to an athlete profile yet.</p>
         <p>Ask your coach to link your account so you can start logging workouts.</p>
-    </div>
+    </article>
     {{ end }}
 </section>
 {{ end }}

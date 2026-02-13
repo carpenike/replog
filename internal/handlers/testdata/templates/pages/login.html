@@ -1,1 +1,42 @@
-{{ define "login" }}<div>login</div>{{ end }}
+{{ define "login" }}<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <title>RepLog — Login</title>
+    <link rel="stylesheet" href="/static/css/pico.min.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script>
+        (function() {
+            var saved = localStorage.getItem("theme") || "dark";
+            document.documentElement.setAttribute("data-theme", saved);
+        })();
+    </script>
+</head>
+<body>
+    <main class="container" style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
+        <article style="max-width:24rem; width:100%;">
+            <hgroup style="text-align:center;">
+                <h1>RepLog</h1>
+                <p>Sign in to continue</p>
+            </hgroup>
+
+            {{ if .Error }}
+            <p><mark>{{ .Error }}</mark></p>
+            {{ end }}
+
+            <form method="POST" action="/login">
+                <label for="username">Username
+                    <input type="text" id="username" name="username" required autofocus autocomplete="username"
+                           {{ if .Error }}aria-invalid="true"{{ end }}>
+                </label>
+                <label for="password">Password
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </label>
+                <button type="submit">Sign In</button>
+            </form>
+        </article>
+    </main>
+</body>
+</html>{{ end }}

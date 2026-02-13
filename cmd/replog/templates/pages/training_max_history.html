@@ -7,15 +7,13 @@
 
         <div class="page-header">
             <h1>{{ .Exercise.Name }} — Training Max History</h1>
-            <div class="page-actions">
-                <a href="/athletes/{{ .Athlete.ID }}/exercises/{{ .Exercise.ID }}/training-maxes/new" class="btn btn-primary">Set New TM</a>
-            </div>
+            <a href="/athletes/{{ .Athlete.ID }}/exercises/{{ .Exercise.ID }}/training-maxes/new" role="button">Set New TM</a>
         </div>
 
         <p>{{ .Athlete.Name }}</p>
 
         {{ if .History }}
-        <table class="data-table">
+        <table class="striped">
             <thead>
                 <tr>
                     <th scope="col">Weight</th>
@@ -34,9 +32,9 @@
             </tbody>
         </table>
         {{ else }}
-        <div class="empty-state">
+        <article class="empty-state">
             <p>No training max records yet.</p>
-            <a href="/athletes/{{ .Athlete.ID }}/exercises/{{ .Exercise.ID }}/training-maxes/new" class="btn btn-primary">Set First Training Max</a>
-        </div>
+            <a href="/athletes/{{ .Athlete.ID }}/exercises/{{ .Exercise.ID }}/training-maxes/new" role="button">Set First Training Max</a>
+        </article>
         {{ end }}
 {{ end }}

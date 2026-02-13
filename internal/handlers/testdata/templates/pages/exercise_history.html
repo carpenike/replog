@@ -1,2 +1,56 @@
-{{ define "title" }}Exercise History{{ end }}
-{{ define "content" }}<div>exercise_history</div>{{ end }}
+{{ define "title" }}RepLog — {{ .Exercise.Name }} History{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo;
+            {{ .Exercise.Name }} History
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Exercise.Name }} — History</h1>
+        </div>
+
+        <p>{{ .Athlete.Name }}{{ if .Exercise.Tier.Valid }} &middot; <span class="tier-badge" data-tier="{{ .Exercise.Tier.String }}">{{ tierLabel .Exercise.Tier.String }}</span>{{ end }}</p>
+
+        {{ if .Days }}
+        {{ range .Days }}
+        <article>
+            <header><strong><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .WorkoutID }}">{{ .WorkoutDate }}</a></strong></header>
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Set</th>
+                        <th scope="col">Reps</th>
+                        <th scope="col">Weight</th>
+                        <th scope="col">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Sets }}
+                    <tr>
+                        <td>{{ .SetNumber }}</td>
+                        <td>{{ .Reps }}</td>
+                        <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} lbs{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                        <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </article>
+        {{ end }}
+        {{ if .HasMore }}
+        <div class="load-more">
+            <button class="outline"
+                hx-get="/athletes/{{ .Athlete.ID }}/exercises/{{ .Exercise.ID }}/history?offset={{ .NextOffset }}"
+                hx-target="closest .load-more"
+                hx-swap="outerHTML">Load More</button>
+        </div>
+        {{ end }}
+        {{ else }}
+        <article class="empty-state">
+            <p>No sets logged for {{ .Exercise.Name }} yet.</p>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button">Start a Workout</a>
+        </article>
+        {{ end }}
+{{ end }}

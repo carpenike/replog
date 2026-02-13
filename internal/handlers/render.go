@@ -6,9 +6,49 @@ import (
 	"io/fs"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/carpenike/replog/internal/middleware"
 )
+
+// templateFuncs contains custom template helper functions.
+var templateFuncs = template.FuncMap{
+	"tierLabel": func(tier string) string {
+		switch tier {
+		case "foundational":
+			return "Foundational"
+		case "intermediate":
+			return "Intermediate"
+		case "sport_performance":
+			return "Sport Performance"
+		default:
+			if tier == "" {
+				return ""
+			}
+			return strings.ToUpper(tier[:1]) + tier[1:]
+		}
+	},
+	"nextTier": func(tier string) string {
+		switch tier {
+		case "foundational":
+			return "intermediate"
+		case "intermediate":
+			return "sport_performance"
+		default:
+			return ""
+		}
+	},
+	"nextTierLabel": func(tier string) string {
+		switch tier {
+		case "foundational":
+			return "Intermediate"
+		case "intermediate":
+			return "Sport Performance"
+		default:
+			return ""
+		}
+	},
+}
 
 // TemplateCache maps page filenames to parsed template sets. Each set contains
 // the base layout combined with a single page template.
@@ -30,7 +70,7 @@ func NewTemplateCache(fsys fs.FS) (TemplateCache, error) {
 
 		// Login page is standalone — no base layout needed.
 		if name == "login.html" {
-			ts, err := template.ParseFS(fsys, page)
+			ts, err := template.New(name).Funcs(templateFuncs).ParseFS(fsys, page)
 			if err != nil {
 				return nil, fmt.Errorf("handlers: parse %s: %w", name, err)
 			}
@@ -39,7 +79,7 @@ func NewTemplateCache(fsys fs.FS) (TemplateCache, error) {
 		}
 
 		// All other pages extend the base layout.
-		ts, err := template.ParseFS(fsys, "templates/layouts/base.html", page)
+		ts, err := template.New(name).Funcs(templateFuncs).ParseFS(fsys, "templates/layouts/base.html", page)
 		if err != nil {
 			return nil, fmt.Errorf("handlers: parse %s with layout: %w", name, err)
 		}
@@ -52,7 +92,7 @@ func NewTemplateCache(fsys fs.FS) (TemplateCache, error) {
 		return nil, fmt.Errorf("handlers: glob partial templates: %w", err)
 	}
 	for _, partial := range partials {
-		ts, err := template.ParseFS(fsys, partial)
+		ts, err := template.New(filepath.Base(partial)).Funcs(templateFuncs).ParseFS(fsys, partial)
 		if err != nil {
 			return nil, fmt.Errorf("handlers: parse partial %s: %w", partial, err)
 		}

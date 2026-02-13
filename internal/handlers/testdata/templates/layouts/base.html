@@ -1,1 +1,85 @@
-{{ define "base" }}<!DOCTYPE html><html><body>{{ block "content" . }}{{ end }}</body></html>{{ end }}
+{{ define "base" }}<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <title>{{ block "title" . }}RepLog{{ end }}</title>
+    <link rel="stylesheet" href="/static/css/pico.min.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script src="/static/js/htmx.min.js"></script>
+    {{ if .CSRFToken }}<meta name="csrf-token" content="{{ .CSRFToken }}">{{ end }}
+    <script>
+        // Theme toggle — persist in localStorage, default to dark.
+        (function() {
+            var saved = localStorage.getItem("theme") || "dark";
+            document.documentElement.setAttribute("data-theme", saved);
+        })();
+
+        // Allow htmx to swap content on error responses (e.g., 409 Conflict for
+        // in-use exercise delete) so error messages display in hx-target.
+        document.addEventListener("htmx:beforeSwap", function(evt) {
+            if (evt.detail.xhr.status === 409 || evt.detail.xhr.status === 422) {
+                evt.detail.shouldSwap = true;
+                evt.detail.isError = false;
+            }
+        });
+
+        // Attach CSRF token to every htmx request.
+        document.addEventListener("htmx:configRequest", function(evt) {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) {
+                evt.detail.headers["X-CSRF-Token"] = meta.getAttribute("content");
+            }
+        });
+
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute("data-theme");
+            var next = current === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            localStorage.setItem("theme", next);
+            var btn = document.getElementById("theme-btn");
+            if (btn) btn.textContent = next === "dark" ? "☀️" : "🌙";
+        }
+    </script>
+</head>
+<body hx-boost="true">
+    <nav class="container">
+        <ul>
+            <li><strong><a href="/" class="contrast">RepLog</a></strong></li>
+        </ul>
+        {{ if .User }}
+        <ul>
+            {{ if .User.IsCoach }}
+            <li><a href="/athletes">Athletes</a></li>
+            <li><a href="/exercises">Exercises</a></li>
+            <li><a href="/users">Users</a></li>
+            {{ else if .User.AthleteID.Valid }}
+            <li><a href="/athletes/{{ .User.AthleteID.Int64 }}">My Profile</a></li>
+            <li><a href="/athletes/{{ .User.AthleteID.Int64 }}/workouts">My Workouts</a></li>
+            <li><a href="/exercises">Exercises</a></li>
+            {{ end }}
+            <li>
+                <details class="dropdown" dir="rtl">
+                    <summary role="button" class="outline secondary">{{ .User.Username }}</summary>
+                    <ul>
+                        <li><a href="#" onclick="toggleTheme(); return false;" id="theme-btn">☀️</a></li>
+                        <li>
+                            <form method="POST" action="/logout" class="inline">
+                                <button type="submit" class="outline secondary" style="width:100%; text-align:left; border:0; padding:0.5rem 1rem; margin:0;">Sign Out</button>
+                            </form>
+                        </li>
+                    </ul>
+                </details>
+            </li>
+        </ul>
+        {{ end }}
+    </nav>
+    <main class="container">
+        {{ block "content" . }}{{ end }}
+    </main>
+    <footer class="container">
+        <small>RepLog — workout tracking for the family</small>
+    </footer>
+</body>
+</html>{{ end }}

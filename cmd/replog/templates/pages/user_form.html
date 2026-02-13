@@ -8,39 +8,35 @@
         <h1>{{ if .EditUser }}Edit {{ .EditUser.Username }}{{ else }}New User{{ end }}</h1>
 
         {{ if .Error }}
-        <div class="alert alert-error">{{ .Error }}</div>
+        <p><ins>{{ .Error }}</ins></p>
         {{ end }}
 
-        <form method="POST" action="{{ if .EditUser }}/users/{{ .EditUser.ID }}{{ else }}/users{{ end }}" class="form-card">
-            <div class="form-group">
-                <label for="username">Username</label>
+        <form method="POST" action="{{ if .EditUser }}/users/{{ .EditUser.ID }}{{ else }}/users{{ end }}">
+            <label for="username">Username
                 <input type="text" id="username" name="username" required
-                       value="{{ if .EditUser }}{{ .EditUser.Username }}{{ end }}">
-            </div>
+                       value="{{ if .EditUser }}{{ .EditUser.Username }}{{ end }}"
+                       {{ if .Error }}aria-invalid="true"{{ end }}>
+            </label>
 
-            <div class="form-group">
-                <label for="password">Password{{ if .EditUser }} <span class="text-muted">(leave blank to keep current)</span>{{ end }}</label>
+            <label for="password">Password{{ if .EditUser }} <small>(leave blank to keep current)</small>{{ end }}
                 <input type="password" id="password" name="password"
                        {{ if not .EditUser }}required{{ end }}
                        minlength="6">
-            </div>
+            </label>
 
-            <div class="form-group">
-                <label for="email">Email</label>
+            <label for="email">Email
                 <input type="email" id="email" name="email"
                        value="{{ if .EditUser }}{{ if .EditUser.Email.Valid }}{{ .EditUser.Email.String }}{{ end }}{{ end }}">
-            </div>
+            </label>
 
-            <div class="form-group">
-                <label for="is_coach">Role</label>
+            <label for="is_coach">Role
                 <select id="is_coach" name="is_coach">
                     <option value="0" {{ if .EditUser }}{{ if not .EditUser.IsCoach }}selected{{ end }}{{ end }}>Kid (non-coach)</option>
                     <option value="1" {{ if .EditUser }}{{ if .EditUser.IsCoach }}selected{{ end }}{{ end }}>Coach</option>
                 </select>
-            </div>
+            </label>
 
-            <div class="form-group">
-                <label for="athlete_id">Linked Athlete</label>
+            <label for="athlete_id">Linked Athlete
                 <select id="athlete_id" name="athlete_id">
                     <option value="">None</option>
                     {{ $currentAthleteID := "" }}
@@ -49,20 +45,21 @@
                     <option value="{{ .ID }}" {{ if eq (printf "%d" .ID) $currentAthleteID }}selected{{ end }}>{{ .Name }}</option>
                     {{ end }}
                 </select>
-            </div>
+            </label>
 
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">{{ if .EditUser }}Save Changes{{ else }}Create User{{ end }}</button>
-                <a href="/users" class="btn">Cancel</a>
+            <div role="group">
+                <button type="submit">{{ if .EditUser }}Save Changes{{ else }}Create User{{ end }}</button>
+                <a href="/users" role="button" class="secondary">Cancel</a>
             </div>
         </form>
 
         {{ if .EditUser }}
-        <section class="section" style="margin-top: 2rem;">
+        <hr>
+        <section>
             <h2>Danger Zone</h2>
-            <form method="POST" action="/users/{{ .EditUser.ID }}/delete" class="inline-form"
+            <form method="POST" action="/users/{{ .EditUser.ID }}/delete" class="inline"
                   hx-confirm="Delete user {{ .EditUser.Username }}? This cannot be undone.">
-                <button type="submit" class="btn btn-danger">Delete User</button>
+                <button type="submit" class="contrast outline">Delete User</button>
             </form>
         </section>
         {{ end }}

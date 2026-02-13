@@ -7,13 +7,11 @@
 
         <div class="page-header">
             <h1>{{ .Athlete.Name }} — Workouts</h1>
-            <div class="page-actions">
-                <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="btn btn-primary">New Workout</a>
-            </div>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button">New Workout</a>
         </div>
 
         {{ if .Workouts }}
-        <table class="data-table">
+        <table class="striped">
             <thead>
                 <tr>
                     <th scope="col">Date</th>
@@ -33,16 +31,16 @@
         </table>
         {{ if .HasMore }}
         <div class="load-more">
-            <button class="btn"
+            <button class="outline"
                 hx-get="/athletes/{{ .Athlete.ID }}/workouts?offset={{ .NextOffset }}"
                 hx-target="closest .load-more"
                 hx-swap="outerHTML">Load More</button>
         </div>
         {{ end }}
         {{ else }}
-        <div class="empty-state">
+        <article class="empty-state">
             <p>No workouts logged yet.</p>
-            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="btn btn-primary">Start First Workout</a>
-        </div>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button">Start First Workout</a>
+        </article>
         {{ end }}
 {{ end }}

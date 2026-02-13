@@ -137,6 +137,7 @@ func main() {
 	mux.Handle("GET /athletes/{id}/edit", requireCoach(athletes.EditForm))
 	mux.Handle("POST /athletes/{id}", requireCoach(athletes.Update))
 	mux.Handle("POST /athletes/{id}/delete", requireCoach(athletes.Delete))
+	mux.Handle("POST /athletes/{id}/promote", requireCoach(athletes.Promote))
 
 	// Exercises CRUD.
 	mux.Handle("GET /exercises", requireAuth(exercises.List))

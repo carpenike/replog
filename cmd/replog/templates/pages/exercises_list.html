@@ -3,18 +3,18 @@
 {{ define "content" }}
         <div class="page-header">
             <h1>Exercises</h1>
-            {{ if .User.IsCoach }}<a href="/exercises/new" class="btn btn-primary">New Exercise</a>{{ end }}
+            {{ if .User.IsCoach }}<a href="/exercises/new" role="button">New Exercise</a>{{ end }}
         </div>
 
-        <div class="filter-bar">
+        <fieldset role="group">
             {{ range .Tiers }}
-            <a href="/exercises{{ if .Value }}?tier={{ .Value }}{{ end }}"
-               class="filter-chip {{ if eq .Value $.TierFilter }}active{{ end }}">{{ .Label }}</a>
+            <a href="/exercises{{ if .Value }}?tier={{ .Value }}{{ end }}" role="button"
+               class="{{ if eq .Value $.TierFilter }}{{ else }}outline{{ end }} secondary">{{ .Label }}</a>
             {{ end }}
-        </div>
+        </fieldset>
 
         {{ if .Exercises }}
-        <table class="data-table">
+        <table class="striped">
             <thead>
                 <tr>
                     <th scope="col">Name</th>
@@ -26,16 +26,16 @@
                 {{ range .Exercises }}
                 <tr>
                     <td><a href="/exercises/{{ .ID }}">{{ .Name }}</a></td>
-                    <td>{{ if .Tier.Valid }}{{ .Tier.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td>{{ if .TargetReps.Valid }}{{ .TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                 </tr>
                 {{ end }}
             </tbody>
         </table>
         {{ else }}
-        <div class="empty-state">
+        <article class="empty-state">
             <p>No exercises{{ if .TierFilter }} matching this filter{{ end }}.</p>
-            {{ if .User.IsCoach }}<a href="/exercises/new" class="btn btn-primary">Add your first exercise</a>{{ end }}
-        </div>
+            {{ if .User.IsCoach }}<a href="/exercises/new" role="button">Add your first exercise</a>{{ end }}
+        </article>
         {{ end }}
 {{ end }}

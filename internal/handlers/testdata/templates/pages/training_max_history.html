@@ -1,2 +1,40 @@
-{{ define "title" }}Training Max History{{ end }}
-{{ define "content" }}<div>training_max_history</div>{{ end }}
+{{ define "title" }}RepLog — {{ .Exercise.Name }} TM History{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; {{ .Exercise.Name }} Training Max
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Exercise.Name }} — Training Max History</h1>
+            <a href="/athletes/{{ .Athlete.ID }}/exercises/{{ .Exercise.ID }}/training-maxes/new" role="button">Set New TM</a>
+        </div>
+
+        <p>{{ .Athlete.Name }}</p>
+
+        {{ if .History }}
+        <table class="striped">
+            <thead>
+                <tr>
+                    <th scope="col">Weight</th>
+                    <th scope="col">Effective Date</th>
+                    <th scope="col">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .History }}
+                <tr>
+                    <td><strong>{{ .Weight }} lbs</strong></td>
+                    <td>{{ .EffectiveDate }}</td>
+                    <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        {{ else }}
+        <article class="empty-state">
+            <p>No training max records yet.</p>
+            <a href="/athletes/{{ .Athlete.ID }}/exercises/{{ .Exercise.ID }}/training-maxes/new" role="button">Set First Training Max</a>
+        </article>
+        {{ end }}
+{{ end }}

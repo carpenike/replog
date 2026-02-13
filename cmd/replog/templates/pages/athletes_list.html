@@ -3,11 +3,11 @@
 {{ define "content" }}
         <div class="page-header">
             <h1>Athletes</h1>
-            <a href="/athletes/new" class="btn btn-primary">New Athlete</a>
+            <a href="/athletes/new" role="button">New Athlete</a>
         </div>
 
         {{ if .Athletes }}
-        <table class="data-table">
+        <table class="striped">
             <thead>
                 <tr>
                     <th scope="col">Name</th>
@@ -19,16 +19,16 @@
                 {{ range .Athletes }}
                 <tr>
                     <td><a href="/athletes/{{ .ID }}">{{ .Name }}</a></td>
-                    <td>{{ if .Tier.Valid }}{{ .Tier.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td>{{ .ActiveAssignments }}</td>
                 </tr>
                 {{ end }}
             </tbody>
         </table>
         {{ else }}
-        <div class="empty-state">
+        <article class="empty-state">
             <p>No athletes yet.</p>
-            <a href="/athletes/new" class="btn btn-primary">Add your first athlete</a>
-        </div>
+            <a href="/athletes/new" role="button">Add your first athlete</a>
+        </article>
         {{ end }}
 {{ end }}

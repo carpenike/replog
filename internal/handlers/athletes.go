@@ -290,6 +290,39 @@ func (h *Athletes) Delete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes", http.StatusSeeOther)
 }
 
+// Promote advances an athlete to the next tier. Coach only.
+func (h *Athletes) Promote(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	_, err = models.PromoteAthlete(h.DB, id)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+	if errors.Is(err, models.ErrInvalidInput) {
+		log.Printf("handlers: promote athlete %d: %v", id, err)
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: promote athlete %d: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
 func tierOptions() []struct{ Value, Label string } {
 	return []struct{ Value, Label string }{
 		{"", "— None —"},

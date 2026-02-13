@@ -1,2 +1,34 @@
-{{ define "title" }}Training Max Form{{ end }}
-{{ define "content" }}<div>training_max_form</div>{{ end }}
+{{ define "title" }}RepLog — Set Training Max{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; {{ .Exercise.Name }} &rsaquo; Set Training Max
+        </div>
+
+        <h1>Set Training Max</h1>
+        <p>{{ .Athlete.Name }} — {{ .Exercise.Name }}</p>
+
+        {{ if .Error }}
+        <p><ins>{{ .Error }}</ins></p>
+        {{ end }}
+
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/exercises/{{ .Exercise.ID }}/training-maxes">
+            <label for="weight">Weight (lbs)
+                <input type="number" id="weight" name="weight" step="0.5" min="0.5" required
+                       placeholder="e.g. 185" inputmode="numeric">
+            </label>
+
+            <label for="effective_date">Effective Date
+                <input type="date" id="effective_date" name="effective_date" value="{{ .Today }}">
+            </label>
+
+            <label for="notes">Notes
+                <textarea id="notes" name="notes" rows="2" placeholder="Optional notes about this TM change"></textarea>
+            </label>
+
+            <div role="group">
+                <button type="submit">Save Training Max</button>
+                <a href="/athletes/{{ .Athlete.ID }}" role="button" class="secondary">Cancel</a>
+            </div>
+        </form>
+{{ end }}

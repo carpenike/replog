@@ -100,6 +100,44 @@ func DeleteAthlete(db *sql.DB, id int64) error {
 	return nil
 }
 
+// NextTier returns the tier that follows the given tier value.
+// Returns ("", false) if the athlete is already at the highest tier or has no tier.
+func NextTier(current string) (string, bool) {
+	switch current {
+	case "foundational":
+		return "intermediate", true
+	case "intermediate":
+		return "sport_performance", true
+	default:
+		return "", false
+	}
+}
+
+// PromoteAthlete advances an athlete to the next tier. Returns ErrNotFound
+// if the athlete doesn't exist, or an error if the athlete can't be promoted.
+func PromoteAthlete(db *sql.DB, id int64) (*Athlete, error) {
+	athlete, err := GetAthleteByID(db, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if !athlete.Tier.Valid {
+		return nil, fmt.Errorf("models: promote athlete %d: %w (no tier set)", id, ErrInvalidInput)
+	}
+
+	next, ok := NextTier(athlete.Tier.String)
+	if !ok {
+		return nil, fmt.Errorf("models: promote athlete %d: %w (already at highest tier)", id, ErrInvalidInput)
+	}
+
+	_, err = db.Exec(`UPDATE athletes SET tier = ? WHERE id = ?`, next, id)
+	if err != nil {
+		return nil, fmt.Errorf("models: promote athlete %d: %w", id, err)
+	}
+
+	return GetAthleteByID(db, id)
+}
+
 // ListAthletes returns all athletes with their active assignment count.
 func ListAthletes(db *sql.DB) ([]*Athlete, error) {
 	rows, err := db.Query(`

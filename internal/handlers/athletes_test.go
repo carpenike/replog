@@ -279,3 +279,62 @@ func TestAthletes_Delete_NonCoachForbidden(t *testing.T) {
 		t.Errorf("expected 403, got %d", rr.Code)
 	}
 }
+
+func TestAthletes_Promote_CoachSuccess(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "foundational")
+
+	h := &Athletes{DB: db, Templates: tc}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/promote", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.Promote(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	updated, err := models.GetAthleteByID(db, athlete.ID)
+	if err != nil {
+		t.Fatalf("get athlete: %v", err)
+	}
+	if !updated.Tier.Valid || updated.Tier.String != "intermediate" {
+		t.Errorf("expected tier intermediate, got %v", updated.Tier)
+	}
+}
+
+func TestAthletes_Promote_AlreadyHighestTier(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Bob", "sport_performance")
+
+	h := &Athletes{DB: db, Templates: tc}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/promote", nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.Promote(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}
+
+func TestAthletes_Promote_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "foundational")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+
+	h := &Athletes{DB: db, Templates: tc}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/promote", nil, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.Promote(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}

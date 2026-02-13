@@ -11,6 +11,7 @@ import (
 
 // ErrNotFound is returned when a query finds no matching row.
 var ErrNotFound = errors.New("not found")
+var ErrInvalidInput = errors.New("invalid input")
 
 // ErrDuplicateUsername is returned when a username already exists.
 var ErrDuplicateUsername = errors.New("duplicate username")

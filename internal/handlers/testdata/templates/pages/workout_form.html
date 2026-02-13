@@ -1,2 +1,29 @@
-{{ define "title" }}Workout Form{{ end }}
-{{ define "content" }}<div>workout_form</div>{{ end }}
+{{ define "title" }}RepLog — New Workout{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; New Workout
+        </div>
+
+        <h1>Start Workout</h1>
+        <p>{{ .Athlete.Name }}</p>
+
+        {{ if .Error }}
+        <p><ins>{{ .Error }}</ins></p>
+        {{ end }}
+
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts">
+            <label for="date">Date
+                <input type="date" id="date" name="date" value="{{ .Today }}" required>
+            </label>
+
+            <label for="notes">Session Notes
+                <textarea id="notes" name="notes" rows="2" placeholder="Optional notes for this session"></textarea>
+            </label>
+
+            <div role="group">
+                <button type="submit">Start Workout</button>
+                <a href="/athletes/{{ .Athlete.ID }}/workouts" role="button" class="secondary">Cancel</a>
+            </div>
+        </form>
+{{ end }}

@@ -1,2 +1,66 @@
-{{ define "title" }}User Form{{ end }}
-{{ define "content" }}<div>user_form</div>{{ end }}
+{{ define "title" }}RepLog — {{ if .EditUser }}Edit {{ .EditUser.Username }}{{ else }}New User{{ end }}{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/users">Users</a> &rsaquo; {{ if .EditUser }}Edit{{ else }}New{{ end }}
+        </div>
+
+        <h1>{{ if .EditUser }}Edit {{ .EditUser.Username }}{{ else }}New User{{ end }}</h1>
+
+        {{ if .Error }}
+        <p><ins>{{ .Error }}</ins></p>
+        {{ end }}
+
+        <form method="POST" action="{{ if .EditUser }}/users/{{ .EditUser.ID }}{{ else }}/users{{ end }}">
+            <label for="username">Username
+                <input type="text" id="username" name="username" required
+                       value="{{ if .EditUser }}{{ .EditUser.Username }}{{ end }}"
+                       {{ if .Error }}aria-invalid="true"{{ end }}>
+            </label>
+
+            <label for="password">Password{{ if .EditUser }} <small>(leave blank to keep current)</small>{{ end }}
+                <input type="password" id="password" name="password"
+                       {{ if not .EditUser }}required{{ end }}
+                       minlength="6">
+            </label>
+
+            <label for="email">Email
+                <input type="email" id="email" name="email"
+                       value="{{ if .EditUser }}{{ if .EditUser.Email.Valid }}{{ .EditUser.Email.String }}{{ end }}{{ end }}">
+            </label>
+
+            <label for="is_coach">Role
+                <select id="is_coach" name="is_coach">
+                    <option value="0" {{ if .EditUser }}{{ if not .EditUser.IsCoach }}selected{{ end }}{{ end }}>Kid (non-coach)</option>
+                    <option value="1" {{ if .EditUser }}{{ if .EditUser.IsCoach }}selected{{ end }}{{ end }}>Coach</option>
+                </select>
+            </label>
+
+            <label for="athlete_id">Linked Athlete
+                <select id="athlete_id" name="athlete_id">
+                    <option value="">None</option>
+                    {{ $currentAthleteID := "" }}
+                    {{ if .EditUser }}{{ if .EditUser.AthleteID.Valid }}{{ $currentAthleteID = printf "%d" .EditUser.AthleteID.Int64 }}{{ end }}{{ end }}
+                    {{ range .Athletes }}
+                    <option value="{{ .ID }}" {{ if eq (printf "%d" .ID) $currentAthleteID }}selected{{ end }}>{{ .Name }}</option>
+                    {{ end }}
+                </select>
+            </label>
+
+            <div role="group">
+                <button type="submit">{{ if .EditUser }}Save Changes{{ else }}Create User{{ end }}</button>
+                <a href="/users" role="button" class="secondary">Cancel</a>
+            </div>
+        </form>
+
+        {{ if .EditUser }}
+        <hr>
+        <section>
+            <h2>Danger Zone</h2>
+            <form method="POST" action="/users/{{ .EditUser.ID }}/delete" class="inline"
+                  hx-confirm="Delete user {{ .EditUser.Username }}? This cannot be undone.">
+                <button type="submit" class="contrast outline">Delete User</button>
+            </form>
+        </section>
+        {{ end }}
+{{ end }}

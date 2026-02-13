@@ -6,14 +6,16 @@
         </div>
 
         <div class="page-header">
-            <h1>{{ .Exercise.Name }}</h1>
+            <h1>{{ .Exercise.Name }}
+                {{ if .Exercise.Tier.Valid }}<span class="tier-badge" data-tier="{{ .Exercise.Tier.String }}">{{ tierLabel .Exercise.Tier.String }}</span>{{ end }}
+            </h1>
             {{ if .User.IsCoach }}
             <div class="page-actions">
-                <a href="/exercises/{{ .Exercise.ID }}/edit" class="btn">Edit</a>
-                <form method="POST" action="/exercises/{{ .Exercise.ID }}/delete" class="inline-form"
+                <a href="/exercises/{{ .Exercise.ID }}/edit" role="button" class="outline secondary">Edit</a>
+                <form method="POST" action="/exercises/{{ .Exercise.ID }}/delete" class="inline"
                       hx-confirm="Delete {{ .Exercise.Name }}? This cannot be undone."
                       hx-target="#delete-error" hx-swap="innerHTML">
-                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <button type="submit" class="outline contrast">Delete</button>
                 </form>
             </div>
             {{ end }}
@@ -21,26 +23,20 @@
 
         <div id="delete-error"></div>
 
-        <div class="detail-grid">
-            <div class="detail-item">
-                <span class="detail-label">Tier</span>
-                <span class="detail-value">{{ if .Exercise.Tier.Valid }}{{ .Exercise.Tier.String }}{{ else }}None{{ end }}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Target Reps</span>
-                <span class="detail-value">{{ if .Exercise.TargetReps.Valid }}{{ .Exercise.TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Form Notes</span>
-                <span class="detail-value">{{ if .Exercise.FormNotes.Valid }}{{ .Exercise.FormNotes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</span>
-            </div>
-        </div>
+        <dl>
+            <dt>Target Reps</dt>
+            <dd>{{ if .Exercise.TargetReps.Valid }}{{ .Exercise.TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</dd>
+        </dl>
+
+        {{ if .Exercise.FormNotes.Valid }}
+        <blockquote>{{ .Exercise.FormNotes.String }}</blockquote>
+        {{ end }}
 
         <!-- Assigned Athletes -->
-        <section class="section">
+        <section>
             <h2>Assigned Athletes</h2>
             {{ if .AssignedAthletes }}
-            <table class="data-table">
+            <table class="striped">
                 <thead>
                     <tr>
                         <th scope="col">Athlete</th>
@@ -62,10 +58,10 @@
         </section>
 
         <!-- Recent Log History -->
-        <section class="section">
+        <section>
             <h2>Recent Activity</h2>
             {{ if .RecentSets }}
-            <table class="data-table">
+            <table class="striped">
                 <thead>
                     <tr>
                         <th scope="col">Athlete</th>

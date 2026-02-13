@@ -5,36 +5,33 @@
             <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Assign Exercise
         </div>
 
-        <div class="form-card">
-            <h1>Assign Exercise</h1>
-            <p>Choose an exercise to assign to {{ .Athlete.Name }}.</p>
+        <h1>Assign Exercise</h1>
+        <p>Choose an exercise to assign to {{ .Athlete.Name }}.</p>
 
-            {{ if .Error }}
-            <div class="alert alert-error">{{ .Error }}</div>
-            {{ end }}
+        {{ if .Error }}
+        <p><ins>{{ .Error }}</ins></p>
+        {{ end }}
 
-            {{ if .Exercises }}
-            <form method="POST" action="/athletes/{{ .Athlete.ID }}/assignments">
-                <div class="form-group">
-                    <label for="exercise_id">Exercise</label>
-                    <select id="exercise_id" name="exercise_id" required>
-                        <option value="">— Select Exercise —</option>
-                        {{ range .Exercises }}
-                        <option value="{{ .ID }}">{{ .Name }}{{ if .Tier.Valid }} ({{ .Tier.String }}){{ end }}</option>
-                        {{ end }}
-                    </select>
-                </div>
+        {{ if .Exercises }}
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/assignments">
+            <label for="exercise_id">Exercise
+                <select id="exercise_id" name="exercise_id" required>
+                    <option value="">— Select Exercise —</option>
+                    {{ range .Exercises }}
+                    <option value="{{ .ID }}">{{ .Name }}{{ if .Tier.Valid }} ({{ tierLabel .Tier.String }}){{ end }}</option>
+                    {{ end }}
+                </select>
+            </label>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Assign</button>
-                    <a href="/athletes/{{ .Athlete.ID }}" class="btn">Cancel</a>
-                </div>
-            </form>
-            {{ else }}
-            <div class="empty-state">
-                <p>All exercises are already assigned to this athlete.</p>
-                <a href="/athletes/{{ .Athlete.ID }}" class="btn">Back to {{ .Athlete.Name }}</a>
+            <div role="group">
+                <button type="submit">Assign</button>
+                <a href="/athletes/{{ .Athlete.ID }}" role="button" class="secondary">Cancel</a>
             </div>
-            {{ end }}
-        </div>
+        </form>
+        {{ else }}
+        <article class="empty-state">
+            <p>All exercises are already assigned to this athlete.</p>
+            <a href="/athletes/{{ .Athlete.ID }}" role="button">Back to {{ .Athlete.Name }}</a>
+        </article>
+        {{ end }}
 {{ end }}

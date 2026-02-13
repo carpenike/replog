@@ -1,0 +1,219 @@
+/* RepLog — app-specific overrides on top of Pico CSS v2 */
+
+/* ---- Layout ---- */
+main.container {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* ---- Tier Badges ---- */
+.tier-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15em 0.5em;
+    border-radius: 0.25rem;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.tier-badge[data-tier="foundational"] {
+    background: color-mix(in srgb, green 20%, transparent);
+    color: green;
+}
+.tier-badge[data-tier="intermediate"] {
+    background: color-mix(in srgb, dodgerblue 20%, transparent);
+    color: dodgerblue;
+}
+.tier-badge[data-tier="sport_performance"] {
+    background: color-mix(in srgb, mediumpurple 20%, transparent);
+    color: mediumpurple;
+}
+.tier-badge[data-tier="none"] {
+    background: color-mix(in srgb, gray 20%, transparent);
+    color: gray;
+}
+
+/* Dark mode tier badge adjustments */
+[data-theme="dark"] .tier-badge[data-tier="foundational"] {
+    background: color-mix(in srgb, limegreen 15%, transparent);
+    color: limegreen;
+}
+[data-theme="dark"] .tier-badge[data-tier="intermediate"] {
+    background: color-mix(in srgb, lightskyblue 15%, transparent);
+    color: lightskyblue;
+}
+[data-theme="dark"] .tier-badge[data-tier="sport_performance"] {
+    background: color-mix(in srgb, plum 15%, transparent);
+    color: plum;
+}
+[data-theme="dark"] .tier-badge[data-tier="none"] {
+    background: color-mix(in srgb, darkgray 15%, transparent);
+    color: darkgray;
+}
+
+/* ---- Page Headers ---- */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.page-header h1,
+.page-header h2 {
+    margin-bottom: 0;
+}
+
+.page-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* ---- Breadcrumbs ---- */
+.breadcrumb {
+    font-size: 0.875rem;
+    color: var(--pico-muted-color);
+    margin-bottom: 1rem;
+}
+
+.breadcrumb a {
+    color: var(--pico-muted-color);
+}
+
+.breadcrumb a:hover {
+    color: var(--pico-primary);
+}
+
+/* ---- Workout Detail — Log Set Form ---- */
+.log-set-grid {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.75rem;
+    align-items: start;
+}
+
+@media (max-width: 576px) {
+    .log-set-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.field-sm {
+    max-width: 7rem;
+}
+
+/* ---- Set Actions ---- */
+.set-actions {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.set-actions form {
+    display: inline;
+    margin: 0;
+}
+
+/* ---- Dashboard Cards ---- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-grid > article {
+    cursor: pointer;
+    transition: border-color 0.15s;
+    margin: 0;
+}
+
+.dashboard-grid > article:hover {
+    border-color: var(--pico-primary);
+}
+
+.dashboard-grid > article a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.dashboard-grid > article a:hover {
+    text-decoration: none;
+}
+
+/* ---- Empty States ---- */
+article.empty-state {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+article.empty-state p {
+    margin-bottom: 1rem;
+}
+
+/* ---- Inline forms (delete buttons etc.) ---- */
+form.inline {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+form.inline button {
+    margin: 0;
+}
+
+/* ---- Theme Toggle ---- */
+.theme-toggle {
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--pico-muted-color);
+}
+
+.theme-toggle:hover {
+    color: var(--pico-primary);
+}
+
+/* ---- htmx loading indicators ---- */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}
+
+[aria-busy="true"].htmx-request {
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+/* ---- Promote button ---- */
+.promote-btn {
+    margin-left: 0.5rem;
+}
+
+/* ---- Misc ---- */
+.text-muted {
+    color: var(--pico-muted-color);
+}
+
+/* Coach badge in user lists */
+mark.coach-badge {
+    font-size: 0.75rem;
+    padding: 0.1em 0.4em;
+}
+
+/* Numeric inputs — large touch targets on mobile */
+input[inputmode="numeric"] {
+    font-size: 1.125rem;
+}

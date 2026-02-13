@@ -1,2 +1,46 @@
-{{ define "title" }}Workouts{{ end }}
-{{ define "content" }}<div>workouts_list</div>{{ end }}
+{{ define "title" }}RepLog — {{ .Athlete.Name }} Workouts{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Workouts
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Athlete.Name }} — Workouts</h1>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button">New Workout</a>
+        </div>
+
+        {{ if .Workouts }}
+        <table class="striped">
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Sets</th>
+                    <th scope="col">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Workouts }}
+                <tr>
+                    <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Date }}</a></td>
+                    <td>{{ .SetCount }}</td>
+                    <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        {{ if .HasMore }}
+        <div class="load-more">
+            <button class="outline"
+                hx-get="/athletes/{{ .Athlete.ID }}/workouts?offset={{ .NextOffset }}"
+                hx-target="closest .load-more"
+                hx-swap="outerHTML">Load More</button>
+        </div>
+        {{ end }}
+        {{ else }}
+        <article class="empty-state">
+            <p>No workouts logged yet.</p>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button">Start First Workout</a>
+        </article>
+        {{ end }}
+{{ end }}

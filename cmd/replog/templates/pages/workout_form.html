@@ -5,29 +5,25 @@
             <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; New Workout
         </div>
 
-        <div class="form-card">
-            <h1>Start Workout</h1>
-            <p>{{ .Athlete.Name }}</p>
+        <h1>Start Workout</h1>
+        <p>{{ .Athlete.Name }}</p>
 
-            {{ if .Error }}
-            <div class="alert alert-error">{{ .Error }}</div>
-            {{ end }}
+        {{ if .Error }}
+        <p><ins>{{ .Error }}</ins></p>
+        {{ end }}
 
-            <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts">
-                <div class="form-group">
-                    <label for="date">Date</label>
-                    <input type="date" id="date" name="date" value="{{ .Today }}" required>
-                </div>
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts">
+            <label for="date">Date
+                <input type="date" id="date" name="date" value="{{ .Today }}" required>
+            </label>
 
-                <div class="form-group">
-                    <label for="notes">Session Notes</label>
-                    <textarea id="notes" name="notes" rows="2" placeholder="Optional notes for this session"></textarea>
-                </div>
+            <label for="notes">Session Notes
+                <textarea id="notes" name="notes" rows="2" placeholder="Optional notes for this session"></textarea>
+            </label>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Start Workout</button>
-                    <a href="/athletes/{{ .Athlete.ID }}/workouts" class="btn">Cancel</a>
-                </div>
-            </form>
-        </div>
+            <div role="group">
+                <button type="submit">Start Workout</button>
+                <a href="/athletes/{{ .Athlete.ID }}/workouts" role="button" class="secondary">Cancel</a>
+            </div>
+        </form>
 {{ end }}
