@@ -32,20 +32,34 @@
         <blockquote>{{ .Athlete.Notes.String }}</blockquote>
         {{ end }}
 
-        <!-- Body Weight -->
-        <section>
-            <div class="page-header">
+        <!-- Hub Cards -->
+        <div class="dashboard-grid">
+            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/workouts/new'">
+                <h2>New Workout</h2>
+                <p>Start logging today's session</p>
+            </article>
+            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/workouts'">
+                <h2>Workouts</h2>
+                <p>{{ if .RecentWorkouts }}{{ len .RecentWorkouts }} recent{{ else }}No workouts yet{{ end }}</p>
+            </article>
+            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/body-weights'">
                 <h2>Body Weight</h2>
-                <div class="page-actions">
-                    <a href="/athletes/{{ .Athlete.ID }}/body-weights" role="button" class="outline secondary">History</a>
-                </div>
-            </div>
-            {{ if .LatestWeight }}
-            <p>{{ .LatestWeight.Weight }} lbs <span class="text-muted">({{ .LatestWeight.Date }})</span></p>
-            {{ else }}
-            <p class="text-muted">No weight recorded. <a href="/athletes/{{ .Athlete.ID }}/body-weights">Log weight</a></p>
+                <p>{{ if .LatestWeight }}{{ .LatestWeight.Weight }} lbs{{ else }}No data{{ end }}</p>
+            </article>
+            {{ if .ActiveProgram }}
+            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/prescription'">
+                <h2>Program</h2>
+                <p>{{ .ActiveProgram.TemplateName }}</p>
+            </article>
+            {{ else if .User.IsCoach }}
+            {{ if .ProgramTemplates }}
+            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/program/assign'">
+                <h2>Program</h2>
+                <p>Assign a program</p>
+            </article>
             {{ end }}
-        </section>
+            {{ end }}
+        </div>
 
         <!-- Weekly Completion Streaks -->
         {{ if .Streaks }}
@@ -63,35 +77,26 @@
         </section>
         {{ end }}
 
-        <!-- Current Program & Prescription -->
+        <!-- Today's Prescription -->
+        {{ if and .ActiveProgram .Prescription }}
         <section>
             <div class="page-header">
-                <h2>Program</h2>
-                {{ if .User.IsCoach }}
+                <h2>Today's Prescription</h2>
                 <div class="page-actions">
-                    {{ if .ActiveProgram }}
+                    <a href="/athletes/{{ .Athlete.ID }}/prescription" role="button" class="outline secondary">Full Prescription</a>
+                    {{ if .User.IsCoach }}
                     <form method="POST" action="/athletes/{{ .Athlete.ID }}/program/deactivate" class="inline"
                           hx-confirm="Deactivate {{ .ActiveProgram.TemplateName }} for {{ .Athlete.Name }}?">
                         <button type="submit" class="outline contrast">Deactivate</button>
                     </form>
-                    {{ else if .ProgramTemplates }}
-                    <a href="/athletes/{{ .Athlete.ID }}/program/assign" role="button">Assign Program</a>
                     {{ end }}
                 </div>
-                {{ end }}
             </div>
 
-            {{ if .ActiveProgram }}
-            <p>
-                <a href="/programs/{{ .ActiveProgram.TemplateID }}"><strong>{{ .ActiveProgram.TemplateName }}</strong></a>
-                — {{ .ActiveProgram.NumWeeks }} week{{ if ne .ActiveProgram.NumWeeks 1 }}s{{ end }} × {{ .ActiveProgram.NumDays }} day{{ if ne .ActiveProgram.NumDays 1 }}s{{ end }}/week
-                <span class="text-muted">(started {{ .ActiveProgram.StartDate }})</span>
-            </p>
-
-            {{ if .Prescription }}
             <p class="text-muted">
-                Cycle {{ .Prescription.CycleNumber }} — Week {{ .Prescription.CurrentWeek }}, Day {{ .Prescription.CurrentDay }}
-                {{ if .Prescription.HasWorkout }} (workout logged today){{ end }}
+                <a href="/programs/{{ .ActiveProgram.TemplateID }}">{{ .ActiveProgram.TemplateName }}</a>
+                — Cycle {{ .Prescription.CycleNumber }}, Week {{ .Prescription.CurrentWeek }}, Day {{ .Prescription.CurrentDay }}
+                {{ if .Prescription.HasWorkout }} · workout logged today{{ end }}
             </p>
 
             {{ if .Prescription.Lines }}
@@ -118,29 +123,19 @@
             {{ else }}
             <p class="text-muted">No exercises prescribed for today's session.</p>
             {{ end }}
-
-            <a href="/athletes/{{ .Athlete.ID }}/prescription" role="button" class="outline secondary">Full Prescription</a>
-            {{ end }}
-            {{ else }}
-            <p class="text-muted">No active program.
-                {{ if .User.IsCoach }}
-                    {{ if .ProgramTemplates }}<a href="/athletes/{{ .Athlete.ID }}/program/assign">Assign one</a>{{ else }}<a href="/programs/new">Create a program</a>{{ end }}
-                {{ end }}
-            </p>
-            {{ end }}
         </section>
+        {{ end }}
 
-        <!-- Workouts -->
+        <!-- Recent Workouts -->
+        {{ if .RecentWorkouts }}
         <section>
             <div class="page-header">
-                <h2>Workouts</h2>
+                <h2>Recent Workouts</h2>
                 <div class="page-actions">
-                    <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button">New Workout</a>
                     <a href="/athletes/{{ .Athlete.ID }}/workouts" role="button" class="outline secondary">View All</a>
                 </div>
             </div>
 
-            {{ if .RecentWorkouts }}
             <table class="striped">
                 <thead>
                     <tr>
@@ -159,13 +154,8 @@
                     {{ end }}
                 </tbody>
             </table>
-            {{ else }}
-            <article class="empty-state">
-                <p>No workouts logged yet.</p>
-                <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button">Start First Workout</a>
-            </article>
-            {{ end }}
         </section>
+        {{ end }}
 
         <!-- Assigned Exercises -->
         <section>

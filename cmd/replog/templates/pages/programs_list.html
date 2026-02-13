@@ -7,24 +7,15 @@
         </div>
 
         {{ if .Programs }}
-        <table class="striped">
-            <thead>
-                <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Structure</th>
-                    <th scope="col">Athletes</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{ range .Programs }}
-                <tr onclick="window.location='/programs/{{ .ID }}'">
-                    <td>{{ .Name }}</td>
-                    <td>{{ .NumWeeks }} week{{ if ne .NumWeeks 1 }}s{{ end }} × {{ .NumDays }} day{{ if ne .NumDays 1 }}s{{ end }}/week</td>
-                    <td>{{ .AthleteCount }}</td>
-                </tr>
-                {{ end }}
-            </tbody>
-        </table>
+        <div class="dashboard-grid">
+            {{ range .Programs }}
+            <article onclick="window.location='/programs/{{ .ID }}'">
+                <h2>{{ .Name }}</h2>
+                <p>{{ .NumWeeks }} week{{ if ne .NumWeeks 1 }}s{{ end }} × {{ .NumDays }} day{{ if ne .NumDays 1 }}s{{ end }}/week
+                    {{ if gt .AthleteCount 0 }}· {{ .AthleteCount }} athlete{{ if ne .AthleteCount 1 }}s{{ end }}{{ end }}</p>
+            </article>
+            {{ end }}
+        </div>
         {{ else }}
         <article class="empty-state">
             <p>No program templates yet.</p>

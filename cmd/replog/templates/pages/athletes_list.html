@@ -7,24 +7,16 @@
         </div>
 
         {{ if .Athletes }}
-        <table class="striped">
-            <thead>
-                <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Tier</th>
-                    <th scope="col">Active Exercises</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{ range .Athletes }}
-                <tr onclick="window.location='/athletes/{{ .ID }}'">
-                    <td>{{ .Name }}</td>
-                    <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                    <td>{{ .ActiveAssignments }}</td>
-                </tr>
-                {{ end }}
-            </tbody>
-        </table>
+        <div class="dashboard-grid">
+            {{ range .Athletes }}
+            <article onclick="window.location='/athletes/{{ .ID }}'">
+                <h2>{{ .Name }}
+                    {{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ end }}
+                </h2>
+                <p>{{ .ActiveAssignments }} exercise{{ if ne .ActiveAssignments 1 }}s{{ end }} assigned</p>
+            </article>
+            {{ end }}
+        </div>
         {{ else }}
         <article class="empty-state">
             <p>No athletes yet.</p>

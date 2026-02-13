@@ -901,6 +901,12 @@ main.container {
     color: var(--text-primary);
 }
 
+.dashboard-grid > article h2 .tier-badge {
+    font-size: 0.7rem;
+    vertical-align: middle;
+    margin-left: 0.25rem;
+}
+
 .dashboard-grid > article p {
     font-size: 0.825rem;
     color: var(--text-secondary);
