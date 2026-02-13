@@ -107,13 +107,13 @@ func WeeklyStreaks(db *sql.DB, athleteID int64, weeks int) ([]*WeeklyStreak, err
 	rangeEnd := monday.AddDate(0, 0, 6).Format("2006-01-02")
 
 	rows, err := db.Query(
-		`SELECT w.date, ws.exercise_id
+		`SELECT date(w.date), ws.exercise_id
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id
 		 WHERE w.athlete_id = ?
-		   AND w.date >= ?
-		   AND w.date <= ?
-		 GROUP BY w.date, ws.exercise_id`,
+		   AND date(w.date) >= date(?)
+		   AND date(w.date) <= date(?)
+		 GROUP BY date(w.date), ws.exercise_id`,
 		athleteID, rangeStart, rangeEnd,
 	)
 	if err != nil {

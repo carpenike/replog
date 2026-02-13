@@ -56,7 +56,7 @@ The binary runs as a systemd service with SQLite stored in `StateDirectory`. See
 ## Build Order
 
 1. ~~Data model design~~ ✅
-2. Exercise library CRUD
-3. Athlete profiles + exercise assignment
-4. Daily workout view + logging (core loop)
-5. History / progress view
+2. ~~Exercise library CRUD~~ ✅
+3. ~~Athlete profiles + exercise assignment~~ ✅
+4. ~~Daily workout view + logging (core loop)~~ ✅
+5. ~~History / progress view~~ ✅
