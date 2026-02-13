@@ -34,22 +34,61 @@
             }
         });
 
+        var sunIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+        var moonIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
+
+        function updateThemeButton(theme) {
+            var btn = document.getElementById("theme-btn");
+            if (!btn) return;
+            var icon = btn.querySelector("svg");
+            var label = btn.querySelector(".theme-label");
+            if (icon) icon.outerHTML = theme === "dark" ? sunIcon : moonIcon;
+            if (label) label.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
+        }
+
         function toggleTheme() {
             var current = document.documentElement.getAttribute("data-theme");
             var next = current === "dark" ? "light" : "dark";
             document.documentElement.setAttribute("data-theme", next);
             localStorage.setItem("theme", next);
-            var btn = document.getElementById("theme-btn");
-            if (btn) btn.textContent = next === "dark" ? "☀️" : "🌙";
+            updateThemeButton(next);
         }
+
+        // Set initial theme button state once DOM is ready.
+        document.addEventListener("DOMContentLoaded", function() {
+            var theme = document.documentElement.getAttribute("data-theme") || "dark";
+            updateThemeButton(theme);
+        });
 
         function toggleSidebar() {
             document.body.classList.toggle("sidebar-open");
         }
 
-        // Close sidebar on navigation (htmx boosted links).
+        function toggleUserMenu(e) {
+            e.stopPropagation();
+            var menu = document.getElementById("user-menu-dropdown");
+            var btn = e.currentTarget;
+            var open = menu.classList.toggle("open");
+            btn.setAttribute("aria-expanded", open);
+        }
+
+        // Close user menu when clicking outside.
+        document.addEventListener("click", function(e) {
+            var menu = document.getElementById("user-menu-dropdown");
+            if (menu && menu.classList.contains("open")) {
+                if (!e.target.closest(".sidebar-user-menu")) {
+                    menu.classList.remove("open");
+                    var btn = document.querySelector(".sidebar-user");
+                    if (btn) btn.setAttribute("aria-expanded", "false");
+                }
+            }
+        });
+
+        // Close sidebar and user menu on navigation (htmx boosted links).
         document.addEventListener("htmx:beforeRequest", function() {
             document.body.classList.remove("sidebar-open");
+            var menu = document.getElementById("user-menu-dropdown");
+            if (menu) menu.classList.remove("open");
         });
     </script>
 </head>
@@ -85,13 +124,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 Programs
             </a>
-
-            <div class="sidebar-divider"></div>
-            <div class="sidebar-section-label">Admin</div>
-            <a href="/users" class="sidebar-link">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h.08a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v.08a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                Users
-            </a>
             {{ else if .User.AthleteID.Valid }}
             <a href="/athletes/{{ .User.AthleteID.Int64 }}" class="sidebar-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -111,25 +143,38 @@
         <!-- User section at bottom of sidebar -->
         <div class="sidebar-footer">
             <div class="sidebar-divider"></div>
-            <a href="/preferences" class="sidebar-link">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h.08a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v.08a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                Preferences
-            </a>
-            <a href="#" onclick="toggleTheme(); return false;" class="sidebar-link" id="theme-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                Theme
-            </a>
-            <div class="sidebar-user">
-                <div class="user-avatar">{{ userInitials .User.Username }}</div>
-                <div class="user-info">
-                    <div class="user-name">{{ .User.Username }}</div>
-                    <div class="user-role">{{ if .User.IsCoach }}Coach{{ else }}Athlete{{ end }}</div>
-                </div>
-                <form method="POST" action="/logout" class="inline">
-                    <button type="submit" class="sidebar-logout" title="Sign Out">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <div class="sidebar-user-menu">
+                <button class="sidebar-user" onclick="toggleUserMenu(event)" type="button" aria-expanded="false" aria-haspopup="true">
+                    <div class="user-avatar">{{ userInitials .User.Username }}</div>
+                    <div class="user-info">
+                        <div class="user-name">{{ .User.Username }}</div>
+                        <div class="user-role">{{ if .User.IsCoach }}Coach{{ else }}Athlete{{ end }}</div>
+                    </div>
+                    <svg class="user-menu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="user-menu-dropdown" id="user-menu-dropdown">
+                    <a href="/preferences" class="user-menu-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h.08a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v.08a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                        Preferences
+                    </a>
+                    {{ if .User.IsCoach }}
+                    <a href="/users" class="user-menu-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                        Manage Users
+                    </a>
+                    {{ end }}
+                    <button class="user-menu-item" onclick="toggleTheme(); return false;" id="theme-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                        <span class="theme-label">Light Mode</span>
                     </button>
-                </form>
+                    <div class="user-menu-divider"></div>
+                    <form method="POST" action="/logout" class="user-menu-form">
+                        <button type="submit" class="user-menu-item user-menu-item--danger">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            Sign Out
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </aside>

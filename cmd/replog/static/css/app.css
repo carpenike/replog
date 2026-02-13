@@ -261,7 +261,7 @@ table a:hover {
    ========================================================= */
 
 :root {
-    --sidebar-width: 15rem;
+    --sidebar-width: 12rem;
     --topbar-height: 3.5rem;
     --sidebar-bg: var(--bg-1);
     --sidebar-border: var(--border-subtle);
@@ -407,13 +407,25 @@ table a:hover {
     padding: 0.5rem 0.75rem 0.75rem;
 }
 
+.sidebar-user-menu {
+    position: relative;
+}
+
 .sidebar-user {
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    padding: 0.5rem 0.5rem;
+    padding: 0.55rem 0.75rem;
     border-radius: 0.5rem;
     transition: background 0.15s;
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    font: inherit;
+    margin: 0;
 }
 
 .sidebar-user:hover {
@@ -455,30 +467,116 @@ table a:hover {
     color: var(--text-tertiary);
 }
 
-.sidebar-logout {
-    background: none;
-    border: none;
-    padding: 0.35rem;
-    margin: 0;
-    width: auto;
-    cursor: pointer;
+.user-menu-chevron {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
     color: var(--text-tertiary);
-    border-radius: 0.375rem;
+    transition: transform 0.2s;
+}
+
+.sidebar-user[aria-expanded="true"] .user-menu-chevron {
+    transform: rotate(180deg);
+}
+
+/* Dropdown menu */
+.user-menu-dropdown {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    margin-bottom: 0.375rem;
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 0.5rem;
+    padding: 0.375rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 200;
+}
+
+.user-menu-dropdown.open {
+    display: block;
+}
+
+.user-menu-item {
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: color 0.15s, background 0.15s;
-    line-height: 1;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 0.375rem;
+    font-size: 0.85rem;
+    color: var(--pico-color);
+    text-decoration: none;
+    transition: background 0.15s;
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    margin: 0;
+    line-height: 1.4;
 }
 
-.sidebar-logout:hover {
-    color: var(--color-danger);
+/* Override Pico button defaults inside dropdown */
+button.user-menu-item {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0.5rem 0.625rem !important;
+    color: var(--pico-color) !important;
+    font-weight: normal;
+}
+
+button.user-menu-item:hover {
+    background: rgba(129, 140, 248, 0.08) !important;
+    color: var(--pico-color) !important;
+}
+
+button.user-menu-item.user-menu-item--danger {
+    color: var(--color-danger, #f87171) !important;
+}
+
+button.user-menu-item.user-menu-item--danger:hover {
+    background: rgba(248, 113, 113, 0.12) !important;
+    color: var(--color-danger, #f87171) !important;
+}
+
+.user-menu-item:hover {
+    background: rgba(129, 140, 248, 0.08);
+    color: var(--pico-color);
+}
+
+.user-menu-item svg {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+}
+
+.user-menu-item--danger {
+    color: var(--color-danger, #f87171);
+}
+
+.user-menu-item--danger:hover {
     background: rgba(248, 113, 113, 0.12);
+    color: var(--color-danger, #f87171);
 }
 
-.sidebar-logout svg {
-    width: 1.1rem;
-    height: 1.1rem;
+.user-menu-item--danger svg {
+    color: var(--color-danger, #f87171);
+}
+
+.user-menu-divider {
+    height: 1px;
+    background: var(--pico-muted-border-color);
+    margin: 0.25rem 0;
+}
+
+.user-menu-form {
+    margin: 0;
+    padding: 0;
 }
 
 /* Mobile top bar — hidden on desktop */
