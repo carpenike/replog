@@ -1,6 +1,6 @@
 # Data Model
 
-> RepLog v1 schema — designed during bootstrap, Feb 2026.
+> RepLog schema — designed during bootstrap Feb 2026, updated for v1.1 enhancements.
 
 ## Design Decisions
 
@@ -58,6 +58,7 @@ erDiagram
         TEXT tier "nullable"
         INTEGER target_reps "nullable"
         TEXT form_notes "nullable"
+        TEXT demo_url "nullable"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -97,9 +98,19 @@ erDiagram
         INTEGER set_number
         INTEGER reps
         REAL weight "nullable"
+        REAL rpe "nullable, CHECK 1-10"
         TEXT notes "nullable"
         DATETIME created_at
         DATETIME updated_at
+    }
+
+    body_weights {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        DATE date
+        REAL weight
+        TEXT notes "nullable"
+        DATETIME created_at
     }
 
     users ||--o| athletes : "linked profile"
@@ -110,6 +121,7 @@ erDiagram
     athletes ||--o{ workouts : "logs"
     workouts ||--o{ workout_sets : "contains"
     exercises ||--o{ workout_sets : "performed"
+    athletes ||--o{ body_weights : "tracks"
 ```
 
 ## Schema
@@ -157,6 +169,7 @@ erDiagram
 | `tier`      | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
 | `target_reps`| INTEGER     | NULL                                 |
 | `form_notes`| TEXT         | NULL                                 |
+| `demo_url`  | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
@@ -221,14 +234,31 @@ erDiagram
 | `set_number`| INTEGER      | NOT NULL                             |
 | `reps`      | INTEGER      | NOT NULL                             |
 | `weight`    | REAL         | NULL                                 |
+| `rpe`       | REAL         | NULL, CHECK(rpe >= 1 AND rpe <= 10)  |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - One row = one set.
 - `weight` is nullable — bodyweight exercises (push-ups, bear crawls) don't need it.
+- `rpe` is rate of perceived exertion (1–10 scale, half-steps allowed). Nullable — only logged when the athlete reports it.
 - `set_number` preserves ordering within exercise within workout.
 - `notes` holds per-set observations ("form broke down on rep 18").
+
+### `body_weights`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`| INTEGER      | NOT NULL, FK → athletes(id)          |
+| `date`      | DATE         | NOT NULL                             |
+| `weight`    | REAL         | NOT NULL                             |
+| `notes`     | TEXT         | NULL                                 |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- One weigh-in per athlete per day (`UNIQUE(athlete_id, date)`).
+- `weight` stored in the athlete's preferred unit (lb or kg) — unit convention is per-deployment, not per-row.
+- Deleting an athlete cascades to their body weight history.
 
 ## SQLite DDL
 
@@ -263,6 +293,7 @@ CREATE TABLE IF NOT EXISTS exercises (
     tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
     target_reps INTEGER,
     form_notes  TEXT,
+    demo_url    TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -304,6 +335,7 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     set_number  INTEGER NOT NULL,
     reps        INTEGER NOT NULL,
     weight      REAL,
+    rpe         REAL    CHECK(rpe >= 1 AND rpe <= 10),
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -322,6 +354,19 @@ CREATE INDEX IF NOT EXISTS idx_athlete_exercises_athlete_id
 
 CREATE INDEX IF NOT EXISTS idx_workout_sets_workout
     ON workout_sets(workout_id);
+
+CREATE TABLE IF NOT EXISTS body_weights (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id  INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    date        DATE    NOT NULL,
+    weight      REAL    NOT NULL,
+    notes       TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(athlete_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_body_weights_athlete_date
+    ON body_weights(athlete_id, date DESC);
 
 -- Triggers for updated_at timestamps
 -- WHEN guard prevents infinite recursion (trigger fires UPDATE, which would fire trigger again)
@@ -391,6 +436,4 @@ INSERT INTO exercises (name, tier, target_reps, form_notes) VALUES
 ## Future Considerations (v1.1+)
 
 - **Program templates**: `programs` + `program_templates` tables for structured periodization (5/3/1, GZCL). Additive migration, no v1 schema changes needed.
-- **RPE tracking**: Add `rpe` column to `workout_sets` for rate of perceived exertion.
 - **Exercise categories/tags**: Muscle group, movement pattern (push/pull/hinge/squat/carry).
-- **Body weight tracking**: Separate `weigh_ins` table for athletes who want it.

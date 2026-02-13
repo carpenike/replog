@@ -1,0 +1,66 @@
+{{ define "title" }}RepLog — {{ .Athlete.Name }} — Body Weight{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Body Weight
+        </div>
+
+        <h1>Body Weight — {{ .Athlete.Name }}</h1>
+
+        {{ if .Error }}
+        <p><ins>{{ .Error }}</ins></p>
+        {{ end }}
+
+        <!-- Log Entry Form -->
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/body-weights">
+            <div class="log-set-grid">
+                <label for="date">Date
+                    <input type="date" id="date" name="date" value="{{ .Today }}" required>
+                </label>
+                <label for="bw_weight" class="field-sm">Weight (lbs)
+                    <input type="number" id="bw_weight" name="weight" step="0.1" min="0" required placeholder="0" inputmode="numeric">
+                </label>
+                <label for="bw_notes">Notes
+                    <input type="text" id="bw_notes" name="notes" placeholder="Optional note">
+                </label>
+            </div>
+            <button type="submit">Log Weight</button>
+        </form>
+
+        <!-- History Table -->
+        {{ if .Entries }}
+        <table class="striped">
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Weight</th>
+                    <th scope="col">Notes</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Entries }}
+                <tr>
+                    <td>{{ .Date }}</td>
+                    <td>{{ .Weight }} lbs</td>
+                    <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    <td class="set-actions">
+                        <form method="POST" action="/athletes/{{ $.Athlete.ID }}/body-weights/{{ .ID }}/delete" class="inline"
+                              hx-confirm="Delete this entry?">
+                            <button type="submit" class="outline contrast">✕</button>
+                        </form>
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+
+        {{ if .HasMore }}
+        <p><a href="/athletes/{{ .Athlete.ID }}/body-weights?offset={{ .NextOffset }}">Load more &rarr;</a></p>
+        {{ end }}
+        {{ else }}
+        <article class="empty-state">
+            <p>No body weight entries yet.</p>
+        </article>
+        {{ end }}
+{{ end }}

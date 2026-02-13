@@ -8,7 +8,7 @@ func TestCreateExercise(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("basic create", func(t *testing.T) {
-		e, err := CreateExercise(db, "Bench Press", "intermediate", 15, "Control the descent")
+		e, err := CreateExercise(db, "Bench Press", "intermediate", 15, "Control the descent", "")
 		if err != nil {
 			t.Fatalf("create exercise: %v", err)
 		}
@@ -24,14 +24,14 @@ func TestCreateExercise(t *testing.T) {
 	})
 
 	t.Run("duplicate name", func(t *testing.T) {
-		_, err := CreateExercise(db, "Bench Press", "", 0, "")
+		_, err := CreateExercise(db, "Bench Press", "", 0, "", "")
 		if err != ErrDuplicateExerciseName {
 			t.Errorf("err = %v, want ErrDuplicateExerciseName", err)
 		}
 	})
 
 	t.Run("case insensitive duplicate", func(t *testing.T) {
-		_, err := CreateExercise(db, "bench press", "", 0, "")
+		_, err := CreateExercise(db, "bench press", "", 0, "", "")
 		if err != ErrDuplicateExerciseName {
 			t.Errorf("err = %v, want ErrDuplicateExerciseName", err)
 		}
@@ -41,7 +41,7 @@ func TestCreateExercise(t *testing.T) {
 func TestDeleteExercise(t *testing.T) {
 	db := testDB(t)
 
-	e, _ := CreateExercise(db, "Squats", "", 0, "")
+	e, _ := CreateExercise(db, "Squats", "", 0, "", "")
 
 	t.Run("delete unreferenced", func(t *testing.T) {
 		if err := DeleteExercise(db, e.ID); err != nil {
@@ -50,10 +50,10 @@ func TestDeleteExercise(t *testing.T) {
 	})
 
 	t.Run("delete referenced (RESTRICT)", func(t *testing.T) {
-		e2, _ := CreateExercise(db, "Deadlift", "", 0, "")
+		e2, _ := CreateExercise(db, "Deadlift", "", 0, "", "")
 		a, _ := CreateAthlete(db, "Test Athlete", "", "")
 		w, _ := CreateWorkout(db, a.ID, "2026-01-01", "")
-		_, err := AddSet(db, w.ID, e2.ID, 5, 225, "")
+		_, err := AddSet(db, w.ID, e2.ID, 5, 225, 0, "")
 		if err != nil {
 			t.Fatalf("add set: %v", err)
 		}
@@ -68,9 +68,9 @@ func TestDeleteExercise(t *testing.T) {
 func TestListExercises(t *testing.T) {
 	db := testDB(t)
 
-	CreateExercise(db, "Push-ups", "foundational", 20, "")
-	CreateExercise(db, "Back Squat", "", 0, "")
-	CreateExercise(db, "Cleans", "sport_performance", 0, "")
+	CreateExercise(db, "Push-ups", "foundational", 20, "", "")
+	CreateExercise(db, "Back Squat", "", 0, "", "")
+	CreateExercise(db, "Cleans", "sport_performance", 0, "", "")
 
 	t.Run("all", func(t *testing.T) {
 		exercises, err := ListExercises(db, "")

@@ -167,12 +167,20 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Load latest body weight for the summary card.
+	latestWeight, err := models.LatestBodyWeight(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: latest body weight for athlete %d: %v", id, err)
+		// Non-fatal — continue without weight data.
+	}
+
 	data := map[string]any{
 		"Athlete":        athlete,
 		"Assignments":    assignments,
 		"TMByExercise":   tmByExercise,
 		"RecentWorkouts": recentWorkouts,
 		"Deactivated":    deactivated,
+		"LatestWeight":   latestWeight,
 	}
 	if err := h.Templates.Render(w, r, "athlete_detail.html", data); err != nil {
 		log.Printf("handlers: athlete detail template: %v", err)

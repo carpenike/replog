@@ -44,6 +44,7 @@
                             <th scope="col">Set</th>
                             <th scope="col">Reps</th>
                             <th scope="col">Weight</th>
+                            <th scope="col">RPE</th>
                             <th scope="col">Notes</th>
                             <th scope="col"></th>
                         </tr>
@@ -54,6 +55,7 @@
                             <td>{{ .SetNumber }}</td>
                             <td>{{ .Reps }}</td>
                             <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} lbs{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                            <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td class="set-actions">
                                 <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
@@ -129,6 +131,9 @@
                     </label>
                     <label for="weight" class="field-sm">Weight
                         <input type="number" id="weight" name="weight" step="0.5" min="0" placeholder="lbs" inputmode="numeric">
+                    </label>
+                    <label for="rpe" class="field-sm">RPE
+                        <input type="number" id="rpe" name="rpe" step="0.5" min="1" max="10" placeholder="1-10" inputmode="numeric">
                     </label>
                 </div>
                 <label for="set_notes">Notes

@@ -75,12 +75,12 @@
 
 - [ ] Rest timer between sets (configurable per exercise or global)
 - [ ] Weekly completion streaks (did the athlete complete all assigned exercises?)
-- [ ] Exercise demo video links (URL field on exercise)
-- [ ] Printable workout cards (HTML print stylesheet)
-- [ ] RPE (rate of perceived exertion) field on workout sets
+- [x] Exercise demo video links (URL field on exercise)
+- [x] Printable workout cards (HTML print stylesheet)
+- [x] RPE (rate of perceived exertion) field on workout sets
 - [ ] Program templates with structured periodization (5/3/1, GZCL, etc.)
 - [ ] "Today's prescription" view derived from program template + training maxes
-- [ ] Body weight tracking
+- [x] Body weight tracking
 
 ---
 

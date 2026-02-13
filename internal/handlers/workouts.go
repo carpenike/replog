@@ -436,7 +436,16 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 
 	notes := r.FormValue("notes")
 
-	_, err = models.AddSet(h.DB, workoutID, exerciseID, reps, weight, notes)
+	var rpe float64
+	if rs := r.FormValue("rpe"); rs != "" {
+		rpe, err = strconv.ParseFloat(rs, 64)
+		if err != nil {
+			http.Error(w, "Invalid RPE", http.StatusBadRequest)
+			return
+		}
+	}
+
+	_, err = models.AddSet(h.DB, workoutID, exerciseID, reps, weight, rpe, notes)
 	if err != nil {
 		log.Printf("handlers: add set to workout %d: %v", workoutID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -588,6 +597,15 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 
 	notes := r.FormValue("notes")
 
+	var rpe float64
+	if rs := r.FormValue("rpe"); rs != "" {
+		rpe, err = strconv.ParseFloat(rs, 64)
+		if err != nil {
+			http.Error(w, "Invalid RPE", http.StatusBadRequest)
+			return
+		}
+	}
+
 	// Verify the set belongs to the specified workout.
 	setCheck, err := models.GetSetByID(h.DB, setID)
 	if errors.Is(err, models.ErrNotFound) {
@@ -604,7 +622,7 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.UpdateSet(h.DB, setID, reps, weight, notes)
+	_, err = models.UpdateSet(h.DB, setID, reps, weight, rpe, notes)
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Set not found", http.StatusNotFound)
 		return

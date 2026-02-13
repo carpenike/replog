@@ -37,6 +37,11 @@
                 <textarea id="form_notes" name="form_notes" rows="3">{{ if .Exercise }}{{ if .Exercise.FormNotes.Valid }}{{ .Exercise.FormNotes.String }}{{ end }}{{ end }}</textarea>
             </label>
 
+            <label for="demo_url">Demo Video URL
+                <input type="url" id="demo_url" name="demo_url" placeholder="https://youtube.com/watch?v=..."
+                       value="{{ if .Exercise }}{{ if .Exercise.DemoURL.Valid }}{{ .Exercise.DemoURL.String }}{{ end }}{{ end }}">
+            </label>
+
             <div role="group">
                 <button type="submit">{{ if .Exercise }}Save Changes{{ else }}Create Exercise{{ end }}</button>
                 <a href="/exercises" role="button" class="secondary">Cancel</a>

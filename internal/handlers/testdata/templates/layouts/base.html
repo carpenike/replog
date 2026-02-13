@@ -7,6 +7,7 @@
     <title>{{ block "title" . }}RepLog{{ end }}</title>
     <link rel="stylesheet" href="/static/css/pico.min.css">
     <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/css/print.css" media="print">
     <script src="/static/js/htmx.min.js"></script>
     {{ if .CSRFToken }}<meta name="csrf-token" content="{{ .CSRFToken }}">{{ end }}
     <script>

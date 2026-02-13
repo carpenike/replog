@@ -103,6 +103,10 @@ func main() {
 		DB:        db,
 		Templates: tc,
 	}
+	bodyWeights := &handlers.BodyWeights{
+		DB:        db,
+		Templates: tc,
+	}
 
 	// Set up routes.
 	mux := http.NewServeMux()
@@ -161,6 +165,11 @@ func main() {
 
 	// Exercise History per athlete.
 	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/history", requireAuth(exercises.ExerciseHistory))
+
+	// Body Weights.
+	mux.Handle("GET /athletes/{id}/body-weights", requireAuth(bodyWeights.List))
+	mux.Handle("POST /athletes/{id}/body-weights", requireAuth(bodyWeights.Create))
+	mux.Handle("POST /athletes/{id}/body-weights/{bwID}/delete", requireAuth(bodyWeights.Delete))
 
 	// Workouts.
 	mux.Handle("GET /athletes/{id}/workouts", requireAuth(workouts.List))

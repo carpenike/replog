@@ -90,7 +90,7 @@ main.container {
 /* ---- Workout Detail — Log Set Form ---- */
 .log-set-grid {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr auto auto auto;
     gap: 0.75rem;
     align-items: start;
 }

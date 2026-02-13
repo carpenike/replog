@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS exercises (
     tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
     target_reps INTEGER,
     form_notes  TEXT,
+    demo_url    TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -67,6 +68,7 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     set_number  INTEGER NOT NULL,
     reps        INTEGER NOT NULL,
     weight      REAL,
+    rpe         REAL    CHECK(rpe >= 1 AND rpe <= 10),
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -85,6 +87,19 @@ CREATE INDEX IF NOT EXISTS idx_athlete_exercises_athlete_id
 
 CREATE INDEX IF NOT EXISTS idx_workout_sets_workout
     ON workout_sets(workout_id);
+
+CREATE TABLE IF NOT EXISTS body_weights (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id  INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    date        DATE    NOT NULL,
+    weight      REAL    NOT NULL,
+    notes       TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(athlete_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_body_weights_athlete_date
+    ON body_weights(athlete_id, date DESC);
 
 -- Session store for alexedwards/scs
 CREATE TABLE IF NOT EXISTS sessions (
@@ -150,12 +165,14 @@ DROP TRIGGER IF EXISTS trigger_athletes_updated_at;
 DROP TRIGGER IF EXISTS trigger_users_updated_at;
 
 DROP INDEX IF EXISTS idx_sessions_expiry;
+DROP INDEX IF EXISTS idx_body_weights_athlete_date;
 DROP INDEX IF EXISTS idx_workout_sets_workout;
 DROP INDEX IF EXISTS idx_athlete_exercises_athlete_id;
 DROP INDEX IF EXISTS idx_users_unique_athlete_id;
 DROP INDEX IF EXISTS idx_athlete_exercises_unique_active;
 
 DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS body_weights;
 DROP TABLE IF EXISTS workout_sets;
 DROP TABLE IF EXISTS workouts;
 DROP TABLE IF EXISTS training_maxes;

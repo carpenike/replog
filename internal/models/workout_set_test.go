@@ -8,11 +8,11 @@ func TestSetCRUD(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Set Athlete", "", "")
-	e, _ := CreateExercise(db, "Test Lift", "", 0, "")
+	e, _ := CreateExercise(db, "Test Lift", "", 0, "", "")
 	w, _ := CreateWorkout(db, a.ID, "2026-05-01", "")
 
 	t.Run("add sets with auto set_number", func(t *testing.T) {
-		s1, err := AddSet(db, w.ID, e.ID, 5, 135, "easy")
+		s1, err := AddSet(db, w.ID, e.ID, 5, 135, 0, "easy")
 		if err != nil {
 			t.Fatalf("add set 1: %v", err)
 		}
@@ -23,7 +23,7 @@ func TestSetCRUD(t *testing.T) {
 			t.Errorf("reps = %d, want 5", s1.Reps)
 		}
 
-		s2, err := AddSet(db, w.ID, e.ID, 5, 155, "")
+		s2, err := AddSet(db, w.ID, e.ID, 5, 155, 0, "")
 		if err != nil {
 			t.Fatalf("add set 2: %v", err)
 		}
@@ -33,7 +33,7 @@ func TestSetCRUD(t *testing.T) {
 	})
 
 	t.Run("bodyweight set (null weight)", func(t *testing.T) {
-		s, err := AddSet(db, w.ID, e.ID, 20, 0, "")
+		s, err := AddSet(db, w.ID, e.ID, 20, 0, 0, "")
 		if err != nil {
 			t.Fatalf("add bodyweight set: %v", err)
 		}
@@ -47,11 +47,11 @@ func TestUpdateSet(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Update Set Athlete", "", "")
-	e, _ := CreateExercise(db, "Update Lift", "", 0, "")
+	e, _ := CreateExercise(db, "Update Lift", "", 0, "", "")
 	w, _ := CreateWorkout(db, a.ID, "2026-06-01", "")
-	s, _ := AddSet(db, w.ID, e.ID, 5, 100, "")
+	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "")
 
-	updated, err := UpdateSet(db, s.ID, 8, 110, "form felt better")
+	updated, err := UpdateSet(db, s.ID, 8, 110, 0, "form felt better")
 	if err != nil {
 		t.Fatalf("update set: %v", err)
 	}
@@ -70,9 +70,9 @@ func TestDeleteSet(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Del Set Athlete", "", "")
-	e, _ := CreateExercise(db, "Del Lift", "", 0, "")
+	e, _ := CreateExercise(db, "Del Lift", "", 0, "", "")
 	w, _ := CreateWorkout(db, a.ID, "2026-07-01", "")
-	s, _ := AddSet(db, w.ID, e.ID, 5, 100, "")
+	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "")
 
 	if err := DeleteSet(db, s.ID); err != nil {
 		t.Fatalf("delete set: %v", err)
@@ -87,13 +87,13 @@ func TestListSetsByWorkout(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Group Athlete", "", "")
-	e1, _ := CreateExercise(db, "Lift A", "", 0, "")
-	e2, _ := CreateExercise(db, "Lift B", "", 0, "")
+	e1, _ := CreateExercise(db, "Lift A", "", 0, "", "")
+	e2, _ := CreateExercise(db, "Lift B", "", 0, "", "")
 	w, _ := CreateWorkout(db, a.ID, "2026-08-01", "")
 
-	AddSet(db, w.ID, e1.ID, 5, 100, "")
-	AddSet(db, w.ID, e1.ID, 5, 110, "")
-	AddSet(db, w.ID, e2.ID, 10, 50, "")
+	AddSet(db, w.ID, e1.ID, 5, 100, 0, "")
+	AddSet(db, w.ID, e1.ID, 5, 110, 0, "")
+	AddSet(db, w.ID, e2.ID, 10, 50, 0, "")
 
 	groups, err := ListSetsByWorkout(db, w.ID)
 	if err != nil {

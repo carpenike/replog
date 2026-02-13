@@ -21,12 +21,13 @@ type Exercise struct {
 	Tier       sql.NullString
 	TargetReps sql.NullInt64
 	FormNotes  sql.NullString
+	DemoURL    sql.NullString
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
 // CreateExercise inserts a new exercise.
-func CreateExercise(db *sql.DB, name, tier string, targetReps int, formNotes string) (*Exercise, error) {
+func CreateExercise(db *sql.DB, name, tier string, targetReps int, formNotes, demoURL string) (*Exercise, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -39,10 +40,14 @@ func CreateExercise(db *sql.DB, name, tier string, targetReps int, formNotes str
 	if formNotes != "" {
 		notesVal = sql.NullString{String: formNotes, Valid: true}
 	}
+	var demoVal sql.NullString
+	if demoURL != "" {
+		demoVal = sql.NullString{String: demoURL, Valid: true}
+	}
 
 	result, err := db.Exec(
-		`INSERT INTO exercises (name, tier, target_reps, form_notes) VALUES (?, ?, ?, ?)`,
-		name, tierVal, repsVal, notesVal,
+		`INSERT INTO exercises (name, tier, target_reps, form_notes, demo_url) VALUES (?, ?, ?, ?, ?)`,
+		name, tierVal, repsVal, notesVal, demoVal,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -59,9 +64,9 @@ func CreateExercise(db *sql.DB, name, tier string, targetReps int, formNotes str
 func GetExerciseByID(db *sql.DB, id int64) (*Exercise, error) {
 	e := &Exercise{}
 	err := db.QueryRow(
-		`SELECT id, name, tier, target_reps, form_notes, created_at, updated_at
+		`SELECT id, name, tier, target_reps, form_notes, demo_url, created_at, updated_at
 		 FROM exercises WHERE id = ?`, id,
-	).Scan(&e.ID, &e.Name, &e.Tier, &e.TargetReps, &e.FormNotes, &e.CreatedAt, &e.UpdatedAt)
+	).Scan(&e.ID, &e.Name, &e.Tier, &e.TargetReps, &e.FormNotes, &e.DemoURL, &e.CreatedAt, &e.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -72,7 +77,7 @@ func GetExerciseByID(db *sql.DB, id int64) (*Exercise, error) {
 }
 
 // UpdateExercise modifies an existing exercise's fields.
-func UpdateExercise(db *sql.DB, id int64, name, tier string, targetReps int, formNotes string) (*Exercise, error) {
+func UpdateExercise(db *sql.DB, id int64, name, tier string, targetReps int, formNotes, demoURL string) (*Exercise, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -85,10 +90,14 @@ func UpdateExercise(db *sql.DB, id int64, name, tier string, targetReps int, for
 	if formNotes != "" {
 		notesVal = sql.NullString{String: formNotes, Valid: true}
 	}
+	var demoVal sql.NullString
+	if demoURL != "" {
+		demoVal = sql.NullString{String: demoURL, Valid: true}
+	}
 
 	result, err := db.Exec(
-		`UPDATE exercises SET name = ?, tier = ?, target_reps = ?, form_notes = ? WHERE id = ?`,
-		name, tierVal, repsVal, notesVal, id,
+		`UPDATE exercises SET name = ?, tier = ?, target_reps = ?, form_notes = ?, demo_url = ? WHERE id = ?`,
+		name, tierVal, repsVal, notesVal, demoVal, id,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -129,14 +138,14 @@ func ListExercises(db *sql.DB, tierFilter string) ([]*Exercise, error) {
 	var args []any
 
 	if tierFilter == "none" {
-		query = `SELECT id, name, tier, target_reps, form_notes, created_at, updated_at
+		query = `SELECT id, name, tier, target_reps, form_notes, demo_url, created_at, updated_at
 		         FROM exercises WHERE tier IS NULL ORDER BY name COLLATE NOCASE LIMIT 200`
 	} else if tierFilter != "" {
-		query = `SELECT id, name, tier, target_reps, form_notes, created_at, updated_at
+		query = `SELECT id, name, tier, target_reps, form_notes, demo_url, created_at, updated_at
 		         FROM exercises WHERE tier = ? ORDER BY name COLLATE NOCASE LIMIT 200`
 		args = append(args, tierFilter)
 	} else {
-		query = `SELECT id, name, tier, target_reps, form_notes, created_at, updated_at
+		query = `SELECT id, name, tier, target_reps, form_notes, demo_url, created_at, updated_at
 		         FROM exercises ORDER BY name COLLATE NOCASE LIMIT 200`
 	}
 
@@ -149,7 +158,7 @@ func ListExercises(db *sql.DB, tierFilter string) ([]*Exercise, error) {
 	var exercises []*Exercise
 	for rows.Next() {
 		e := &Exercise{}
-		if err := rows.Scan(&e.ID, &e.Name, &e.Tier, &e.TargetReps, &e.FormNotes, &e.CreatedAt, &e.UpdatedAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.Name, &e.Tier, &e.TargetReps, &e.FormNotes, &e.DemoURL, &e.CreatedAt, &e.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("models: scan exercise: %w", err)
 		}
 		exercises = append(exercises, e)

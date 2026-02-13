@@ -28,6 +28,10 @@
             <dd>{{ if .Exercise.TargetReps.Valid }}{{ .Exercise.TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</dd>
         </dl>
 
+        {{ if .Exercise.DemoURL.Valid }}
+        <p><a href="{{ .Exercise.DemoURL.String }}" target="_blank" rel="noopener">Watch Demo Video ↗</a></p>
+        {{ end }}
+
         {{ if .Exercise.FormNotes.Valid }}
         <blockquote>{{ .Exercise.FormNotes.String }}</blockquote>
         {{ end }}

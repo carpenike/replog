@@ -261,7 +261,7 @@ func TestWorkouts_UpdateSet_Success(t *testing.T) {
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "", 0)
 	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
-	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "")
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -290,7 +290,7 @@ func TestWorkouts_DeleteSet_Success(t *testing.T) {
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "", 0)
 	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
-	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "")
 
 	h := &Workouts{DB: db, Templates: tc}
 

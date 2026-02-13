@@ -28,6 +28,12 @@
                        placeholder="Leave blank for bodyweight" inputmode="numeric">
             </label>
 
+            <label for="rpe">RPE (1–10)
+                <input type="number" id="rpe" name="rpe" step="0.5" min="1" max="10"
+                       value="{{ if .Set.RPE.Valid }}{{ .Set.RPE.Float64 }}{{ end }}"
+                       placeholder="Rate of perceived exertion" inputmode="numeric">
+            </label>
+
             <label for="notes">Notes
                 <input type="text" id="notes" name="notes"
                        value="{{ if .Set.Notes.Valid }}{{ .Set.Notes.String }}{{ end }}"

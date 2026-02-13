@@ -1,0 +1,107 @@
+/* RepLog — Print Stylesheet for Workout Cards */
+
+@media print {
+    /* Hide interactive elements */
+    nav,
+    footer,
+    button,
+    form,
+    .page-actions,
+    details summary,
+    .set-actions,
+    [role="button"],
+    .breadcrumb,
+    .htmx-indicator,
+    .log-set-grid,
+    #delete-error {
+        display: none !important;
+    }
+
+    /* Reset backgrounds and colors for print */
+    html, body {
+        background: white !important;
+        color: black !important;
+        font-size: 11pt;
+    }
+
+    main.container {
+        padding: 0;
+        max-width: 100%;
+    }
+
+    /* Compact tables */
+    table {
+        font-size: 10pt;
+        border-collapse: collapse;
+        width: 100%;
+        page-break-inside: avoid;
+    }
+
+    th, td {
+        border: 1px solid #999;
+        padding: 0.25em 0.5em;
+    }
+
+    th {
+        background: #eee !important;
+        color: black !important;
+        font-weight: bold;
+    }
+
+    /* Keep exercise articles together */
+    article {
+        page-break-inside: avoid;
+        border: 1px solid #ccc;
+        padding: 0.5em;
+        margin-bottom: 0.75em;
+    }
+
+    article header {
+        border-bottom: 1px solid #ccc;
+        margin-bottom: 0.5em;
+        padding-bottom: 0.25em;
+    }
+
+    /* Tier badge — readable on paper */
+    .tier-badge {
+        border: 1px solid #999;
+        background: transparent !important;
+        color: black !important;
+    }
+
+    /* Links — show plain text */
+    a {
+        color: black !important;
+        text-decoration: none !important;
+    }
+
+    /* Prevent page breaks in key sections */
+    section {
+        page-break-inside: avoid;
+    }
+
+    /* Show details contents (prescribed exercises) */
+    details {
+        display: block;
+    }
+
+    details[open] > summary {
+        display: none;
+    }
+
+    details > *:not(summary) {
+        display: block;
+    }
+
+    /* Headings */
+    h1 { font-size: 16pt; }
+    h2 { font-size: 13pt; }
+
+    /* Blockquotes (form notes) */
+    blockquote {
+        border-left: 2px solid #999;
+        padding-left: 0.5em;
+        margin-left: 0;
+        font-style: italic;
+    }
+}

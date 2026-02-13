@@ -32,6 +32,21 @@
         <blockquote>{{ .Athlete.Notes.String }}</blockquote>
         {{ end }}
 
+        <!-- Body Weight -->
+        <section>
+            <div class="page-header">
+                <h2>Body Weight</h2>
+                <div class="page-actions">
+                    <a href="/athletes/{{ .Athlete.ID }}/body-weights" role="button" class="outline secondary">History</a>
+                </div>
+            </div>
+            {{ if .LatestWeight }}
+            <p>{{ .LatestWeight.Weight }} lbs <span class="text-muted">({{ .LatestWeight.Date }})</span></p>
+            {{ else }}
+            <p class="text-muted">No weight recorded. <a href="/athletes/{{ .Athlete.ID }}/body-weights">Log weight</a></p>
+            {{ end }}
+        </section>
+
         <!-- Workouts -->
         <section>
             <div class="page-header">
