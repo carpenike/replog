@@ -59,6 +59,7 @@ erDiagram
         INTEGER target_reps "nullable"
         TEXT form_notes "nullable"
         TEXT demo_url "nullable"
+        INTEGER rest_seconds "nullable"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -170,12 +171,15 @@ erDiagram
 | `target_reps`| INTEGER     | NULL                                 |
 | `form_notes`| TEXT         | NULL                                 |
 | `demo_url`  | TEXT         | NULL                                 |
+| `rest_seconds`| INTEGER    | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - `tier` is nullable — general lifts (squat, bench, deadlift) exist independent of the kids' tier system.
 - `target_reps` is the default prescription. Can be overridden per-assignment in the future.
 - `form_notes` holds static coaching cues ("keep elbows tucked").
+- `rest_seconds` is the recommended rest between sets in seconds. NULL means use the app default (90s). Passed to the client-side rest timer after logging a set.
+- `demo_url` links to a video demonstrating proper form.
 
 ### `athlete_exercises`
 
@@ -288,14 +292,15 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS exercises (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-    tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
-    target_reps INTEGER,
-    form_notes  TEXT,
-    demo_url    TEXT,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    tier         TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
+    target_reps  INTEGER,
+    form_notes   TEXT,
+    demo_url     TEXT,
+    rest_seconds INTEGER,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS athlete_exercises (

@@ -73,8 +73,8 @@
 
 ## v1.1 — Nice-to-Have
 
-- [ ] Rest timer between sets (configurable per exercise or global)
-- [ ] Weekly completion streaks (did the athlete complete all assigned exercises?)
+- [x] Rest timer between sets (configurable per exercise or global)
+- [x] Weekly completion streaks (did the athlete complete all assigned exercises?)
 - [x] Exercise demo video links (URL field on exercise)
 - [x] Printable workout cards (HTML print stylesheet)
 - [x] RPE (rate of perceived exertion) field on workout sets

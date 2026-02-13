@@ -47,6 +47,22 @@
             {{ end }}
         </section>
 
+        <!-- Weekly Completion Streaks -->
+        {{ if .Streaks }}
+        <section>
+            <h2>Weekly Streaks</h2>
+            <p class="text-muted">Assigned exercises completed each week (last 8 weeks).</p>
+            <div class="streak-grid">
+                {{ range .Streaks }}
+                <div class="streak-cell" data-status="{{ .Status }}">
+                    {{ .Label }}
+                    <span class="streak-tooltip">{{ .WeekStart }} – {{ .WeekEnd }}</span>
+                </div>
+                {{ end }}
+            </div>
+        </section>
+        {{ end }}
+
         <!-- Workouts -->
         <section>
             <div class="page-header">

@@ -452,7 +452,14 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10)+"/workouts/"+strconv.FormatInt(workoutID, 10), http.StatusSeeOther)
+	// Look up exercise rest time for the timer.
+	restSeconds := models.DefaultRestSeconds
+	if ex, exErr := models.GetExerciseByID(h.DB, exerciseID); exErr == nil {
+		restSeconds = ex.EffectiveRestSeconds()
+	}
+
+	redirectURL := "/athletes/" + strconv.FormatInt(athleteID, 10) + "/workouts/" + strconv.FormatInt(workoutID, 10) + "?timer=" + strconv.Itoa(restSeconds)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 // EditSetForm renders the edit set form.

@@ -73,6 +73,19 @@
         </section>
         {{ end }}
 
+        <!-- Rest Timer -->
+        <div id="rest-timer" class="rest-timer" style="display:none;">
+            <div class="timer-bar">
+                <div class="timer-progress"></div>
+            </div>
+            <div class="timer-controls">
+                <span class="timer-display">0:00</span>
+                <button type="button" class="timer-toggle outline secondary">Pause</button>
+                <button type="button" class="timer-reset outline secondary">Reset</button>
+                <button type="button" class="timer-dismiss outline contrast">✕</button>
+            </div>
+        </div>
+
         <!-- Add Set Form -->
         <section>
             <h2>Log a Set</h2>
@@ -142,4 +155,5 @@
                 <button type="submit" aria-busy="false">Log Set</button>
             </form>
         </section>
+        <script src="/static/js/rest-timer.js"></script>
 {{ end }}

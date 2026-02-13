@@ -21,14 +21,15 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS exercises (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-    tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
-    target_reps INTEGER,
-    form_notes  TEXT,
-    demo_url    TEXT,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    tier         TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
+    target_reps  INTEGER,
+    form_notes   TEXT,
+    demo_url     TEXT,
+    rest_seconds INTEGER,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS athlete_exercises (

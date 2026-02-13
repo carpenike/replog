@@ -107,7 +107,7 @@ func seedAthlete(t testing.TB, db *sql.DB, name, tier string) *models.Athlete {
 // seedExercise creates an exercise and returns it.
 func seedExercise(t testing.TB, db *sql.DB, name, tier string, targetReps int) *models.Exercise {
 	t.Helper()
-	e, err := models.CreateExercise(db, name, tier, targetReps, "", "")
+	e, err := models.CreateExercise(db, name, tier, targetReps, "", "", 0)
 	if err != nil {
 		t.Fatalf("seed exercise %q: %v", name, err)
 	}

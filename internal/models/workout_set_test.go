@@ -8,7 +8,7 @@ func TestSetCRUD(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Set Athlete", "", "")
-	e, _ := CreateExercise(db, "Test Lift", "", 0, "", "")
+	e, _ := CreateExercise(db, "Test Lift", "", 0, "", "", 0)
 	w, _ := CreateWorkout(db, a.ID, "2026-05-01", "")
 
 	t.Run("add sets with auto set_number", func(t *testing.T) {
@@ -47,7 +47,7 @@ func TestUpdateSet(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Update Set Athlete", "", "")
-	e, _ := CreateExercise(db, "Update Lift", "", 0, "", "")
+	e, _ := CreateExercise(db, "Update Lift", "", 0, "", "", 0)
 	w, _ := CreateWorkout(db, a.ID, "2026-06-01", "")
 	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "")
 
@@ -70,7 +70,7 @@ func TestDeleteSet(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Del Set Athlete", "", "")
-	e, _ := CreateExercise(db, "Del Lift", "", 0, "", "")
+	e, _ := CreateExercise(db, "Del Lift", "", 0, "", "", 0)
 	w, _ := CreateWorkout(db, a.ID, "2026-07-01", "")
 	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "")
 
@@ -87,8 +87,8 @@ func TestListSetsByWorkout(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Group Athlete", "", "")
-	e1, _ := CreateExercise(db, "Lift A", "", 0, "", "")
-	e2, _ := CreateExercise(db, "Lift B", "", 0, "", "")
+	e1, _ := CreateExercise(db, "Lift A", "", 0, "", "", 0)
+	e2, _ := CreateExercise(db, "Lift B", "", 0, "", "", 0)
 	w, _ := CreateWorkout(db, a.ID, "2026-08-01", "")
 
 	AddSet(db, w.ID, e1.ID, 5, 100, 0, "")

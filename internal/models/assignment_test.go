@@ -8,7 +8,7 @@ func TestAssignmentLifecycle(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Assign Athlete", "", "")
-	e, _ := CreateExercise(db, "Assign Exercise", "foundational", 20, "", "")
+	e, _ := CreateExercise(db, "Assign Exercise", "foundational", 20, "", "", 0)
 
 	t.Run("assign exercise", func(t *testing.T) {
 		ae, err := AssignExercise(db, a.ID, e.ID)
@@ -72,8 +72,8 @@ func TestListDeactivatedAssignments(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Deact Athlete", "", "")
-	e1, _ := CreateExercise(db, "Deact Ex 1", "", 0, "", "")
-	e2, _ := CreateExercise(db, "Deact Ex 2", "", 0, "", "")
+	e1, _ := CreateExercise(db, "Deact Ex 1", "", 0, "", "", 0)
+	e2, _ := CreateExercise(db, "Deact Ex 2", "", 0, "", "", 0)
 
 	// Assign both, deactivate e1 only.
 	ae1, _ := AssignExercise(db, a.ID, e1.ID)
@@ -96,8 +96,8 @@ func TestListUnassignedExercises(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Unassigned Athlete", "", "")
-	e1, _ := CreateExercise(db, "Assigned Ex", "", 0, "", "")
-	CreateExercise(db, "Free Ex", "", 0, "", "")
+	e1, _ := CreateExercise(db, "Assigned Ex", "", 0, "", "", 0)
+	CreateExercise(db, "Free Ex", "", 0, "", "", 0)
 
 	AssignExercise(db, a.ID, e1.ID)
 

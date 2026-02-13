@@ -174,6 +174,13 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		// Non-fatal — continue without weight data.
 	}
 
+	// Load weekly completion streaks (last 8 weeks).
+	streaks, err := models.WeeklyStreaks(h.DB, id, 8)
+	if err != nil {
+		log.Printf("handlers: weekly streaks for athlete %d: %v", id, err)
+		// Non-fatal — continue without streak data.
+	}
+
 	data := map[string]any{
 		"Athlete":        athlete,
 		"Assignments":    assignments,
@@ -181,6 +188,7 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		"RecentWorkouts": recentWorkouts,
 		"Deactivated":    deactivated,
 		"LatestWeight":   latestWeight,
+		"Streaks":        streaks,
 	}
 	if err := h.Templates.Render(w, r, "athlete_detail.html", data); err != nil {
 		log.Printf("handlers: athlete detail template: %v", err)

@@ -42,6 +42,11 @@
                        value="{{ if .Exercise }}{{ if .Exercise.DemoURL.Valid }}{{ .Exercise.DemoURL.String }}{{ end }}{{ end }}">
             </label>
 
+            <label for="rest_seconds">Rest Between Sets (seconds)
+                <input type="number" id="rest_seconds" name="rest_seconds" min="0" step="5" placeholder="Default: 90" inputmode="numeric"
+                       value="{{ if .Exercise }}{{ if .Exercise.RestSeconds.Valid }}{{ .Exercise.RestSeconds.Int64 }}{{ end }}{{ end }}">
+            </label>
+
             <div role="group">
                 <button type="submit">{{ if .Exercise }}Save Changes{{ else }}Create Exercise{{ end }}</button>
                 <a href="/exercises" role="button" class="secondary">Cancel</a>
