@@ -13,6 +13,16 @@ import (
 
 // templateFuncs contains custom template helper functions.
 var templateFuncs = template.FuncMap{
+	"userInitials": func(username string) string {
+		if username == "" {
+			return "?"
+		}
+		r := []rune(strings.ToUpper(username))
+		if len(r) >= 2 {
+			return string(r[:2])
+		}
+		return string(r[:1])
+	},
 	"tierLabel": func(tier string) string {
 		switch tier {
 		case "foundational":

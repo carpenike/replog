@@ -13,7 +13,10 @@
     .breadcrumb,
     .htmx-indicator,
     .log-set-grid,
-    #delete-error {
+    #delete-error,
+    .sidebar,
+    .sidebar-overlay,
+    .topbar {
         display: none !important;
     }
 
@@ -24,7 +27,14 @@
         font-size: 11pt;
     }
 
-    main.container {
+    main.container,
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0;
+        max-width: 100%;
+    }
+
+    .content-container {
         padding: 0;
         max-width: 100%;
     }
