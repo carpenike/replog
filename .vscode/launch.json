@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch replog",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/replog",
+            "env": {
+                "REPLOG_ADDR": ":8080",
+                "REPLOG_DB_PATH": "${workspaceFolder}/dev.db",
+                "REPLOG_ADMIN_USER": "admin",
+                "REPLOG_ADMIN_PASS": "admin",
+                "REPLOG_ADMIN_EMAIL": "admin@localhost"
+            },
+            "args": []
+        },
+        {
+            "name": "Test current file",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${fileDirname}",
+            "args": ["-v"]
+        },
+        {
+            "name": "Test current function",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${fileDirname}",
+            "args": ["-v", "-run", "${selectedText}"]
+        }
+    ]
+}

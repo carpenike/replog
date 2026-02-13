@@ -6,3 +6,6 @@
 # Build output
 /replog
 /result
+
+# IDE — VS Code configs are committed, but local overrides are not
+.vscode/*.log

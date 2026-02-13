@@ -1,0 +1,80 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "go build ./cmd/replog",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$go"],
+            "presentation": {
+                "reveal": "silent",
+                "revealProblems": "onProblem"
+            }
+        },
+        {
+            "label": "Test All",
+            "type": "shell",
+            "command": "go test -v -count=1 ./...",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": ["$go"],
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "Test Current Package",
+            "type": "shell",
+            "command": "go test -v -count=1 ./${relativeFileDirname}/...",
+            "group": "test",
+            "problemMatcher": ["$go"],
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "Vet",
+            "type": "shell",
+            "command": "go vet ./...",
+            "group": "build",
+            "problemMatcher": ["$go"],
+            "presentation": {
+                "reveal": "silent",
+                "revealProblems": "onProblem"
+            }
+        },
+        {
+            "label": "Quality Gates (build + vet + test)",
+            "dependsOn": ["Build", "Vet", "Test All"],
+            "dependsOrder": "sequence",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Server",
+            "type": "shell",
+            "command": "go run ./cmd/replog",
+            "options": {
+                "env": {
+                    "REPLOG_ADDR": ":8080",
+                    "REPLOG_DB_PATH": "${workspaceFolder}/dev.db",
+                    "REPLOG_ADMIN_USER": "admin",
+                    "REPLOG_ADMIN_PASS": "admin",
+                    "REPLOG_ADMIN_EMAIL": "admin@localhost"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        }
+    ]
+}

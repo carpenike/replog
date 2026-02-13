@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        "golang.go",
+        "alexcvzz.vscode-sqlite",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-sqlite",
+        "otovo-oss.htmx-tags",
+        "esbenp.prettier-vscode",
+        "github.copilot",
+        "github.copilot-chat"
+    ]
+}

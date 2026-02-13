@@ -1,0 +1,70 @@
+{
+    // Go tooling
+    "go.lintTool": "staticcheck",
+    "go.lintOnSave": "workspace",
+    "go.vetOnSave": "workspace",
+    "go.testFlags": ["-v", "-count=1"],
+    "go.testTimeout": "30s",
+    "go.coverOnSave": false,
+    "go.coverageDecorator": {
+        "type": "gutter",
+        "coveredHighlightColor": "rgba(64,128,64,0.2)",
+        "uncoveredHighlightColor": "rgba(128,64,64,0.2)"
+    },
+    "go.buildTags": "",
+    "go.useLanguageServer": true,
+    "gopls": {
+        "ui.semanticTokens": true,
+        "ui.completion.usePlaceholders": true
+    },
+
+    // Editor defaults for Go files
+    "[go]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        },
+        "editor.defaultFormatter": "golang.go",
+        "editor.tabSize": 4,
+        "editor.insertSpaces": false
+    },
+    "[go.mod]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "golang.go"
+    },
+
+    // HTML/template files
+    "[html]": {
+        "editor.tabSize": 4,
+        "editor.formatOnSave": false
+    },
+
+    // SQL migration files
+    "[sql]": {
+        "editor.tabSize": 4,
+        "editor.formatOnSave": false
+    },
+
+    // File associations — Go templates use HTML syntax
+    "files.associations": {
+        "*.gohtml": "html",
+        "*.tmpl": "html"
+    },
+
+    // Exclude build artifacts and DB files from explorer/search
+    "files.exclude": {
+        "**/*.db": true,
+        "**/*.db-wal": true,
+        "**/*.db-shm": true,
+        "result": true
+    },
+    "search.exclude": {
+        "**/vendor": true,
+        "**/*.db": true
+    },
+
+    // Testing
+    "go.testEnvVars": {
+        "REPLOG_TEST": "1"
+    }
+}
