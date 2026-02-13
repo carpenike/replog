@@ -67,7 +67,7 @@
 - [ ] **Kid access** — non-coaches are linked to one athlete and can only view/log/edit their own workouts
 - [ ] **Unlinked non-coach** — if a non-coach user has no linked athlete, show an informative message (not a blank screen)
 - [ ] **Athlete selector** — coaches can switch between athletes; non-coaches land directly on their profile
-- [ ] **Session persistence** — stay logged in across browser restarts
+- [x] **Session persistence** — stay logged in across browser restarts (scs defaults: Cookie.Persist=true + 30-day lifetime)
 
 ---
 
@@ -78,8 +78,8 @@
 - [x] Exercise demo video links (URL field on exercise)
 - [x] Printable workout cards (HTML print stylesheet)
 - [x] RPE (rate of perceived exertion) field on workout sets
-- [ ] Program templates with structured periodization (5/3/1, GZCL, etc.)
-- [ ] "Today's prescription" view derived from program template + training maxes
+- [x] Program templates with structured periodization (5/3/1, GZCL, etc.)
+- [x] "Today's prescription" view derived from program template + training maxes
 - [x] Body weight tracking
 
 ---

@@ -24,7 +24,7 @@ These were resolved interactively before schema design:
 
 9. **Simple access control via `is_coach` flag.** Coaches see and manage all athletes. Non-coach users (kids) are linked to exactly one athlete and can only view/log/edit their own workouts. No roles table, no permissions matrix.
 
-10. **No program/prescription engine in v1.** The app is a logbook. The coach (or spreadsheet) decides what to do; the app records what happened. Program templates are a clean additive migration for v1.1+.
+10. **Program templates are separate from the logbook.** The app's core is a logbook — it records what happened. Program templates layer on a prescription engine: coaches define templates (weeks × days × prescribed sets with percentages), assign them to athletes, and the app calculates today's target weights from training maxes. Position advances by counting completed workouts since assignment start, and cycles repeat automatically.
 
 11. **Foreign key delete behaviors are intentional.** Deleting an athlete cascades to their workouts, assignments, and training maxes. Deleting a user only unlinks their athlete profile (`SET NULL`). Deleting an exercise is restricted (`RESTRICT`) if it has been logged in any workout — prevents orphaned history.
 
@@ -123,6 +123,43 @@ erDiagram
     workouts ||--o{ workout_sets : "contains"
     exercises ||--o{ workout_sets : "performed"
     athletes ||--o{ body_weights : "tracks"
+    program_templates ||--o{ prescribed_sets : "defines"
+    exercises ||--o{ prescribed_sets : "used in"
+    athletes ||--o{ athlete_programs : "follows"
+    program_templates ||--o{ athlete_programs : "assigned via"
+
+    program_templates {
+        INTEGER id PK
+        TEXT name UK "COLLATE NOCASE"
+        TEXT description "nullable"
+        INTEGER num_weeks
+        INTEGER num_days
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    prescribed_sets {
+        INTEGER id PK
+        INTEGER template_id FK
+        INTEGER exercise_id FK
+        INTEGER week
+        INTEGER day
+        INTEGER set_number
+        INTEGER reps "nullable, NULL = AMRAP"
+        REAL percentage "nullable"
+        TEXT notes "nullable"
+    }
+
+    athlete_programs {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        INTEGER template_id FK
+        DATE start_date
+        INTEGER active "0 or 1"
+        TEXT notes "nullable"
+        DATETIME created_at
+        DATETIME updated_at
+    }
 ```
 
 ## Schema
@@ -263,6 +300,60 @@ erDiagram
 - One weigh-in per athlete per day (`UNIQUE(athlete_id, date)`).
 - `weight` stored in the athlete's preferred unit (lb or kg) — unit convention is per-deployment, not per-row.
 - Deleting an athlete cascades to their body weight history.
+
+### `program_templates`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `name`      | TEXT         | NOT NULL UNIQUE COLLATE NOCASE        |
+| `description`| TEXT        | NULL                                 |
+| `num_weeks` | INTEGER      | NOT NULL                             |
+| `num_days`  | INTEGER      | NOT NULL                             |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Defines a reusable training program structure (e.g. "5/3/1 BBB", "GZCL T1/T2/T3").
+- `num_weeks` and `num_days` define the cycle length — e.g. 4 weeks × 4 days for 5/3/1.
+- Templates are shared across athletes; assignment is tracked via `athlete_programs`.
+
+### `prescribed_sets`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `template_id`| INTEGER     | NOT NULL, FK → program_templates(id) |
+| `exercise_id`| INTEGER     | NOT NULL, FK → exercises(id)         |
+| `week`      | INTEGER      | NOT NULL                             |
+| `day`       | INTEGER      | NOT NULL                             |
+| `set_number`| INTEGER      | NOT NULL                             |
+| `reps`      | INTEGER      | NULL (NULL = AMRAP)                  |
+| `percentage`| REAL         | NULL (% of training max)             |
+| `notes`     | TEXT         | NULL                                 |
+
+- Each row is one prescribed set within a template's week/day.
+- `reps = NULL` indicates an AMRAP (as many reps as possible) set.
+- `percentage` is a decimal (e.g. 65.0 for 65%) used to calculate target weight from the athlete's training max.
+- `UNIQUE(template_id, exercise_id, week, day, set_number)` prevents duplicate sets.
+
+### `athlete_programs`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`| INTEGER      | NOT NULL, FK → athletes(id)          |
+| `template_id`| INTEGER     | NOT NULL, FK → program_templates(id) |
+| `start_date`| DATE         | NOT NULL                             |
+| `active`    | INTEGER      | NOT NULL DEFAULT 1, CHECK(0 or 1)    |
+| `notes`     | TEXT         | NULL                                 |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Links an athlete to a program template.
+- Partial unique index enforces one active program per athlete.
+- Deactivation sets `active = 0`; reassignment creates a new row.
+- `start_date` is the reference point for calculating program position — position advances by counting completed workouts since start.
+- Program cycles repeat automatically when all weeks × days are exhausted.
 
 ## SQLite DDL
 
@@ -409,6 +500,60 @@ WHEN OLD.updated_at = NEW.updated_at
 BEGIN
     UPDATE workout_sets SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
+
+CREATE TABLE IF NOT EXISTS program_templates (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    description TEXT,
+    num_weeks   INTEGER NOT NULL,
+    num_days    INTEGER NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS prescribed_sets (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id  INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE CASCADE,
+    exercise_id  INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    week         INTEGER NOT NULL,
+    day          INTEGER NOT NULL,
+    set_number   INTEGER NOT NULL,
+    reps         INTEGER,
+    percentage   REAL,
+    notes        TEXT,
+    UNIQUE(template_id, exercise_id, week, day, set_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_prescribed_sets_template
+    ON prescribed_sets(template_id);
+
+CREATE TABLE IF NOT EXISTS athlete_programs (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id   INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    template_id  INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE RESTRICT,
+    start_date   DATE    NOT NULL,
+    active       INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+    notes        TEXT,
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_programs_active
+    ON athlete_programs(athlete_id) WHERE active = 1;
+
+CREATE TRIGGER IF NOT EXISTS trigger_program_templates_updated_at
+AFTER UPDATE ON program_templates FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE program_templates SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trigger_athlete_programs_updated_at
+AFTER UPDATE ON athlete_programs FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE athlete_programs SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
 ```
 
 ## Seed Data (Development)
@@ -438,7 +583,8 @@ INSERT INTO exercises (name, tier, target_reps, form_notes) VALUES
 - **Backups:** Do NOT use `cp` on a live WAL-mode database. Use `sqlite3 replog.db ".backup backup.db"` or the SQLite backup API, which correctly handles the WAL file.
 - **WAL mode:** Set once; persists across connections. Provides concurrent reads with single-writer without blocking.
 
-## Future Considerations (v1.1+)
+## Future Considerations (v2+)
 
-- **Program templates**: `programs` + `program_templates` tables for structured periodization (5/3/1, GZCL). Additive migration, no v1 schema changes needed.
 - **Exercise categories/tags**: Muscle group, movement pattern (push/pull/hinge/squat/carry).
+- **Auto-progression rules**: Optional per-template rules for automatic training max bumps (e.g. +5 lb on successful cycle completion).
+- **Program template sharing/import**: JSON export/import of templates between deployments.

@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/carpenike/replog/internal/database"
 )
@@ -23,4 +24,13 @@ func testDB(t testing.TB) *sql.DB {
 
 	t.Cleanup(func() { db.Close() })
 	return db
+}
+
+// mustParseDate parses a YYYY-MM-DD string into a time.Time, panicking on error.
+func mustParseDate(s string) time.Time {
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		panic("mustParseDate: " + err.Error())
+	}
+	return t
 }

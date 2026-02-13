@@ -1,0 +1,112 @@
+{{ define "title" }}RepLog — {{ .Program.Name }}{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/programs">Programs</a> &rsaquo; {{ .Program.Name }}
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Program.Name }}</h1>
+            <div class="page-actions">
+                <a href="/programs/{{ .Program.ID }}/edit" role="button" class="outline secondary">Edit</a>
+                <form method="POST" action="/programs/{{ .Program.ID }}/delete" class="inline"
+                      hx-confirm="Delete {{ .Program.Name }}? This will remove all prescribed sets.">
+                    <button type="submit" class="outline contrast">Delete</button>
+                </form>
+            </div>
+        </div>
+
+        {{ if .Program.Description.Valid }}
+        <p>{{ .Program.Description.String }}</p>
+        {{ end }}
+
+        <p class="text-muted">{{ .Program.NumWeeks }} week{{ if ne .Program.NumWeeks 1 }}s{{ end }} × {{ .Program.NumDays }} day{{ if ne .Program.NumDays 1 }}s{{ end }}/week
+            — {{ .Program.AthleteCount }} athlete{{ if ne .Program.AthleteCount 1 }}s{{ end }} assigned</p>
+
+        <!-- Prescribed Sets by Week/Day -->
+        {{ range .Weeks }}
+        <section>
+            <h2>Week {{ .Week }}</h2>
+            {{ range .Days }}
+            <h3>Day {{ .Day }}</h3>
+            {{ if .Sets }}
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Set</th>
+                        <th scope="col">Reps</th>
+                        <th scope="col">% TM</th>
+                        <th scope="col">Notes</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Sets }}
+                    <tr>
+                        <td>{{ .ExerciseName }}</td>
+                        <td>{{ .SetNumber }}</td>
+                        <td>{{ .RepsLabel }}</td>
+                        <td>{{ if .Percentage.Valid }}{{ printf "%.0f" .Percentage.Float64 }}%{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td>
+                            <form method="POST" action="/programs/{{ $.Program.ID }}/sets/{{ .ID }}/delete" class="inline">
+                                <button type="submit" class="outline contrast">×</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p class="text-muted">No sets prescribed for this day.</p>
+            {{ end }}
+            {{ end }}
+        </section>
+        {{ end }}
+
+        <!-- Add Prescribed Set Form -->
+        <section>
+            <h2>Add Prescribed Set</h2>
+            <form method="POST" action="/programs/{{ .Program.ID }}/sets">
+                <div class="grid">
+                    <label for="exercise_id">Exercise
+                        <select id="exercise_id" name="exercise_id" required>
+                            <option value="">Select exercise…</option>
+                            {{ range .Exercises }}
+                            <option value="{{ .ID }}">{{ .Name }}{{ if .Tier.Valid }} ({{ tierLabel .Tier.String }}){{ end }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+
+                    <label for="week">Week
+                        <input type="number" id="week" name="week" min="1" max="{{ .Program.NumWeeks }}" required value="1">
+                    </label>
+
+                    <label for="day">Day
+                        <input type="number" id="day" name="day" min="1" max="{{ .Program.NumDays }}" required value="1">
+                    </label>
+                </div>
+
+                <div class="grid">
+                    <label for="set_number">Set #
+                        <input type="number" id="set_number" name="set_number" min="1" required value="1">
+                    </label>
+
+                    <label for="reps">Reps
+                        <input type="number" id="reps" name="reps" min="0" placeholder="Blank = AMRAP">
+                    </label>
+
+                    <label for="percentage">% of TM
+                        <input type="number" id="percentage" name="percentage" min="0" max="200" step="0.5" placeholder="e.g. 75">
+                    </label>
+                </div>
+
+                <label for="notes">Notes
+                    <input type="text" id="notes" name="notes" placeholder="Optional (e.g. 'last set AMRAP')">
+                </label>
+
+                <button type="submit">Add Set</button>
+            </form>
+        </section>
+{{ end }}

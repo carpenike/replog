@@ -1,0 +1,54 @@
+{{ define "title" }}RepLog — {{ .Athlete.Name }} Prescription{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Prescription
+        </div>
+
+        <h1>Today's Prescription</h1>
+
+        {{ if .Prescription }}
+        <hgroup>
+            <h2>{{ .Prescription.Program.TemplateName }}</h2>
+            <p>Cycle {{ .Prescription.CycleNumber }} — Week {{ .Prescription.CurrentWeek }}, Day {{ .Prescription.CurrentDay }}
+            {{ if .Prescription.HasWorkout }} — <mark>Workout logged today</mark>{{ end }}</p>
+        </hgroup>
+
+        {{ if .Prescription.Lines }}
+        <table class="striped">
+            <thead>
+                <tr>
+                    <th scope="col">Exercise</th>
+                    <th scope="col">Sets × Reps</th>
+                    <th scope="col">% of TM</th>
+                    <th scope="col">Target Weight</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Prescription.Lines }}
+                <tr>
+                    <td><strong>{{ .ExerciseName }}</strong></td>
+                    <td>{{ .SetsSummary }}</td>
+                    <td>{{ if .PercentageLabel }}{{ .PercentageLabel }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    <td>{{ if .TargetWeightLabel }}{{ .TargetWeightLabel }} lbs{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+
+        {{ if not .Prescription.HasWorkout }}
+        <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button">Start Today's Workout</a>
+        {{ end }}
+        {{ else }}
+        <article class="empty-state">
+            <p>No exercises prescribed for today's session.</p>
+            <p class="text-muted">Check the program template or advance to the next training day.</p>
+        </article>
+        {{ end }}
+        {{ else }}
+        <article class="empty-state">
+            <p>No active program assigned to {{ .Athlete.Name }}.</p>
+            {{ if .User.IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/program/assign" role="button">Assign a Program</a>{{ end }}
+        </article>
+        {{ end }}
+{{ end }}

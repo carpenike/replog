@@ -107,6 +107,10 @@ func main() {
 		DB:        db,
 		Templates: tc,
 	}
+	programs := &handlers.Programs{
+		DB:        db,
+		Templates: tc,
+	}
 
 	// Set up routes.
 	mux := http.NewServeMux()
@@ -190,6 +194,23 @@ func main() {
 	mux.Handle("GET /users/{id}/edit", requireCoach(users.EditForm))
 	mux.Handle("POST /users/{id}", requireCoach(users.Update))
 	mux.Handle("POST /users/{id}/delete", requireCoach(users.Delete))
+
+	// Program Templates (coach-only for management).
+	mux.Handle("GET /programs", requireCoach(programs.List))
+	mux.Handle("GET /programs/new", requireCoach(programs.NewForm))
+	mux.Handle("POST /programs", requireCoach(programs.Create))
+	mux.Handle("GET /programs/{id}", requireCoach(programs.Show))
+	mux.Handle("GET /programs/{id}/edit", requireCoach(programs.EditForm))
+	mux.Handle("POST /programs/{id}", requireCoach(programs.Update))
+	mux.Handle("POST /programs/{id}/delete", requireCoach(programs.Delete))
+	mux.Handle("POST /programs/{id}/sets", requireCoach(programs.AddSet))
+	mux.Handle("POST /programs/{id}/sets/{setID}/delete", requireCoach(programs.DeleteSet))
+
+	// Athlete Programs (assignment + prescription).
+	mux.Handle("GET /athletes/{id}/program/assign", requireCoach(programs.AssignProgramForm))
+	mux.Handle("POST /athletes/{id}/program", requireCoach(programs.AssignProgram))
+	mux.Handle("POST /athletes/{id}/program/deactivate", requireCoach(programs.DeactivateProgram))
+	mux.Handle("GET /athletes/{id}/prescription", requireAuth(programs.Prescription))
 
 	// Start server.
 	log.Printf("RepLog listening on %s", addr)

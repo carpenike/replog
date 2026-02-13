@@ -54,6 +54,7 @@
             {{ if .User.IsCoach }}
             <li><a href="/athletes">Athletes</a></li>
             <li><a href="/exercises">Exercises</a></li>
+            <li><a href="/programs">Programs</a></li>
             <li><a href="/users">Users</a></li>
             {{ else if .User.AthleteID.Valid }}
             <li><a href="/athletes/{{ .User.AthleteID.Int64 }}">My Profile</a></li>

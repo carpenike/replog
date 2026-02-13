@@ -63,6 +63,73 @@
         </section>
         {{ end }}
 
+        <!-- Current Program & Prescription -->
+        <section>
+            <div class="page-header">
+                <h2>Program</h2>
+                {{ if .User.IsCoach }}
+                <div class="page-actions">
+                    {{ if .ActiveProgram }}
+                    <form method="POST" action="/athletes/{{ .Athlete.ID }}/program/deactivate" class="inline"
+                          hx-confirm="Deactivate {{ .ActiveProgram.TemplateName }} for {{ .Athlete.Name }}?">
+                        <button type="submit" class="outline contrast">Deactivate</button>
+                    </form>
+                    {{ else if .ProgramTemplates }}
+                    <a href="/athletes/{{ .Athlete.ID }}/program/assign" role="button">Assign Program</a>
+                    {{ end }}
+                </div>
+                {{ end }}
+            </div>
+
+            {{ if .ActiveProgram }}
+            <p>
+                <a href="/programs/{{ .ActiveProgram.TemplateID }}"><strong>{{ .ActiveProgram.TemplateName }}</strong></a>
+                — {{ .ActiveProgram.NumWeeks }} week{{ if ne .ActiveProgram.NumWeeks 1 }}s{{ end }} × {{ .ActiveProgram.NumDays }} day{{ if ne .ActiveProgram.NumDays 1 }}s{{ end }}/week
+                <span class="text-muted">(started {{ .ActiveProgram.StartDate }})</span>
+            </p>
+
+            {{ if .Prescription }}
+            <p class="text-muted">
+                Cycle {{ .Prescription.CycleNumber }} — Week {{ .Prescription.CurrentWeek }}, Day {{ .Prescription.CurrentDay }}
+                {{ if .Prescription.HasWorkout }} (workout logged today){{ end }}
+            </p>
+
+            {{ if .Prescription.Lines }}
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Sets × Reps</th>
+                        <th scope="col">% of TM</th>
+                        <th scope="col">Target Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Prescription.Lines }}
+                    <tr>
+                        <td>{{ .ExerciseName }}</td>
+                        <td>{{ .SetsSummary }}</td>
+                        <td>{{ if .PercentageLabel }}{{ .PercentageLabel }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td>{{ if .TargetWeightLabel }}{{ .TargetWeightLabel }} lbs{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p class="text-muted">No exercises prescribed for today's session.</p>
+            {{ end }}
+
+            <a href="/athletes/{{ .Athlete.ID }}/prescription" role="button" class="outline secondary">Full Prescription</a>
+            {{ end }}
+            {{ else }}
+            <p class="text-muted">No active program.
+                {{ if .User.IsCoach }}
+                    {{ if .ProgramTemplates }}<a href="/athletes/{{ .Athlete.ID }}/program/assign">Assign one</a>{{ else }}<a href="/programs/new">Create a program</a>{{ end }}
+                {{ end }}
+            </p>
+            {{ end }}
+        </section>
+
         <!-- Workouts -->
         <section>
             <div class="page-header">

@@ -102,6 +102,46 @@ CREATE TABLE IF NOT EXISTS body_weights (
 CREATE INDEX IF NOT EXISTS idx_body_weights_athlete_date
     ON body_weights(athlete_id, date DESC);
 
+CREATE TABLE IF NOT EXISTS program_templates (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    description TEXT,
+    num_weeks   INTEGER NOT NULL DEFAULT 1,
+    num_days    INTEGER NOT NULL DEFAULT 1,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS prescribed_sets (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE CASCADE,
+    exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE RESTRICT,
+    week        INTEGER NOT NULL,
+    day         INTEGER NOT NULL,
+    set_number  INTEGER NOT NULL,
+    reps        INTEGER,
+    percentage  REAL,
+    notes       TEXT,
+    UNIQUE(template_id, week, day, exercise_id, set_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_prescribed_sets_template
+    ON prescribed_sets(template_id, week, day);
+
+CREATE TABLE IF NOT EXISTS athlete_programs (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id  INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    template_id INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE RESTRICT,
+    start_date  DATE    NOT NULL,
+    active      INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+    notes       TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_programs_active
+    ON athlete_programs(athlete_id) WHERE active = 1;
+
 -- Session store for alexedwards/scs
 CREATE TABLE IF NOT EXISTS sessions (
     token  TEXT PRIMARY KEY,
@@ -157,7 +197,28 @@ BEGIN
 END;
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE TRIGGER IF NOT EXISTS trigger_program_templates_updated_at
+AFTER UPDATE ON program_templates FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE program_templates SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE TRIGGER IF NOT EXISTS trigger_athlete_programs_updated_at
+AFTER UPDATE ON athlete_programs FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE athlete_programs SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+-- +goose StatementEnd
+
 -- +goose Down
+
+DROP TRIGGER IF EXISTS trigger_athlete_programs_updated_at;
+DROP TRIGGER IF EXISTS trigger_program_templates_updated_at;
 
 DROP TRIGGER IF EXISTS trigger_workout_sets_updated_at;
 DROP TRIGGER IF EXISTS trigger_workouts_updated_at;
@@ -166,6 +227,8 @@ DROP TRIGGER IF EXISTS trigger_athletes_updated_at;
 DROP TRIGGER IF EXISTS trigger_users_updated_at;
 
 DROP INDEX IF EXISTS idx_sessions_expiry;
+DROP INDEX IF EXISTS idx_athlete_programs_active;
+DROP INDEX IF EXISTS idx_prescribed_sets_template;
 DROP INDEX IF EXISTS idx_body_weights_athlete_date;
 DROP INDEX IF EXISTS idx_workout_sets_workout;
 DROP INDEX IF EXISTS idx_athlete_exercises_athlete_id;
@@ -173,6 +236,9 @@ DROP INDEX IF EXISTS idx_users_unique_athlete_id;
 DROP INDEX IF EXISTS idx_athlete_exercises_unique_active;
 
 DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS athlete_programs;
+DROP TABLE IF EXISTS prescribed_sets;
+DROP TABLE IF EXISTS program_templates;
 DROP TABLE IF EXISTS body_weights;
 DROP TABLE IF EXISTS workout_sets;
 DROP TABLE IF EXISTS workouts;

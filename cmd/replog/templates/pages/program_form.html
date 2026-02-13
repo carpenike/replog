@@ -1,0 +1,40 @@
+{{ define "title" }}RepLog — {{ if .Program }}Edit {{ .Program.Name }}{{ else }}New Program{{ end }}{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/programs">Programs</a> &rsaquo; {{ if .Program }}Edit{{ else }}New{{ end }}
+        </div>
+
+        <h1>{{ if .Program }}Edit {{ .Program.Name }}{{ else }}New Program Template{{ end }}</h1>
+
+        {{ if .Error }}
+        <p><ins>{{ .Error }}</ins></p>
+        {{ end }}
+
+        <form method="POST" action="{{ if .Program }}/programs/{{ .Program.ID }}{{ else }}/programs{{ end }}">
+            <label for="name">Name
+                <input type="text" id="name" name="name" required
+                       value="{{ if .Program }}{{ .Program.Name }}{{ end }}"
+                       placeholder="e.g. 5/3/1 BBB, GZCL T1/T2/T3">
+            </label>
+
+            <label for="description">Description
+                <textarea id="description" name="description" rows="2"
+                          placeholder="Brief description of the program structure">{{ if .Program }}{{ if .Program.Description.Valid }}{{ .Program.Description.String }}{{ end }}{{ end }}</textarea>
+            </label>
+
+            <div class="grid">
+                <label for="num_weeks">Weeks per Cycle
+                    <input type="number" id="num_weeks" name="num_weeks" min="1" max="52" required
+                           value="{{ if .Program }}{{ .Program.NumWeeks }}{{ else }}4{{ end }}">
+                </label>
+
+                <label for="num_days">Training Days per Week
+                    <input type="number" id="num_days" name="num_days" min="1" max="7" required
+                           value="{{ if .Program }}{{ .Program.NumDays }}{{ else }}4{{ end }}">
+                </label>
+            </div>
+
+            <button type="submit">{{ if .Program }}Update{{ else }}Create{{ end }} Program</button>
+        </form>
+{{ end }}

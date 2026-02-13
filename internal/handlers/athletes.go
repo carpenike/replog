@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
@@ -181,14 +182,43 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		// Non-fatal — continue without streak data.
 	}
 
+	// Load active program and today's prescription.
+	activeProgram, err := models.GetActiveProgram(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: active program for athlete %d: %v", id, err)
+		// Non-fatal — continue without program data.
+	}
+
+	var prescription *models.Prescription
+	if activeProgram != nil {
+		prescription, err = models.GetPrescription(h.DB, id, time.Now())
+		if err != nil {
+			log.Printf("handlers: prescription for athlete %d: %v", id, err)
+			// Non-fatal — continue without prescription data.
+		}
+	}
+
+	// Load available program templates for assignment (coach only).
+	var programTemplates []*models.ProgramTemplate
+	if user.IsCoach {
+		programTemplates, err = models.ListProgramTemplates(h.DB)
+		if err != nil {
+			log.Printf("handlers: list program templates for athlete %d: %v", id, err)
+		}
+	}
+
 	data := map[string]any{
-		"Athlete":        athlete,
-		"Assignments":    assignments,
-		"TMByExercise":   tmByExercise,
-		"RecentWorkouts": recentWorkouts,
-		"Deactivated":    deactivated,
-		"LatestWeight":   latestWeight,
-		"Streaks":        streaks,
+		"Athlete":          athlete,
+		"Assignments":      assignments,
+		"TMByExercise":     tmByExercise,
+		"RecentWorkouts":   recentWorkouts,
+		"Deactivated":      deactivated,
+		"LatestWeight":     latestWeight,
+		"Streaks":          streaks,
+		"ActiveProgram":    activeProgram,
+		"Prescription":     prescription,
+		"ProgramTemplates": programTemplates,
+		"TodayDate":        time.Now().Format("2006-01-02"),
 	}
 	if err := h.Templates.Render(w, r, "athlete_detail.html", data); err != nil {
 		log.Printf("handlers: athlete detail template: %v", err)
