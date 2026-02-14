@@ -968,6 +968,7 @@ main.container {
 .add-set-inline select {
     font-size: 0.85rem;
     padding: 0.4rem 0.6rem;
+    height: calc(0.85rem * var(--pico-line-height) + 0.8rem + var(--pico-border-width) * 2);
 }
 
 .add-set-inline button[type="submit"] {
