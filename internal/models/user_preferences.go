@@ -19,11 +19,11 @@ var ValidWeightUnits = []string{"lbs", "kg"}
 
 // ValidDateFormats maps display labels to Go format strings.
 var ValidDateFormats = map[string]string{
-	"Jan 2, 2006":  "Jan 2, 2006",
-	"2006-01-02":   "2006-01-02",
-	"02/01/2006":   "02/01/2006",
-	"01/02/2006":   "01/02/2006",
-	"2 Jan 2006":   "2 Jan 2006",
+	"Jan 2, 2006":   "Jan 2, 2006",
+	"2006-01-02":    "2006-01-02",
+	"02/01/2006":    "02/01/2006",
+	"01/02/2006":    "01/02/2006",
+	"2 Jan 2006":    "2 Jan 2006",
 	"Monday, Jan 2": "Monday, Jan 2",
 }
 

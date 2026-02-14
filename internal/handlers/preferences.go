@@ -27,10 +27,10 @@ func (h *Preferences) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{
-		"EditPrefs":        prefs,
-		"WeightUnits":      models.ValidWeightUnits,
-		"DateFormats":      models.ValidDateFormats,
-		"CommonTimezones":  commonTimezones,
+		"EditPrefs":       prefs,
+		"WeightUnits":     models.ValidWeightUnits,
+		"DateFormats":     models.ValidDateFormats,
+		"CommonTimezones": commonTimezones,
 	}
 	if err := h.Templates.Render(w, r, "preferences_form.html", data); err != nil {
 		log.Printf("handlers: render preferences form: %v", err)
@@ -65,11 +65,11 @@ func (h *Preferences) Update(w http.ResponseWriter, r *http.Request) {
 func (h *Preferences) renderFormError(w http.ResponseWriter, r *http.Request, msg string, userID int64) {
 	prefs, _ := models.GetUserPreferences(h.DB, userID)
 	data := map[string]any{
-		"Error":            msg,
-		"EditPrefs":        prefs,
-		"WeightUnits":      models.ValidWeightUnits,
-		"DateFormats":      models.ValidDateFormats,
-		"CommonTimezones":  commonTimezones,
+		"Error":           msg,
+		"EditPrefs":       prefs,
+		"WeightUnits":     models.ValidWeightUnits,
+		"DateFormats":     models.ValidDateFormats,
+		"CommonTimezones": commonTimezones,
 	}
 	w.WriteHeader(http.StatusUnprocessableEntity)
 	if err := h.Templates.Render(w, r, "preferences_form.html", data); err != nil {

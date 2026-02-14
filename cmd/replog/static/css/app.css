@@ -76,10 +76,32 @@
     /* Surfaces */
     --surface-hover: rgba(255, 255, 255, 0.04);
     --surface-active: rgba(255, 255, 255, 0.06);
+
+    /* Primary with alpha — for hover/focus surfaces */
+    --primary-alpha-subtle: rgba(129, 140, 248, 0.08);
+    --primary-alpha-light: rgba(129, 140, 248, 0.12);
+    --primary-alpha-medium: rgba(129, 140, 248, 0.15);
+
+    /* Tier decoration colors */
+    --tier-foundational: #34d399;
+    --tier-intermediate: #38bdf8;
+    --tier-sport-performance: #c084fc;
 }
 
 /* ---- Light theme palette ---- */
 [data-theme="light"] {
+    /* Pico alignment — match our indigo accent system-wide */
+    --pico-background-color: #ffffff;
+    --pico-color: #171717;
+    --pico-card-background-color: #ffffff;
+    --pico-card-sectioning-background-color: #fafafa;
+    --pico-primary: #4f46e5;
+    --pico-primary-hover: #4338ca;
+    --pico-primary-focus: rgba(79, 70, 229, 0.2);
+    --pico-primary-inverse: #ffffff;
+    --pico-muted-color: #737373;
+    --pico-muted-border-color: #e5e5e5;
+
     --bg-0: #ffffff;
     --bg-1: #fafafa;
     --bg-2: #f5f5f5;
@@ -101,6 +123,16 @@
 
     --surface-hover: rgba(0, 0, 0, 0.03);
     --surface-active: rgba(0, 0, 0, 0.05);
+
+    /* Primary with alpha — for hover/focus surfaces */
+    --primary-alpha-subtle: rgba(79, 70, 229, 0.06);
+    --primary-alpha-light: rgba(79, 70, 229, 0.10);
+    --primary-alpha-medium: rgba(79, 70, 229, 0.14);
+
+    /* Tier decoration colors */
+    --tier-foundational: #059669;
+    --tier-intermediate: #0284c7;
+    --tier-sport-performance: #9333ea;
 }
 
 /* =========================================================
@@ -326,7 +358,7 @@ table a:hover {
     font-size: 1.15rem;
     font-weight: 700;
     text-decoration: none;
-    color: var(--pico-color);
+    color: var(--text-primary);
 }
 
 .sidebar-brand:hover {
@@ -370,7 +402,7 @@ table a:hover {
 }
 
 .sidebar-link:hover {
-    background: rgba(129, 140, 248, 0.12);
+    background: var(--primary-alpha-light);
     color: var(--pico-primary);
     text-decoration: none;
 }
@@ -429,7 +461,7 @@ table a:hover {
 }
 
 .sidebar-user:hover {
-    background: rgba(129, 140, 248, 0.08);
+    background: var(--primary-alpha-subtle);
 }
 
 .user-avatar {
@@ -456,7 +488,7 @@ table a:hover {
 .user-name {
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--pico-color);
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -506,7 +538,7 @@ table a:hover {
     padding: 0.5rem 0.625rem;
     border-radius: 0.375rem;
     font-size: 0.85rem;
-    color: var(--pico-color);
+    color: var(--text-primary);
     text-decoration: none;
     transition: background 0.15s;
     width: 100%;
@@ -525,27 +557,27 @@ button.user-menu-item {
     border: none !important;
     box-shadow: none !important;
     padding: 0.5rem 0.625rem !important;
-    color: var(--pico-color) !important;
+    color: var(--text-primary) !important;
     font-weight: normal;
 }
 
 button.user-menu-item:hover {
-    background: rgba(129, 140, 248, 0.08) !important;
-    color: var(--pico-color) !important;
+    background: var(--primary-alpha-subtle) !important;
+    color: var(--text-primary) !important;
 }
 
 button.user-menu-item.user-menu-item--danger {
-    color: var(--color-danger, #f87171) !important;
+    color: var(--color-danger) !important;
 }
 
 button.user-menu-item.user-menu-item--danger:hover {
     background: rgba(248, 113, 113, 0.12) !important;
-    color: var(--color-danger, #f87171) !important;
+    color: var(--color-danger) !important;
 }
 
 .user-menu-item:hover {
-    background: rgba(129, 140, 248, 0.08);
-    color: var(--pico-color);
+    background: var(--primary-alpha-subtle);
+    color: var(--text-primary);
 }
 
 .user-menu-item svg {
@@ -556,16 +588,16 @@ button.user-menu-item.user-menu-item--danger:hover {
 }
 
 .user-menu-item--danger {
-    color: var(--color-danger, #f87171);
+    color: var(--color-danger);
 }
 
 .user-menu-item--danger:hover {
     background: rgba(248, 113, 113, 0.12);
-    color: var(--color-danger, #f87171);
+    color: var(--color-danger);
 }
 
 .user-menu-item--danger svg {
-    color: var(--color-danger, #f87171);
+    color: var(--color-danger);
 }
 
 .user-menu-divider {
@@ -661,7 +693,7 @@ button.user-menu-item.user-menu-item--danger:hover {
         margin: 0;
         width: auto;
         cursor: pointer;
-        color: var(--pico-color);
+        color: var(--text-primary);
         display: flex;
         align-items: center;
     }
@@ -712,17 +744,17 @@ main.container {
 
 .tier-badge[data-tier="foundational"] {
     background: rgba(52, 211, 153, 0.12);
-    color: #34d399;
+    color: var(--tier-foundational);
     border-color: rgba(52, 211, 153, 0.2);
 }
 .tier-badge[data-tier="intermediate"] {
     background: rgba(56, 189, 248, 0.12);
-    color: #38bdf8;
+    color: var(--tier-intermediate);
     border-color: rgba(56, 189, 248, 0.2);
 }
 .tier-badge[data-tier="sport_performance"] {
     background: rgba(192, 132, 252, 0.12);
-    color: #c084fc;
+    color: var(--tier-sport-performance);
     border-color: rgba(192, 132, 252, 0.2);
 }
 .tier-badge[data-tier="none"] {
@@ -847,7 +879,7 @@ main.container {
 }
 
 .week-tab.active .tab-badge {
-    background: rgba(129, 140, 248, 0.15);
+    background: var(--primary-alpha-medium);
     color: var(--pico-primary);
 }
 
@@ -967,7 +999,6 @@ main.container {
     cursor: pointer;
     margin: 0;
     background: var(--bg-2);
-    border-color: var(--border-subtle);
     transition: box-shadow var(--duration-fast) var(--ease-default),
                 border-color var(--duration-fast) var(--ease-default),
                 transform var(--duration-fast) var(--ease-default);
@@ -1006,8 +1037,22 @@ main.container {
 }
 
 .dashboard-grid > article p {
-    font-size: 0.825rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
+    margin-bottom: 0;
+}
+
+.dashboard-grid--compact {
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+}
+
+.dashboard-grid--compact > article {
+    padding: var(--space-sm) var(--space-md);
+    text-align: center;
+}
+
+.dashboard-grid--compact > article h2 {
+    font-size: 0.875rem;
     margin-bottom: 0;
 }
 
@@ -1096,10 +1141,10 @@ input[inputmode="numeric"] {
 /* ---- Rest Timer ---- */
 .rest-timer {
     margin-bottom: var(--space-lg);
-    border: 1px solid rgba(129, 140, 248, 0.3);
+    border: 1px solid var(--primary-alpha-medium);
     border-radius: var(--radius-lg);
     padding: var(--space-md) var(--space-lg);
-    background: rgba(129, 140, 248, 0.06);
+    background: var(--primary-alpha-subtle);
 }
 
 .rest-timer.timer-done {

@@ -6,12 +6,13 @@
             {{ if .User.IsCoach }}<a href="/exercises/new" role="button">New Exercise</a>{{ end }}
         </div>
 
-        <fieldset role="group">
+        <div class="dashboard-grid dashboard-grid--compact">
             {{ range .Tiers }}
-            <a href="/exercises{{ if .Value }}?tier={{ .Value }}{{ end }}" role="button"
-               class="{{ if eq .Value $.TierFilter }}{{ else }}outline{{ end }} secondary">{{ .Label }}</a>
+            <article onclick="window.location='/exercises{{ if .Value }}?tier={{ .Value }}{{ end }}'" class="{{ if eq .Value $.TierFilter }}active{{ end }}">
+                <h2>{{ .Label }}</h2>
+            </article>
             {{ end }}
-        </fieldset>
+        </div>
 
         {{ if .Exercises }}
         <table class="striped">
