@@ -100,13 +100,11 @@
                     <label for="pct_d{{ .Day }}">% TM
                         <input type="number" id="pct_d{{ .Day }}" name="percentage" min="0" max="200" step="0.5" placeholder="e.g. 75">
                     </label>
-                </div>
-                <div class="add-set-row">
-                    <label for="notes_d{{ .Day }}" class="add-set-notes">
-                        <input type="text" id="notes_d{{ .Day }}" name="notes" placeholder="Notes (optional)">
+                    <label for="notes_d{{ .Day }}">Notes
+                        <input type="text" id="notes_d{{ .Day }}" name="notes" placeholder="Optional">
                     </label>
-                    <button type="submit" class="outline secondary">+ Add Set</button>
                 </div>
+                <button type="submit" class="outline secondary">+ Add Set</button>
             </form>
             {{ end }}
         </details>

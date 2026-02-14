@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/carpenike/replog/internal/models"
@@ -665,5 +666,66 @@ func TestWorkouts_AddSet_NonCoachForbiddenOther(t *testing.T) {
 
 	if rr.Code != http.StatusForbidden {
 		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_Show_WithPrescription(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Ryan", "")
+	ex := seedExercise(t, db, "Bench Press", "", 0)
+
+	// Set up a program template with a prescribed set.
+	tmpl, err := models.CreateProgramTemplate(db, "5/3/1 BBB", "Boring But Big", 4, 4)
+	if err != nil {
+		t.Fatalf("create program template: %v", err)
+	}
+	reps := 5
+	pct := 75.0
+	_, err = models.CreatePrescribedSet(db, tmpl.ID, ex.ID, 1, 1, 1, &reps, &pct, "")
+	if err != nil {
+		t.Fatalf("create prescribed set: %v", err)
+	}
+
+	// Assign program to athlete.
+	_, err = models.AssignProgram(db, athlete.ID, tmpl.ID, "2026-02-01", "")
+	if err != nil {
+		t.Fatalf("assign program: %v", err)
+	}
+
+	// Set a training max so target weight is calculated.
+	_, err = models.SetTrainingMax(db, athlete.ID, ex.ID, 200.0, "2026-02-01", "")
+	if err != nil {
+		t.Fatalf("create training max: %v", err)
+	}
+
+	// Create a workout on the program start date (day 1).
+	workout, err := models.CreateWorkout(db, athlete.ID, "2026-02-01", "")
+	if err != nil {
+		t.Fatalf("create workout: %v", err)
+	}
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID), nil, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.Show(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+
+	body := rr.Body.String()
+	if !strings.Contains(body, "Today&#39;s Prescription") && !strings.Contains(body, "Today's Prescription") {
+		t.Error("expected prescription section in response body")
+	}
+	if !strings.Contains(body, "Bench Press") {
+		t.Error("expected exercise name in prescription")
+	}
+	if !strings.Contains(body, "prefill-btn") {
+		t.Error("expected pre-fill button in prescription")
 	}
 }

@@ -970,20 +970,9 @@ main.container {
     padding: 0.4rem 0.6rem;
 }
 
-.add-set-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: flex-end;
-}
-
-.add-set-notes {
-    flex: 1;
-}
-
-.add-set-row button {
+.add-set-inline button[type="submit"] {
+    margin-top: 0;
     white-space: nowrap;
-    margin-bottom: 0;
-    flex-shrink: 0;
 }
 
 /* ---- Dashboard Cards ---- */

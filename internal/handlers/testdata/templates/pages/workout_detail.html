@@ -94,7 +94,38 @@
             <p><ins>{{ .SetError }}</ins></p>
             {{ end }}
 
-            {{ if .Assigned }}
+            {{ if and .Prescription .Prescription.Lines }}
+            <details open>
+                <summary>Today's Prescription — {{ .Prescription.Program.TemplateName }} · Cycle {{ .Prescription.CycleNumber }}, Week {{ .Prescription.CurrentWeek }}, Day {{ .Prescription.CurrentDay }}</summary>
+                <table class="striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Exercise</th>
+                            <th scope="col">Sets × Reps</th>
+                            <th scope="col">% of TM</th>
+                            <th scope="col">Target Weight</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Prescription.Lines }}
+                        <tr>
+                            <td>{{ .ExerciseName }}</td>
+                            <td>{{ .SetsSummary }}</td>
+                            <td>{{ if .PercentageLabel }}{{ .PercentageLabel }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                            <td>{{ if .TargetWeightLabel }}{{ .TargetWeightLabel }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                            <td>
+                                <button type="button" class="outline secondary prefill-btn"
+                                    data-exercise-id="{{ .ExerciseID }}"
+                                    data-reps="{{ if .Sets }}{{ (index .Sets 0).RepsLabel }}{{ end }}"
+                                    data-weight="{{ .TargetWeightLabel }}">Load</button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </details>
+            {{ else if .Assigned }}
             <details>
                 <summary>Prescribed Exercises</summary>
                 <table class="striped">

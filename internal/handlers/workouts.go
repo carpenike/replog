@@ -258,6 +258,23 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		tmByExercise[tm.ExerciseID] = tm
 	}
 
+	// Load today's prescription if the athlete has an active program.
+	// Use the workout's date (not necessarily "today") so historical workouts
+	// still show what was prescribed on that date.
+	var prescription *models.Prescription
+	workoutDate, parseErr := time.Parse("2006-01-02", workout.Date)
+	if parseErr != nil {
+		// SQLite may return full RFC3339 timestamps for DATE columns.
+		workoutDate, parseErr = time.Parse(time.RFC3339, workout.Date)
+	}
+	if parseErr == nil {
+		prescription, err = models.GetPrescription(h.DB, athleteID, workoutDate)
+		if err != nil {
+			log.Printf("handlers: get prescription for athlete %d on %s: %v", athleteID, workout.Date, err)
+			// Non-fatal — continue without prescription data.
+		}
+	}
+
 	data := map[string]any{
 		"Athlete":      athlete,
 		"Workout":      workout,
@@ -265,6 +282,7 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		"Assigned":     assigned,
 		"Unassigned":   unassigned,
 		"TMByExercise": tmByExercise,
+		"Prescription": prescription,
 	}
 	if err := h.Templates.Render(w, r, "workout_detail.html", data); err != nil {
 		log.Printf("handlers: workout detail template: %v", err)
