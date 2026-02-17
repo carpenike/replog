@@ -1080,6 +1080,7 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
 .dashboard-grid > .card-link > article {
     cursor: pointer;
     margin: 0;
+    width: 100%;
     background: var(--bg-2);
     transition: box-shadow var(--duration-fast) var(--ease-default),
                 border-color var(--duration-fast) var(--ease-default),
@@ -1096,7 +1097,7 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
 .card-link {
     text-decoration: none;
     color: inherit;
-    display: block;
+    display: flex;
 }
 
 .card-link:hover {
