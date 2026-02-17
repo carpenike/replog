@@ -1070,7 +1070,7 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
 /* ---- Dashboard Cards ---- */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
     gap: var(--space-md);
     margin-top: var(--space-md);
     margin-bottom: var(--space-lg);
