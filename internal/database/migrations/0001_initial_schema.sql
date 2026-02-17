@@ -118,7 +118,7 @@ CREATE INDEX IF NOT EXISTS idx_body_weights_athlete_date
 CREATE TABLE IF NOT EXISTS workout_reviews (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     workout_id  INTEGER NOT NULL UNIQUE REFERENCES workouts(id) ON DELETE CASCADE,
-    coach_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    coach_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
     status      TEXT    NOT NULL CHECK(status IN ('approved', 'needs_work')),
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

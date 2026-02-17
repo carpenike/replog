@@ -63,7 +63,7 @@ Key patterns:
 - Active assignments use partial unique index (`WHERE active = 1`)
 - Training max history: multiple rows per athlete+exercise, current = latest `effective_date`
 - `updated_at` triggers use `WHEN OLD.updated_at = NEW.updated_at` guard to prevent recursion
-- Foreign key ON DELETE: CASCADE from athletes, RESTRICT from exercises (protect logged history), SET NULL for users.athlete_id
+- Foreign key ON DELETE: CASCADE from athletes, RESTRICT from exercises (protect logged history), SET NULL for users.athlete_id and workout_reviews.coach_id
 
 ## SQLite Rules
 

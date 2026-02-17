@@ -11,14 +11,14 @@ import (
 type WorkoutReview struct {
 	ID        int64
 	WorkoutID int64
-	CoachID   int64
+	CoachID   sql.NullInt64
 	Status    string // "approved" or "needs_work"
 	Notes     sql.NullString
 	CreatedAt time.Time
 	UpdatedAt time.Time
 
 	// Joined fields populated by queries.
-	CoachUsername string
+	CoachUsername sql.NullString
 }
 
 // ReviewStatusApproved indicates the coach approved the workout.
@@ -100,7 +100,7 @@ func GetWorkoutReviewByID(db *sql.DB, id int64) (*WorkoutReview, error) {
 		`SELECT wr.id, wr.workout_id, wr.coach_id, wr.status, wr.notes,
 		        wr.created_at, wr.updated_at, u.username
 		 FROM workout_reviews wr
-		 JOIN users u ON u.id = wr.coach_id
+		 LEFT JOIN users u ON u.id = wr.coach_id
 		 WHERE wr.id = ?`, id,
 	).Scan(&rev.ID, &rev.WorkoutID, &rev.CoachID, &rev.Status, &rev.Notes,
 		&rev.CreatedAt, &rev.UpdatedAt, &rev.CoachUsername)
@@ -121,7 +121,7 @@ func GetWorkoutReviewByWorkoutID(db *sql.DB, workoutID int64) (*WorkoutReview, e
 		`SELECT wr.id, wr.workout_id, wr.coach_id, wr.status, wr.notes,
 		        wr.created_at, wr.updated_at, u.username
 		 FROM workout_reviews wr
-		 JOIN users u ON u.id = wr.coach_id
+		 LEFT JOIN users u ON u.id = wr.coach_id
 		 WHERE wr.workout_id = ?`, workoutID,
 	).Scan(&rev.ID, &rev.WorkoutID, &rev.CoachID, &rev.Status, &rev.Notes,
 		&rev.CreatedAt, &rev.UpdatedAt, &rev.CoachUsername)

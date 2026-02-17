@@ -35,6 +35,7 @@ applyTo: "**/*.sql"
 - `ON DELETE CASCADE` from athletes → workouts, assignments, training maxes
 - `ON DELETE RESTRICT` from exercises → workout_sets (protect logged history)
 - `ON DELETE SET NULL` from athletes → users.athlete_id (unlink, don't delete user)
+- `ON DELETE SET NULL` from users → workout_reviews.coach_id (preserve reviews when coach deleted)
 
 ## Triggers
 

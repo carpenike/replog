@@ -40,8 +40,8 @@ func TestWorkoutReviewCRUD(t *testing.T) {
 		if !rev.Notes.Valid || rev.Notes.String != "Great job!" {
 			t.Errorf("notes = %v, want Great job!", rev.Notes)
 		}
-		if rev.CoachUsername != "testcoach" {
-			t.Errorf("coach username = %q, want testcoach", rev.CoachUsername)
+		if !rev.CoachUsername.Valid || rev.CoachUsername.String != "testcoach" {
+			t.Errorf("coach username = %v, want testcoach", rev.CoachUsername)
 		}
 		if rev.WorkoutID != workout.ID {
 			t.Errorf("workout_id = %d, want %d", rev.WorkoutID, workout.ID)
@@ -218,5 +218,42 @@ func TestGetReviewStats(t *testing.T) {
 	}
 	if stats.NeedsWork != 1 {
 		t.Errorf("needs_work = %d, want 1", stats.NeedsWork)
+	}
+}
+
+func TestDeleteCoachPreservesReview(t *testing.T) {
+	db := testDB(t)
+
+	athlete, _ := CreateAthlete(db, "Preserved Review Athlete", "", "")
+	coach := seedCoachUser(t, db)
+	workout, _ := CreateWorkout(db, athlete.ID, "2026-03-10", "")
+
+	// Coach reviews the workout.
+	rev, err := CreateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusApproved, "Solid work")
+	if err != nil {
+		t.Fatalf("create review: %v", err)
+	}
+
+	// Delete the coach user account.
+	if err := DeleteUser(db, coach.ID); err != nil {
+		t.Fatalf("delete coach: %v", err)
+	}
+
+	// Review should still exist with NULL coach_id.
+	got, err := GetWorkoutReviewByID(db, rev.ID)
+	if err != nil {
+		t.Fatalf("get review after coach delete: %v", err)
+	}
+	if got.CoachID.Valid {
+		t.Errorf("coach_id should be NULL after coach deletion, got %d", got.CoachID.Int64)
+	}
+	if got.CoachUsername.Valid {
+		t.Errorf("coach_username should be NULL after coach deletion, got %q", got.CoachUsername.String)
+	}
+	if got.Status != ReviewStatusApproved {
+		t.Errorf("status = %q, want %q", got.Status, ReviewStatusApproved)
+	}
+	if !got.Notes.Valid || got.Notes.String != "Solid work" {
+		t.Errorf("notes should be preserved, got %v", got.Notes)
 	}
 }

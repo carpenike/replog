@@ -144,7 +144,7 @@ erDiagram
     workout_reviews {
         INTEGER id PK
         INTEGER workout_id FK "UNIQUE"
-        INTEGER coach_id FK
+        INTEGER coach_id FK "nullable"
         TEXT status "approved or needs_work"
         TEXT notes "nullable"
         DATETIME created_at
@@ -349,7 +349,7 @@ erDiagram
 |-------------|-------------|--------------------------------------|
 | `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
 | `workout_id`| INTEGER      | NOT NULL UNIQUE, FK → workouts(id) ON DELETE CASCADE |
-| `coach_id`  | INTEGER      | NOT NULL, FK → users(id) ON DELETE CASCADE |
+| `coach_id`  | INTEGER      | NULL, FK → users(id) ON DELETE SET NULL |
 | `status`    | TEXT         | NOT NULL, CHECK(status IN ('approved', 'needs_work')) |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -359,7 +359,7 @@ erDiagram
 - `status` is either `approved` (coach is satisfied) or `needs_work` (coach wants the athlete to address feedback).
 - `notes` holds coach feedback ("Great form on the deadlifts! Try to go deeper on squats next time.").
 - `coach_id` records which coach submitted the review.
-- Deleting a workout cascades to its review. Deleting the reviewing coach also cascades.
+- Deleting a workout cascades to its review. Deleting the reviewing coach sets `coach_id` to NULL, preserving the review.
 
 ### `program_templates`
 
@@ -581,7 +581,7 @@ END;
 CREATE TABLE IF NOT EXISTS workout_reviews (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     workout_id  INTEGER NOT NULL UNIQUE REFERENCES workouts(id) ON DELETE CASCADE,
-    coach_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    coach_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
     status      TEXT    NOT NULL CHECK(status IN ('approved', 'needs_work')),
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
