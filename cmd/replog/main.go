@@ -124,6 +124,10 @@ func main() {
 		Sessions:  sessionManager,
 		Templates: tc,
 	}
+	reviews := &handlers.Reviews{
+		DB:        db,
+		Templates: tc,
+	}
 
 	// Configure WebAuthn for passkey support.
 	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
@@ -234,6 +238,11 @@ func main() {
 	mux.Handle("GET /athletes/{id}/workouts/{workoutID}/sets/{setID}/edit", requireAuth(workouts.EditSetForm))
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}", requireAuth(workouts.UpdateSet))
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}/delete", requireAuth(workouts.DeleteSet))
+
+	// Workout Reviews (coach-only).
+	mux.Handle("GET /reviews/pending", requireCoach(reviews.PendingReviews))
+	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/review", requireCoach(reviews.SubmitReview))
+	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/review/delete", requireCoach(reviews.DeleteReview))
 
 	// Users (coach-only).
 	mux.Handle("GET /users", requireCoach(users.List))

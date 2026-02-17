@@ -20,8 +20,9 @@ type Workout struct {
 	UpdatedAt time.Time
 
 	// Joined fields populated by list queries.
-	AthleteName string
-	SetCount    int
+	AthleteName  string
+	SetCount     int
+	ReviewStatus sql.NullString // NULL = unreviewed, "approved", "needs_work"
 }
 
 // CreateWorkout starts a new workout for an athlete on a date.
@@ -130,9 +131,11 @@ type WorkoutPage struct {
 func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error) {
 	rows, err := db.Query(`
 		SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, w.updated_at, a.name,
-		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
+		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
+		       wr.status
 		FROM workouts w
 		JOIN athletes a ON a.id = w.athlete_id
+		LEFT JOIN workout_reviews wr ON wr.workout_id = w.id
 		WHERE w.athlete_id = ?
 		ORDER BY w.date DESC
 		LIMIT ? OFFSET ?`, athleteID, WorkoutPageSize+1, offset)
@@ -144,7 +147,7 @@ func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error)
 	var workouts []*Workout
 	for rows.Next() {
 		w := &Workout{}
-		if err := rows.Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount); err != nil {
+		if err := rows.Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &w.ReviewStatus); err != nil {
 			return nil, fmt.Errorf("models: scan workout: %w", err)
 		}
 		workouts = append(workouts, w)

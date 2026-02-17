@@ -41,6 +41,12 @@
                 <p>Browse and manage the exercise library</p>
             </article>
         </a>
+        <a href="/reviews/pending" class="card-link">
+            <article>
+                <h2>Reviews</h2>
+                <p>{{ if .ReviewStats }}{{ .ReviewStats.PendingCount }} workouts pending review{{ else }}Review athlete workouts{{ end }}</p>
+            </article>
+        </a>
         <a href="/users" class="card-link">
             <article>
                 <h2>Users</h2>

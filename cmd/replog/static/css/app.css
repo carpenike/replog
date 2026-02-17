@@ -1699,3 +1699,51 @@ input[inputmode="numeric"] {
 .passkey-status.error {
     color: var(--pico-del-color, #e74c3c);
 }
+
+/* ==========================================================
+   WORKOUT REVIEW BADGES & CARDS
+   ========================================================= */
+.review-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius-pill);
+    vertical-align: middle;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+
+.review-badge[data-status="approved"] {
+    background: rgba(52, 211, 153, 0.12);
+    color: var(--tier-foundational, #34d399);
+    border-color: rgba(52, 211, 153, 0.2);
+}
+
+.review-badge[data-status="needs_work"] {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.2);
+}
+
+.review-section {
+    margin-top: var(--space-lg);
+}
+
+.review-card {
+    border-left: 4px solid var(--pico-muted-border-color);
+}
+
+.review-card[data-status="approved"] {
+    border-left-color: var(--tier-foundational, #34d399);
+}
+
+.review-card[data-status="needs_work"] {
+    border-left-color: #fbbf24;
+}
+
+.review-actions {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+}

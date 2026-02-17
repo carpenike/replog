@@ -16,6 +16,7 @@
                 <tr>
                     <th scope="col">Date</th>
                     <th scope="col">Sets</th>
+                    <th scope="col">Review</th>
                     <th scope="col">Notes</th>
                 </tr>
             </thead>
@@ -24,6 +25,7 @@
                 <tr>
                     <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Date }}</a></td>
                     <td>{{ .SetCount }}</td>
+                    <td>{{ if .ReviewStatus.Valid }}{{ if eq .ReviewStatus.String "approved" }}<span class="review-badge" data-status="approved">✓</span>{{ else }}<span class="review-badge" data-status="needs_work">⚠</span>{{ end }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                 </tr>
                 {{ end }}

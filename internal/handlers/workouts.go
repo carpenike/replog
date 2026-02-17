@@ -294,6 +294,16 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		selectedExerciseID, _ = strconv.ParseInt(eidStr, 10, 64)
 	}
 
+	// Load review for this workout (if any).
+	var review *models.WorkoutReview
+	rev, revErr := models.GetWorkoutReviewByWorkoutID(h.DB, workoutID)
+	if revErr == nil {
+		review = rev
+	} else if !errors.Is(revErr, models.ErrNotFound) {
+		log.Printf("handlers: get review for workout %d: %v", workoutID, revErr)
+		// Non-fatal — continue without review data.
+	}
+
 	data := map[string]any{
 		"Athlete":            athlete,
 		"Workout":            workout,
@@ -304,6 +314,7 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		"Prescription":       prescription,
 		"LastSession":        lastSession,
 		"SelectedExerciseID": selectedExerciseID,
+		"Review":             review,
 	}
 	if err := h.Templates.Render(w, r, "workout_detail.html", data); err != nil {
 		log.Printf("handlers: workout detail template: %v", err)

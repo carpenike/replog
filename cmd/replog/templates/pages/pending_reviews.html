@@ -1,0 +1,61 @@
+{{ define "title" }}RepLog — Pending Reviews{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/">Home</a> &rsaquo; Pending Reviews
+        </div>
+
+        <div class="page-header">
+            <h1>Workout Reviews</h1>
+        </div>
+
+        {{ if .Stats }}
+        <div class="stats-row">
+            <article class="stat-card">
+                <div class="stat-value">{{ .Stats.PendingCount }}</div>
+                <div class="stat-label">Pending Review</div>
+            </article>
+            <article class="stat-card">
+                <div class="stat-value">{{ .Stats.ApprovedCount }}</div>
+                <div class="stat-label">Approved</div>
+            </article>
+            <article class="stat-card">
+                <div class="stat-value">{{ .Stats.NeedsWork }}</div>
+                <div class="stat-label">Needs Work</div>
+            </article>
+        </div>
+        {{ end }}
+
+        {{ if .Unreviewed }}
+        <section>
+            <h2>Workouts Needing Review</h2>
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Athlete</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Sets</th>
+                        <th scope="col">Notes</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Unreviewed }}
+                    <tr>
+                        <td><a href="/athletes/{{ .AthleteID }}">{{ .AthleteName }}</a></td>
+                        <td>{{ .Date }}</td>
+                        <td>{{ .SetCount }}</td>
+                        <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td><a href="/athletes/{{ .AthleteID }}/workouts/{{ .WorkoutID }}" role="button" class="outline secondary">Review</a></td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </section>
+        {{ else }}
+        <article class="empty-state">
+            <p>All workouts have been reviewed!</p>
+            <p>Check back after athletes log new sessions.</p>
+        </article>
+        {{ end }}
+{{ end }}

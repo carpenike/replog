@@ -115,6 +115,22 @@ CREATE TABLE IF NOT EXISTS body_weights (
 CREATE INDEX IF NOT EXISTS idx_body_weights_athlete_date
     ON body_weights(athlete_id, date DESC);
 
+CREATE TABLE IF NOT EXISTS workout_reviews (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    workout_id  INTEGER NOT NULL UNIQUE REFERENCES workouts(id) ON DELETE CASCADE,
+    coach_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status      TEXT    NOT NULL CHECK(status IN ('approved', 'needs_work')),
+    notes       TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_workout_reviews_workout_id
+    ON workout_reviews(workout_id);
+
+CREATE INDEX IF NOT EXISTS idx_workout_reviews_status
+    ON workout_reviews(status);
+
 CREATE TABLE IF NOT EXISTS program_templates (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
@@ -270,8 +286,18 @@ BEGIN
 END;
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE TRIGGER IF NOT EXISTS trigger_workout_reviews_updated_at
+AFTER UPDATE ON workout_reviews FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE workout_reviews SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+-- +goose StatementEnd
+
 -- +goose Down
 
+DROP TRIGGER IF EXISTS trigger_workout_reviews_updated_at;
 DROP TRIGGER IF EXISTS trigger_athlete_programs_updated_at;
 DROP TRIGGER IF EXISTS trigger_program_templates_updated_at;
 
@@ -286,6 +312,8 @@ DROP INDEX IF EXISTS idx_sessions_expiry;
 DROP INDEX IF EXISTS idx_webauthn_credentials_user_id;
 DROP INDEX IF EXISTS idx_login_tokens_user_id;
 DROP INDEX IF EXISTS idx_login_tokens_token;
+DROP INDEX IF EXISTS idx_workout_reviews_status;
+DROP INDEX IF EXISTS idx_workout_reviews_workout_id;
 DROP INDEX IF EXISTS idx_user_preferences_user_id;
 DROP INDEX IF EXISTS idx_athlete_programs_active;
 DROP INDEX IF EXISTS idx_prescribed_sets_template;
@@ -298,6 +326,7 @@ DROP INDEX IF EXISTS idx_athlete_exercises_unique_active;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS webauthn_credentials;
 DROP TABLE IF EXISTS login_tokens;
+DROP TABLE IF EXISTS workout_reviews;
 DROP TABLE IF EXISTS athlete_programs;
 DROP TABLE IF EXISTS prescribed_sets;
 DROP TABLE IF EXISTS program_templates;

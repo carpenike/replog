@@ -134,10 +134,22 @@ erDiagram
     workouts ||--o{ workout_sets : "contains"
     exercises ||--o{ workout_sets : "performed"
     athletes ||--o{ body_weights : "tracks"
+    workouts ||--o| workout_reviews : "reviewed via"
+    users ||--o{ workout_reviews : "reviews"
     program_templates ||--o{ prescribed_sets : "defines"
     exercises ||--o{ prescribed_sets : "used in"
     athletes ||--o{ athlete_programs : "follows"
     program_templates ||--o{ athlete_programs : "assigned via"
+
+    workout_reviews {
+        INTEGER id PK
+        INTEGER workout_id FK "UNIQUE"
+        INTEGER coach_id FK
+        TEXT status "approved or needs_work"
+        TEXT notes "nullable"
+        DATETIME created_at
+        DATETIME updated_at
+    }
 
     program_templates {
         INTEGER id PK
@@ -330,6 +342,24 @@ erDiagram
 - One weigh-in per athlete per day (`UNIQUE(athlete_id, date)`).
 - `weight` stored in the athlete's preferred unit (lb or kg) — unit convention is per-deployment, not per-row.
 - Deleting an athlete cascades to their body weight history.
+
+### `workout_reviews`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `workout_id`| INTEGER      | NOT NULL UNIQUE, FK → workouts(id) ON DELETE CASCADE |
+| `coach_id`  | INTEGER      | NOT NULL, FK → users(id) ON DELETE CASCADE |
+| `status`    | TEXT         | NOT NULL, CHECK(status IN ('approved', 'needs_work')) |
+| `notes`     | TEXT         | NULL                                 |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- One review per workout (`UNIQUE(workout_id)`) — coaches can update their review but there is only one.
+- `status` is either `approved` (coach is satisfied) or `needs_work` (coach wants the athlete to address feedback).
+- `notes` holds coach feedback ("Great form on the deadlifts! Try to go deeper on squats next time.").
+- `coach_id` records which coach submitted the review.
+- Deleting a workout cascades to its review. Deleting the reviewing coach also cascades.
 
 ### `program_templates`
 
@@ -546,6 +576,29 @@ AFTER UPDATE ON workout_sets FOR EACH ROW
 WHEN OLD.updated_at = NEW.updated_at
 BEGIN
     UPDATE workout_sets SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TABLE IF NOT EXISTS workout_reviews (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    workout_id  INTEGER NOT NULL UNIQUE REFERENCES workouts(id) ON DELETE CASCADE,
+    coach_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status      TEXT    NOT NULL CHECK(status IN ('approved', 'needs_work')),
+    notes       TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_workout_reviews_workout_id
+    ON workout_reviews(workout_id);
+
+CREATE INDEX IF NOT EXISTS idx_workout_reviews_status
+    ON workout_reviews(status);
+
+CREATE TRIGGER IF NOT EXISTS trigger_workout_reviews_updated_at
+AFTER UPDATE ON workout_reviews FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE workout_reviews SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
 CREATE TABLE IF NOT EXISTS program_templates (

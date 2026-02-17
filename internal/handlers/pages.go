@@ -46,6 +46,14 @@ func (p *Pages) Index(w http.ResponseWriter, r *http.Request) {
 		} else {
 			data["Stats"] = stats
 		}
+
+		// Load review stats for the pending reviews card.
+		reviewStats, err := models.GetReviewStats(p.DB)
+		if err != nil {
+			log.Printf("handlers: review stats: %v", err)
+		} else {
+			data["ReviewStats"] = reviewStats
+		}
 	}
 
 	if err := p.Templates.Render(w, r, "index.html", data); err != nil {

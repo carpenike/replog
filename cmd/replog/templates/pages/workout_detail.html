@@ -7,7 +7,7 @@
 
         <div class="page-header">
             <hgroup>
-                <h1>{{ .Workout.Date }}</h1>
+                <h1>{{ .Workout.Date }}{{ if .Review }} <span class="review-badge" data-status="{{ .Review.Status }}">{{ if eq .Review.Status "approved" }}✓ Reviewed{{ else }}⚠ Needs Work{{ end }}</span>{{ end }}</h1>
                 <p>{{ .Athlete.Name }} &mdash; {{ .Workout.SetCount }} sets logged</p>
             </hgroup>
             {{ if .User.IsCoach }}
@@ -115,6 +115,59 @@
                 <button type="button" class="timer-dismiss outline contrast">✕</button>
             </div>
         </div>
+
+        <!-- Coach Review Section -->
+        {{ if .Review }}
+        <section class="review-section">
+            <h2>Coach Review</h2>
+            <article class="review-card" data-status="{{ .Review.Status }}">
+                <header>
+                    <strong>{{ if eq .Review.Status "approved" }}✓ Approved{{ else }}⚠ Needs Work{{ end }}</strong>
+                    <span class="text-muted"> — reviewed by {{ .Review.CoachUsername }}</span>
+                </header>
+                {{ if .Review.Notes.Valid }}
+                <p>{{ .Review.Notes.String }}</p>
+                {{ end }}
+                {{ if .User.IsCoach }}
+                <footer>
+                    <details>
+                        <summary>Update Review</summary>
+                        <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review">
+                            <fieldset role="group">
+                                <label><input type="radio" name="status" value="approved"{{ if eq .Review.Status "approved" }} checked{{ end }}> Approved</label>
+                                <label><input type="radio" name="status" value="needs_work"{{ if eq .Review.Status "needs_work" }} checked{{ end }}> Needs Work</label>
+                            </fieldset>
+                            <label for="review_notes">Feedback
+                                <textarea id="review_notes" name="notes" rows="2" placeholder="Optional coaching feedback">{{ if .Review.Notes.Valid }}{{ .Review.Notes.String }}{{ end }}</textarea>
+                            </label>
+                            <div class="review-actions">
+                                <button type="submit" class="outline secondary">Update Review</button>
+                                <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review/delete" class="inline"
+                                      hx-confirm="Remove this review?">
+                                    <button type="submit" class="outline contrast">Remove Review</button>
+                                </form>
+                            </div>
+                        </form>
+                    </details>
+                </footer>
+                {{ end }}
+            </article>
+        </section>
+        {{ else if .User.IsCoach }}
+        <section class="review-section">
+            <h2>Coach Review</h2>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review">
+                <fieldset role="group">
+                    <label><input type="radio" name="status" value="approved" checked> Approved</label>
+                    <label><input type="radio" name="status" value="needs_work"> Needs Work</label>
+                </fieldset>
+                <label for="review_notes">Feedback
+                    <textarea id="review_notes" name="notes" rows="2" placeholder="Optional coaching feedback"></textarea>
+                </label>
+                <button type="submit">Submit Review</button>
+            </form>
+        </section>
+        {{ end }}
 
         <!-- Add Set Form -->
         <section>

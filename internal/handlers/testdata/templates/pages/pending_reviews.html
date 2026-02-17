@@ -1,0 +1,27 @@
+{{ define "title" }}RepLog — Pending Reviews{{ end }}
+
+{{ define "content" }}
+<h1>Pending Reviews</h1>
+{{ if .Unreviewed }}
+<table>
+    <thead>
+        <tr>
+            <th>Athlete</th>
+            <th>Date</th>
+            <th>Sets</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{ range .Unreviewed }}
+        <tr>
+            <td>{{ .AthleteName }}</td>
+            <td><a href="/athletes/{{ .AthleteID }}/workouts/{{ .WorkoutID }}">{{ .Date }}</a></td>
+            <td>{{ .SetCount }}</td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
+{{ else }}
+<p>All workouts have been reviewed!</p>
+{{ end }}
+{{ end }}
