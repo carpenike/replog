@@ -31,62 +31,7 @@
             </form>
         </details>
 
-        <!-- Logged Sets -->
-        {{ if .Groups }}
-        <section>
-            <h2>Logged Sets</h2>
-            {{ range .Groups }}
-            <details open class="exercise-group">
-                <summary><strong>{{ .ExerciseName }}</strong> <span class="text-muted">({{ len .Sets }} sets)</span></summary>
-                <table class="striped">
-                    <thead>
-                        <tr>
-                            <th scope="col">Set</th>
-                            <th scope="col">Reps</th>
-                            <th scope="col">Weight</th>
-                            <th scope="col">RPE</th>
-                            <th scope="col">Notes</th>
-                            <th scope="col"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{ range .Sets }}
-                        <tr>
-                            <td>{{ .SetNumber }}</td>
-                            <td>{{ .Reps }}</td>
-                            <td>{{ if .Weight.Valid }}{{ formatWeight .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
-                            <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                            <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                            <td class="set-actions">
-                                <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
-                                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/delete" class="inline"
-                                      hx-confirm="Delete this set?">
-                                    <button type="submit" class="outline contrast">✕</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {{ end }}
-                    </tbody>
-                </table>
-            </details>
-            {{ end }}
-        </section>
-        {{ end }}
-
-        <!-- Rest Timer -->
-        <div id="rest-timer" class="rest-timer" style="display:none;">
-            <div class="timer-bar">
-                <div class="timer-progress"></div>
-            </div>
-            <div class="timer-controls">
-                <span class="timer-display">0:00</span>
-                <button type="button" class="timer-toggle outline secondary">Pause</button>
-                <button type="button" class="timer-reset outline secondary">Reset</button>
-                <button type="button" class="timer-dismiss outline contrast">✕</button>
-            </div>
-        </div>
-
-        <!-- Add Set Form -->
+        <!-- Log a Set -->
         <section>
             <h2>Log a Set</h2>
 
@@ -208,5 +153,61 @@
             </div>
             {{ end }}
         </section>
+
+        <!-- Rest Timer -->
+        <div id="rest-timer" class="rest-timer" style="display:none;">
+            <div class="timer-bar">
+                <div class="timer-progress"></div>
+            </div>
+            <div class="timer-controls">
+                <span class="timer-display">0:00</span>
+                <button type="button" class="timer-toggle outline secondary">Pause</button>
+                <button type="button" class="timer-reset outline secondary">Reset</button>
+                <button type="button" class="timer-dismiss outline contrast">✕</button>
+            </div>
+        </div>
+
+        <!-- Logged Sets -->
+        {{ if .Groups }}
+        <section>
+            <h2>Logged Sets</h2>
+            {{ range .Groups }}
+            <details open class="exercise-group">
+                <summary><strong>{{ .ExerciseName }}</strong> <span class="text-muted">({{ len .Sets }} sets)</span></summary>
+                <table class="striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Set</th>
+                            <th scope="col">Reps</th>
+                            <th scope="col">Weight</th>
+                            <th scope="col">RPE</th>
+                            <th scope="col">Notes</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Sets }}
+                        <tr>
+                            <td>{{ .SetNumber }}</td>
+                            <td>{{ .Reps }}</td>
+                            <td>{{ if .Weight.Valid }}{{ formatWeight .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                            <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                            <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                            <td class="set-actions">
+                                <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
+                                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/delete" class="inline"
+                                      hx-confirm="Delete this set?">
+                                    <button type="submit" class="outline contrast">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </details>
+            {{ end }}
+        </section>
+        {{ end }}
+
         <script src="/static/js/rest-timer.js"></script>
 {{ end }}

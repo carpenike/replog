@@ -31,148 +31,7 @@
             </form>
         </details>
 
-        <!-- Logged Sets -->
-        {{ if .Groups }}
-        <section>
-            <h2>Logged Sets</h2>
-            {{ range .Groups }}
-            <details open class="exercise-group">
-                <summary><strong>{{ .ExerciseName }}</strong> <span class="text-muted">({{ len .Sets }} sets)</span></summary>
-                {{ $prev := index $.LastSession .ExerciseID }}{{ if $prev }}
-                <details class="last-session">
-                    <summary>Last time ({{ formatDateStr $.Prefs $prev.Date }})</summary>
-                    <div class="last-session-sets">
-                        {{ range $prev.Sets }}
-                        <span class="last-set-chip">{{ .RepsLabel }}{{ if .Weight.Valid }}×{{ formatWeight .Weight.Float64 }}{{ end }}{{ if .RPE.Valid }} @{{ formatWeight .RPE.Float64 }}{{ end }}</span>
-                        {{ end }}
-                    </div>
-                </details>
-                {{ end }}
-                <table class="striped">
-                    <thead>
-                        <tr>
-                            <th scope="col">Set</th>
-                            <th scope="col">Reps</th>
-                            <th scope="col">Weight</th>
-                            <th scope="col">RPE</th>
-                            <th scope="col">Notes</th>
-                            <th scope="col"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{ range .Sets }}
-                        <tr{{ if .RPE.Valid }} data-rpe="{{ .RPE.Float64 }}"{{ end }}>
-                            <td>{{ .SetNumber }}</td>
-                            <td>{{ .RepsLabel }}</td>
-                            <td>{{ if .Weight.Valid }}{{ formatWeight .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
-                            <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                            <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                            <td class="set-actions">
-                                <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
-                                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/delete" class="inline"
-                                      hx-confirm="Delete this set?">
-                                    <button type="submit" class="outline contrast">✕</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {{ end }}
-                    </tbody>
-                </table>
-                <!-- Quick-add: repeat another set for this exercise -->
-                {{ $last := lastSet .Sets }}
-                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets" class="quick-add-form">
-                    <input type="hidden" name="exercise_id" value="{{ .ExerciseID }}">
-                    {{ if $last }}<input type="hidden" name="rep_type" value="{{ $last.RepType }}">{{ end }}
-                    <div class="quick-add-grid">
-                        <label class="field-sm">Reps
-                            <input type="number" name="reps" min="1" required value="{{ if $last }}{{ $last.Reps }}{{ end }}" inputmode="numeric">
-                        </label>
-                        <label class="field-sm">Weight
-                            <input type="number" name="weight" step="0.5" min="0" value="{{ if and $last $last.Weight.Valid }}{{ formatWeight $last.Weight.Float64 }}{{ end }}" inputmode="numeric">
-                        </label>
-                        <label class="field-sm">RPE
-                            <input type="number" name="rpe" step="0.5" min="1" max="10" value="{{ if and $last $last.RPE.Valid }}{{ $last.RPE.Float64 }}{{ end }}" inputmode="numeric">
-                        </label>
-                        <button type="submit" class="outline secondary quick-add-btn">+ Add Set</button>
-                    </div>
-                </form>
-            </details>
-            {{ end }}
-        </section>
-        {{ end }}
-
-        <!-- Rest Timer -->
-        <div id="rest-timer" class="rest-timer" style="display:none;">
-            <div class="timer-ring-container">
-                <svg class="timer-ring" viewBox="0 0 120 120">
-                    <circle class="timer-ring-bg" cx="60" cy="60" r="54" />
-                    <circle class="timer-ring-progress" cx="60" cy="60" r="54" />
-                </svg>
-                <span class="timer-display">0:00</span>
-            </div>
-            <div class="timer-controls">
-                <button type="button" class="timer-toggle outline secondary">Pause</button>
-                <button type="button" class="timer-reset outline secondary">Reset</button>
-                <button type="button" class="timer-dismiss outline contrast">✕</button>
-            </div>
-        </div>
-
-        <!-- Coach Review Section -->
-        {{ if .Review }}
-        {{ if or .Review.Notes.Valid (eq .Review.Status "needs_work") }}
-        <section class="review-section">
-            <h2>Coach Review</h2>
-            <article class="review-card" data-status="{{ .Review.Status }}">
-                <header>
-                    <strong>{{ if eq .Review.Status "approved" }}✓ Approved{{ else }}⚠ Needs Work{{ end }}</strong>
-                    <span class="text-muted"> — reviewed by {{ if .Review.CoachUsername.Valid }}{{ .Review.CoachUsername.String }}{{ else }}(deleted coach){{ end }}</span>
-                </header>
-                {{ if .Review.Notes.Valid }}
-                <p>{{ .Review.Notes.String }}</p>
-                {{ end }}
-                {{ if .CanManage }}
-                <footer>
-                    <details>
-                        <summary>Update Review</summary>
-                        <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review">
-                            <fieldset role="group">
-                                <label><input type="radio" name="status" value="approved"{{ if eq .Review.Status "approved" }} checked{{ end }}> Approved</label>
-                                <label><input type="radio" name="status" value="needs_work"{{ if eq .Review.Status "needs_work" }} checked{{ end }}> Needs Work</label>
-                            </fieldset>
-                            <label for="review_notes">Feedback
-                                <textarea id="review_notes" name="notes" rows="2" placeholder="Optional coaching feedback">{{ if .Review.Notes.Valid }}{{ .Review.Notes.String }}{{ end }}</textarea>
-                            </label>
-                            <div class="review-actions">
-                                <button type="submit" class="outline secondary">Update Review</button>
-                                <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review/delete" class="inline"
-                                      hx-confirm="Remove this review?">
-                                    <button type="submit" class="outline contrast">Remove Review</button>
-                                </form>
-                            </div>
-                        </form>
-                    </details>
-                </footer>
-                {{ end }}
-            </article>
-        </section>
-        {{ end }}
-        {{ else if .CanManage }}
-        <details class="review-section">
-            <summary>Coach Review</summary>
-            <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review">
-                <fieldset role="group">
-                    <label><input type="radio" name="status" value="approved" checked> Approved</label>
-                    <label><input type="radio" name="status" value="needs_work"> Needs Work</label>
-                </fieldset>
-                <label for="review_notes">Feedback
-                    <textarea id="review_notes" name="notes" rows="2" placeholder="Optional coaching feedback"></textarea>
-                </label>
-                <button type="submit">Submit Review</button>
-            </form>
-        </details>
-        {{ end }}
-
-        <!-- Add Set Form -->
+        <!-- Log a Set -->
         <section>
             <h2>Log a Set</h2>
 
@@ -317,5 +176,147 @@
             </div>
             {{ end }}
         </section>
+
+        <!-- Rest Timer -->
+        <div id="rest-timer" class="rest-timer" style="display:none;">
+            <div class="timer-ring-container">
+                <svg class="timer-ring" viewBox="0 0 120 120">
+                    <circle class="timer-ring-bg" cx="60" cy="60" r="54" />
+                    <circle class="timer-ring-progress" cx="60" cy="60" r="54" />
+                </svg>
+                <span class="timer-display">0:00</span>
+            </div>
+            <div class="timer-controls">
+                <button type="button" class="timer-toggle outline secondary">Pause</button>
+                <button type="button" class="timer-reset outline secondary">Reset</button>
+                <button type="button" class="timer-dismiss outline contrast">✕</button>
+            </div>
+        </div>
+
+        <!-- Logged Sets -->
+        {{ if .Groups }}
+        <section>
+            <h2>Logged Sets</h2>
+            {{ range .Groups }}
+            <details open class="exercise-group">
+                <summary><strong>{{ .ExerciseName }}</strong> <span class="text-muted">({{ len .Sets }} sets)</span></summary>
+                {{ $prev := index $.LastSession .ExerciseID }}{{ if $prev }}
+                <details class="last-session">
+                    <summary>Last time ({{ formatDateStr $.Prefs $prev.Date }})</summary>
+                    <div class="last-session-sets">
+                        {{ range $prev.Sets }}
+                        <span class="last-set-chip">{{ .RepsLabel }}{{ if .Weight.Valid }}×{{ formatWeight .Weight.Float64 }}{{ end }}{{ if .RPE.Valid }} @{{ formatWeight .RPE.Float64 }}{{ end }}</span>
+                        {{ end }}
+                    </div>
+                </details>
+                {{ end }}
+                <table class="striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Set</th>
+                            <th scope="col">Reps</th>
+                            <th scope="col">Weight</th>
+                            <th scope="col">RPE</th>
+                            <th scope="col">Notes</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Sets }}
+                        <tr{{ if .RPE.Valid }} data-rpe="{{ .RPE.Float64 }}"{{ end }}>
+                            <td>{{ .SetNumber }}</td>
+                            <td>{{ .RepsLabel }}</td>
+                            <td>{{ if .Weight.Valid }}{{ formatWeight .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                            <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                            <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                            <td class="set-actions">
+                                <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
+                                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/delete" class="inline"
+                                      hx-confirm="Delete this set?">
+                                    <button type="submit" class="outline contrast">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                <!-- Quick-add: repeat another set for this exercise -->
+                {{ $last := lastSet .Sets }}
+                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets" class="quick-add-form">
+                    <input type="hidden" name="exercise_id" value="{{ .ExerciseID }}">
+                    {{ if $last }}<input type="hidden" name="rep_type" value="{{ $last.RepType }}">{{ end }}
+                    <div class="quick-add-grid">
+                        <label class="field-sm">Reps
+                            <input type="number" name="reps" min="1" required value="{{ if $last }}{{ $last.Reps }}{{ end }}" inputmode="numeric">
+                        </label>
+                        <label class="field-sm">Weight
+                            <input type="number" name="weight" step="0.5" min="0" value="{{ if and $last $last.Weight.Valid }}{{ formatWeight $last.Weight.Float64 }}{{ end }}" inputmode="numeric">
+                        </label>
+                        <label class="field-sm">RPE
+                            <input type="number" name="rpe" step="0.5" min="1" max="10" value="{{ if and $last $last.RPE.Valid }}{{ $last.RPE.Float64 }}{{ end }}" inputmode="numeric">
+                        </label>
+                        <button type="submit" class="outline secondary quick-add-btn">+ Add Set</button>
+                    </div>
+                </form>
+            </details>
+            {{ end }}
+        </section>
+        {{ end }}
+
+        <!-- Coach Review Section -->
+        {{ if .Review }}
+        {{ if or .Review.Notes.Valid (eq .Review.Status "needs_work") }}
+        <section class="review-section">
+            <h2>Coach Review</h2>
+            <article class="review-card" data-status="{{ .Review.Status }}">
+                <header>
+                    <strong>{{ if eq .Review.Status "approved" }}✓ Approved{{ else }}⚠ Needs Work{{ end }}</strong>
+                    <span class="text-muted"> — reviewed by {{ if .Review.CoachUsername.Valid }}{{ .Review.CoachUsername.String }}{{ else }}(deleted coach){{ end }}</span>
+                </header>
+                {{ if .Review.Notes.Valid }}
+                <p>{{ .Review.Notes.String }}</p>
+                {{ end }}
+                {{ if .CanManage }}
+                <footer>
+                    <details>
+                        <summary>Update Review</summary>
+                        <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review">
+                            <fieldset role="group">
+                                <label><input type="radio" name="status" value="approved"{{ if eq .Review.Status "approved" }} checked{{ end }}> Approved</label>
+                                <label><input type="radio" name="status" value="needs_work"{{ if eq .Review.Status "needs_work" }} checked{{ end }}> Needs Work</label>
+                            </fieldset>
+                            <label for="review_notes">Feedback
+                                <textarea id="review_notes" name="notes" rows="2" placeholder="Optional coaching feedback">{{ if .Review.Notes.Valid }}{{ .Review.Notes.String }}{{ end }}</textarea>
+                            </label>
+                            <div class="review-actions">
+                                <button type="submit" class="outline secondary">Update Review</button>
+                                <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review/delete" class="inline"
+                                      hx-confirm="Remove this review?">
+                                    <button type="submit" class="outline contrast">Remove Review</button>
+                                </form>
+                            </div>
+                        </form>
+                    </details>
+                </footer>
+                {{ end }}
+            </article>
+        </section>
+        {{ end }}
+        {{ else if .CanManage }}
+        <details class="review-section">
+            <summary>Coach Review</summary>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review">
+                <fieldset role="group">
+                    <label><input type="radio" name="status" value="approved" checked> Approved</label>
+                    <label><input type="radio" name="status" value="needs_work"> Needs Work</label>
+                </fieldset>
+                <label for="review_notes">Feedback
+                    <textarea id="review_notes" name="notes" rows="2" placeholder="Optional coaching feedback"></textarea>
+                </label>
+                <button type="submit">Submit Review</button>
+            </form>
+        </details>
+        {{ end }}
+
         <script src="/static/js/rest-timer.js"></script>
 {{ end }}
