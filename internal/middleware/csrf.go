@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"net/http"
+	"strings"
 
 	"github.com/alexedwards/scs/v2"
 )
@@ -36,9 +37,15 @@ func CSRFProtect(sm *scs.SessionManager, next http.Handler) http.Handler {
 		case http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch:
 			requestToken := r.Header.Get("X-CSRF-Token")
 			if requestToken == "" {
-				// Fallback: check form field. ParseForm is idempotent.
+				// Fallback: check form field. ParseForm handles
+				// url-encoded bodies; for multipart (file uploads)
+				// we also need ParseMultipartForm.
 				_ = r.ParseForm()
 				requestToken = r.FormValue("csrf_token")
+				if requestToken == "" && isMultipart(r) {
+					_ = r.ParseMultipartForm(32 << 20) // 32 MB limit
+					requestToken = r.FormValue("csrf_token")
+				}
 			}
 			if !csrfTokensMatch(token, requestToken) {
 				http.Error(w, "Forbidden — invalid CSRF token", http.StatusForbidden)
@@ -75,4 +82,10 @@ func csrfTokensMatch(expected, actual string) bool {
 		return false
 	}
 	return subtle.ConstantTimeCompare([]byte(expected), []byte(actual)) == 1
+}
+
+// isMultipart reports whether the request has a multipart/form-data content type.
+func isMultipart(r *http.Request) bool {
+	ct := r.Header.Get("Content-Type")
+	return strings.HasPrefix(ct, "multipart/form-data")
 }
