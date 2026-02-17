@@ -95,7 +95,10 @@
             <article style="border-left: 3px solid var(--pico-primary); padding-left: 1rem;">
                 <p><strong>New login link created!</strong></p>
                 <p>Copy this link and send it to the device. It will only be shown once in full.</p>
-                <input type="text" value="{{ .NewTokenURL }}" readonly onclick="this.select()" aria-label="Login URL">
+                <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem;">
+                    <input type="text" value="{{ .NewTokenURL }}" readonly onclick="this.select()" aria-label="Login URL" style="flex:1; margin-bottom:0;">
+                    <button type="button" style="width:auto; white-space:nowrap; margin-bottom:0;" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='Copy'},2000)})">Copy</button>
+                </div>
                 <p><small>Tip: On iOS Safari, open this link, then tap Share → Add to Home Screen for one-tap login.</small></p>
             </article>
             {{ end }}
