@@ -140,6 +140,86 @@ func TestDeleteSet_NotFound(t *testing.T) {
 	}
 }
 
+func TestAddMultipleSets(t *testing.T) {
+	db := testDB(t)
+
+	a, _ := CreateAthlete(db, "Multi Athlete", "", "")
+	e, _ := CreateExercise(db, "Multi Lift", "", 0, "", "", 0)
+	w, _ := CreateWorkout(db, a.ID, "2026-10-01", "")
+
+	t.Run("creates correct number of sets", func(t *testing.T) {
+		sets, err := AddMultipleSets(db, w.ID, e.ID, 5, 5, 135, 0, "")
+		if err != nil {
+			t.Fatalf("add multiple sets: %v", err)
+		}
+		if len(sets) != 5 {
+			t.Fatalf("got %d sets, want 5", len(sets))
+		}
+		for i, s := range sets {
+			if s.SetNumber != i+1 {
+				t.Errorf("set %d: set_number = %d, want %d", i, s.SetNumber, i+1)
+			}
+			if s.Reps != 5 {
+				t.Errorf("set %d: reps = %d, want 5", i, s.Reps)
+			}
+			if !s.Weight.Valid || s.Weight.Float64 != 135 {
+				t.Errorf("set %d: weight = %v, want 135", i, s.Weight)
+			}
+		}
+	})
+
+	t.Run("continues numbering after existing sets", func(t *testing.T) {
+		// Already have 5 sets (1-5), adding 3 more should start at 6.
+		sets, err := AddMultipleSets(db, w.ID, e.ID, 3, 3, 155, 0, "")
+		if err != nil {
+			t.Fatalf("add more sets: %v", err)
+		}
+		if sets[0].SetNumber != 6 {
+			t.Errorf("first new set_number = %d, want 6", sets[0].SetNumber)
+		}
+		if sets[2].SetNumber != 8 {
+			t.Errorf("last new set_number = %d, want 8", sets[2].SetNumber)
+		}
+	})
+
+	t.Run("count=1 delegates to AddSet", func(t *testing.T) {
+		e2, _ := CreateExercise(db, "Single Lift", "", 0, "", "", 0)
+		sets, err := AddMultipleSets(db, w.ID, e2.ID, 1, 10, 50, 0, "")
+		if err != nil {
+			t.Fatalf("add single set via multi: %v", err)
+		}
+		if len(sets) != 1 {
+			t.Fatalf("got %d sets, want 1", len(sets))
+		}
+		if sets[0].SetNumber != 1 {
+			t.Errorf("set_number = %d, want 1", sets[0].SetNumber)
+		}
+	})
+
+	t.Run("count=0 returns error", func(t *testing.T) {
+		_, err := AddMultipleSets(db, w.ID, e.ID, 0, 5, 100, 0, "")
+		if err == nil {
+			t.Error("expected error for count=0")
+		}
+	})
+
+	t.Run("preserves RPE and notes", func(t *testing.T) {
+		e3, _ := CreateExercise(db, "RPE Lift", "", 0, "", "", 0)
+		sets, err := AddMultipleSets(db, w.ID, e3.ID, 2, 5, 100, 8.5, "heavy")
+		if err != nil {
+			t.Fatalf("add sets with RPE: %v", err)
+		}
+		for i, s := range sets {
+			if !s.RPE.Valid || s.RPE.Float64 != 8.5 {
+				t.Errorf("set %d: RPE = %v, want 8.5", i, s.RPE)
+			}
+			if !s.Notes.Valid || s.Notes.String != "heavy" {
+				t.Errorf("set %d: notes = %v, want heavy", i, s.Notes)
+			}
+		}
+	})
+}
+
 func TestListExerciseHistory(t *testing.T) {
 	db := testDB(t)
 

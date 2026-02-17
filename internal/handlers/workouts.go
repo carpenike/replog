@@ -288,15 +288,22 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Sticky exercise: if redirected from AddSet, pre-select the exercise.
+	var selectedExerciseID int64
+	if eidStr := r.URL.Query().Get("exercise_id"); eidStr != "" {
+		selectedExerciseID, _ = strconv.ParseInt(eidStr, 10, 64)
+	}
+
 	data := map[string]any{
-		"Athlete":      athlete,
-		"Workout":      workout,
-		"Groups":       groups,
-		"Assigned":     assigned,
-		"Unassigned":   unassigned,
-		"TMByExercise": tmByExercise,
-		"Prescription": prescription,
-		"LastSession":  lastSession,
+		"Athlete":            athlete,
+		"Workout":            workout,
+		"Groups":             groups,
+		"Assigned":           assigned,
+		"Unassigned":         unassigned,
+		"TMByExercise":       tmByExercise,
+		"Prescription":       prescription,
+		"LastSession":        lastSession,
+		"SelectedExerciseID": selectedExerciseID,
 	}
 	if err := h.Templates.Render(w, r, "workout_detail.html", data); err != nil {
 		log.Printf("handlers: workout detail template: %v", err)
@@ -477,9 +484,27 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err = models.AddSet(h.DB, workoutID, exerciseID, reps, weight, rpe, notes)
+	// Support bulk-adding identical sets (e.g. 5×5 @ 135).
+	setCount := 1
+	if sc := r.FormValue("sets"); sc != "" {
+		setCount, err = strconv.Atoi(sc)
+		if err != nil || setCount < 1 {
+			http.Error(w, "Sets must be a positive number", http.StatusBadRequest)
+			return
+		}
+		if setCount > 20 {
+			http.Error(w, "Cannot log more than 20 sets at once", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if setCount > 1 {
+		_, err = models.AddMultipleSets(h.DB, workoutID, exerciseID, setCount, reps, weight, rpe, notes)
+	} else {
+		_, err = models.AddSet(h.DB, workoutID, exerciseID, reps, weight, rpe, notes)
+	}
 	if err != nil {
-		log.Printf("handlers: add set to workout %d: %v", workoutID, err)
+		log.Printf("handlers: add set(s) to workout %d: %v", workoutID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -490,7 +515,9 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 		restSeconds = ex.EffectiveRestSeconds()
 	}
 
-	redirectURL := "/athletes/" + strconv.FormatInt(athleteID, 10) + "/workouts/" + strconv.FormatInt(workoutID, 10) + "?timer=" + strconv.Itoa(restSeconds)
+	// Include exercise_id in redirect for sticky exercise selection.
+	redirectURL := "/athletes/" + strconv.FormatInt(athleteID, 10) + "/workouts/" + strconv.FormatInt(workoutID, 10) +
+		"?timer=" + strconv.Itoa(restSeconds) + "&exercise_id=" + strconv.FormatInt(exerciseID, 10)
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 

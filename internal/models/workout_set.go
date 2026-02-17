@@ -73,6 +73,78 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 	return GetSetByID(db, id)
 }
 
+// AddMultipleSets inserts count identical sets for a workout+exercise in a
+// single transaction. Returns the created sets. Useful for logging e.g.
+// "5×5 @ 135 lbs" in one action.
+func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, weight float64, rpe float64, notes string) ([]*WorkoutSet, error) {
+	if count <= 0 {
+		return nil, fmt.Errorf("models: set count must be positive, got %d", count)
+	}
+	if count == 1 {
+		s, err := AddSet(db, workoutID, exerciseID, reps, weight, rpe, notes)
+		if err != nil {
+			return nil, err
+		}
+		return []*WorkoutSet{s}, nil
+	}
+
+	var weightVal sql.NullFloat64
+	if weight > 0 {
+		weightVal = sql.NullFloat64{Float64: weight, Valid: true}
+	}
+	var rpeVal sql.NullFloat64
+	if rpe > 0 {
+		rpeVal = sql.NullFloat64{Float64: rpe, Valid: true}
+	}
+	var notesVal sql.NullString
+	if notes != "" {
+		notesVal = sql.NullString{String: notes, Valid: true}
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("models: begin tx for add multiple sets: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Compute next set_number for this workout+exercise.
+	var nextSet int
+	err = tx.QueryRow(
+		`SELECT COALESCE(MAX(set_number), 0) + 1 FROM workout_sets WHERE workout_id = ? AND exercise_id = ?`,
+		workoutID, exerciseID,
+	).Scan(&nextSet)
+	if err != nil {
+		return nil, fmt.Errorf("models: compute next set number: %w", err)
+	}
+
+	var ids []int64
+	for i := 0; i < count; i++ {
+		result, err := tx.Exec(
+			`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			workoutID, exerciseID, nextSet+i, reps, weightVal, rpeVal, notesVal,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("models: add set %d of %d to workout %d: %w", i+1, count, workoutID, err)
+		}
+		id, _ := result.LastInsertId()
+		ids = append(ids, id)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("models: commit add multiple sets: %w", err)
+	}
+
+	sets := make([]*WorkoutSet, 0, len(ids))
+	for _, id := range ids {
+		s, err := GetSetByID(db, id)
+		if err != nil {
+			return nil, fmt.Errorf("models: get created set %d: %w", id, err)
+		}
+		sets = append(sets, s)
+	}
+	return sets, nil
+}
+
 // GetSetByID retrieves a workout set by primary key.
 func GetSetByID(db *sql.DB, id int64) (*WorkoutSet, error) {
 	s := &WorkoutSet{}

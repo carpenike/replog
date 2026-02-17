@@ -151,6 +151,14 @@ var templateFuncs = template.FuncMap{
 		}
 		return t.Format(format)
 	},
+	// lastSet returns the last WorkoutSet in a slice. Used by the quick-add
+	// form to pre-fill reps/weight from the most recent set in a group.
+	"lastSet": func(sets []*models.WorkoutSet) *models.WorkoutSet {
+		if len(sets) == 0 {
+			return nil
+		}
+		return sets[len(sets)-1]
+	},
 }
 
 // TemplateCache maps page filenames to parsed template sets. Each set contains

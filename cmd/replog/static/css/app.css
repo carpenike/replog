@@ -840,19 +840,52 @@ main.container {
 /* ---- Workout Detail — Log Set Form ---- */
 .log-set-grid {
     display: grid;
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: 1fr auto auto auto auto;
     gap: 0.75rem;
     align-items: start;
 }
 
 @media (max-width: 576px) {
     .log-set-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+    }
+    .log-set-grid > label:first-child {
+        grid-column: 1 / -1;
     }
 }
 
 .field-sm {
     max-width: 7rem;
+}
+
+/* ---- Quick-Add Form (inline per exercise group) ---- */
+.quick-add-form {
+    margin: 0;
+    padding: 0.5rem 0 0;
+    border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.quick-add-grid {
+    display: flex;
+    gap: 0.5rem;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.quick-add-grid label {
+    margin-bottom: 0;
+}
+
+.quick-add-grid input {
+    max-width: 5.5rem;
+    margin-bottom: 0;
+}
+
+.quick-add-btn {
+    margin-bottom: 0;
+    white-space: nowrap;
+    align-self: end;
+    padding: 0.5rem 0.75rem;
 }
 
 /* ---- Set Actions ---- */

@@ -255,6 +255,103 @@ func TestWorkouts_AddSet_InvalidReps(t *testing.T) {
 	}
 }
 
+func TestWorkouts_AddSet_BulkSets(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Bench Press", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-12", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{
+		"exercise_id": {itoa(ex.ID)},
+		"reps":        {"5"},
+		"weight":      {"135"},
+		"sets":        {"3"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.AddSet(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	// Verify 3 sets were created.
+	groups, err := models.ListSetsByWorkout(db, workout.ID)
+	if err != nil {
+		t.Fatalf("list sets: %v", err)
+	}
+	if len(groups) != 1 {
+		t.Fatalf("groups = %d, want 1", len(groups))
+	}
+	if len(groups[0].Sets) != 3 {
+		t.Errorf("sets = %d, want 3", len(groups[0].Sets))
+	}
+}
+
+func TestWorkouts_AddSet_BulkTooMany(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-13", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{
+		"exercise_id": {itoa(ex.ID)},
+		"reps":        {"5"},
+		"weight":      {"225"},
+		"sets":        {"21"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.AddSet(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for >20 sets, got %d", rr.Code)
+	}
+}
+
+func TestWorkouts_AddSet_StickyExercise(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+	ex := seedExercise(t, db, "Squat", "", 0)
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-14", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{
+		"exercise_id": {itoa(ex.ID)},
+		"reps":        {"5"},
+		"weight":      {"225"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.AddSet(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	location := rr.Header().Get("Location")
+	if !strings.Contains(location, "exercise_id="+itoa(ex.ID)) {
+		t.Errorf("redirect URL should contain exercise_id param, got %s", location)
+	}
+}
+
 func TestWorkouts_UpdateSet_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
