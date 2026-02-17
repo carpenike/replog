@@ -45,15 +45,24 @@
             </label>
 
             <label for="athlete_id">Linked Athlete
-                <select id="athlete_id" name="athlete_id">
+                <select id="athlete_id" name="athlete_id" onchange="document.getElementById('new-athlete-fields').style.display = this.value === '__new__' ? '' : 'none'">
                     <option value="">None</option>
                     {{ $currentAthleteID := "" }}
                     {{ if .EditUser }}{{ if .EditUser.AthleteID.Valid }}{{ $currentAthleteID = printf "%d" .EditUser.AthleteID.Int64 }}{{ end }}{{ end }}
                     {{ range .Athletes }}
                     <option value="{{ .ID }}" {{ if eq (printf "%d" .ID) $currentAthleteID }}selected{{ end }}>{{ .Name }}</option>
                     {{ end }}
+                    {{ if not .EditUser }}
+                    <option value="__new__">+ Create new athlete</option>
+                    {{ end }}
                 </select>
             </label>
+
+            <div id="new-athlete-fields" style="display:none;">
+                <label for="new_athlete_name">New Athlete Name
+                    <input type="text" id="new_athlete_name" name="new_athlete_name" placeholder="e.g. Caydan">
+                </label>
+            </div>
 
             <div role="group">
                 <button type="submit">{{ if .EditUser }}Save Changes{{ else }}Create User{{ end }}</button>

@@ -591,3 +591,65 @@ func TestUsers_Update_BlockPasswordForPasswordless(t *testing.T) {
 		t.Errorf("expected 422, got %d", rr.Code)
 	}
 }
+
+func TestUsers_Create_InlineAthleteCreation(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	h := &Users{DB: db, Templates: tc}
+
+	form := url.Values{
+		"username":         {"kidwithathlete"},
+		"password":         {"secret123"},
+		"athlete_id":       {"__new__"},
+		"new_athlete_name": {"Caydan"},
+	}
+	req := requestWithUser("POST", "/users", form, coach)
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	// Verify user was created and linked.
+	u, err := models.GetUserByUsername(db, "kidwithathlete")
+	if err != nil {
+		t.Fatalf("get user: %v", err)
+	}
+	if !u.AthleteID.Valid {
+		t.Fatal("expected user to be linked to an athlete")
+	}
+
+	// Verify athlete was created.
+	athlete, err := models.GetAthleteByID(db, u.AthleteID.Int64)
+	if err != nil {
+		t.Fatalf("get athlete: %v", err)
+	}
+	if athlete.Name != "Caydan" {
+		t.Errorf("athlete name = %q, want Caydan", athlete.Name)
+	}
+}
+
+func TestUsers_Create_InlineAthleteEmptyName(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	h := &Users{DB: db, Templates: tc}
+
+	form := url.Values{
+		"username":         {"kidnoname"},
+		"password":         {"secret123"},
+		"athlete_id":       {"__new__"},
+		"new_athlete_name": {""},
+	}
+	req := requestWithUser("POST", "/users", form, coach)
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}

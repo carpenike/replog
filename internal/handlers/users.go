@@ -100,7 +100,22 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var athleteID sql.NullInt64
-	if aidStr := r.FormValue("athlete_id"); aidStr != "" {
+	aidStr := r.FormValue("athlete_id")
+	if aidStr == "__new__" {
+		// Inline athlete creation.
+		newAthleteName := r.FormValue("new_athlete_name")
+		if newAthleteName == "" {
+			h.renderFormError(w, r, "Athlete name is required when creating a new athlete.", nil)
+			return
+		}
+		athlete, err := models.CreateAthlete(h.DB, newAthleteName, "", "")
+		if err != nil {
+			log.Printf("handlers: inline create athlete: %v", err)
+			h.renderFormError(w, r, "Failed to create athlete.", nil)
+			return
+		}
+		athleteID = sql.NullInt64{Int64: athlete.ID, Valid: true}
+	} else if aidStr != "" {
 		aid, err := strconv.ParseInt(aidStr, 10, 64)
 		if err == nil {
 			athleteID = sql.NullInt64{Int64: aid, Valid: true}
