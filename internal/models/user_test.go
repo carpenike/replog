@@ -252,3 +252,51 @@ func TestUpdateUser(t *testing.T) {
 		}
 	})
 }
+
+func TestUpdateAvatarPath(t *testing.T) {
+	db := testDB(t)
+
+	u, _ := CreateUser(db, "avatartest", "", "pass", "", false, false, sql.NullInt64{})
+
+	// Initially no avatar.
+	if u.HasAvatar() {
+		t.Error("new user should not have avatar")
+	}
+	if u.AvatarURL() != "" {
+		t.Errorf("AvatarURL = %q, want empty", u.AvatarURL())
+	}
+
+	t.Run("set avatar", func(t *testing.T) {
+		err := UpdateAvatarPath(db, u.ID, sql.NullString{String: "1_abc123.png", Valid: true})
+		if err != nil {
+			t.Fatalf("update avatar: %v", err)
+		}
+
+		updated, _ := GetUserByID(db, u.ID)
+		if !updated.HasAvatar() {
+			t.Error("expected HasAvatar() to be true")
+		}
+		if updated.AvatarURL() != "/avatars/1_abc123.png" {
+			t.Errorf("AvatarURL = %q, want /avatars/1_abc123.png", updated.AvatarURL())
+		}
+	})
+
+	t.Run("clear avatar", func(t *testing.T) {
+		err := UpdateAvatarPath(db, u.ID, sql.NullString{})
+		if err != nil {
+			t.Fatalf("clear avatar: %v", err)
+		}
+
+		updated, _ := GetUserByID(db, u.ID)
+		if updated.HasAvatar() {
+			t.Error("expected HasAvatar() to be false after clear")
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		err := UpdateAvatarPath(db, 99999, sql.NullString{String: "x.png", Valid: true})
+		if err != ErrNotFound {
+			t.Errorf("err = %v, want ErrNotFound", err)
+		}
+	})
+}

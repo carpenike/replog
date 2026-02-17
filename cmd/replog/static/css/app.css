@@ -207,6 +207,17 @@ button:active:not(:disabled),
     transform: scale(0.98);
 }
 
+/* Form action button groups — separate buttons instead of merged bar */
+form > div[role="group"] {
+    gap: var(--space-sm);
+}
+
+form > div[role="group"] > *,
+form > div[role="group"] > :first-child,
+form > div[role="group"] > :last-child {
+    border-radius: var(--radius-sm);
+}
+
 /* Compact action buttons */
 .outline.secondary,
 .outline.contrast {
@@ -515,6 +526,73 @@ table a:hover {
     letter-spacing: 0.02em;
     flex-shrink: 0;
     user-select: none;
+}
+
+.user-avatar--img {
+    object-fit: cover;
+    background: none;
+}
+
+/* Avatar settings on preferences page */
+.avatar-settings {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.avatar-preview {
+    flex-shrink: 0;
+}
+
+.avatar-img--lg,
+.avatar-placeholder--lg {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+}
+
+.avatar-img--lg {
+    object-fit: cover;
+    display: block;
+}
+
+.avatar-placeholder--lg {
+    background: var(--pico-primary);
+    color: var(--pico-primary-inverse);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    user-select: none;
+}
+
+.avatar-actions small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--text-tertiary);
+}
+
+.avatar-file-label {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border: 1px solid var(--pico-primary);
+    border-radius: var(--pico-border-radius);
+    color: var(--pico-primary);
+    background: transparent;
+    transition: background 0.2s;
+}
+
+.avatar-file-label:hover {
+    background: var(--primary-alpha-subtle);
+}
+
+.avatar-file-input {
+    display: none;
 }
 
 .user-info {

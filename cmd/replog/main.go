@@ -43,6 +43,12 @@ func main() {
 		addr = ":8080"
 	}
 
+	// Determine avatar storage directory — defaults to a sibling of the DB file.
+	avatarDir := os.Getenv("REPLOG_AVATAR_DIR")
+	if avatarDir == "" {
+		avatarDir = filepath.Join(filepath.Dir(dbPath), "avatars")
+	}
+
 	// Open database and run migrations.
 	db, err := database.Open(dbPath)
 	if err != nil {
@@ -150,6 +156,11 @@ func main() {
 		DB:        db,
 		Templates: tc,
 	}
+	avatars := &handlers.Avatars{
+		DB:        db,
+		Templates: tc,
+		AvatarDir: avatarDir,
+	}
 
 	// Configure WebAuthn for passkey support.
 	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
@@ -212,6 +223,7 @@ func main() {
 	// --- Public routes — no auth required ---
 	r.Handle("/static/*", staticCacheControl(http.FileServerFS(staticFS)))
 	r.Get("/health", handleHealth)
+	r.Get("/avatars/{filename}", avatars.Serve)
 
 	// --- Session-loaded routes — login/logout/token auth ---
 	r.Group(func(r chi.Router) {
@@ -239,6 +251,10 @@ func main() {
 		// User Preferences (self-service — any authenticated user).
 		r.Get("/preferences", preferences.EditForm)
 		r.Post("/preferences", preferences.Update)
+
+		// Avatar upload/delete (self-service — any authenticated user).
+		r.Post("/avatars/upload", avatars.Upload)
+		r.Post("/avatars/delete", avatars.Delete)
 
 		// Athletes — read access.
 		r.Get("/athletes", athletes.List)

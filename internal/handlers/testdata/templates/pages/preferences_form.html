@@ -15,6 +15,21 @@
         <div class="alert alert-error" role="alert">{{ .Error }}</div>
         {{ end }}
 
+        <section>
+            <h2>Avatar</h2>
+            <div class="avatar-settings">
+                <div class="avatar-preview">
+                    {{ if and .AvatarUser .AvatarUser.HasAvatar }}
+                    <img src="{{ .AvatarUser.AvatarURL }}" alt="Your avatar" class="avatar-img avatar-img--lg">
+                    {{ else }}
+                    <div class="avatar-placeholder avatar-placeholder--lg">{{ userInitials (displayName .User) }}</div>
+                    {{ end }}
+                </div>
+            </div>
+        </section>
+
+        <hr>
+
         <form method="POST" action="/preferences">
             <label for="weight_unit">Weight Unit
                 <select id="weight_unit" name="weight_unit">

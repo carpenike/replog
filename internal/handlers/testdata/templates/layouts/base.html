@@ -149,7 +149,7 @@
             <div class="sidebar-divider"></div>
             <div class="sidebar-user-menu">
                 <button class="sidebar-user" onclick="toggleUserMenu(event)" type="button" aria-expanded="false" aria-haspopup="true">
-                    <div class="user-avatar">{{ userInitials (displayName .User) }}</div>
+                    {{ if .User.HasAvatar }}<img src="{{ .User.AvatarURL }}" alt="" class="user-avatar user-avatar--img">{{ else }}<div class="user-avatar">{{ userInitials (displayName .User) }}</div>{{ end }}
                     <div class="user-info">
                         <div class="user-name">{{ displayName .User }}</div>
                         <div class="user-role">{{ if .User.IsCoach }}Coach{{ else }}Athlete{{ end }}</div>

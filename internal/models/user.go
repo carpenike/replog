@@ -32,8 +32,23 @@ type User struct {
 	AthleteID    sql.NullInt64
 	IsCoach      bool
 	IsAdmin      bool
+	AvatarPath   sql.NullString
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+// HasAvatar reports whether the user has an avatar image set.
+func (u *User) HasAvatar() bool {
+	return u.AvatarPath.Valid && u.AvatarPath.String != ""
+}
+
+// AvatarURL returns the URL path for the user's avatar image.
+// Returns empty string if no avatar is set.
+func (u *User) AvatarURL() string {
+	if !u.HasAvatar() {
+		return ""
+	}
+	return "/avatars/" + u.AvatarPath.String
 }
 
 // HasPassword reports whether the user has a password set.
@@ -117,9 +132,9 @@ func CreateUser(db *sql.DB, username, name, password, email string, isCoach bool
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	u := &User{}
 	err := db.QueryRow(
-		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, created_at, updated_at
+		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, avatar_path, created_at, updated_at
 		 FROM users WHERE id = ?`, id,
-	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -133,9 +148,9 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	u := &User{}
 	err := db.QueryRow(
-		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, created_at, updated_at
+		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, avatar_path, created_at, updated_at
 		 FROM users WHERE username = ?`, username,
-	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -175,7 +190,7 @@ func CountUsers(db *sql.DB) (int, error) {
 // ListUsers returns all users with linked athlete names, ordered by username.
 func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 	rows, err := db.Query(`
-		SELECT u.id, u.username, u.name, u.email, COALESCE(u.password_hash, ''), u.athlete_id, u.is_coach, u.is_admin, u.created_at, u.updated_at,
+		SELECT u.id, u.username, u.name, u.email, COALESCE(u.password_hash, ''), u.athlete_id, u.is_coach, u.is_admin, u.avatar_path, u.created_at, u.updated_at,
 		       a.name
 		FROM users u
 		LEFT JOIN athletes a ON u.athlete_id = a.id
@@ -190,7 +205,7 @@ func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 	var users []*UserWithAthlete
 	for rows.Next() {
 		u := &UserWithAthlete{}
-		if err := rows.Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt, &u.AthleteName); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt, &u.AthleteName); err != nil {
 			return nil, fmt.Errorf("models: list users scan: %w", err)
 		}
 		users = append(users, u)
@@ -246,6 +261,19 @@ func UpdatePassword(db *sql.DB, id int64, newPassword string) error {
 	result, err := db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, hash, id)
 	if err != nil {
 		return fmt.Errorf("models: update password for user %d: %w", id, err)
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// UpdateAvatarPath sets the avatar_path for a user.
+func UpdateAvatarPath(db *sql.DB, id int64, avatarPath sql.NullString) error {
+	result, err := db.Exec(`UPDATE users SET avatar_path = ? WHERE id = ?`, avatarPath, id)
+	if err != nil {
+		return fmt.Errorf("models: update avatar for user %d: %w", id, err)
 	}
 	n, _ := result.RowsAffected()
 	if n == 0 {

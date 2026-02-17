@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     athlete_id      INTEGER REFERENCES athletes(id) ON DELETE SET NULL,
     is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
     is_admin        INTEGER NOT NULL DEFAULT 0 CHECK(is_admin IN (0, 1)),
+    avatar_path     TEXT,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

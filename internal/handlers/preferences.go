@@ -40,6 +40,7 @@ func (h *Preferences) EditForm(w http.ResponseWriter, r *http.Request) {
 		"CommonTimezones": commonTimezones,
 		"Passkeys":        passkeys,
 		"UserID":          user.ID,
+		"AvatarUser":      user,
 	}
 	if err := h.Templates.Render(w, r, "preferences_form.html", data); err != nil {
 		log.Printf("handlers: render preferences form: %v", err)
@@ -73,12 +74,14 @@ func (h *Preferences) Update(w http.ResponseWriter, r *http.Request) {
 // renderFormError re-renders the preferences form with an error message.
 func (h *Preferences) renderFormError(w http.ResponseWriter, r *http.Request, msg string, userID int64) {
 	prefs, _ := models.GetUserPreferences(h.DB, userID)
+	user, _ := models.GetUserByID(h.DB, userID)
 	data := map[string]any{
 		"Error":           msg,
 		"EditPrefs":       prefs,
 		"WeightUnits":     models.ValidWeightUnits,
 		"DateFormats":     models.ValidDateFormats,
 		"CommonTimezones": commonTimezones,
+		"AvatarUser":      user,
 	}
 	w.WriteHeader(http.StatusUnprocessableEntity)
 	if err := h.Templates.Render(w, r, "preferences_form.html", data); err != nil {
