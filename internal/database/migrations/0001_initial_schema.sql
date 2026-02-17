@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS exercises (
     form_notes   TEXT,
     demo_url     TEXT,
     rest_seconds INTEGER,
+    featured     INTEGER NOT NULL DEFAULT 0 CHECK(featured IN (0, 1)),
     created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

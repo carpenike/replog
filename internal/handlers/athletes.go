@@ -229,6 +229,13 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Load featured lifts (current TM, personal best, estimated 1RM).
+	featuredLifts, err := models.ListFeaturedLifts(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: featured lifts for athlete %d: %v", id, err)
+		// Non-fatal — continue without featured data.
+	}
+
 	data := map[string]any{
 		"Athlete":          athlete,
 		"Assignments":      assignments,
@@ -241,6 +248,7 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		"ActiveProgram":    activeProgram,
 		"Prescription":     prescription,
 		"ProgramTemplates": programTemplates,
+		"FeaturedLifts":    featuredLifts,
 		"CanManage":        middleware.CanManageAthlete(user, athlete),
 		"TodayDate":        time.Now().Format("2006-01-02"),
 	}

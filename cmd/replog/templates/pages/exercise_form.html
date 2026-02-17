@@ -42,6 +42,13 @@
                        value="{{ if .Exercise }}{{ if .Exercise.RestSeconds.Valid }}{{ .Exercise.RestSeconds.Int64 }}{{ end }}{{ end }}">
             </label>
 
+            <label class="inline-checkbox">
+                <input type="checkbox" id="featured" name="featured" value="1"
+                       {{ if .Exercise }}{{ if .Exercise.Featured }}checked{{ end }}{{ end }}>
+                Featured Lift
+            </label>
+            <small>Featured lifts are highlighted on athlete profiles with training max and personal best data.</small>
+
             {{ if .AllEquipment }}
             <fieldset>
                 <legend>Equipment Requirements</legend>

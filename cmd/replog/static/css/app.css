@@ -1311,6 +1311,57 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
     margin-bottom: 0;
 }
 
+/* ---- Featured Lifts ---- */
+.featured-lifts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.featured-lift-card {
+    margin: 0;
+    background: var(--bg-2);
+}
+
+.featured-lift-card header {
+    font-weight: 600;
+    font-size: 1rem;
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.featured-lift-stats {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+}
+
+.featured-lift-stats > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.featured-lift-stats dt {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.featured-lift-stats dd {
+    font-size: 0.95rem;
+    margin: 0;
+    text-align: right;
+}
+
+.featured-lift-stats dd strong {
+    font-size: 1.1rem;
+}
+
 /* ---- Cycle Report ---- */
 .cycle-report {
     display: grid;

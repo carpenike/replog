@@ -139,6 +139,41 @@
         </section>
         {{ end }}
 
+        <!-- Featured Lifts -->
+        {{ if .FeaturedLifts }}
+        <section>
+            <h2>Featured Lifts</h2>
+            <p class="text-muted">Key lifts with current training max, personal best, and estimated 1RM.</p>
+            <div class="featured-lifts-grid">
+                {{ range .FeaturedLifts }}
+                <article class="featured-lift-card">
+                    <header>{{ .ExerciseName }}</header>
+                    <dl class="featured-lift-stats">
+                        {{ if .CurrentTM }}
+                        <div>
+                            <dt>Training Max</dt>
+                            <dd><strong>{{ formatWeight .CurrentTM.Weight }}</strong> {{ weightUnit $.Prefs }}</dd>
+                        </div>
+                        {{ end }}
+                        {{ if .BestWeight.Valid }}
+                        <div>
+                            <dt>Personal Best</dt>
+                            <dd><strong>{{ formatWeight .BestWeight.Float64 }}</strong> {{ weightUnit $.Prefs }} × {{ .BestReps }}</dd>
+                        </div>
+                        {{ end }}
+                        {{ if gt .Estimated1RM 0.0 }}
+                        <div>
+                            <dt>Est. 1RM</dt>
+                            <dd><strong>{{ formatWeight .Estimated1RM }}</strong> {{ weightUnit $.Prefs }}</dd>
+                        </div>
+                        {{ end }}
+                    </dl>
+                </article>
+                {{ end }}
+            </div>
+        </section>
+        {{ end }}
+
         <!-- Today's Prescription -->
         {{ if and .ActiveProgram .Prescription }}
         <section>

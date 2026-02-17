@@ -120,7 +120,7 @@ func ListActiveAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, err
 // ListUnassignedExercises returns exercises not actively assigned to an athlete.
 func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 	rows, err := db.Query(`
-		SELECT e.id, e.name, e.tier, e.form_notes, e.created_at, e.updated_at
+		SELECT e.id, e.name, e.tier, e.form_notes, e.featured, e.created_at, e.updated_at
 		FROM exercises e
 		WHERE e.id NOT IN (
 			SELECT exercise_id FROM athlete_exercises
@@ -136,7 +136,7 @@ func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 	var exercises []*Exercise
 	for rows.Next() {
 		e := &Exercise{}
-		if err := rows.Scan(&e.ID, &e.Name, &e.Tier, &e.FormNotes, &e.CreatedAt, &e.UpdatedAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.Name, &e.Tier, &e.FormNotes, &e.Featured, &e.CreatedAt, &e.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("models: scan exercise: %w", err)
 		}
 		exercises = append(exercises, e)
