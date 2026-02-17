@@ -170,6 +170,7 @@ func main() {
 	mux.Handle("GET /login", sessionManager.LoadAndSave(http.HandlerFunc(auth.LoginPage)))
 	mux.Handle("POST /login", sessionManager.LoadAndSave(http.HandlerFunc(auth.LoginSubmit)))
 	mux.Handle("POST /logout", sessionManager.LoadAndSave(http.HandlerFunc(auth.Logout)))
+	mux.Handle("GET /auth/token/{token}", sessionManager.LoadAndSave(http.HandlerFunc(loginTokens.TokenLogin)))
 
 	// Authenticated routes — wrapped with RequireAuth + CSRF middleware.
 	requireAuth := func(h http.HandlerFunc) http.Handler {
