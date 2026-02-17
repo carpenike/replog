@@ -10,10 +10,9 @@
 (function () {
     "use strict";
 
-    // Read CSRF token from the meta tag injected by the base layout.
+    // CSRF token helper — uses the global RepLog.csrfToken() defined in base layout.
     function csrfToken() {
-        var meta = document.querySelector('meta[name="csrf-token"]');
-        return meta ? meta.getAttribute("content") : "";
+        return (window.RepLog && RepLog.csrfToken) ? RepLog.csrfToken() : "";
     }
 
     // Base64URL encode/decode helpers for WebAuthn binary fields.

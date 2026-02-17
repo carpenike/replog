@@ -26,11 +26,18 @@
             }
         });
 
+        // Global CSRF token helper — used by htmx config and passkeys.js fetch calls.
+        window.RepLog = window.RepLog || {};
+        RepLog.csrfToken = function() {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute("content") : "";
+        };
+
         // Attach CSRF token to every htmx request.
         document.addEventListener("htmx:configRequest", function(evt) {
-            var meta = document.querySelector('meta[name="csrf-token"]');
-            if (meta) {
-                evt.detail.headers["X-CSRF-Token"] = meta.getAttribute("content");
+            var token = RepLog.csrfToken();
+            if (token) {
+                evt.detail.headers["X-CSRF-Token"] = token;
             }
         });
 
