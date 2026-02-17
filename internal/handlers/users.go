@@ -103,11 +103,10 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 	var athleteID sql.NullInt64
 	aidStr := r.FormValue("athlete_id")
 	if aidStr == "__new__" {
-		// Inline athlete creation.
+		// Inline athlete creation. Default to username if no name provided.
 		newAthleteName := r.FormValue("new_athlete_name")
 		if newAthleteName == "" {
-			h.renderFormError(w, r, "Athlete name is required when creating a new athlete.", nil)
-			return
+			newAthleteName = username
 		}
 		athlete, err := models.CreateAthlete(h.DB, newAthleteName, "", "", sql.NullInt64{})
 		if err != nil {

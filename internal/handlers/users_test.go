@@ -632,7 +632,7 @@ func TestUsers_Create_InlineAthleteCreation(t *testing.T) {
 	}
 }
 
-func TestUsers_Create_InlineAthleteEmptyName(t *testing.T) {
+func TestUsers_Create_InlineAthleteDefaultsToUsername(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
@@ -649,7 +649,23 @@ func TestUsers_Create_InlineAthleteEmptyName(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h.Create(rr, req)
 
-	if rr.Code != http.StatusUnprocessableEntity {
-		t.Errorf("expected 422, got %d", rr.Code)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	// Verify athlete was created with the username as name.
+	u, err := models.GetUserByUsername(db, "kidnoname")
+	if err != nil {
+		t.Fatalf("get user: %v", err)
+	}
+	if !u.AthleteID.Valid {
+		t.Fatal("expected user to be linked to an athlete")
+	}
+	athlete, err := models.GetAthleteByID(db, u.AthleteID.Int64)
+	if err != nil {
+		t.Fatalf("get athlete: %v", err)
+	}
+	if athlete.Name != "kidnoname" {
+		t.Errorf("athlete name = %q, want kidnoname", athlete.Name)
 	}
 }
