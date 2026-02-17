@@ -1,0 +1,8 @@
+{{ define "title" }}RepLog — {{ if .Equipment }}Edit {{ .Equipment.Name }}{{ else }}New Equipment{{ end }}{{ end }}
+
+{{ define "content" }}
+        <h1>{{ if .Equipment }}Edit {{ .Equipment.Name }}{{ else }}New Equipment{{ end }}</h1>
+        {{ if .Error }}
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        {{ end }}
+{{ end }}

@@ -13,3 +13,6 @@ __debug_bin*
 
 # Ignore reference files
 docs/references
+
+# Ignore avatars
+avatars/*

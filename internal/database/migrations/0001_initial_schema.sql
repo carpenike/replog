@@ -216,6 +216,45 @@ CREATE TABLE IF NOT EXISTS webauthn_credentials (
 
 CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user_id ON webauthn_credentials(user_id);
 
+-- Equipment catalog — shared list of equipment types (e.g., "Barbell", "Squat Rack").
+CREATE TABLE IF NOT EXISTS equipment (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    description TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Equipment required by an exercise. Many-to-many join table.
+-- optional = 0 means required, optional = 1 means nice-to-have.
+CREATE TABLE IF NOT EXISTS exercise_equipment (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    exercise_id  INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+    optional     INTEGER NOT NULL DEFAULT 0 CHECK(optional IN (0, 1)),
+    UNIQUE(exercise_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_exercise_equipment_exercise
+    ON exercise_equipment(exercise_id);
+
+CREATE INDEX IF NOT EXISTS idx_exercise_equipment_equipment
+    ON exercise_equipment(equipment_id);
+
+-- Equipment available to an athlete. Many-to-many join table.
+CREATE TABLE IF NOT EXISTS athlete_equipment (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id   INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+    UNIQUE(athlete_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_athlete_equipment_athlete
+    ON athlete_equipment(athlete_id);
+
+CREATE INDEX IF NOT EXISTS idx_athlete_equipment_equipment
+    ON athlete_equipment(equipment_id);
+
 -- Session store for alexedwards/scs
 CREATE TABLE IF NOT EXISTS sessions (
     token  TEXT PRIMARY KEY,
@@ -307,8 +346,18 @@ BEGIN
 END;
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE TRIGGER IF NOT EXISTS trigger_equipment_updated_at
+AFTER UPDATE ON equipment FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE equipment SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+-- +goose StatementEnd
+
 -- +goose Down
 
+DROP TRIGGER IF EXISTS trigger_equipment_updated_at;
 DROP TRIGGER IF EXISTS trigger_workout_reviews_updated_at;
 DROP TRIGGER IF EXISTS trigger_athlete_programs_updated_at;
 DROP TRIGGER IF EXISTS trigger_program_templates_updated_at;
@@ -321,6 +370,10 @@ DROP TRIGGER IF EXISTS trigger_user_preferences_updated_at;
 DROP TRIGGER IF EXISTS trigger_users_updated_at;
 
 DROP INDEX IF EXISTS idx_sessions_expiry;
+DROP INDEX IF EXISTS idx_athlete_equipment_equipment;
+DROP INDEX IF EXISTS idx_athlete_equipment_athlete;
+DROP INDEX IF EXISTS idx_exercise_equipment_equipment;
+DROP INDEX IF EXISTS idx_exercise_equipment_exercise;
 DROP INDEX IF EXISTS idx_webauthn_credentials_user_id;
 DROP INDEX IF EXISTS idx_login_tokens_user_id;
 DROP INDEX IF EXISTS idx_login_tokens_token;
@@ -335,6 +388,9 @@ DROP INDEX IF EXISTS idx_athlete_exercises_athlete_id;
 DROP INDEX IF EXISTS idx_users_unique_athlete_id;
 DROP INDEX IF EXISTS idx_athlete_exercises_unique_active;
 
+DROP TABLE IF EXISTS athlete_equipment;
+DROP TABLE IF EXISTS exercise_equipment;
+DROP TABLE IF EXISTS equipment;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS webauthn_credentials;
 DROP TABLE IF EXISTS login_tokens;

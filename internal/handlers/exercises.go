@@ -168,6 +168,39 @@ func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
 		"AssignedAthletes": assignedAthletes,
 		"RecentSets":       recentSets,
 	}
+
+	// Load equipment requirements for this exercise.
+	exerciseEquipment, err := models.ListExerciseEquipment(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: list exercise equipment for exercise %d: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	data["ExerciseEquipment"] = exerciseEquipment
+
+	// For coaches, also load the full equipment catalog for the add form.
+	if user.IsCoach || user.IsAdmin {
+		allEquipment, err := models.ListEquipment(h.DB)
+		if err != nil {
+			log.Printf("handlers: list equipment for exercise form: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// Filter out already-linked equipment.
+		linked := make(map[int64]bool)
+		for _, ee := range exerciseEquipment {
+			linked[ee.EquipmentID] = true
+		}
+		var availableEquipment []*models.Equipment
+		for _, eq := range allEquipment {
+			if !linked[eq.ID] {
+				availableEquipment = append(availableEquipment, eq)
+			}
+		}
+		data["AvailableEquipment"] = availableEquipment
+	}
+
 	if err := h.Templates.Render(w, r, "exercise_detail.html", data); err != nil {
 		log.Printf("handlers: exercise detail template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

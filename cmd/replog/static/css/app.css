@@ -1953,3 +1953,39 @@ article.error-page p {
 article.error-page [role="button"] {
     display: inline-block;
 }
+
+/* ---- Equipment Compatibility Status Badges ---- */
+.status-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+
+.status-badge--ok {
+    background: rgba(52, 211, 153, 0.12);
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.2);
+}
+
+.status-badge--missing {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Inline checkbox in fieldset groups */
+.inline-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    white-space: nowrap;
+    margin-bottom: 0;
+}
+
+.inline-checkbox input[type="checkbox"] {
+    margin: 0;
+}

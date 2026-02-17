@@ -1,0 +1,15 @@
+{{ define "title" }}RepLog — {{ .Athlete.Name }} — Equipment{{ end }}
+
+{{ define "content" }}
+        <h1>{{ .Athlete.Name }} — Equipment</h1>
+        {{ if .AthleteEquipment }}
+        {{ range .AthleteEquipment }}
+        <p>{{ .EquipmentName }}</p>
+        {{ end }}
+        {{ end }}
+        {{ if .Compatibility }}
+        {{ range .Compatibility }}
+        <p>{{ .ExerciseName }}: {{ if .HasRequired }}Ready{{ else }}Missing{{ end }}</p>
+        {{ end }}
+        {{ end }}
+{{ end }}

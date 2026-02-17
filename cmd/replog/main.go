@@ -156,6 +156,10 @@ func main() {
 		DB:        db,
 		Templates: tc,
 	}
+	equipmentH := &handlers.Equipment{
+		DB:        db,
+		Templates: tc,
+	}
 	avatars := &handlers.Avatars{
 		DB:        db,
 		Templates: tc,
@@ -264,6 +268,14 @@ func main() {
 		r.Get("/exercises", exercises.List)
 		r.Get("/exercises/{id}", exercises.Show)
 
+		// Equipment — read access.
+		r.Get("/equipment", equipmentH.List)
+
+		// Athlete Equipment — self-service.
+		r.Get("/athletes/{id}/equipment", equipmentH.AthleteEquipmentPage)
+		r.Post("/athletes/{id}/equipment", equipmentH.AddAthleteEquipment)
+		r.Post("/athletes/{id}/equipment/{equipmentID}/delete", equipmentH.RemoveAthleteEquipment)
+
 		// Training Max history — read access.
 		r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes", trainingMaxes.History)
 
@@ -321,6 +333,17 @@ func main() {
 		r.Get("/exercises/{id}/edit", exercises.EditForm)
 		r.Post("/exercises/{id}", exercises.Update)
 		r.Post("/exercises/{id}/delete", exercises.Delete)
+
+		// Exercise Equipment — management.
+		r.Post("/exercises/{id}/equipment", equipmentH.AddExerciseEquipment)
+		r.Post("/exercises/{id}/equipment/{equipmentID}/delete", equipmentH.RemoveExerciseEquipment)
+
+		// Equipment catalog — management.
+		r.Get("/equipment/new", equipmentH.NewForm)
+		r.Post("/equipment", equipmentH.Create)
+		r.Get("/equipment/{id}/edit", equipmentH.EditForm)
+		r.Post("/equipment/{id}", equipmentH.Update)
+		r.Post("/equipment/{id}/delete", equipmentH.Delete)
 
 		// Assignments (coach only).
 		r.Get("/athletes/{id}/assignments/new", assignments.AssignForm)

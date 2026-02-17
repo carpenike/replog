@@ -14,23 +14,25 @@ These were resolved interactively before schema design:
 
 4. **A thin `workouts` table groups sets.** Without it you'd query by date and hope timestamps cluster. A workout row gives you a clean FK, a place for session-level notes, and simple history queries.
 
-5. **Training maxes are a first-class entity.** Required for percentage-based programs (5/3/1, GZCL). Multiple rows per exercise track TM progression over time. Even without a program engine, seeing "that was 85% of my TM" is useful.
+5. **Equipment is a shared catalog with per-athlete inventory.** Equipment items (barbell, squat rack, dumbbells, etc.) are defined once in a shared catalog managed by coaches. Each exercise can list required and optional equipment. Each athlete maintains an inventory of available equipment. The app can then determine whether an athlete has the required equipment for a given exercise — useful for filtering assignments and flagging compatibility issues.
 
-6. **Assignments use an `active` flag, not hard deletes.** Deactivating preserves history. `assigned_at` / `deactivated_at` give you a timeline. Reactivation creates a **new row** (not a flag flip) — the new `assigned_at` reflects the reactivation date, preserving the full audit trail.
+6. **Training maxes are a first-class entity.** Required for percentage-based programs (5/3/1, GZCL). Multiple rows per exercise track TM progression over time. Even without a program engine, seeing "that was 85% of my TM" is useful.
 
-7. **Athletes can log any exercise, not just assigned ones.** The daily view highlights assigned exercises, but the logging UI has access to the full exercise library. This allows accessory work, one-off movements, and trying new exercises without formal assignment.
+7. **Assignments use an `active` flag, not hard deletes.** Deactivating preserves history. `assigned_at` / `deactivated_at` give you a timeline. Reactivation creates a **new row** (not a flag flip) — the new `assigned_at` reflects the reactivation date, preserving the full audit trail.
 
-8. **Users and athletes are separate entities.** Users are login accounts (username + password hash + email). Athletes are training subjects. A user links to an athlete via `athlete_id` — coaches can manage all athletes, non-coaches can only view/log their own. The bootstrap logic auto-creates the first user (as coach) from env vars on first run.
+8. **Athletes can log any exercise, not just assigned ones.** The daily view highlights assigned exercises, but the logging UI has access to the full exercise library. This allows accessory work, one-off movements, and trying new exercises without formal assignment.
 
-9. **Three-tier access control: admin, coach, athlete.** Admins see and manage all athletes and users. Coaches see only athletes assigned to them (`coach_id`). Non-coach users (athletes) are linked to exactly one athlete and can only view/log/edit their own workouts. Roles overlap — an admin can also be a coach, and an athlete can also be a coach. The `is_admin` and `is_coach` flags on the users table control permissions.
+9. **Users and athletes are separate entities.** Users are login accounts (username + password hash + email). Athletes are training subjects. A user links to an athlete via `athlete_id` — coaches can manage all athletes, non-coaches can only view/log their own. The bootstrap logic auto-creates the first user (as coach) from env vars on first run.
 
-10. **Program templates are separate from the logbook.** The app's core is a logbook — it records what happened. Program templates layer on a prescription engine: coaches define templates (weeks × days × prescribed sets with percentages), assign them to athletes, and the app calculates today's target weights from training maxes. Position advances by counting completed workouts since assignment start, and cycles repeat automatically.
+10. **Three-tier access control: admin, coach, athlete.** Admins see and manage all athletes and users. Coaches see only athletes assigned to them (`coach_id`). Non-coach users (athletes) are linked to exactly one athlete and can only view/log/edit their own workouts. Roles overlap — an admin can also be a coach, and an athlete can also be a coach. The `is_admin` and `is_coach` flags on the users table control permissions.
 
-11. **Foreign key delete behaviors are intentional.** Deleting an athlete cascades to their workouts, assignments, and training maxes. Deleting a user only unlinks their athlete profile (`SET NULL`). Deleting an exercise is restricted (`RESTRICT`) if it has been logged in any workout — prevents orphaned history.
+11. **Program templates are separate from the logbook.** The app's core is a logbook — it records what happened. Program templates layer on a prescription engine: coaches define templates (weeks × days × prescribed sets with percentages), assign them to athletes, and the app calculates today's target weights from training maxes. Position advances by counting completed workouts since assignment start, and cycles repeat automatically.
 
-12. **Two-level goals: long-term and per-cycle.** The `goal` column on `athletes` holds a long-term training objective ("build overall strength"). The `goal` column on `athlete_programs` holds a short-term cycle-specific goal ("increase squat TM by 10 lbs"). Both are nullable free-text fields. This separation gives future LLM-based plan generation the right context at each level.
+12. **Foreign key delete behaviors are intentional.** Deleting an athlete cascades to their workouts, assignments, and training maxes. Deleting a user only unlinks their athlete profile (`SET NULL`). Deleting an exercise is restricted (`RESTRICT`) if it has been logged in any workout — prevents orphaned history.
 
-13. **Rep type tracks per-side and timed sets.** The `rep_type` column on `prescribed_sets` and `workout_sets` uses an enum (`reps`, `each_side`, `seconds`). This avoids encoding modifiers in notes fields — "5/ea" or "30s" are first-class data. The `reps` column continues to hold the numeric value; `rep_type` determines how to display it.
+13. **Two-level goals: long-term and per-cycle.** The `goal` column on `athletes` holds a long-term training objective ("build overall strength"). The `goal` column on `athlete_programs` holds a short-term cycle-specific goal ("increase squat TM by 10 lbs"). Both are nullable free-text fields. This separation gives future LLM-based plan generation the right context at each level.
+
+14. **Rep type tracks per-side and timed sets.** The `rep_type` column on `prescribed_sets` and `workout_sets` uses an enum (`reps`, `each_side`, `seconds`). This avoids encoding modifiers in notes fields — "5/ea" or "30s" are first-class data. The `reps` column continues to hold the numeric value; `rep_type` determines how to display it.
 
 ## Entity Relationship Diagram
 
@@ -150,6 +152,31 @@ erDiagram
     exercises ||--o{ prescribed_sets : "used in"
     athletes ||--o{ athlete_programs : "follows"
     program_templates ||--o{ athlete_programs : "assigned via"
+    equipment ||--o{ exercise_equipment : "required by"
+    exercises ||--o{ exercise_equipment : "requires"
+    equipment ||--o{ athlete_equipment : "owned by"
+    athletes ||--o{ athlete_equipment : "has"
+
+    equipment {
+        INTEGER id PK
+        TEXT name UK "COLLATE NOCASE"
+        TEXT description "nullable"
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    exercise_equipment {
+        INTEGER id PK
+        INTEGER exercise_id FK
+        INTEGER equipment_id FK
+        INTEGER optional "0 or 1"
+    }
+
+    athlete_equipment {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        INTEGER equipment_id FK
+    }
 
     workout_reviews {
         INTEGER id PK
@@ -723,6 +750,48 @@ CREATE TABLE IF NOT EXISTS webauthn_credentials (
 );
 
 CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user_id ON webauthn_credentials(user_id);
+
+CREATE TABLE IF NOT EXISTS equipment (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    description TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER IF NOT EXISTS trigger_equipment_updated_at
+AFTER UPDATE ON equipment FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE equipment SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TABLE IF NOT EXISTS exercise_equipment (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    exercise_id  INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+    optional     INTEGER NOT NULL DEFAULT 0 CHECK(optional IN (0, 1)),
+    UNIQUE(exercise_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_exercise_equipment_exercise
+    ON exercise_equipment(exercise_id);
+
+CREATE INDEX IF NOT EXISTS idx_exercise_equipment_equipment
+    ON exercise_equipment(equipment_id);
+
+CREATE TABLE IF NOT EXISTS athlete_equipment (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id   INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+    UNIQUE(athlete_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_athlete_equipment_athlete
+    ON athlete_equipment(athlete_id);
+
+CREATE INDEX IF NOT EXISTS idx_athlete_equipment_equipment
+    ON athlete_equipment(equipment_id);
 ```
 
 ## Seed Data (Development)
@@ -751,6 +820,46 @@ INSERT INTO exercises (name, tier, form_notes) VALUES
 - **Busy timeout:** `PRAGMA busy_timeout = 5000` is set in the DDL — concurrent reads will wait up to 5s during writes instead of failing immediately.
 - **Backups:** Do NOT use `cp` on a live WAL-mode database. Use `sqlite3 replog.db ".backup backup.db"` or the SQLite backup API, which correctly handles the WAL file.
 - **WAL mode:** Set once; persists across connections. Provides concurrent reads with single-writer without blocking.
+
+### `equipment`
+
+| Column        | Type         | Constraints                          |
+|--------------|-------------|--------------------------------------|
+| `id`         | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `name`       | TEXT         | NOT NULL UNIQUE COLLATE NOCASE        |
+| `description`| TEXT         | NULL                                 |
+| `created_at` | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at` | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Shared catalog of equipment types (e.g. "Barbell", "Squat Rack", "Dumbbells", "Pull-up Bar").
+- Managed by coaches — athletes select from the catalog.
+- `COLLATE NOCASE` prevents "Barbell" and "barbell" duplicates.
+
+### `exercise_equipment`
+
+| Column        | Type         | Constraints                          |
+|--------------|-------------|--------------------------------------|
+| `id`         | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `exercise_id`| INTEGER      | NOT NULL, FK → exercises(id) ON DELETE CASCADE |
+| `equipment_id`| INTEGER     | NOT NULL, FK → equipment(id) ON DELETE CASCADE |
+| `optional`   | INTEGER      | NOT NULL DEFAULT 0, CHECK(optional IN (0, 1)) |
+
+- Many-to-many: which equipment is needed for an exercise.
+- `optional = 0` means required; `optional = 1` means nice-to-have.
+- `UNIQUE(exercise_id, equipment_id)` prevents duplicate links.
+- Deleting an exercise or equipment item cascades to remove the link.
+
+### `athlete_equipment`
+
+| Column        | Type         | Constraints                          |
+|--------------|-------------|--------------------------------------|
+| `id`         | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id` | INTEGER      | NOT NULL, FK → athletes(id) ON DELETE CASCADE |
+| `equipment_id`| INTEGER     | NOT NULL, FK → equipment(id) ON DELETE CASCADE |
+
+- Many-to-many: which equipment an athlete has available.
+- `UNIQUE(athlete_id, equipment_id)` prevents duplicate entries.
+- Deleting an athlete or equipment item cascades to remove the link.
 
 ## Future Considerations (v2+)
 

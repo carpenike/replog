@@ -1,0 +1,31 @@
+{{ define "title" }}RepLog — {{ if .Equipment }}Edit {{ .Equipment.Name }}{{ else }}New Equipment{{ end }}{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/equipment">Equipment</a> &rsaquo; {{ if .Equipment }}Edit{{ else }}New{{ end }}
+        </div>
+
+        <h1>{{ if .Equipment }}Edit {{ .Equipment.Name }}{{ else }}New Equipment{{ end }}</h1>
+
+        {{ if .Error }}
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        {{ end }}
+
+        <form method="POST" action="{{ if .Equipment }}/equipment/{{ .Equipment.ID }}{{ else }}/equipment{{ end }}">
+            <label for="name">Name
+                <input type="text" id="name" name="name" required
+                       value="{{ if .Equipment }}{{ .Equipment.Name }}{{ end }}"
+                       placeholder="e.g., Barbell, Squat Rack, Dumbbells"
+                       {{ if .Error }}aria-invalid="true"{{ end }}>
+            </label>
+
+            <label for="description">Description
+                <textarea id="description" name="description" rows="2" placeholder="Optional description">{{ if .Equipment }}{{ if .Equipment.Description.Valid }}{{ .Equipment.Description.String }}{{ end }}{{ end }}</textarea>
+            </label>
+
+            <div role="group">
+                <button type="submit">{{ if .Equipment }}Save Changes{{ else }}Create Equipment{{ end }}</button>
+                <a href="/equipment" role="button" class="secondary">Cancel</a>
+            </div>
+        </form>
+{{ end }}

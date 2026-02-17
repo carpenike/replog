@@ -1,0 +1,96 @@
+{{ define "title" }}RepLog — {{ .Athlete.Name }} — Equipment{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Equipment
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Athlete.Name }} — Equipment</h1>
+        </div>
+
+        <!-- Add Equipment Form -->
+        {{ if .AvailableEquipment }}
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/equipment" class="inline-form">
+            <fieldset role="group">
+                <select name="equipment_id" required aria-label="Equipment to add">
+                    <option value="" disabled selected>Add equipment…</option>
+                    {{ range .AvailableEquipment }}
+                    <option value="{{ .ID }}">{{ .Name }}</option>
+                    {{ end }}
+                </select>
+                <button type="submit">Add</button>
+            </fieldset>
+        </form>
+        {{ else if not .AthleteEquipment }}
+        <p class="text-muted">No equipment has been defined yet. {{ if or .User.IsCoach .User.IsAdmin }}<a href="/equipment/new">Create equipment</a> first.{{ end }}</p>
+        {{ end }}
+
+        <!-- Current Equipment Inventory -->
+        {{ if .AthleteEquipment }}
+        <section>
+            <h2>Available Equipment</h2>
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Equipment</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .AthleteEquipment }}
+                    <tr>
+                        <td>{{ .EquipmentName }}</td>
+                        <td>
+                            <form method="POST" action="/athletes/{{ $.Athlete.ID }}/equipment/{{ .EquipmentID }}/delete" class="inline"
+                                  hx-confirm="Remove {{ .EquipmentName }} from {{ $.Athlete.Name }}'s equipment?">
+                                <button type="submit" class="outline contrast small">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </section>
+        {{ end }}
+
+        <!-- Equipment Compatibility -->
+        {{ if .Compatibility }}
+        <section>
+            <h2>Exercise Compatibility</h2>
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Compatibility }}
+                    <tr>
+                        <td><a href="/exercises/{{ .ExerciseID }}">{{ .ExerciseName }}</a></td>
+                        <td>
+                            {{ if .HasRequired }}
+                            <span class="status-badge status-badge--ok">✓ Ready</span>
+                            {{ else }}
+                            <span class="status-badge status-badge--missing">✗ Missing Equipment</span>
+                            {{ end }}
+                        </td>
+                        <td>
+                            {{ if .Missing }}
+                            <span class="text-muted">Missing: </span>
+                            {{ range $i, $eq := .Missing }}{{ if $i }}, {{ end }}{{ $eq.EquipmentName }}{{ end }}
+                            {{ else if not .Available }}
+                            <span class="text-muted">No equipment required</span>
+                            {{ else }}
+                            <span class="text-muted">All equipment available</span>
+                            {{ end }}
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </section>
+        {{ end }}
+{{ end }}

@@ -1,0 +1,46 @@
+{{ define "title" }}RepLog — Equipment{{ end }}
+
+{{ define "content" }}
+        <div class="page-header">
+            <h1>Equipment</h1>
+            {{ if or .User.IsCoach .User.IsAdmin }}<a href="/equipment/new" role="button">New Equipment</a>{{ end }}
+        </div>
+
+        {{ if .Equipment }}
+        <table class="striped">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Description</th>
+                    {{ if or .User.IsCoach .User.IsAdmin }}
+                    <th scope="col">Actions</th>
+                    {{ end }}
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Equipment }}
+                <tr>
+                    <td>{{ .Name }}</td>
+                    <td>{{ if .Description.Valid }}{{ .Description.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                    {{ if or $.User.IsCoach $.User.IsAdmin }}
+                    <td>
+                        <div role="group">
+                            <a href="/equipment/{{ .ID }}/edit" role="button" class="outline secondary small">Edit</a>
+                            <form method="POST" action="/equipment/{{ .ID }}/delete" class="inline"
+                                  hx-confirm="Delete {{ .Name }}? This will remove it from all exercises and athletes.">
+                                <button type="submit" class="outline contrast small">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                    {{ end }}
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+        {{ else }}
+        <article class="empty-state">
+            <p>No equipment defined yet.</p>
+            {{ if or .User.IsCoach .User.IsAdmin }}<a href="/equipment/new" role="button">Add First Equipment</a>{{ end }}
+        </article>
+        {{ end }}
+{{ end }}

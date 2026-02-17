@@ -1,0 +1,14 @@
+{{ define "title" }}RepLog — Equipment{{ end }}
+
+{{ define "content" }}
+        <div class="page-header">
+            <h1>Equipment</h1>
+        </div>
+        {{ if .Equipment }}
+        {{ range .Equipment }}
+        <p>{{ .Name }}</p>
+        {{ end }}
+        {{ else }}
+        <p>No equipment defined yet.</p>
+        {{ end }}
+{{ end }}
