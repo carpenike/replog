@@ -235,8 +235,8 @@
             {{ end }}
 
             <!-- Fallback: add unscripted / accessory sets -->
-            <details>
-                <summary>Add unscripted set</summary>
+            <button type="button" class="outline secondary unscripted-toggle" onclick="var f=document.getElementById('unscripted-form');f.hidden=!f.hidden;this.hidden=true">+ Add Unscripted Set</button>
+            <div id="unscripted-form" hidden>
             {{ else if .Assigned }}
             <details>
                 <summary>Prescribed Exercises</summary>
@@ -309,7 +309,7 @@
             </form>
 
             {{ if and .Prescription .Prescription.Lines }}
-            </details>
+            </div>
             {{ end }}
         </section>
         <script src="/static/js/rest-timer.js"></script>
