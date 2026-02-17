@@ -888,12 +888,31 @@ main.container {
     padding: 0.5rem 0.75rem;
 }
 
-/* ---- Prescription Scaffold (pre-populated workout logging) ---- */
-.scaffold-exercise {
-    margin-bottom: 0.5rem;
+/* ---- Collapsible Exercise Groups ---- */
+.exercise-group {
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
 }
 
-.scaffold-header {
+.exercise-group > summary {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ---- Prescription Scaffold (pre-populated workout logging) ---- */
+details.scaffold-exercise {
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+details.scaffold-exercise > summary {
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 0.75rem;

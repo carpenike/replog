@@ -36,8 +36,8 @@
         <section>
             <h2>Logged Sets</h2>
             {{ range .Groups }}
-            <article>
-                <header><strong>{{ .ExerciseName }}</strong></header>
+            <details open class="exercise-group">
+                <summary><strong>{{ .ExerciseName }}</strong> <span class="text-muted">({{ len .Sets }} sets)</span></summary>
                 {{ $prev := index $.LastSession .ExerciseID }}{{ if $prev }}
                 <details class="last-session">
                     <summary>Last time ({{ $prev.Date }})</summary>
@@ -96,7 +96,7 @@
                         <button type="submit" class="outline secondary quick-add-btn">+ Add Set</button>
                     </div>
                 </form>
-            </article>
+            </details>
             {{ end }}
         </section>
         {{ end }}
@@ -200,14 +200,12 @@
             {{ range $line := .Prescription.Lines }}
             {{ $loggedCount := index $.LoggedSetCounts $line.ExerciseID }}
             {{ $totalSets := len $line.Sets }}
-            <article class="scaffold-exercise">
-                <header>
-                    <div class="scaffold-header">
-                        <strong>{{ $line.ExerciseName }}</strong>
-                        {{ $tm := index $.TMByExercise $line.ExerciseID }}{{ if $tm }}<span class="text-muted">TM: {{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}</span>{{ end }}
-                        <span class="scaffold-progress{{ if ge $loggedCount $totalSets }} complete{{ end }}">{{ $loggedCount }}/{{ $totalSets }} sets</span>
-                    </div>
-                </header>
+            <details{{ if lt $loggedCount $totalSets }} open{{ end }} class="scaffold-exercise">
+                <summary>
+                    <strong>{{ $line.ExerciseName }}</strong>
+                    {{ $tm := index $.TMByExercise $line.ExerciseID }}{{ if $tm }}<span class="text-muted">TM: {{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}</span>{{ end }}
+                    <span class="scaffold-progress{{ if ge $loggedCount $totalSets }} complete{{ end }}">{{ $loggedCount }}/{{ $totalSets }} sets</span>
+                </summary>
                 {{ if ge $loggedCount $totalSets }}
                 <p class="scaffold-complete">&#10003; All sets complete</p>
                 {{ else }}
@@ -233,7 +231,7 @@
                 {{ end }}
                 {{ end }}
                 {{ end }}
-            </article>
+            </details>
             {{ end }}
 
             <!-- Fallback: add unscripted / accessory sets -->
