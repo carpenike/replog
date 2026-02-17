@@ -33,11 +33,15 @@
             return meta ? meta.getAttribute("content") : "";
         };
 
-        // Attach CSRF token to every htmx request.
+        // Attach CSRF token to every htmx request (header + hidden field fallback).
         document.addEventListener("htmx:configRequest", function(evt) {
             var token = RepLog.csrfToken();
             if (token) {
                 evt.detail.headers["X-CSRF-Token"] = token;
+                // Also inject as form parameter for belt-and-suspenders.
+                if (!evt.detail.parameters["csrf_token"]) {
+                    evt.detail.parameters["csrf_token"] = token;
+                }
             }
         });
 

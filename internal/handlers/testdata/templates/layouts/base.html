@@ -26,11 +26,15 @@
             }
         });
 
-        // Attach CSRF token to every htmx request.
+        // Attach CSRF token to every htmx request (header + hidden field fallback).
         document.addEventListener("htmx:configRequest", function(evt) {
             var meta = document.querySelector('meta[name="csrf-token"]');
             if (meta) {
-                evt.detail.headers["X-CSRF-Token"] = meta.getAttribute("content");
+                var token = meta.getAttribute("content");
+                evt.detail.headers["X-CSRF-Token"] = token;
+                if (!evt.detail.parameters["csrf_token"]) {
+                    evt.detail.parameters["csrf_token"] = token;
+                }
             }
         });
 

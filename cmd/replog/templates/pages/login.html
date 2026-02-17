@@ -37,7 +37,7 @@
 
             <details open>
                 <summary>Sign in with password</summary>
-                <form method="POST" action="/login">
+                <form method="POST" action="/login" hx-boost="false">
                     <label for="username">Username
                         <input type="text" id="username" name="username" required autofocus autocomplete="username"
                                {{ if .Error }}aria-invalid="true"{{ end }}>
