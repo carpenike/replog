@@ -70,13 +70,9 @@
 
             <form hx-post="/users/{{ .EditUser.ID }}/tokens" hx-target="#login-tokens-section" hx-swap="outerHTML">
                 {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
-                <div class="grid">
-                    <label for="token-label">Device Label
-                        <input type="text" id="token-label" name="label" placeholder="e.g. iPad, iPhone" autocomplete="off">
-                    </label>
-                    <label aria-hidden="true" style="visibility:hidden;">&#8203;
-                        <button type="submit" style="width:100%; visibility:visible;">Generate Link</button>
-                    </label>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="text" id="token-label" name="label" placeholder="e.g. iPad, iPhone" autocomplete="off" aria-label="Device Label" style="flex:1; margin-bottom:0;">
+                    <button type="submit" style="width:auto; white-space:nowrap;">Generate Link</button>
                 </div>
             </form>
 
