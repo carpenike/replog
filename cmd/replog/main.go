@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,13 +66,30 @@ func main() {
 		log.Fatalf("Failed to parse templates: %v", err)
 	}
 
+	// Determine base URL for generating absolute URLs (e.g. login token links).
+	// When behind a reverse proxy, set this to the external URL (e.g. https://replog.example.com).
+	baseURL := strings.TrimRight(os.Getenv("REPLOG_BASE_URL"), "/")
+	if baseURL != "" {
+		if _, err := url.Parse(baseURL); err != nil {
+			log.Fatalf("Invalid REPLOG_BASE_URL: %v", err)
+		}
+		log.Printf("Base URL: %s", baseURL)
+	}
+
 	// Set up session manager with SQLite store.
 	sessionManager := scs.New()
 	sessionManager.Store = sqlite3store.New(db)
 	sessionManager.Lifetime = 30 * 24 * time.Hour // 30 days
 	sessionManager.Cookie.HttpOnly = true
 	sessionManager.Cookie.SameSite = http.SameSiteLaxMode
-	sessionManager.Cookie.Secure = os.Getenv("REPLOG_SECURE_COOKIES") == "true"
+
+	// Secure cookies: explicit override via REPLOG_SECURE_COOKIES, or auto-derived from base URL scheme.
+	switch {
+	case os.Getenv("REPLOG_SECURE_COOKIES") != "":
+		sessionManager.Cookie.Secure = os.Getenv("REPLOG_SECURE_COOKIES") == "true"
+	case strings.HasPrefix(baseURL, "https://"):
+		sessionManager.Cookie.Secure = true
+	}
 
 	// Initialize handlers.
 	auth := &handlers.Auth{
@@ -123,6 +141,7 @@ func main() {
 		DB:        db,
 		Sessions:  sessionManager,
 		Templates: tc,
+		BaseURL:   baseURL,
 	}
 	reviews := &handlers.Reviews{
 		DB:        db,

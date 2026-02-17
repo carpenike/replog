@@ -17,6 +17,7 @@ type LoginTokens struct {
 	DB        *sql.DB
 	Sessions  *scs.SessionManager
 	Templates TemplateCache
+	BaseURL   string // External base URL (e.g. https://replog.example.com). If empty, inferred from request.
 }
 
 // TokenLogin handles passwordless login via a magic token URL.
@@ -88,11 +89,16 @@ func (h *LoginTokens) GenerateToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build the full login URL.
-	scheme := "http"
-	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
-		scheme = "https"
+	var loginURL string
+	if h.BaseURL != "" {
+		loginURL = fmt.Sprintf("%s/auth/token/%s", h.BaseURL, lt.Token)
+	} else {
+		scheme := "http"
+		if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+			scheme = "https"
+		}
+		loginURL = fmt.Sprintf("%s://%s/auth/token/%s", scheme, r.Host, lt.Token)
 	}
-	loginURL := fmt.Sprintf("%s://%s/auth/token/%s", scheme, r.Host, lt.Token)
 
 	// Render the token list with the new token URL highlighted.
 	tokens, err := models.ListLoginTokensByUser(h.DB, id)
