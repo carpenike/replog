@@ -152,11 +152,11 @@
         </div>
 
         <hr>
-        <section>
-            <h2>Danger Zone</h2>
+        <section style="border: 1px solid #e5534b; border-radius: 8px; padding: 1.5rem;">
+            <h2 style="color: #e5534b; margin-top: 0;">Danger Zone</h2>
             <form method="POST" action="/users/{{ .EditUser.ID }}/delete" class="inline"
                   hx-confirm="Delete user {{ .EditUser.Username }}? This cannot be undone.">
-                <button type="submit" class="outline contrast">Delete User</button>
+                <button type="submit" style="--pico-color: #fff; --pico-background-color: #d1242f; --pico-border-color: #d1242f; --pico-primary-hover-background: #b31d28; --pico-primary-hover-border: #b31d28;">Delete User</button>
             </form>
         </section>
         {{ end }}
