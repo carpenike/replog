@@ -455,6 +455,111 @@ func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: auto-assigned %d exercises from template %d to athlete %d", n, templateID, athleteID)
 	}
 
+	// Redirect to TM setup so the coach can confirm/set training maxes.
+	http.Redirect(w, r, fmt.Sprintf("/athletes/%d/training-maxes/setup", athleteID), http.StatusSeeOther)
+}
+
+// TMSetupForm renders a form showing all program exercises with current TMs
+// pre-filled, so the coach can confirm or set initial training maxes after
+// assigning a program.
+func (h *Programs) TMSetupForm(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+	if err != nil {
+		log.Printf("handlers: get athlete %d for TM setup: %v", athleteID, err)
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+
+	program, err := models.GetActiveProgram(h.DB, athleteID)
+	if err != nil {
+		log.Printf("handlers: get active program for athlete %d: %v", athleteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if program == nil {
+		http.Redirect(w, r, fmt.Sprintf("/athletes/%d", athleteID), http.StatusSeeOther)
+		return
+	}
+
+	exerciseTMs, err := models.ListProgramExerciseTMs(h.DB, program.TemplateID, athleteID)
+	if err != nil {
+		log.Printf("handlers: list program exercise TMs (athlete=%d): %v", athleteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]any{
+		"Athlete":     athlete,
+		"Program":     program,
+		"ExerciseTMs": exerciseTMs,
+		"TodayDate":   time.Now().Format("2006-01-02"),
+	}
+	if err := h.Templates.Render(w, r, "tm_setup.html", data); err != nil {
+		log.Printf("handlers: TM setup template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// TMSetupSave processes the batch TM setup form submission.
+func (h *Programs) TMSetupSave(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	effectiveDate := r.FormValue("effective_date")
+	if effectiveDate == "" {
+		effectiveDate = time.Now().Format("2006-01-02")
+	}
+
+	set := 0
+	exerciseIDs := r.Form["exercise_id"]
+	for _, eidStr := range exerciseIDs {
+		exerciseID, err := strconv.ParseInt(eidStr, 10, 64)
+		if err != nil {
+			continue
+		}
+
+		weightStr := r.FormValue(fmt.Sprintf("tm_%d", exerciseID))
+		weight, err := strconv.ParseFloat(weightStr, 64)
+		if err != nil || weight <= 0 {
+			continue // skip exercises with no weight entered
+		}
+
+		_, err = models.SetTrainingMax(h.DB, athleteID, exerciseID, weight, effectiveDate, "Initial TM setup")
+		if err != nil {
+			log.Printf("handlers: set TM (athlete=%d, exercise=%d): %v", athleteID, exerciseID, err)
+			// Continue with remaining exercises.
+		} else {
+			set++
+		}
+	}
+
+	log.Printf("handlers: set %d training maxes for athlete %d", set, athleteID)
 	http.Redirect(w, r, fmt.Sprintf("/athletes/%d", athleteID), http.StatusSeeOther)
 }
 

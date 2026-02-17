@@ -145,3 +145,45 @@ func ListCurrentTrainingMaxes(db *sql.DB, athleteID int64) ([]*TrainingMax, erro
 	}
 	return maxes, rows.Err()
 }
+
+// ProgramExerciseTM pairs an exercise from a program template with the athlete's
+// current training max (if any). Used for the post-assign TM setup form.
+type ProgramExerciseTM struct {
+	ExerciseID   int64
+	ExerciseName string
+	CurrentTM    *float64 // nil if no TM set
+}
+
+// ListProgramExerciseTMs returns all distinct exercises in a program template,
+// each paired with the athlete's current TM (if one exists). Results are
+// ordered by exercise name.
+func ListProgramExerciseTMs(db *sql.DB, templateID, athleteID int64) ([]*ProgramExerciseTM, error) {
+	rows, err := db.Query(`
+		SELECT DISTINCT e.id, e.name,
+		       (SELECT tm.weight FROM training_maxes tm
+		        WHERE tm.athlete_id = ? AND tm.exercise_id = e.id
+		        ORDER BY tm.effective_date DESC LIMIT 1) AS current_tm
+		FROM prescribed_sets ps
+		JOIN exercises e ON e.id = ps.exercise_id
+		WHERE ps.template_id = ?
+		ORDER BY e.name COLLATE NOCASE`,
+		athleteID, templateID)
+	if err != nil {
+		return nil, fmt.Errorf("models: list program exercise TMs (template=%d, athlete=%d): %w", templateID, athleteID, err)
+	}
+	defer rows.Close()
+
+	var results []*ProgramExerciseTM
+	for rows.Next() {
+		pet := &ProgramExerciseTM{}
+		var tm sql.NullFloat64
+		if err := rows.Scan(&pet.ExerciseID, &pet.ExerciseName, &tm); err != nil {
+			return nil, fmt.Errorf("models: scan program exercise TM: %w", err)
+		}
+		if tm.Valid {
+			pet.CurrentTM = &tm.Float64
+		}
+		results = append(results, pet)
+	}
+	return results, rows.Err()
+}

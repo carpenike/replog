@@ -384,6 +384,10 @@ func main() {
 		r.Post("/athletes/{id}/program", programs.AssignProgram)
 		r.Post("/athletes/{id}/program/deactivate", programs.DeactivateProgram)
 
+		// Training Max Setup — batch TM entry after program assignment (coach-only).
+		r.Get("/athletes/{id}/training-maxes/setup", programs.TMSetupForm)
+		r.Post("/athletes/{id}/training-maxes/setup", programs.TMSetupSave)
+
 		// Cycle Review — TM bump suggestions (coach-only).
 		r.Get("/athletes/{id}/cycle-review", programs.CycleReview)
 		r.Post("/athletes/{id}/cycle-review", programs.ApplyTMBumps)

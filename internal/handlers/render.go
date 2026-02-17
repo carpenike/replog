@@ -174,6 +174,14 @@ var templateFuncs = template.FuncMap{
 		}
 		return sets[len(sets)-1]
 	},
+	// deref dereferences a *float64, returning 0 if nil. Useful in templates
+	// that receive optional numeric values from model structs.
+	"deref": func(p *float64) float64 {
+		if p == nil {
+			return 0
+		}
+		return *p
+	},
 }
 
 // TemplateCache maps page filenames to parsed template sets. Each set contains

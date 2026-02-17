@@ -1,0 +1,57 @@
+{{ define "title" }}RepLog — Training Max Setup{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Training Max Setup
+        </div>
+
+        <div class="page-header">
+            <hgroup>
+                <h1>Set Training Maxes</h1>
+                <p>{{ .Athlete.Name }} · {{ .Program.TemplateName }}</p>
+            </hgroup>
+        </div>
+
+        <p>Confirm or enter training maxes for each exercise in this program. Existing values are pre-filled. Leave blank to skip an exercise.</p>
+
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/training-maxes/setup">
+            <input type="hidden" name="effective_date" value="{{ .TodayDate }}">
+
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Training Max</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .ExerciseTMs }}
+                    <tr>
+                        <td>
+                            <input type="hidden" name="exercise_id" value="{{ .ExerciseID }}">
+                            {{ .ExerciseName }}
+                        </td>
+                        <td>
+                            <input type="number" name="tm_{{ .ExerciseID }}" min="0" step="0.5"
+                                   placeholder="e.g. 185"
+                                   {{ if .CurrentTM }}value="{{ formatWeight (deref .CurrentTM) }}"{{ end }}>
+                        </td>
+                        <td>
+                            {{ if .CurrentTM }}
+                            <span class="text-muted">Current: {{ formatWeight (deref .CurrentTM) }}</span>
+                            {{ else }}
+                            <mark>Not set</mark>
+                            {{ end }}
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+
+            <div class="page-actions">
+                <button type="submit">Save Training Maxes</button>
+                <a href="/athletes/{{ .Athlete.ID }}" role="button" class="outline secondary">Skip for Now</a>
+            </div>
+        </form>
+{{ end }}
