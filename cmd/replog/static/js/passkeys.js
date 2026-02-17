@@ -10,6 +10,12 @@
 (function () {
     "use strict";
 
+    // Read CSRF token from the meta tag injected by the base layout.
+    function csrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute("content") : "";
+    }
+
     // Base64URL encode/decode helpers for WebAuthn binary fields.
     function bufferToBase64url(buffer) {
         var bytes = new Uint8Array(buffer);
@@ -52,7 +58,7 @@
             if (label) {
                 await fetch("/passkeys/register/label", {
                     method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRF-Token": csrfToken() },
                     body: "label=" + encodeURIComponent(label),
                 });
             }
@@ -96,7 +102,7 @@
             // Step 4: Send to server.
             var finishResp = await fetch("/passkeys/register/finish", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken() },
                 body: body,
             });
 
@@ -183,7 +189,7 @@
             // Step 4: Send to server.
             var finishResp = await fetch("/passkeys/login/finish", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken() },
                 body: body,
             });
 
