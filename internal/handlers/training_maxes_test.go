@@ -14,7 +14,7 @@ func TestTrainingMaxes_NewForm_CoachCanView(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 
@@ -34,7 +34,7 @@ func TestTrainingMaxes_NewForm_NonCoachForbidden(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 
@@ -54,7 +54,7 @@ func TestTrainingMaxes_Create_Success(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 
@@ -91,7 +91,7 @@ func TestTrainingMaxes_Create_EmptyWeight(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 
@@ -112,7 +112,7 @@ func TestTrainingMaxes_Create_NonCoachForbidden(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 
@@ -133,7 +133,7 @@ func TestTrainingMaxes_History_CoachCanView(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	// Seed some TM history.
 	_, _ = models.SetTrainingMax(db, athlete.ID, ex.ID, 300, "2026-01-01", "")
@@ -157,7 +157,7 @@ func TestTrainingMaxes_History_NonCoachOwnAthlete(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 
@@ -178,7 +178,7 @@ func TestTrainingMaxes_History_NonCoachOtherForbidden(t *testing.T) {
 	myAthlete := seedAthlete(t, db, "Kid", "")
 	otherAthlete := seedAthlete(t, db, "Other", "")
 	nonCoach := seedNonCoach(t, db, myAthlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 
@@ -197,7 +197,7 @@ func TestTrainingMaxes_NewForm_AthleteNotFound(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 
@@ -235,7 +235,7 @@ func TestTrainingMaxes_History_AthleteNotFound(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 
@@ -274,7 +274,7 @@ func TestTrainingMaxes_Create_InvalidWeight(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &TrainingMaxes{DB: db, Templates: tc}
 

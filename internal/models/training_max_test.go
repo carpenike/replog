@@ -11,7 +11,7 @@ func TestTrainingMaxCRUD(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "TM Athlete", "", "", "", sql.NullInt64{})
-	e, _ := CreateExercise(db, "TM Exercise", "", 0, "", "", 0)
+	e, _ := CreateExercise(db, "TM Exercise", "", "", "", 0)
 
 	t.Run("set training max", func(t *testing.T) {
 		tm, err := SetTrainingMax(db, a.ID, e.ID, 100.0, "2024-01-01", "")
@@ -67,8 +67,8 @@ func TestListCurrentTrainingMaxes(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "TM List Athlete", "", "", "", sql.NullInt64{})
-	e1, _ := CreateExercise(db, "TM List Ex 1", "", 0, "", "", 0)
-	e2, _ := CreateExercise(db, "TM List Ex 2", "", 0, "", "", 0)
+	e1, _ := CreateExercise(db, "TM List Ex 1", "", "", "", 0)
+	e2, _ := CreateExercise(db, "TM List Ex 2", "", "", "", 0)
 
 	today := time.Now().Format("2006-01-02")
 	SetTrainingMax(db, a.ID, e1.ID, 200.0, today, "")

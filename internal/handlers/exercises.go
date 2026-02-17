@@ -81,10 +81,9 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	targetReps, _ := strconv.Atoi(r.FormValue("target_reps"))
 	restSeconds, _ := strconv.Atoi(r.FormValue("rest_seconds"))
 
-	exercise, err := models.CreateExercise(h.DB, name, r.FormValue("tier"), targetReps, r.FormValue("form_notes"), r.FormValue("demo_url"), restSeconds)
+	exercise, err := models.CreateExercise(h.DB, name, r.FormValue("tier"), r.FormValue("form_notes"), r.FormValue("demo_url"), restSeconds)
 	if errors.Is(err, models.ErrDuplicateExerciseName) {
 		data := map[string]any{
 			"Error": "An exercise with that name already exists",
@@ -243,10 +242,9 @@ func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	targetReps, _ := strconv.Atoi(r.FormValue("target_reps"))
 	restSeconds, _ := strconv.Atoi(r.FormValue("rest_seconds"))
 
-	_, err = models.UpdateExercise(h.DB, id, name, r.FormValue("tier"), targetReps, r.FormValue("form_notes"), r.FormValue("demo_url"), restSeconds)
+	_, err = models.UpdateExercise(h.DB, id, name, r.FormValue("tier"), r.FormValue("form_notes"), r.FormValue("demo_url"), restSeconds)
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Exercise not found", http.StatusNotFound)
 		return

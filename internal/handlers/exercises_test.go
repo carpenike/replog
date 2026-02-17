@@ -13,7 +13,7 @@ func TestExercises_List_ReturnsOK(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	seedExercise(t, db, "Squat", "", 0)
+	seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 	req := requestWithUser("GET", "/exercises", nil, coach)
@@ -29,8 +29,8 @@ func TestExercises_List_FilterByTier(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	seedExercise(t, db, "Lunges", "foundational", 20)
-	seedExercise(t, db, "Bench", "intermediate", 15)
+	seedExercise(t, db, "Lunges", "foundational")
+	seedExercise(t, db, "Bench", "intermediate")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -63,7 +63,7 @@ func TestExercises_Create_Success(t *testing.T) {
 
 	h := &Exercises{DB: db, Templates: tc}
 
-	form := url.Values{"name": {"Bulgarian Split Squat"}, "tier": {"foundational"}, "target_reps": {"20"}}
+	form := url.Values{"name": {"Bulgarian Split Squat"}, "tier": {"foundational"}}
 	req := requestWithUser("POST", "/exercises", form, coach)
 	rr := httptest.NewRecorder()
 	h.Create(rr, req)
@@ -94,7 +94,7 @@ func TestExercises_Create_DuplicateName(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	seedExercise(t, db, "Squat", "", 0)
+	seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -129,7 +129,7 @@ func TestExercises_Show_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -164,7 +164,7 @@ func TestExercises_Update_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -191,7 +191,7 @@ func TestExercises_Delete_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	ex := seedExercise(t, db, "ToDelete", "", 0)
+	ex := seedExercise(t, db, "ToDelete", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -209,7 +209,7 @@ func TestExercises_Delete_InUseReturnsConflict(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 	athlete := seedAthlete(t, db, "Alice", "")
 
 	// Create a workout and log a set to make the exercise "in use".
@@ -239,7 +239,7 @@ func TestExercises_ExerciseHistory_CoachCanView(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -290,7 +290,7 @@ func TestExercises_EditForm_CoachCanView(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -342,7 +342,7 @@ func TestExercises_Update_EmptyName(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -361,7 +361,7 @@ func TestExercises_Update_NonCoachForbidden(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	nonCoach := seedUnlinkedNonCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -380,8 +380,8 @@ func TestExercises_Update_DuplicateName(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	seedExercise(t, db, "Squat", "", 0)
-	ex2 := seedExercise(t, db, "Bench", "", 0)
+	seedExercise(t, db, "Squat", "")
+	ex2 := seedExercise(t, db, "Bench", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -400,7 +400,7 @@ func TestExercises_Delete_NonCoachForbidden(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	nonCoach := seedUnlinkedNonCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -419,7 +419,7 @@ func TestExercises_ExerciseHistory_NonCoachOwnAthlete(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -440,7 +440,7 @@ func TestExercises_ExerciseHistory_NonCoachOtherForbidden(t *testing.T) {
 	myAthlete := seedAthlete(t, db, "Kid", "")
 	otherAthlete := seedAthlete(t, db, "Other", "")
 	nonCoach := seedNonCoach(t, db, myAthlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -459,7 +459,7 @@ func TestExercises_ExerciseHistory_AthleteNotFound(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 
@@ -498,7 +498,7 @@ func TestExercises_Show_NonCoachCanView(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Exercises{DB: db, Templates: tc}
 

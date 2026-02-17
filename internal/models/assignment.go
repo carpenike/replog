@@ -27,10 +27,15 @@ type AthleteExercise struct {
 
 // AssignExercise creates an active assignment for an athlete+exercise pair.
 // Returns ErrAlreadyAssigned if there is already an active assignment.
-func AssignExercise(db *sql.DB, athleteID, exerciseID int64) (*AthleteExercise, error) {
+func AssignExercise(db *sql.DB, athleteID, exerciseID int64, targetReps int) (*AthleteExercise, error) {
+	var repsVal sql.NullInt64
+	if targetReps > 0 {
+		repsVal = sql.NullInt64{Int64: int64(targetReps), Valid: true}
+	}
+
 	result, err := db.Exec(
-		`INSERT INTO athlete_exercises (athlete_id, exercise_id, active) VALUES (?, ?, 1)`,
-		athleteID, exerciseID,
+		`INSERT INTO athlete_exercises (athlete_id, exercise_id, target_reps, active) VALUES (?, ?, ?, 1)`,
+		athleteID, exerciseID, repsVal,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -61,8 +66,8 @@ func DeactivateAssignment(db *sql.DB, id int64) error {
 
 // ReactivateAssignment creates a new active assignment row for an athlete+exercise
 // that was previously deactivated. This preserves the audit trail.
-func ReactivateAssignment(db *sql.DB, athleteID, exerciseID int64) (*AthleteExercise, error) {
-	return AssignExercise(db, athleteID, exerciseID)
+func ReactivateAssignment(db *sql.DB, athleteID, exerciseID int64, targetReps int) (*AthleteExercise, error) {
+	return AssignExercise(db, athleteID, exerciseID, targetReps)
 }
 
 // GetAssignmentByID retrieves an assignment by primary key.
@@ -70,7 +75,7 @@ func GetAssignmentByID(db *sql.DB, id int64) (*AthleteExercise, error) {
 	ae := &AthleteExercise{}
 	err := db.QueryRow(
 		`SELECT ae.id, ae.athlete_id, ae.exercise_id, ae.active, ae.assigned_at, ae.deactivated_at,
-		        e.name, e.tier, e.target_reps
+		        e.name, e.tier, ae.target_reps
 		 FROM athlete_exercises ae
 		 JOIN exercises e ON e.id = ae.exercise_id
 		 WHERE ae.id = ?`, id,
@@ -89,7 +94,7 @@ func GetAssignmentByID(db *sql.DB, id int64) (*AthleteExercise, error) {
 func ListActiveAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, error) {
 	rows, err := db.Query(`
 		SELECT ae.id, ae.athlete_id, ae.exercise_id, ae.active, ae.assigned_at, ae.deactivated_at,
-		       e.name, e.tier, e.target_reps
+		       e.name, e.tier, ae.target_reps
 		FROM athlete_exercises ae
 		JOIN exercises e ON e.id = ae.exercise_id
 		WHERE ae.athlete_id = ? AND ae.active = 1
@@ -115,7 +120,7 @@ func ListActiveAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, err
 // ListUnassignedExercises returns exercises not actively assigned to an athlete.
 func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 	rows, err := db.Query(`
-		SELECT e.id, e.name, e.tier, e.target_reps, e.form_notes, e.created_at, e.updated_at
+		SELECT e.id, e.name, e.tier, e.form_notes, e.created_at, e.updated_at
 		FROM exercises e
 		WHERE e.id NOT IN (
 			SELECT exercise_id FROM athlete_exercises
@@ -131,7 +136,7 @@ func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 	var exercises []*Exercise
 	for rows.Next() {
 		e := &Exercise{}
-		if err := rows.Scan(&e.ID, &e.Name, &e.Tier, &e.TargetReps, &e.FormNotes, &e.CreatedAt, &e.UpdatedAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.Name, &e.Tier, &e.FormNotes, &e.CreatedAt, &e.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("models: scan exercise: %w", err)
 		}
 		exercises = append(exercises, e)
@@ -145,7 +150,7 @@ func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 func ListDeactivatedAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, error) {
 	rows, err := db.Query(`
 		SELECT ae.id, ae.athlete_id, ae.exercise_id, ae.active, ae.assigned_at, ae.deactivated_at,
-		       e.name, e.tier, e.target_reps
+		       e.name, e.tier, ae.target_reps
 		FROM athlete_exercises ae
 		JOIN exercises e ON e.id = ae.exercise_id
 		WHERE ae.athlete_id = ? AND ae.active = 0

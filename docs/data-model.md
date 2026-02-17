@@ -74,7 +74,6 @@ erDiagram
         INTEGER id PK
         TEXT name UK "COLLATE NOCASE"
         TEXT tier "nullable"
-        INTEGER target_reps "nullable"
         TEXT form_notes "nullable"
         TEXT demo_url "nullable"
         INTEGER rest_seconds "nullable"
@@ -86,6 +85,7 @@ erDiagram
         INTEGER id PK
         INTEGER athlete_id FK
         INTEGER exercise_id FK
+        INTEGER target_reps "nullable"
         INTEGER active "0 or 1"
         DATETIME assigned_at
         DATETIME deactivated_at "nullable"
@@ -266,7 +266,6 @@ erDiagram
 | `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
 | `name`      | TEXT         | NOT NULL UNIQUE COLLATE NOCASE        |
 | `tier`      | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
-| `target_reps`| INTEGER     | NULL                                 |
 | `form_notes`| TEXT         | NULL                                 |
 | `demo_url`  | TEXT         | NULL                                 |
 | `rest_seconds`| INTEGER    | NULL                                 |
@@ -274,7 +273,6 @@ erDiagram
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - `tier` is nullable — general lifts (squat, bench, deadlift) exist independent of the kids' tier system.
-- `target_reps` is the default prescription. Can be overridden per-assignment in the future.
 - `form_notes` holds static coaching cues ("keep elbows tucked").
 - `rest_seconds` is the recommended rest between sets in seconds. NULL means use the app default (90s). Passed to the client-side rest timer after logging a set.
 - `demo_url` links to a video demonstrating proper form.
@@ -286,10 +284,12 @@ erDiagram
 | `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
 | `athlete_id`   | INTEGER      | NOT NULL, FK → athletes(id)          |
 | `exercise_id`  | INTEGER      | NOT NULL, FK → exercises(id)         |
+| `target_reps`  | INTEGER      | NULL                                 |
 | `active`       | INTEGER      | NOT NULL DEFAULT 1, CHECK(active IN (0, 1)) |
 | `assigned_at`  | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `deactivated_at`| DATETIME    | NULL                                 |
 
+- `target_reps` is the per-assignment prescription — rep targets vary by athlete even for the same exercise.
 - Partial unique index ensures only one active assignment per athlete+exercise at a time.
 - Deactivation sets `active = 0` and populates `deactivated_at`.
 - Reactivation creates a new row (preserves audit trail with fresh `assigned_at`).
@@ -486,7 +486,6 @@ CREATE TABLE IF NOT EXISTS exercises (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     name         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
     tier         TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
-    target_reps  INTEGER,
     form_notes   TEXT,
     demo_url     TEXT,
     rest_seconds INTEGER,
@@ -498,6 +497,7 @@ CREATE TABLE IF NOT EXISTS athlete_exercises (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     athlete_id      INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
     exercise_id     INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    target_reps     INTEGER,
     active          INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
     assigned_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deactivated_at  DATETIME
@@ -729,20 +729,20 @@ CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user_id ON webauthn_credenti
 
 ```sql
 -- Tier exercises
-INSERT INTO exercises (name, tier, target_reps, form_notes) VALUES
-    ('Lunges', 'foundational', 20, 'Keep front knee over ankle, torso upright'),
-    ('Push-ups', 'foundational', 20, 'Full range of motion, elbows at 45 degrees'),
-    ('Goblet Squats', 'foundational', 20, 'Hold weight at chest, sit back into heels'),
-    ('Bear Crawls', 'foundational', 20, 'Keep hips low, opposite hand-foot movement'),
-    ('Bench Press', 'intermediate', 15, 'Training bar. Feet flat, arch back slightly, control the descent'),
-    ('Dumbbell Snatch', 'intermediate', 15, 'Start from hang position, explosive hip drive'),
-    ('Cleans', 'sport_performance', NULL, 'Full clean from floor, catch in front rack'),
-    ('Deadlifts', 'sport_performance', NULL, 'Traditional stance, neutral spine throughout');
+INSERT INTO exercises (name, tier, form_notes) VALUES
+    ('Lunges', 'foundational', 'Keep front knee over ankle, torso upright'),
+    ('Push-ups', 'foundational', 'Full range of motion, elbows at 45 degrees'),
+    ('Goblet Squats', 'foundational', 'Hold weight at chest, sit back into heels'),
+    ('Bear Crawls', 'foundational', 'Keep hips low, opposite hand-foot movement'),
+    ('Bench Press', 'intermediate', 'Training bar. Feet flat, arch back slightly, control the descent'),
+    ('Dumbbell Snatch', 'intermediate', 'Start from hang position, explosive hip drive'),
+    ('Cleans', 'sport_performance', 'Full clean from floor, catch in front rack'),
+    ('Deadlifts', 'sport_performance', 'Traditional stance, neutral spine throughout');
 
 -- General lifts (no tier)
-INSERT INTO exercises (name, tier, target_reps, form_notes) VALUES
-    ('Back Squat', NULL, NULL, 'Break parallel, drive knees out'),
-    ('Overhead Press', NULL, NULL, 'Strict press, no leg drive');
+INSERT INTO exercises (name, tier, form_notes) VALUES
+    ('Back Squat', NULL, 'Break parallel, drive knees out'),
+    ('Overhead Press', NULL, 'Strict press, no leg drive');
 ```
 
 ## Operational Notes

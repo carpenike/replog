@@ -53,7 +53,9 @@ func (h *Assignments) Assign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.AssignExercise(h.DB, athleteID, exerciseID)
+	targetReps, _ := strconv.Atoi(r.FormValue("target_reps"))
+
+	_, err = models.AssignExercise(h.DB, athleteID, exerciseID, targetReps)
 	if errors.Is(err, models.ErrAlreadyAssigned) {
 		http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10), http.StatusSeeOther)
 		return
@@ -191,7 +193,9 @@ func (h *Assignments) Reactivate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.ReactivateAssignment(h.DB, athleteID, exerciseID)
+	targetReps, _ := strconv.Atoi(r.FormValue("target_reps"))
+
+	_, err = models.ReactivateAssignment(h.DB, athleteID, exerciseID, targetReps)
 	if errors.Is(err, models.ErrAlreadyAssigned) {
 		// Already active — just redirect back.
 		http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10), http.StatusSeeOther)

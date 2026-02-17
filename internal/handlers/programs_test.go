@@ -311,7 +311,7 @@ func TestPrograms_AddSet_Success(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	tmpl, _ := models.CreateProgramTemplate(db, "AddSet Test", "", 4, 4)
-	ex := seedExercise(t, db, "Bench Press", "", 0)
+	ex := seedExercise(t, db, "Bench Press", "")
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -395,7 +395,7 @@ func TestPrograms_DeleteSet_Success(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	tmpl, _ := models.CreateProgramTemplate(db, "DeleteSet Test", "", 4, 4)
-	ex := seedExercise(t, db, "Bench", "", 0)
+	ex := seedExercise(t, db, "Bench", "")
 
 	reps := 5
 	ps, _ := models.CreatePrescribedSet(db, tmpl.ID, ex.ID, 1, 1, 1, &reps, nil, "", "")

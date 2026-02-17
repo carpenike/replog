@@ -14,7 +14,7 @@ func TestAssignments_Assign_Success(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Assignments{DB: db, Templates: tc}
 
@@ -43,7 +43,7 @@ func TestAssignments_Assign_NonCoachForbidden(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Assignments{DB: db, Templates: tc}
 
@@ -63,10 +63,10 @@ func TestAssignments_Assign_AlreadyAssigned(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	// Assign once directly.
-	_, err := models.AssignExercise(db, athlete.ID, ex.ID)
+	_, err := models.AssignExercise(db, athlete.ID, ex.ID, 0)
 	if err != nil {
 		t.Fatalf("assign: %v", err)
 	}
@@ -90,8 +90,8 @@ func TestAssignments_Deactivate_Success(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
-	assignment, _ := models.AssignExercise(db, athlete.ID, ex.ID)
+	ex := seedExercise(t, db, "Squat", "")
+	assignment, _ := models.AssignExercise(db, athlete.ID, ex.ID, 0)
 
 	h := &Assignments{DB: db, Templates: tc}
 
@@ -117,8 +117,8 @@ func TestAssignments_Deactivate_NonCoachForbidden(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
-	assignment, _ := models.AssignExercise(db, athlete.ID, ex.ID)
+	ex := seedExercise(t, db, "Squat", "")
+	assignment, _ := models.AssignExercise(db, athlete.ID, ex.ID, 0)
 
 	h := &Assignments{DB: db, Templates: tc}
 
@@ -174,10 +174,10 @@ func TestAssignments_Reactivate_Success(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	// Assign then deactivate.
-	assignment, _ := models.AssignExercise(db, athlete.ID, ex.ID)
+	assignment, _ := models.AssignExercise(db, athlete.ID, ex.ID, 0)
 	_ = models.DeactivateAssignment(db, assignment.ID)
 
 	h := &Assignments{DB: db, Templates: tc}
@@ -204,7 +204,7 @@ func TestAssignments_Reactivate_NonCoachForbidden(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	ex := seedExercise(t, db, "Squat", "", 0)
+	ex := seedExercise(t, db, "Squat", "")
 
 	h := &Assignments{DB: db, Templates: tc}
 

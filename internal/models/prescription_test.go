@@ -122,8 +122,8 @@ func TestRoundToNearest(t *testing.T) {
 func TestCurrentTrainingMaxes(t *testing.T) {
 	db := testDB(t)
 	a, _ := CreateAthlete(db, "TM Athlete", "", "", "", sql.NullInt64{})
-	bench, _ := CreateExercise(db, "Bench Press", "", 0, "", "", 0)
-	squat, _ := CreateExercise(db, "Back Squat", "", 0, "", "", 0)
+	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
+	squat, _ := CreateExercise(db, "Back Squat", "", "", "", 0)
 
 	// Set multiple TMs for bench (should return latest).
 	SetTrainingMax(db, a.ID, bench.ID, 180, "2026-01-01", "")
@@ -170,7 +170,7 @@ func TestGetPrescription_CycleWraparound(t *testing.T) {
 
 	// 2 weeks × 2 days = 4 total positions.
 	tmpl, _ := CreateProgramTemplate(db, "Short Cycle", "", 2, 2)
-	bench, _ := CreateExercise(db, "Bench", "", 0, "", "", 0)
+	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
 
 	// Add sets for each day.
 	for w := 1; w <= 2; w++ {
@@ -212,7 +212,7 @@ func TestGetPrescription_NoTrainingMax(t *testing.T) {
 	db := testDB(t)
 
 	tmpl, _ := CreateProgramTemplate(db, "No TM Test", "", 1, 1)
-	bench, _ := CreateExercise(db, "Bench", "", 0, "", "", 0)
+	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
 
 	reps := 5
 	pct := 75.0
@@ -251,7 +251,7 @@ func TestGetPrescription_HasWorkoutToday(t *testing.T) {
 	db := testDB(t)
 
 	tmpl, _ := CreateProgramTemplate(db, "Today Test", "", 1, 1)
-	bench, _ := CreateExercise(db, "Bench", "", 0, "", "", 0)
+	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
 	reps := 5
 	CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, 1, &reps, nil, "", "")
 

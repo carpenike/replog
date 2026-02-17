@@ -24,9 +24,6 @@
         <div id="delete-error"></div>
 
         <dl>
-            <dt>Target Reps</dt>
-            <dd>{{ if .Exercise.TargetReps.Valid }}{{ .Exercise.TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</dd>
-
             <dt>Rest Between Sets</dt>
             <dd>{{ if .Exercise.RestSeconds.Valid }}{{ .Exercise.RestSeconds.Int64 }}s{{ else }}<span class="text-muted">Default (90s)</span>{{ end }}</dd>
         </dl>

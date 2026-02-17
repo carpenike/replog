@@ -187,7 +187,7 @@ func TestTrainingMaxChartData(t *testing.T) {
 		t.Fatalf("create athlete: %v", err)
 	}
 
-	exercise, err := CreateExercise(db, "Squat", "foundational", 0, "", "", 0)
+	exercise, err := CreateExercise(db, "Squat", "foundational", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
@@ -227,7 +227,7 @@ func TestExerciseVolumeChart(t *testing.T) {
 		t.Fatalf("create athlete: %v", err)
 	}
 
-	exercise, err := CreateExercise(db, "Bench Press", "", 0, "", "", 0)
+	exercise, err := CreateExercise(db, "Bench Press", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
@@ -284,7 +284,7 @@ func TestWorkoutHeatmap(t *testing.T) {
 	}
 
 	// Create a workout today so heatmap has data.
-	exercise, err := CreateExercise(db, "Deadlift", "", 0, "", "", 0)
+	exercise, err := CreateExercise(db, "Deadlift", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}

@@ -89,12 +89,12 @@ func TestWeeklyStreaks_DefaultWeeks(t *testing.T) {
 func TestWeeklyStreaks_WithData(t *testing.T) {
 	db := testDB(t)
 	a, _ := CreateAthlete(db, "Streak Athlete", "", "", "", sql.NullInt64{})
-	bench, _ := CreateExercise(db, "Bench Press", "", 0, "", "", 0)
-	squat, _ := CreateExercise(db, "Back Squat", "", 0, "", "", 0)
+	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
+	squat, _ := CreateExercise(db, "Back Squat", "", "", "", 0)
 
 	// Assign both exercises.
-	AssignExercise(db, a.ID, bench.ID)
-	AssignExercise(db, a.ID, squat.ID)
+	AssignExercise(db, a.ID, bench.ID, 0)
+	AssignExercise(db, a.ID, squat.ID, 0)
 
 	// Create a workout and log sets for both exercises this week.
 	// Use today's date so the workout falls in the current week.
@@ -130,13 +130,13 @@ func TestWeeklyStreaks_WithData(t *testing.T) {
 func TestWeeklyStreaks_PartialCompletion(t *testing.T) {
 	db := testDB(t)
 	a, _ := CreateAthlete(db, "Partial Athlete", "", "", "", sql.NullInt64{})
-	bench, _ := CreateExercise(db, "Bench", "", 0, "", "", 0)
-	squat, _ := CreateExercise(db, "Squat", "", 0, "", "", 0)
-	deadlift, _ := CreateExercise(db, "Deadlift", "", 0, "", "", 0)
+	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
+	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
+	deadlift, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
 
-	AssignExercise(db, a.ID, bench.ID)
-	AssignExercise(db, a.ID, squat.ID)
-	AssignExercise(db, a.ID, deadlift.ID)
+	AssignExercise(db, a.ID, bench.ID, 0)
+	AssignExercise(db, a.ID, squat.ID, 0)
+	AssignExercise(db, a.ID, deadlift.ID, 0)
 
 	// Log only bench this week using today's date.
 	today := time.Now().Format("2006-01-02")
@@ -162,11 +162,11 @@ func TestWeeklyStreaks_PartialCompletion(t *testing.T) {
 func TestWeeklyStreaks_UnassignedExercisesNotCounted(t *testing.T) {
 	db := testDB(t)
 	a, _ := CreateAthlete(db, "Unassigned Athlete", "", "", "", sql.NullInt64{})
-	bench, _ := CreateExercise(db, "Press", "", 0, "", "", 0)
-	extra, _ := CreateExercise(db, "Extra Move", "", 0, "", "", 0)
+	bench, _ := CreateExercise(db, "Press", "", "", "", 0)
+	extra, _ := CreateExercise(db, "Extra Move", "", "", "", 0)
 
 	// Only assign bench.
-	AssignExercise(db, a.ID, bench.ID)
+	AssignExercise(db, a.ID, bench.ID, 0)
 
 	// Log both exercises.
 	today := time.Now().Format("2006-01-02")

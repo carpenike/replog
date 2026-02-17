@@ -39,7 +39,6 @@ CREATE TABLE IF NOT EXISTS exercises (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     name         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
     tier         TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
-    target_reps  INTEGER,
     form_notes   TEXT,
     demo_url     TEXT,
     rest_seconds INTEGER,
@@ -51,6 +50,7 @@ CREATE TABLE IF NOT EXISTS athlete_exercises (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     athlete_id      INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
     exercise_id     INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    target_reps     INTEGER,
     active          INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
     assigned_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deactivated_at  DATETIME

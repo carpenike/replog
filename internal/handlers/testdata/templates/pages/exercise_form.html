@@ -28,11 +28,6 @@
                 </select>
             </label>
 
-            <label for="target_reps">Target Reps
-                <input type="number" id="target_reps" name="target_reps" min="0" inputmode="numeric"
-                       value="{{ if .Exercise }}{{ if .Exercise.TargetReps.Valid }}{{ .Exercise.TargetReps.Int64 }}{{ end }}{{ end }}">
-            </label>
-
             <label for="form_notes">Form Notes
                 <textarea id="form_notes" name="form_notes" rows="3">{{ if .Exercise }}{{ if .Exercise.FormNotes.Valid }}{{ .Exercise.FormNotes.String }}{{ end }}{{ end }}</textarea>
             </label>

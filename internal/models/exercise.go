@@ -23,7 +23,6 @@ type Exercise struct {
 	ID          int64
 	Name        string
 	Tier        sql.NullString
-	TargetReps  sql.NullInt64
 	FormNotes   sql.NullString
 	DemoURL     sql.NullString
 	RestSeconds sql.NullInt64
@@ -40,14 +39,10 @@ func (e *Exercise) EffectiveRestSeconds() int {
 }
 
 // CreateExercise inserts a new exercise.
-func CreateExercise(db *sql.DB, name, tier string, targetReps int, formNotes, demoURL string, restSeconds int) (*Exercise, error) {
+func CreateExercise(db *sql.DB, name, tier string, formNotes, demoURL string, restSeconds int) (*Exercise, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
-	}
-	var repsVal sql.NullInt64
-	if targetReps > 0 {
-		repsVal = sql.NullInt64{Int64: int64(targetReps), Valid: true}
 	}
 	var notesVal sql.NullString
 	if formNotes != "" {
@@ -63,8 +58,8 @@ func CreateExercise(db *sql.DB, name, tier string, targetReps int, formNotes, de
 	}
 
 	result, err := db.Exec(
-		`INSERT INTO exercises (name, tier, target_reps, form_notes, demo_url, rest_seconds) VALUES (?, ?, ?, ?, ?, ?)`,
-		name, tierVal, repsVal, notesVal, demoVal, restVal,
+		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds) VALUES (?, ?, ?, ?, ?)`,
+		name, tierVal, notesVal, demoVal, restVal,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -81,9 +76,9 @@ func CreateExercise(db *sql.DB, name, tier string, targetReps int, formNotes, de
 func GetExerciseByID(db *sql.DB, id int64) (*Exercise, error) {
 	e := &Exercise{}
 	err := db.QueryRow(
-		`SELECT id, name, tier, target_reps, form_notes, demo_url, rest_seconds, created_at, updated_at
+		`SELECT id, name, tier, form_notes, demo_url, rest_seconds, created_at, updated_at
 		 FROM exercises WHERE id = ?`, id,
-	).Scan(&e.ID, &e.Name, &e.Tier, &e.TargetReps, &e.FormNotes, &e.DemoURL, &e.RestSeconds, &e.CreatedAt, &e.UpdatedAt)
+	).Scan(&e.ID, &e.Name, &e.Tier, &e.FormNotes, &e.DemoURL, &e.RestSeconds, &e.CreatedAt, &e.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -94,14 +89,10 @@ func GetExerciseByID(db *sql.DB, id int64) (*Exercise, error) {
 }
 
 // UpdateExercise modifies an existing exercise's fields.
-func UpdateExercise(db *sql.DB, id int64, name, tier string, targetReps int, formNotes, demoURL string, restSeconds int) (*Exercise, error) {
+func UpdateExercise(db *sql.DB, id int64, name, tier string, formNotes, demoURL string, restSeconds int) (*Exercise, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
-	}
-	var repsVal sql.NullInt64
-	if targetReps > 0 {
-		repsVal = sql.NullInt64{Int64: int64(targetReps), Valid: true}
 	}
 	var notesVal sql.NullString
 	if formNotes != "" {
@@ -117,8 +108,8 @@ func UpdateExercise(db *sql.DB, id int64, name, tier string, targetReps int, for
 	}
 
 	result, err := db.Exec(
-		`UPDATE exercises SET name = ?, tier = ?, target_reps = ?, form_notes = ?, demo_url = ?, rest_seconds = ? WHERE id = ?`,
-		name, tierVal, repsVal, notesVal, demoVal, restVal, id,
+		`UPDATE exercises SET name = ?, tier = ?, form_notes = ?, demo_url = ?, rest_seconds = ? WHERE id = ?`,
+		name, tierVal, notesVal, demoVal, restVal, id,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -159,14 +150,14 @@ func ListExercises(db *sql.DB, tierFilter string) ([]*Exercise, error) {
 	var args []any
 
 	if tierFilter == "none" {
-		query = `SELECT id, name, tier, target_reps, form_notes, demo_url, rest_seconds, created_at, updated_at
+		query = `SELECT id, name, tier, form_notes, demo_url, rest_seconds, created_at, updated_at
 		         FROM exercises WHERE tier IS NULL ORDER BY name COLLATE NOCASE LIMIT 200`
 	} else if tierFilter != "" {
-		query = `SELECT id, name, tier, target_reps, form_notes, demo_url, rest_seconds, created_at, updated_at
+		query = `SELECT id, name, tier, form_notes, demo_url, rest_seconds, created_at, updated_at
 		         FROM exercises WHERE tier = ? ORDER BY name COLLATE NOCASE LIMIT 200`
 		args = append(args, tierFilter)
 	} else {
-		query = `SELECT id, name, tier, target_reps, form_notes, demo_url, rest_seconds, created_at, updated_at
+		query = `SELECT id, name, tier, form_notes, demo_url, rest_seconds, created_at, updated_at
 		         FROM exercises ORDER BY name COLLATE NOCASE LIMIT 200`
 	}
 
@@ -179,7 +170,7 @@ func ListExercises(db *sql.DB, tierFilter string) ([]*Exercise, error) {
 	var exercises []*Exercise
 	for rows.Next() {
 		e := &Exercise{}
-		if err := rows.Scan(&e.ID, &e.Name, &e.Tier, &e.TargetReps, &e.FormNotes, &e.DemoURL, &e.RestSeconds, &e.CreatedAt, &e.UpdatedAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.Name, &e.Tier, &e.FormNotes, &e.DemoURL, &e.RestSeconds, &e.CreatedAt, &e.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("models: scan exercise: %w", err)
 		}
 		exercises = append(exercises, e)

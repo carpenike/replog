@@ -9,10 +9,10 @@ func TestAssignmentLifecycle(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Assign Athlete", "", "", "", sql.NullInt64{})
-	e, _ := CreateExercise(db, "Assign Exercise", "foundational", 20, "", "", 0)
+	e, _ := CreateExercise(db, "Assign Exercise", "foundational", "", "", 0)
 
 	t.Run("assign exercise", func(t *testing.T) {
-		ae, err := AssignExercise(db, a.ID, e.ID)
+		ae, err := AssignExercise(db, a.ID, e.ID, 0)
 		if err != nil {
 			t.Fatalf("assign: %v", err)
 		}
@@ -25,7 +25,7 @@ func TestAssignmentLifecycle(t *testing.T) {
 	})
 
 	t.Run("duplicate assignment", func(t *testing.T) {
-		_, err := AssignExercise(db, a.ID, e.ID)
+		_, err := AssignExercise(db, a.ID, e.ID, 0)
 		if err != ErrAlreadyAssigned {
 			t.Errorf("err = %v, want ErrAlreadyAssigned", err)
 		}
@@ -54,7 +54,7 @@ func TestAssignmentLifecycle(t *testing.T) {
 	})
 
 	t.Run("reactivate creates new row", func(t *testing.T) {
-		ae, err := ReactivateAssignment(db, a.ID, e.ID)
+		ae, err := ReactivateAssignment(db, a.ID, e.ID, 0)
 		if err != nil {
 			t.Fatalf("reactivate: %v", err)
 		}
@@ -73,12 +73,12 @@ func TestListDeactivatedAssignments(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Deact Athlete", "", "", "", sql.NullInt64{})
-	e1, _ := CreateExercise(db, "Deact Ex 1", "", 0, "", "", 0)
-	e2, _ := CreateExercise(db, "Deact Ex 2", "", 0, "", "", 0)
+	e1, _ := CreateExercise(db, "Deact Ex 1", "", "", "", 0)
+	e2, _ := CreateExercise(db, "Deact Ex 2", "", "", "", 0)
 
 	// Assign both, deactivate e1 only.
-	ae1, _ := AssignExercise(db, a.ID, e1.ID)
-	AssignExercise(db, a.ID, e2.ID)
+	ae1, _ := AssignExercise(db, a.ID, e1.ID, 0)
+	AssignExercise(db, a.ID, e2.ID, 0)
 	DeactivateAssignment(db, ae1.ID)
 
 	deactivated, err := ListDeactivatedAssignments(db, a.ID)
@@ -97,10 +97,10 @@ func TestListUnassignedExercises(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Unassigned Athlete", "", "", "", sql.NullInt64{})
-	e1, _ := CreateExercise(db, "Assigned Ex", "", 0, "", "", 0)
-	CreateExercise(db, "Free Ex", "", 0, "", "", 0)
+	e1, _ := CreateExercise(db, "Assigned Ex", "", "", "", 0)
+	CreateExercise(db, "Free Ex", "", "", "", 0)
 
-	AssignExercise(db, a.ID, e1.ID)
+	AssignExercise(db, a.ID, e1.ID, 0)
 
 	unassigned, err := ListUnassignedExercises(db, a.ID)
 	if err != nil {
@@ -119,10 +119,10 @@ func TestListAssignedAthletes(t *testing.T) {
 
 	a1, _ := CreateAthlete(db, "Alice", "", "", "", sql.NullInt64{})
 	a2, _ := CreateAthlete(db, "Bob", "", "", "", sql.NullInt64{})
-	e, _ := CreateExercise(db, "Shared Exercise", "", 0, "", "", 0)
+	e, _ := CreateExercise(db, "Shared Exercise", "", "", "", 0)
 
-	AssignExercise(db, a1.ID, e.ID)
-	AssignExercise(db, a2.ID, e.ID)
+	AssignExercise(db, a1.ID, e.ID, 0)
+	AssignExercise(db, a2.ID, e.ID, 0)
 
 	t.Run("both assigned", func(t *testing.T) {
 		athletes, err := ListAssignedAthletes(db, e.ID)
@@ -151,7 +151,7 @@ func TestListAssignedAthletes(t *testing.T) {
 	})
 
 	t.Run("empty for unassigned exercise", func(t *testing.T) {
-		e2, _ := CreateExercise(db, "Lonely Exercise", "", 0, "", "", 0)
+		e2, _ := CreateExercise(db, "Lonely Exercise", "", "", "", 0)
 		athletes, err := ListAssignedAthletes(db, e2.ID)
 		if err != nil {
 			t.Fatalf("list assigned: %v", err)

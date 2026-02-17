@@ -96,7 +96,7 @@ func TestPrescribedSets(t *testing.T) {
 	db := testDB(t)
 
 	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 4)
-	e, _ := CreateExercise(db, "Bench Press", "", 0, "", "", 0)
+	e, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 
 	t.Run("create prescribed set", func(t *testing.T) {
 		reps := 5
@@ -222,8 +222,8 @@ func TestGetPrescription(t *testing.T) {
 
 	// Set up template: 4 weeks × 4 days, with exercises on W1D1.
 	tmpl, _ := CreateProgramTemplate(db, "Test 531", "", 4, 4)
-	bench, _ := CreateExercise(db, "Bench Press", "", 0, "", "", 0)
-	squat, _ := CreateExercise(db, "Back Squat", "", 0, "", "", 0)
+	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
+	squat, _ := CreateExercise(db, "Back Squat", "", "", "", 0)
 
 	// W1D1: Bench 3×5 @ 65%, Squat 3×5 @ 65%
 	for i := 1; i <= 3; i++ {

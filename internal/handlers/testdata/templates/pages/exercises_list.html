@@ -20,7 +20,6 @@
                 <tr>
                     <th scope="col">Name</th>
                     <th scope="col">Tier</th>
-                    <th scope="col">Target Reps</th>
                 </tr>
             </thead>
             <tbody>
@@ -28,7 +27,6 @@
                 <tr>
                     <td><a href="/exercises/{{ .ID }}">{{ .Name }}</a></td>
                     <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                    <td>{{ if .TargetReps.Valid }}{{ .TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                 </tr>
                 {{ end }}
             </tbody>
