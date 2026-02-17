@@ -18,6 +18,12 @@
                        {{ if .Error }}aria-invalid="true"{{ end }}>
             </label>
 
+            <label for="name">Name
+                <input type="text" id="name" name="name"
+                       value="{{ if .EditUser }}{{ if .EditUser.Name.Valid }}{{ .EditUser.Name.String }}{{ end }}{{ end }}"
+                       placeholder="Display name (optional)">
+            </label>
+
             {{ if .EditUser }}
                 {{ if .EditUser.HasPassword }}
                 <label for="password">Password <small>(leave blank to keep current)</small>

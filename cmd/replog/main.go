@@ -345,7 +345,7 @@ func bootstrapAdmin(db *sql.DB) error {
 		return fmt.Errorf("no users exist and REPLOG_ADMIN_USER / REPLOG_ADMIN_PASS env vars are not set")
 	}
 
-	user, err := models.CreateUser(db, username, password, email, true, true, sql.NullInt64{})
+	user, err := models.CreateUser(db, username, "", password, email, true, true, sql.NullInt64{})
 	if err != nil {
 		return fmt.Errorf("create admin user: %w", err)
 	}

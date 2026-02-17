@@ -8,7 +8,7 @@ import (
 
 func TestCreateLoginToken(t *testing.T) {
 	db := testDB(t)
-	user, err := CreateUser(db, "kid1", "password123", "", false, false, sql.NullInt64{})
+	user, err := CreateUser(db, "kid1", "", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestCreateLoginToken(t *testing.T) {
 
 func TestValidateLoginToken(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid2", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(db, "kid2", "", "password123", "", false, false, sql.NullInt64{})
 
 	t.Run("valid token", func(t *testing.T) {
 		lt, _ := CreateLoginToken(db, user.ID, "iPad", nil)
@@ -114,7 +114,7 @@ func TestValidateLoginToken(t *testing.T) {
 
 func TestListLoginTokensByUser(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid3", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(db, "kid3", "", "password123", "", false, false, sql.NullInt64{})
 
 	t.Run("empty list", func(t *testing.T) {
 		tokens, err := ListLoginTokensByUser(db, user.ID)
@@ -143,7 +143,7 @@ func TestListLoginTokensByUser(t *testing.T) {
 
 func TestDeleteLoginToken(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid4", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(db, "kid4", "", "password123", "", false, false, sql.NullInt64{})
 
 	t.Run("delete existing", func(t *testing.T) {
 		lt, _ := CreateLoginToken(db, user.ID, "to-delete", nil)
@@ -169,7 +169,7 @@ func TestDeleteLoginToken(t *testing.T) {
 
 func TestDeleteLoginTokensByUser(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid5", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(db, "kid5", "", "password123", "", false, false, sql.NullInt64{})
 
 	CreateLoginToken(db, user.ID, "d1", nil)
 	CreateLoginToken(db, user.ID, "d2", nil)
@@ -214,7 +214,7 @@ func TestIsExpired(t *testing.T) {
 
 func TestLoginTokenCascadeDelete(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid6", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(db, "kid6", "", "password123", "", false, false, sql.NullInt64{})
 	CreateLoginToken(db, user.ID, "device", nil)
 
 	// Delete the user — tokens should cascade.

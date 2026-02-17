@@ -2,7 +2,7 @@
 
 {{ define "content" }}
 <section>
-    <h1>Welcome{{ if .User }}, {{ .User.Username }}{{ end }}</h1>
+    <h1>Welcome{{ if .User }}, {{ displayName .User }}{{ end }}</h1>
 
     {{ if or .User.IsCoach .User.IsAdmin }}
     <p>Track your training. Review your progress. Stay consistent.</p>

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS athletes (
 CREATE TABLE IF NOT EXISTS users (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     username        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    name            TEXT,
     email           TEXT    UNIQUE COLLATE NOCASE,
     password_hash   TEXT,
     athlete_id      INTEGER REFERENCES athletes(id) ON DELETE SET NULL,

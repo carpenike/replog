@@ -86,6 +86,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := r.FormValue("username")
+	name := r.FormValue("name")
 	password := r.FormValue("password")
 	email := r.FormValue("email")
 	isCoach := r.FormValue("is_coach") == "1"
@@ -122,7 +123,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	newUser, err := models.CreateUser(h.DB, username, password, email, isCoach, isAdmin, athleteID)
+	newUser, err := models.CreateUser(h.DB, username, name, password, email, isCoach, isAdmin, athleteID)
 	if errors.Is(err, models.ErrDuplicateUsername) {
 		h.renderFormError(w, r, "Username already taken.", nil)
 		return
@@ -241,6 +242,7 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := r.FormValue("username")
+	name := r.FormValue("name")
 	email := r.FormValue("email")
 	isCoach := r.FormValue("is_coach") == "1"
 	isAdmin := r.FormValue("is_admin") == "1"
@@ -273,7 +275,7 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err = models.UpdateUser(h.DB, id, username, email, athleteID, isCoach, isAdmin)
+	_, err = models.UpdateUser(h.DB, id, username, name, email, athleteID, isCoach, isAdmin)
 	if errors.Is(err, models.ErrDuplicateUsername) {
 		h.renderFormError(w, r, "Username already taken.", u)
 		return

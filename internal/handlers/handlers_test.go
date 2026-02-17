@@ -67,7 +67,7 @@ func testSessionManager() *scs.SessionManager {
 // seedCoach creates an admin+coach user and returns it. Useful for setting up auth context.
 func seedCoach(t testing.TB, db *sql.DB) *models.User {
 	t.Helper()
-	user, err := models.CreateUser(db, "coach", "password123", "coach@test.com", true, true, sql.NullInt64{})
+	user, err := models.CreateUser(db, "coach", "", "password123", "coach@test.com", true, true, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("seed coach: %v", err)
 	}
@@ -77,7 +77,7 @@ func seedCoach(t testing.TB, db *sql.DB) *models.User {
 // seedNonCoach creates a non-coach user linked to the given athlete.
 func seedNonCoach(t testing.TB, db *sql.DB, athleteID int64) *models.User {
 	t.Helper()
-	user, err := models.CreateUser(db, "kid", "password123", "", false, false, sql.NullInt64{Int64: athleteID, Valid: true})
+	user, err := models.CreateUser(db, "kid", "", "password123", "", false, false, sql.NullInt64{Int64: athleteID, Valid: true})
 	if err != nil {
 		t.Fatalf("seed non-coach: %v", err)
 	}
@@ -86,7 +86,7 @@ func seedNonCoach(t testing.TB, db *sql.DB, athleteID int64) *models.User {
 
 func seedNonCoachWithUsername(t testing.TB, db *sql.DB, username string, athleteID int64) *models.User {
 	t.Helper()
-	user, err := models.CreateUser(db, username, "password123", "", false, false, sql.NullInt64{Int64: athleteID, Valid: true})
+	user, err := models.CreateUser(db, username, "", "password123", "", false, false, sql.NullInt64{Int64: athleteID, Valid: true})
 	if err != nil {
 		t.Fatalf("seed non-coach %q: %v", username, err)
 	}
@@ -96,7 +96,7 @@ func seedNonCoachWithUsername(t testing.TB, db *sql.DB, username string, athlete
 // seedUnlinkedNonCoach creates a non-coach user with no linked athlete.
 func seedUnlinkedNonCoach(t testing.TB, db *sql.DB) *models.User {
 	t.Helper()
-	user, err := models.CreateUser(db, "unlinked", "password123", "", false, false, sql.NullInt64{})
+	user, err := models.CreateUser(db, "unlinked", "", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("seed unlinked non-coach: %v", err)
 	}

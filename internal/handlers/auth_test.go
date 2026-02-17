@@ -35,7 +35,7 @@ func TestAuth_LoginPage_RedirectsWhenLoggedIn(t *testing.T) {
 	sm := testSessionManager()
 	tc := testTemplateCache(t)
 
-	user, err := models.CreateUser(db, "coach", "password123", "", true, false, sql.NullInt64{})
+	user, err := models.CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestAuth_LoginSubmit_Success(t *testing.T) {
 	sm := testSessionManager()
 	tc := testTemplateCache(t)
 
-	_, err := models.CreateUser(db, "coach", "password123", "c@test.com", true, false, sql.NullInt64{})
+	_, err := models.CreateUser(db, "coach", "", "password123", "c@test.com", true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestAuth_LoginSubmit_InvalidCredentials(t *testing.T) {
 	sm := testSessionManager()
 	tc := testTemplateCache(t)
 
-	_, err := models.CreateUser(db, "coach", "password123", "", true, false, sql.NullInt64{})
+	_, err := models.CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -171,7 +171,7 @@ func TestAuth_LoginSubmit_PasswordlessUserRejects(t *testing.T) {
 	tc := testTemplateCache(t)
 
 	// Create a passwordless user.
-	_, err := models.CreateUser(db, "kidonly", "", "", false, false, sql.NullInt64{})
+	_, err := models.CreateUser(db, "kidonly", "", "", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create passwordless user: %v", err)
 	}

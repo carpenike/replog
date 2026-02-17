@@ -163,9 +163,9 @@
             <div class="sidebar-divider"></div>
             <div class="sidebar-user-menu">
                 <button class="sidebar-user" onclick="toggleUserMenu(event)" type="button" aria-expanded="false" aria-haspopup="true">
-                    <div class="user-avatar">{{ userInitials .User.Username }}</div>
+                    <div class="user-avatar">{{ userInitials (displayName .User) }}</div>
                     <div class="user-info">
-                        <div class="user-name">{{ .User.Username }}</div>
+                        <div class="user-name">{{ displayName .User }}</div>
                         <div class="user-role">{{ if .User.IsAdmin }}Admin{{ else if .User.IsCoach }}Coach{{ else }}Athlete{{ end }}</div>
                     </div>
                     <svg class="user-menu-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>

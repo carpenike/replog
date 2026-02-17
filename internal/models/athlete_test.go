@@ -236,7 +236,7 @@ func TestListAvailableAthletes(t *testing.T) {
 	a3, _ := CreateAthlete(db, "Charlie", "", "", sql.NullInt64{})
 
 	// Link Alice to a user.
-	CreateUser(db, "alice_user", "password123", "", false, false, sql.NullInt64{Int64: a1.ID, Valid: true})
+	CreateUser(db, "alice_user", "", "password123", "", false, false, sql.NullInt64{Int64: a1.ID, Valid: true})
 
 	t.Run("excludes linked athletes", func(t *testing.T) {
 		athletes, err := ListAvailableAthletes(db, 0)

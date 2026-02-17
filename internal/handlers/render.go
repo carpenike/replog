@@ -25,6 +25,12 @@ var templateFuncs = template.FuncMap{
 		}
 		return string(r[:1])
 	},
+	"displayName": func(user *models.User) string {
+		if user.Name.Valid && user.Name.String != "" {
+			return user.Name.String
+		}
+		return user.Username
+	},
 	"tierLabel": func(tier string) string {
 		switch tier {
 		case "foundational":
