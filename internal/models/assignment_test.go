@@ -161,3 +161,74 @@ func TestListAssignedAthletes(t *testing.T) {
 		}
 	})
 }
+
+func TestAssignProgramExercises(t *testing.T) {
+	db := testDB(t)
+
+	athlete, _ := CreateAthlete(db, "Program Athlete", "", "", "", sql.NullInt64{})
+	ex1, _ := CreateExercise(db, "Squat", "", "", "", 0)
+	ex2, _ := CreateExercise(db, "Bench", "", "", "", 0)
+	ex3, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
+
+	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 3)
+	reps5 := 5
+	pct75 := 75.0
+	CreatePrescribedSet(db, tmpl.ID, ex1.ID, 1, 1, 1, &reps5, &pct75, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, ex1.ID, 1, 1, 2, &reps5, &pct75, "reps", "") // duplicate exercise
+	CreatePrescribedSet(db, tmpl.ID, ex2.ID, 1, 2, 1, &reps5, &pct75, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, ex3.ID, 1, 3, 1, &reps5, &pct75, "reps", "")
+
+	t.Run("assigns all program exercises", func(t *testing.T) {
+		n, err := AssignProgramExercises(db, athlete.ID, tmpl.ID)
+		if err != nil {
+			t.Fatalf("auto-assign: %v", err)
+		}
+		if n != 3 {
+			t.Errorf("assigned count = %d, want 3", n)
+		}
+
+		active, _ := ListActiveAssignments(db, athlete.ID)
+		if len(active) != 3 {
+			t.Errorf("active count = %d, want 3", len(active))
+		}
+	})
+
+	t.Run("skips already assigned exercises", func(t *testing.T) {
+		n, err := AssignProgramExercises(db, athlete.ID, tmpl.ID)
+		if err != nil {
+			t.Fatalf("auto-assign: %v", err)
+		}
+		if n != 0 {
+			t.Errorf("assigned count = %d, want 0 (all already assigned)", n)
+		}
+	})
+
+	t.Run("partial overlap", func(t *testing.T) {
+		athlete2, _ := CreateAthlete(db, "Partial Athlete", "", "", "", sql.NullInt64{})
+		AssignExercise(db, athlete2.ID, ex1.ID, 0) // pre-assign one exercise
+
+		n, err := AssignProgramExercises(db, athlete2.ID, tmpl.ID)
+		if err != nil {
+			t.Fatalf("auto-assign: %v", err)
+		}
+		if n != 2 {
+			t.Errorf("assigned count = %d, want 2", n)
+		}
+
+		active, _ := ListActiveAssignments(db, athlete2.ID)
+		if len(active) != 3 {
+			t.Errorf("active count = %d, want 3", len(active))
+		}
+	})
+
+	t.Run("empty program template", func(t *testing.T) {
+		emptyTmpl, _ := CreateProgramTemplate(db, "Empty Program", "", 1, 1)
+		n, err := AssignProgramExercises(db, athlete.ID, emptyTmpl.ID)
+		if err != nil {
+			t.Fatalf("auto-assign empty: %v", err)
+		}
+		if n != 0 {
+			t.Errorf("assigned count = %d, want 0", n)
+		}
+	})
+}

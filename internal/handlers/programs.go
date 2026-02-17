@@ -438,6 +438,14 @@ func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-assign the program's exercises to the athlete so they appear
+	// in the Assigned Exercises list (for TM management, history, etc.).
+	if n, err := models.AssignProgramExercises(h.DB, athleteID, templateID); err != nil {
+		log.Printf("handlers: auto-assign program exercises to athlete %d: %v", athleteID, err)
+	} else if n > 0 {
+		log.Printf("handlers: auto-assigned %d exercises from template %d to athlete %d", n, templateID, athleteID)
+	}
+
 	http.Redirect(w, r, fmt.Sprintf("/athletes/%d", athleteID), http.StatusSeeOther)
 }
 

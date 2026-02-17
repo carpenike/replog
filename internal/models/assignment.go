@@ -185,6 +185,47 @@ func ListDeactivatedAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise
 	return assignments, rows.Err()
 }
 
+// AssignProgramExercises assigns all exercises from a program template to an
+// athlete. Exercises that are already actively assigned are silently skipped.
+// Returns the number of newly created assignments.
+func AssignProgramExercises(db *sql.DB, athleteID, templateID int64) (int, error) {
+	rows, err := db.Query(
+		`SELECT DISTINCT ps.exercise_id
+		 FROM prescribed_sets ps
+		 WHERE ps.template_id = ?`,
+		templateID,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("models: list program exercises for auto-assign (template=%d): %w", templateID, err)
+	}
+	defer rows.Close()
+
+	var exerciseIDs []int64
+	for rows.Next() {
+		var eid int64
+		if err := rows.Scan(&eid); err != nil {
+			return 0, fmt.Errorf("models: scan exercise id: %w", err)
+		}
+		exerciseIDs = append(exerciseIDs, eid)
+	}
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("models: iterate program exercises: %w", err)
+	}
+
+	assigned := 0
+	for _, eid := range exerciseIDs {
+		_, err := AssignExercise(db, athleteID, eid, 0)
+		if errors.Is(err, ErrAlreadyAssigned) {
+			continue
+		}
+		if err != nil {
+			return assigned, fmt.Errorf("models: auto-assign exercise %d to athlete %d: %w", eid, athleteID, err)
+		}
+		assigned++
+	}
+	return assigned, nil
+}
+
 // AssignedAthlete represents an athlete with an active assignment for a specific exercise.
 type AssignedAthlete struct {
 	AthleteID   int64

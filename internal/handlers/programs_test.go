@@ -444,6 +444,14 @@ func TestPrograms_AssignProgram_Success(t *testing.T) {
 	tmpl, _ := models.CreateProgramTemplate(db, "Assign Test", "", 4, 4)
 	a := seedAthlete(t, db, "Athlete", "")
 
+	// Add prescribed sets with two distinct exercises.
+	ex1, _ := models.CreateExercise(db, "AA Squat", "", "", "", 0)
+	ex2, _ := models.CreateExercise(db, "AA Bench", "", "", "", 0)
+	reps5 := 5
+	pct75 := 75.0
+	models.CreatePrescribedSet(db, tmpl.ID, ex1.ID, 1, 1, 1, &reps5, &pct75, "reps", "")
+	models.CreatePrescribedSet(db, tmpl.ID, ex2.ID, 1, 2, 1, &reps5, &pct75, "reps", "")
+
 	h := &Programs{DB: db, Templates: tc}
 
 	form := url.Values{
@@ -465,6 +473,12 @@ func TestPrograms_AssignProgram_Success(t *testing.T) {
 	}
 	if ap.TemplateName != "Assign Test" {
 		t.Errorf("template = %q, want Assign Test", ap.TemplateName)
+	}
+
+	// Verify exercises were auto-assigned.
+	assignments, _ := models.ListActiveAssignments(db, a.ID)
+	if len(assignments) != 2 {
+		t.Errorf("auto-assigned exercises = %d, want 2", len(assignments))
 	}
 }
 
