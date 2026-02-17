@@ -816,13 +816,13 @@ func TestWorkouts_Show_WithPrescription(t *testing.T) {
 	}
 
 	body := rr.Body.String()
-	if !strings.Contains(body, "Today&#39;s Prescription") && !strings.Contains(body, "Today's Prescription") {
-		t.Error("expected prescription section in response body")
+	if !strings.Contains(body, "5/3/1 BBB") {
+		t.Error("expected program name in response body")
 	}
 	if !strings.Contains(body, "Bench Press") {
-		t.Error("expected exercise name in prescription")
+		t.Error("expected exercise name in prescription scaffold")
 	}
-	if !strings.Contains(body, "prefill-btn") {
-		t.Error("expected pre-fill button in prescription")
+	if !strings.Contains(body, "scaffold-log-btn") {
+		t.Error("expected scaffold log button in prescription")
 	}
 }

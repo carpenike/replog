@@ -296,6 +296,12 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		selectedExerciseID, _ = strconv.ParseInt(eidStr, 10, 64)
 	}
 
+	// Build a map of exercise_id → logged set count for the prescription scaffold.
+	loggedSetCounts := make(map[int64]int)
+	for _, g := range groups {
+		loggedSetCounts[g.ExerciseID] = len(g.Sets)
+	}
+
 	// Load review for this workout (if any).
 	var review *models.WorkoutReview
 	rev, revErr := models.GetWorkoutReviewByWorkoutID(h.DB, workoutID)
@@ -314,6 +320,7 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		"Unassigned":         unassigned,
 		"TMByExercise":       tmByExercise,
 		"Prescription":       prescription,
+		"LoggedSetCounts":    loggedSetCounts,
 		"LastSession":        lastSession,
 		"SelectedExerciseID": selectedExerciseID,
 		"Review":             review,

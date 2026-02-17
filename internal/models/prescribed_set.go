@@ -20,6 +20,34 @@ type PrescribedSet struct {
 
 	// Joined fields.
 	ExerciseName string
+
+	// TargetWeight is the per-set target weight computed from percentage × training max.
+	// Populated by GetPrescription; not stored in the database.
+	TargetWeight *float64
+}
+
+// TargetWeightLabel returns the formatted target weight for this set, or "" if none.
+func (ps *PrescribedSet) TargetWeightLabel() string {
+	if ps.TargetWeight == nil {
+		return ""
+	}
+	w := *ps.TargetWeight
+	if w == float64(int(w)) {
+		return fmt.Sprintf("%.0f", w)
+	}
+	return fmt.Sprintf("%.1f", w)
+}
+
+// PercentageLabel returns a formatted percentage string (e.g. "75%"), or "" if none.
+func (ps *PrescribedSet) PercentageLabel() string {
+	if !ps.Percentage.Valid {
+		return ""
+	}
+	pct := ps.Percentage.Float64
+	if pct == float64(int(pct)) {
+		return fmt.Sprintf("%.0f%%", pct)
+	}
+	return fmt.Sprintf("%.1f%%", pct)
 }
 
 // RepsLabel returns a display string for reps (e.g. "5", "5/ea", "30s", or "AMRAP").

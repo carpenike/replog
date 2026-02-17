@@ -152,6 +152,14 @@ func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescriptio
 	lineMap := make(map[int64]*PrescriptionLine)
 	var lineOrder []int64
 	for _, s := range sets {
+		// Compute per-set target weight from percentage × training max.
+		if s.Percentage.Valid {
+			if tm, ok := tmMap[s.ExerciseID]; ok {
+				target := roundToNearest(s.Percentage.Float64/100*tm, 2.5)
+				s.TargetWeight = &target
+			}
+		}
+
 		line, exists := lineMap[s.ExerciseID]
 		if !exists {
 			line = &PrescriptionLine{
@@ -163,13 +171,13 @@ func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescriptio
 		}
 		line.Sets = append(line.Sets, s)
 
-		// Set percentage and target weight from the first set that has them.
+		// Set line-level percentage and target weight from the first set that has them.
 		if s.Percentage.Valid && line.Percentage == nil {
 			pct := s.Percentage.Float64
 			line.Percentage = &pct
 			if tm, ok := tmMap[s.ExerciseID]; ok {
 				line.TrainingMax = &tm
-				target := roundToNearest(pct/100*tm, 2.5) // Round to nearest 2.5 lb
+				target := roundToNearest(pct/100*tm, 2.5)
 				line.TargetWeight = &target
 			}
 		}
@@ -271,6 +279,14 @@ func GetCycleReport(db *sql.DB, athleteID int64, today time.Time) (*CycleReport,
 			lineMap := make(map[int64]*PrescriptionLine)
 			var lineOrder []int64
 			for _, s := range sets {
+				// Compute per-set target weight.
+				if s.Percentage.Valid {
+					if tm, ok := tmMap[s.ExerciseID]; ok {
+						target := roundToNearest(s.Percentage.Float64/100*tm, 2.5)
+						s.TargetWeight = &target
+					}
+				}
+
 				line, exists := lineMap[s.ExerciseID]
 				if !exists {
 					line = &PrescriptionLine{

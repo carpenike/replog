@@ -179,50 +179,66 @@
             {{ end }}
 
             {{ if and .Prescription .Prescription.Lines }}
-            <details open>
-                <summary>Today's Prescription — {{ .Prescription.Program.TemplateName }} · Cycle {{ .Prescription.CycleNumber }}, Week {{ .Prescription.CurrentWeek }}, Day {{ .Prescription.CurrentDay }}</summary>
-                <div class="program-progress">
-                    <div class="progress-bar-segmented">
-                        {{ $p := .Prescription }}
-                        {{ range $w := seq 1 $p.Program.NumWeeks }}
-                        <div class="progress-week{{ if le $w (subtract $p.CurrentWeek 1) }} completed{{ else if eq $w $p.CurrentWeek }} current{{ end }}">
-                            {{ range $d := seq 1 $p.Program.NumDays }}
-                            {{ $dayIdx := add (multiply (subtract $w 1) $p.Program.NumDays) $d }}
-                            <div class="progress-day{{ if lt $dayIdx (add $p.CompletedInCycle 1) }} filled{{ end }}{{ if eq $dayIdx (add $p.CompletedInCycle 1) }} today{{ end }}" title="Week {{ $w }}, Day {{ $d }}"></div>
-                            {{ end }}
-                        </div>
+            <!-- Program progress -->
+            <div class="program-progress">
+                <strong>{{ .Prescription.Program.TemplateName }}</strong> · Cycle {{ .Prescription.CycleNumber }}, Week {{ .Prescription.CurrentWeek }}, Day {{ .Prescription.CurrentDay }}
+                <div class="progress-bar-segmented">
+                    {{ $p := .Prescription }}
+                    {{ range $w := seq 1 $p.Program.NumWeeks }}
+                    <div class="progress-week{{ if le $w (subtract $p.CurrentWeek 1) }} completed{{ else if eq $w $p.CurrentWeek }} current{{ end }}">
+                        {{ range $d := seq 1 $p.Program.NumDays }}
+                        {{ $dayIdx := add (multiply (subtract $w 1) $p.Program.NumDays) $d }}
+                        <div class="progress-day{{ if lt $dayIdx (add $p.CompletedInCycle 1) }} filled{{ end }}{{ if eq $dayIdx (add $p.CompletedInCycle 1) }} today{{ end }}" title="Week {{ $w }}, Day {{ $d }}"></div>
                         {{ end }}
                     </div>
-                    <span class="progress-label">{{ $p.CompletedInCycle }}/{{ $p.TotalInCycle }} sessions</span>
+                    {{ end }}
                 </div>
-                <table class="striped">
-                    <thead>
-                        <tr>
-                            <th scope="col">Exercise</th>
-                            <th scope="col">Sets × Reps</th>
-                            <th scope="col">% of TM</th>
-                            <th scope="col">Target Weight</th>
-                            <th scope="col"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{ range .Prescription.Lines }}
-                        <tr>
-                            <td>{{ .ExerciseName }}</td>
-                            <td>{{ .SetsSummary }}</td>
-                            <td>{{ if .PercentageLabel }}{{ .PercentageLabel }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                            <td>{{ if .TargetWeightLabel }}{{ .TargetWeightLabel }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                            <td>
-                                <button type="button" class="outline secondary prefill-btn"
-                                    data-exercise-id="{{ .ExerciseID }}"
-                                    data-reps="{{ if .Sets }}{{ (index .Sets 0).RepsLabel }}{{ end }}"
-                                    data-weight="{{ .TargetWeightLabel }}">Load</button>
-                            </td>
-                        </tr>
-                        {{ end }}
-                    </tbody>
-                </table>
-            </details>
+                <span class="progress-label">{{ $p.CompletedInCycle }}/{{ $p.TotalInCycle }} sessions</span>
+            </div>
+
+            <!-- Per-set scaffold: one form row per prescribed set -->
+            {{ range $line := .Prescription.Lines }}
+            {{ $loggedCount := index $.LoggedSetCounts $line.ExerciseID }}
+            {{ $totalSets := len $line.Sets }}
+            <article class="scaffold-exercise">
+                <header>
+                    <div class="scaffold-header">
+                        <strong>{{ $line.ExerciseName }}</strong>
+                        {{ $tm := index $.TMByExercise $line.ExerciseID }}{{ if $tm }}<span class="text-muted">TM: {{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}</span>{{ end }}
+                        <span class="scaffold-progress{{ if ge $loggedCount $totalSets }} complete{{ end }}">{{ $loggedCount }}/{{ $totalSets }} sets</span>
+                    </div>
+                </header>
+                {{ if ge $loggedCount $totalSets }}
+                <p class="scaffold-complete">&#10003; All sets complete</p>
+                {{ else }}
+                {{ range $i, $s := $line.Sets }}
+                {{ if ge $i $loggedCount }}
+                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets" class="scaffold-set-form">
+                    <input type="hidden" name="exercise_id" value="{{ $line.ExerciseID }}">
+                    <input type="hidden" name="rep_type" value="{{ $s.RepType }}">
+                    <div class="scaffold-grid">
+                        <span class="scaffold-target">Set {{ $s.SetNumber }}: {{ $s.RepsLabel }}{{ if $s.PercentageLabel }} @ {{ $s.PercentageLabel }}{{ end }}{{ if $s.TargetWeightLabel }} &rarr; {{ $s.TargetWeightLabel }} {{ weightUnit $.Prefs }}{{ end }}{{ if $s.Notes.Valid }} <span class="text-muted">({{ $s.Notes.String }})</span>{{ end }}</span>
+                        <label class="field-sm">Reps
+                            <input type="number" name="reps" min="1" required value="{{ if $s.Reps.Valid }}{{ $s.Reps.Int64 }}{{ end }}" inputmode="numeric"{{ if not $s.Reps.Valid }} placeholder="AMRAP"{{ end }}>
+                        </label>
+                        <label class="field-sm">Weight
+                            <input type="number" name="weight" step="0.5" min="0" value="{{ $s.TargetWeightLabel }}" inputmode="numeric" placeholder="{{ weightUnit $.Prefs }}">
+                        </label>
+                        <label class="field-sm">RPE
+                            <input type="number" name="rpe" step="0.5" min="1" max="10" inputmode="numeric" placeholder="1-10">
+                        </label>
+                        <button type="submit" class="outline secondary scaffold-log-btn">Log</button>
+                    </div>
+                </form>
+                {{ end }}
+                {{ end }}
+                {{ end }}
+            </article>
+            {{ end }}
+
+            <!-- Fallback: add unscripted / accessory sets -->
+            <details>
+                <summary>Add unscripted set</summary>
             {{ else if .Assigned }}
             <details>
                 <summary>Prescribed Exercises</summary>
@@ -293,38 +309,10 @@
                 </label>
                 <button type="submit" aria-busy="false">Log Set</button>
             </form>
+
+            {{ if and .Prescription .Prescription.Lines }}
+            </details>
+            {{ end }}
         </section>
-        <script>
-        // Pre-fill the add-set form from prescription "Load" buttons.
-        document.addEventListener("click", function(e) {
-            var btn = e.target.closest(".prefill-btn");
-            if (!btn) return;
-
-            var exerciseId = btn.getAttribute("data-exercise-id");
-            var reps = btn.getAttribute("data-reps");
-            var weight = btn.getAttribute("data-weight");
-
-            var exerciseSelect = document.getElementById("exercise_id");
-            if (exerciseSelect && exerciseId) {
-                exerciseSelect.value = exerciseId;
-            }
-
-            var repsInput = document.getElementById("reps");
-            if (repsInput && reps && reps !== "AMRAP") {
-                repsInput.value = reps;
-            } else if (repsInput && reps === "AMRAP") {
-                repsInput.value = "";
-                repsInput.focus();
-            }
-
-            var weightInput = document.getElementById("weight");
-            if (weightInput && weight) {
-                weightInput.value = weight;
-            }
-
-            // Scroll the form into view.
-            exerciseSelect.closest("form").scrollIntoView({ behavior: "smooth", block: "center" });
-        });
-        </script>
         <script src="/static/js/rest-timer.js"></script>
 {{ end }}

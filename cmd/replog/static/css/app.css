@@ -888,6 +888,75 @@ main.container {
     padding: 0.5rem 0.75rem;
 }
 
+/* ---- Prescription Scaffold (pre-populated workout logging) ---- */
+.scaffold-exercise {
+    margin-bottom: 0.5rem;
+}
+
+.scaffold-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.scaffold-progress {
+    font-size: 0.85rem;
+    color: var(--pico-muted-color);
+    margin-left: auto;
+}
+
+.scaffold-progress.complete {
+    color: var(--accent-green, #4caf50);
+    font-weight: bold;
+}
+
+.scaffold-complete {
+    color: var(--accent-green, #4caf50);
+    font-weight: 600;
+    margin: 0.25rem 0;
+}
+
+.scaffold-set-form {
+    margin: 0;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.scaffold-set-form:last-of-type {
+    padding-bottom: 0;
+}
+
+.scaffold-grid {
+    display: flex;
+    gap: 0.5rem;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.scaffold-target {
+    flex: 1 1 100%;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.scaffold-grid label {
+    margin-bottom: 0;
+}
+
+.scaffold-grid input {
+    max-width: 5.5rem;
+    margin-bottom: 0;
+}
+
+.scaffold-log-btn {
+    margin-bottom: 0;
+    white-space: nowrap;
+    align-self: end;
+    padding: 0.5rem 0.75rem;
+}
+
 /* ---- Set Actions ---- */
 .set-actions {
     display: flex;
