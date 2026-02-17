@@ -111,7 +111,7 @@
                     {{ range .Heatmap.Cells }}
                     <rect x="{{ .X }}" y="{{ .Y }}" width="12" height="12" rx="2"
                           class="heatmap-cell" data-level="{{ .Level }}">
-                        <title>{{ .Date }}{{ if gt .Volume 0 }}: {{ formatVolume .Volume }} volume{{ end }}</title>
+                        <title>{{ .Date }}{{ if gt .Volume 0.0 }}: {{ formatVolume .Volume }} volume{{ end }}</title>
                     </rect>
                     {{ end }}
                     </g>
