@@ -2,6 +2,7 @@ package models
 
 import (
 	"testing"
+	"time"
 )
 
 func TestWeeklyStreak_Status(t *testing.T) {
@@ -95,10 +96,9 @@ func TestWeeklyStreaks_WithData(t *testing.T) {
 	AssignExercise(db, a.ID, squat.ID)
 
 	// Create a workout and log sets for both exercises this week.
-	// We use a date in the current week to ensure it's picked up.
-	// The streaks function uses time.Now() internally, so we log
-	// today's date to ensure the current week has data.
-	w, err := CreateWorkout(db, a.ID, "2026-02-13", "")
+	// Use today's date so the workout falls in the current week.
+	today := time.Now().Format("2006-01-02")
+	w, err := CreateWorkout(db, a.ID, today, "")
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
@@ -138,7 +138,8 @@ func TestWeeklyStreaks_PartialCompletion(t *testing.T) {
 	AssignExercise(db, a.ID, deadlift.ID)
 
 	// Log only bench this week using today's date.
-	w, _ := CreateWorkout(db, a.ID, "2026-02-13", "")
+	today := time.Now().Format("2006-01-02")
+	w, _ := CreateWorkout(db, a.ID, today, "")
 	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "")
 
 	streaks, err := WeeklyStreaks(db, a.ID, 1)
@@ -167,7 +168,8 @@ func TestWeeklyStreaks_UnassignedExercisesNotCounted(t *testing.T) {
 	AssignExercise(db, a.ID, bench.ID)
 
 	// Log both exercises.
-	w, _ := CreateWorkout(db, a.ID, "2026-02-13", "")
+	today := time.Now().Format("2006-01-02")
+	w, _ := CreateWorkout(db, a.ID, today, "")
 	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "")
 	AddSet(db, w.ID, extra.ID, 10, 0, 0, "")
 

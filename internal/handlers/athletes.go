@@ -31,9 +31,9 @@ func (h *Athletes) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athletes, err := models.ListAthletes(h.DB)
+	athletes, err := models.ListAthleteCards(h.DB)
 	if err != nil {
-		log.Printf("handlers: list athletes: %v", err)
+		log.Printf("handlers: list athlete cards: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -182,6 +182,13 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		// Non-fatal — continue without streak data.
 	}
 
+	// Load workout frequency heatmap (last 52 weeks).
+	heatmap, err := models.WorkoutHeatmap(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: workout heatmap for athlete %d: %v", id, err)
+		// Non-fatal — continue without heatmap data.
+	}
+
 	// Load active program and today's prescription.
 	activeProgram, err := models.GetActiveProgram(h.DB, id)
 	if err != nil {
@@ -215,6 +222,7 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		"Deactivated":      deactivated,
 		"LatestWeight":     latestWeight,
 		"Streaks":          streaks,
+		"Heatmap":          heatmap,
 		"ActiveProgram":    activeProgram,
 		"Prescription":     prescription,
 		"ProgramTemplates": programTemplates,

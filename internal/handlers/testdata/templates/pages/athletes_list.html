@@ -9,12 +9,12 @@
         {{ if .Athletes }}
         <div class="dashboard-grid">
             {{ range .Athletes }}
-            <article onclick="window.location='/athletes/{{ .ID }}'">
+            <a href="/athletes/{{ .ID }}" class="card-link"><article>
                 <h2>{{ .Name }}
                     {{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ end }}
                 </h2>
                 <p>{{ .ActiveAssignments }} exercise{{ if ne .ActiveAssignments 1 }}s{{ end }} assigned</p>
-            </article>
+            </article></a>
             {{ end }}
         </div>
         {{ else }}

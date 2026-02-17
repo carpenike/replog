@@ -275,6 +275,19 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Load "last time" data for each exercise in the logged groups.
+	// Shows what the athlete did in their previous session for each exercise.
+	lastSession := make(map[int64]*models.LastSessionSummary)
+	dateForLookup := workout.Date
+	if len(dateForLookup) > 10 {
+		dateForLookup = dateForLookup[:10]
+	}
+	for _, g := range groups {
+		if prev, err := models.LastSessionSets(h.DB, athleteID, g.ExerciseID, dateForLookup); err == nil && prev != nil {
+			lastSession[g.ExerciseID] = prev
+		}
+	}
+
 	data := map[string]any{
 		"Athlete":      athlete,
 		"Workout":      workout,
@@ -283,6 +296,7 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		"Unassigned":   unassigned,
 		"TMByExercise": tmByExercise,
 		"Prescription": prescription,
+		"LastSession":  lastSession,
 	}
 	if err := h.Templates.Render(w, r, "workout_detail.html", data); err != nil {
 		log.Printf("handlers: workout detail template: %v", err)

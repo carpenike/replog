@@ -87,6 +87,54 @@ var templateFuncs = template.FuncMap{
 		}
 		return t.In(loc).Format(format)
 	},
+	// formatWeight formats a float64 weight value for display (no trailing zeros).
+	// Call as {{ formatWeight 185.0 }}.
+	"formatWeight": func(w float64) string {
+		if w == float64(int(w)) {
+			return fmt.Sprintf("%.0f", w)
+		}
+		return fmt.Sprintf("%.1f", w)
+	},
+	// formatVolume formats a large volume number with comma separators.
+	// Call as {{ formatVolume 48200.0 }}.
+	"formatVolume": func(v float64) string {
+		n := int64(v)
+		if n < 1000 {
+			return fmt.Sprintf("%d", n)
+		}
+		s := fmt.Sprintf("%d", n)
+		var result []byte
+		for i, c := range s {
+			if i > 0 && (len(s)-i)%3 == 0 {
+				result = append(result, ',')
+			}
+			result = append(result, byte(c))
+		}
+		return string(result)
+	},
+	// subtract returns a - b. Used in range loops for accessing previous index.
+	"subtract": func(a, b int) int {
+		return a - b
+	},
+	// add returns a + b for template arithmetic.
+	"add": func(a, b int) int {
+		return a + b
+	},
+	// multiply returns a * b for template arithmetic.
+	"multiply": func(a, b int) int {
+		return a * b
+	},
+	// seq returns a slice of ints from start to end (inclusive) for range loops.
+	"seq": func(start, end int) []int {
+		if end < start {
+			return nil
+		}
+		s := make([]int, 0, end-start+1)
+		for i := start; i <= end; i++ {
+			s = append(s, i)
+		}
+		return s
+	},
 	// formatDateStr formats a YYYY-MM-DD date string using the user's preferred
 	// date format. Call as {{ formatDateStr .Prefs "2025-01-15" }}.
 	"formatDateStr": func(prefs *models.UserPreferences, dateStr string) string {

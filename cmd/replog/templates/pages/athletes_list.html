@@ -9,12 +9,34 @@
         {{ if .Athletes }}
         <div class="dashboard-grid">
             {{ range .Athletes }}
-            <article onclick="window.location='/athletes/{{ .ID }}'">
-                <h2>{{ .Name }}
-                    {{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ end }}
-                </h2>
-                <p>{{ .ActiveAssignments }} exercise{{ if ne .ActiveAssignments 1 }}s{{ end }} assigned</p>
-            </article>
+            <a href="/athletes/{{ .ID }}" class="athlete-card-link">
+                <article class="athlete-card" {{ if .Tier.Valid }}data-tier="{{ .Tier.String }}"{{ end }}>
+                    <div class="athlete-card-header">
+                        <h2>{{ .Name }}
+                            {{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ end }}
+                        </h2>
+                        {{ if .BWTrend }}
+                        <span class="bw-trend" data-trend="{{ .BWTrend }}">
+                            {{ if eq .BWTrend "up" }}↑{{ else if eq .BWTrend "down" }}↓{{ else }}→{{ end }}
+                        </span>
+                        {{ end }}
+                    </div>
+                    <p>{{ .ActiveAssignments }} exercise{{ if ne .ActiveAssignments 1 }}s{{ end }} assigned</p>
+                    <div class="athlete-card-footer">
+                        {{ if .LastWorkoutDate.Valid }}
+                        <span class="last-workout">Last: {{ .LastWorkoutDate.String }}</span>
+                        {{ else }}
+                        <span class="last-workout empty">No workouts yet</span>
+                        {{ end }}
+                        {{ if gt .WeekStreak 0 }}
+                        <span class="streak-dots" title="{{ .WeekStreak }}-week streak">
+                            {{ range seq 1 .WeekStreak }}·{{ end }}
+                            <small>{{ .WeekStreak }}w</small>
+                        </span>
+                        {{ end }}
+                    </div>
+                </article>
+            </a>
             {{ end }}
         </div>
         {{ else }}

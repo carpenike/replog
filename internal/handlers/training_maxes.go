@@ -175,10 +175,22 @@ func (h *TrainingMaxes) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load chart data for TM progression.
+	prefs := middleware.PrefsFromContext(r.Context())
+	unit := models.DefaultWeightUnit
+	if prefs != nil {
+		unit = prefs.WeightUnit
+	}
+	chartData, chartErr := models.TrainingMaxChartData(h.DB, athleteID, exerciseID, unit)
+	if chartErr != nil {
+		log.Printf("handlers: TM chart for athlete %d exercise %d: %v", athleteID, exerciseID, chartErr)
+	}
+
 	data := map[string]any{
 		"Athlete":  athlete,
 		"Exercise": exercise,
 		"History":  history,
+		"Chart":    chartData,
 	}
 	if err := h.Templates.Render(w, r, "training_max_history.html", data); err != nil {
 		log.Printf("handlers: training max history template: %v", err)

@@ -29,6 +29,33 @@
             <button type="submit">Log Weight</button>
         </form>
 
+        <!-- Body Weight Trend Chart -->
+        {{ if and .Chart .Chart.HasData }}
+        <article class="chart-card">
+            <header><strong>Weight Trend</strong> <span class="text-muted">(last 30 entries)</span></header>
+            <svg class="trend-chart" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
+                <!-- Y-axis grid lines -->
+                {{ range .Chart.YLabels }}
+                <line x1="50" y1="{{ .Y }}" x2="590" y2="{{ .Y }}" class="chart-grid" />
+                <text x="46" y="{{ .Y }}" class="chart-axis-label" text-anchor="end" dominant-baseline="middle">{{ .Label }}</text>
+                {{ end }}
+                <!-- Area fill -->
+                <path d="{{ .Chart.AreaPath }}" class="chart-area" />
+                <!-- Line -->
+                <polyline points="{{ .Chart.PolyLine }}" class="chart-line" />
+                <!-- Dots -->
+                {{ range .Chart.Points }}
+                <circle cx="{{ .X }}" cy="{{ .Y }}" r="3" class="chart-dot">
+                    <title>{{ .Label }}: {{ formatWeight .Value }} {{ $.Chart.ValueUnit }}</title>
+                </circle>
+                {{ end }}
+                <!-- X-axis labels (first and last) -->
+                <text x="50" y="195" class="chart-axis-label">{{ .Chart.MinLabel }}</text>
+                <text x="590" y="195" class="chart-axis-label" text-anchor="end">{{ .Chart.MaxLabel }}</text>
+            </svg>
+        </article>
+        {{ end }}
+
         <!-- History Table -->
         {{ if .Entries }}
         <table class="striped">
@@ -44,7 +71,7 @@
                 {{ range .Entries }}
                 <tr>
                     <td>{{ .Date }}</td>
-                    <td>{{ .Weight }} {{ weightUnit $.Prefs }}</td>
+                    <td>{{ formatWeight .Weight }} {{ weightUnit $.Prefs }}</td>
                     <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td class="set-actions">
                         <form method="POST" action="/athletes/{{ $.Athlete.ID }}/body-weights/{{ .ID }}/delete" class="inline"

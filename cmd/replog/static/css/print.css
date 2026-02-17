@@ -114,4 +114,23 @@
         margin-left: 0;
         font-style: italic;
     }
+
+    /* Cycle Report — print optimized */
+    .cycle-report {
+        columns: 2;
+        column-gap: 1em;
+    }
+
+    .report-day {
+        break-inside: avoid;
+    }
+
+    .report-log-col {
+        width: 5em;
+        min-height: 1.5em;
+    }
+
+    .no-print {
+        display: none !important;
+    }
 }

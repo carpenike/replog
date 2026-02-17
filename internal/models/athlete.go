@@ -18,6 +18,17 @@ type Athlete struct {
 	ActiveAssignments int // populated by list queries
 }
 
+// AthleteCardInfo holds enriched data for displaying athlete cards.
+type AthleteCardInfo struct {
+	ID                int64
+	Name              string
+	Tier              sql.NullString
+	ActiveAssignments int
+	LastWorkoutDate   sql.NullString // most recent workout date, null if none
+	WeekStreak        int            // consecutive weeks with a workout
+	BWTrend           string         // "up", "down", "flat", or "" if insufficient data
+}
+
 // CreateAthlete inserts a new athlete.
 func CreateAthlete(db *sql.DB, name, tier, notes string) (*Athlete, error) {
 	var tierVal sql.NullString
@@ -190,4 +201,101 @@ func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error
 		athletes = append(athletes, a)
 	}
 	return athletes, rows.Err()
+}
+
+// ListAthleteCards returns enriched athlete data for the athlete list view.
+// Includes last workout date, week streak, and body weight trend.
+func ListAthleteCards(db *sql.DB) ([]*AthleteCardInfo, error) {
+	rows, err := db.Query(`
+		SELECT a.id, a.name, a.tier,
+		       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
+		                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
+		       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout
+		FROM athletes a
+		ORDER BY a.name COLLATE NOCASE
+		LIMIT 100`)
+	if err != nil {
+		return nil, fmt.Errorf("models: list athlete cards: %w", err)
+	}
+	defer rows.Close()
+
+	var cards []*AthleteCardInfo
+	for rows.Next() {
+		c := &AthleteCardInfo{}
+		if err := rows.Scan(&c.ID, &c.Name, &c.Tier, &c.ActiveAssignments, &c.LastWorkoutDate); err != nil {
+			return nil, fmt.Errorf("models: scan athlete card: %w", err)
+		}
+		cards = append(cards, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Enrich each card with streak and BW trend.
+	for _, c := range cards {
+		c.WeekStreak = athleteWeekStreak(db, c.ID)
+		c.BWTrend = athleteBWTrend(db, c.ID)
+	}
+
+	return cards, nil
+}
+
+// athleteWeekStreak counts consecutive weeks (ending this week) with at least one workout.
+func athleteWeekStreak(db *sql.DB, athleteID int64) int {
+	now := time.Now()
+	weekday := int(now.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+	monday := now.AddDate(0, 0, -(weekday - 1))
+	streak := 0
+	for i := 0; i < 52; i++ {
+		weekStart := monday.AddDate(0, 0, -7*i)
+		weekEnd := weekStart.AddDate(0, 0, 7)
+		var count int
+		err := db.QueryRow(`
+			SELECT COUNT(*) FROM workouts
+			WHERE athlete_id = ? AND date(date) >= date(?) AND date(date) < date(?)`,
+			athleteID, weekStart.Format("2006-01-02"), weekEnd.Format("2006-01-02")).Scan(&count)
+		if err != nil || count == 0 {
+			break
+		}
+		streak++
+	}
+	return streak
+}
+
+// athleteBWTrend returns "up", "down", or "flat" based on the last 3 body weight entries.
+func athleteBWTrend(db *sql.DB, athleteID int64) string {
+	rows, err := db.Query(`
+		SELECT weight FROM body_weights
+		WHERE athlete_id = ?
+		ORDER BY date DESC
+		LIMIT 3`, athleteID)
+	if err != nil {
+		return ""
+	}
+	defer rows.Close()
+
+	var weights []float64
+	for rows.Next() {
+		var w float64
+		if err := rows.Scan(&w); err != nil {
+			return ""
+		}
+		weights = append(weights, w)
+	}
+	if len(weights) < 2 {
+		return ""
+	}
+
+	newest := weights[0]
+	oldest := weights[len(weights)-1]
+	diff := newest - oldest
+	if diff > 0.5 {
+		return "up"
+	} else if diff < -0.5 {
+		return "down"
+	}
+	return "flat"
 }

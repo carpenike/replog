@@ -38,6 +38,16 @@
             {{ range .Groups }}
             <article>
                 <header><strong>{{ .ExerciseName }}</strong></header>
+                {{ $prev := index $.LastSession .ExerciseID }}{{ if $prev }}
+                <details class="last-session">
+                    <summary>Last time ({{ $prev.Date }})</summary>
+                    <div class="last-session-sets">
+                        {{ range $prev.Sets }}
+                        <span class="last-set-chip">{{ .Reps }}{{ if .Weight.Valid }}×{{ formatWeight .Weight.Float64 }}{{ end }}{{ if .RPE.Valid }} @{{ formatWeight .RPE.Float64 }}{{ end }}</span>
+                        {{ end }}
+                    </div>
+                </details>
+                {{ end }}
                 <table class="striped">
                     <thead>
                         <tr>
@@ -51,10 +61,10 @@
                     </thead>
                     <tbody>
                         {{ range .Sets }}
-                        <tr>
+                        <tr{{ if .RPE.Valid }} data-rpe="{{ .RPE.Float64 }}"{{ end }}>
                             <td>{{ .SetNumber }}</td>
                             <td>{{ .Reps }}</td>
-                            <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                            <td>{{ if .Weight.Valid }}{{ formatWeight .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
                             <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td class="set-actions">
@@ -75,11 +85,14 @@
 
         <!-- Rest Timer -->
         <div id="rest-timer" class="rest-timer" style="display:none;">
-            <div class="timer-bar">
-                <div class="timer-progress"></div>
+            <div class="timer-ring-container">
+                <svg class="timer-ring" viewBox="0 0 120 120">
+                    <circle class="timer-ring-bg" cx="60" cy="60" r="54" />
+                    <circle class="timer-ring-progress" cx="60" cy="60" r="54" />
+                </svg>
+                <span class="timer-display">0:00</span>
             </div>
             <div class="timer-controls">
-                <span class="timer-display">0:00</span>
                 <button type="button" class="timer-toggle outline secondary">Pause</button>
                 <button type="button" class="timer-reset outline secondary">Reset</button>
                 <button type="button" class="timer-dismiss outline contrast">✕</button>
@@ -97,6 +110,20 @@
             {{ if and .Prescription .Prescription.Lines }}
             <details open>
                 <summary>Today's Prescription — {{ .Prescription.Program.TemplateName }} · Cycle {{ .Prescription.CycleNumber }}, Week {{ .Prescription.CurrentWeek }}, Day {{ .Prescription.CurrentDay }}</summary>
+                <div class="program-progress">
+                    <div class="progress-bar-segmented">
+                        {{ $p := .Prescription }}
+                        {{ range $w := seq 1 $p.Program.NumWeeks }}
+                        <div class="progress-week{{ if le $w (subtract $p.CurrentWeek 1) }} completed{{ else if eq $w $p.CurrentWeek }} current{{ end }}">
+                            {{ range $d := seq 1 $p.Program.NumDays }}
+                            {{ $dayIdx := add (multiply (subtract $w 1) $p.Program.NumDays) $d }}
+                            <div class="progress-day{{ if lt $dayIdx (add $p.CompletedInCycle 1) }} filled{{ end }}{{ if eq $dayIdx (add $p.CompletedInCycle 1) }} today{{ end }}" title="Week {{ $w }}, Day {{ $d }}"></div>
+                            {{ end }}
+                        </div>
+                        {{ end }}
+                    </div>
+                    <span class="progress-label">{{ $p.CompletedInCycle }}/{{ $p.TotalInCycle }} sessions</span>
+                </div>
                 <table class="striped">
                     <thead>
                         <tr>
@@ -141,7 +168,7 @@
                         <tr>
                             <td>{{ .ExerciseName }}</td>
                             <td>{{ if .TargetReps.Valid }}{{ .TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                            <td>{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }}{{ $tm.Weight }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                            <td>{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }}{{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         </tr>
                         {{ end }}
                     </tbody>
@@ -157,7 +184,7 @@
                             {{ if .Assigned }}
                             <optgroup label="Assigned">
                                 {{ range .Assigned }}
-                                <option value="{{ .ExerciseID }}">{{ .ExerciseName }}{{ if .TargetReps.Valid }} ({{ .TargetReps.Int64 }} reps){{ end }}{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }} — TM: {{ $tm.Weight }} {{ weightUnit $.Prefs }}{{ end }}</option>
+                                <option value="{{ .ExerciseID }}">{{ .ExerciseName }}{{ if .TargetReps.Valid }} ({{ .TargetReps.Int64 }} reps){{ end }}{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }} — TM: {{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}{{ end }}</option>
                                 {{ end }}
                             </optgroup>
                             {{ end }}

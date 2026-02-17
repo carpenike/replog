@@ -54,7 +54,7 @@
                         <tr>
                             <td>{{ .SetNumber }}</td>
                             <td>{{ .Reps }}</td>
-                            <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                            <td>{{ if .Weight.Valid }}{{ formatWeight .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
                             <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td class="set-actions">
@@ -141,7 +141,7 @@
                         <tr>
                             <td>{{ .ExerciseName }}</td>
                             <td>{{ if .TargetReps.Valid }}{{ .TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                            <td>{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }}{{ $tm.Weight }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                            <td>{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }}{{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         </tr>
                         {{ end }}
                     </tbody>
@@ -157,7 +157,7 @@
                             {{ if .Assigned }}
                             <optgroup label="Assigned">
                                 {{ range .Assigned }}
-                                <option value="{{ .ExerciseID }}">{{ .ExerciseName }}{{ if .TargetReps.Valid }} ({{ .TargetReps.Int64 }} reps){{ end }}{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }} — TM: {{ $tm.Weight }} {{ weightUnit $.Prefs }}{{ end }}</option>
+                                <option value="{{ .ExerciseID }}">{{ .ExerciseName }}{{ if .TargetReps.Valid }} ({{ .TargetReps.Int64 }} reps){{ end }}{{ $tm := index $.TMByExercise .ExerciseID }}{{ if $tm }} — TM: {{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}{{ end }}</option>
                                 {{ end }}
                             </optgroup>
                             {{ end }}

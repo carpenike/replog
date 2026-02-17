@@ -44,7 +44,7 @@
                 {{ range .Entries }}
                 <tr>
                     <td>{{ .Date }}</td>
-                    <td>{{ .Weight }} {{ weightUnit $.Prefs }}</td>
+                    <td>{{ formatWeight .Weight }} {{ weightUnit $.Prefs }}</td>
                     <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td class="set-actions">
                         <form method="POST" action="/athletes/{{ $.Athlete.ID }}/body-weights/{{ .ID }}/delete" class="inline"

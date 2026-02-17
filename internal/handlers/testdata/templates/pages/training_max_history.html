@@ -24,7 +24,7 @@
             <tbody>
                 {{ range .History }}
                 <tr>
-                    <td><strong>{{ .Weight }} {{ weightUnit $.Prefs }}</strong></td>
+                    <td><strong>{{ formatWeight .Weight }} {{ weightUnit $.Prefs }}</strong></td>
                     <td>{{ .EffectiveDate }}</td>
                     <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                 </tr>

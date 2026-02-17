@@ -34,29 +34,45 @@
 
         <!-- Hub Cards -->
         <div class="dashboard-grid">
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/workouts/new'">
-                <h2>New Workout</h2>
-                <p>Start logging today's session</p>
-            </article>
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/workouts'">
-                <h2>Workouts</h2>
-                <p>{{ if .RecentWorkouts }}{{ len .RecentWorkouts }} recent{{ else }}No workouts yet{{ end }}</p>
-            </article>
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/body-weights'">
-                <h2>Body Weight</h2>
-                <p>{{ if .LatestWeight }}{{ .LatestWeight.Weight }} {{ weightUnit .Prefs }}{{ else }}No data{{ end }}</p>
-            </article>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="card-link">
+                <article>
+                    <h2>New Workout</h2>
+                    <p>Start logging today's session</p>
+                </article>
+            </a>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts" class="card-link">
+                <article>
+                    <h2>Workouts</h2>
+                    <p>{{ if .RecentWorkouts }}{{ len .RecentWorkouts }} recent{{ else }}No workouts yet{{ end }}</p>
+                </article>
+            </a>
+            <a href="/athletes/{{ .Athlete.ID }}/body-weights" class="card-link">
+                <article>
+                    <h2>Body Weight</h2>
+                    <p>{{ if .LatestWeight }}{{ formatWeight .LatestWeight.Weight }} {{ weightUnit .Prefs }}{{ else }}No data{{ end }}</p>
+                </article>
+            </a>
             {{ if .ActiveProgram }}
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/prescription'">
-                <h2>Program</h2>
-                <p>{{ .ActiveProgram.TemplateName }}</p>
-            </article>
+            <a href="/athletes/{{ .Athlete.ID }}/prescription" class="card-link">
+                <article>
+                    <h2>Program</h2>
+                    <p>{{ .ActiveProgram.TemplateName }}</p>
+                </article>
+            </a>
+            <a href="/athletes/{{ .Athlete.ID }}/report" class="card-link">
+                <article>
+                    <h2>Cycle Report</h2>
+                    <p>Print-friendly plan</p>
+                </article>
+            </a>
             {{ else if .User.IsCoach }}
             {{ if .ProgramTemplates }}
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/program/assign'">
-                <h2>Program</h2>
-                <p>Assign a program</p>
-            </article>
+            <a href="/athletes/{{ .Athlete.ID }}/program/assign" class="card-link">
+                <article>
+                    <h2>Program</h2>
+                    <p>Assign a program</p>
+                </article>
+            </a>
             {{ end }}
             {{ end }}
         </div>
@@ -73,6 +89,40 @@
                     <span class="streak-tooltip">{{ .WeekStart }} – {{ .WeekEnd }}</span>
                 </div>
                 {{ end }}
+            </div>
+        </section>
+        {{ end }}
+
+        <!-- Workout Frequency Heatmap -->
+        {{ if .Heatmap }}
+        <section>
+            <h2>Activity</h2>
+            <p class="text-muted">Workout frequency over the last year. Brighter = higher volume.</p>
+            <div class="heatmap-container">
+                <svg class="workout-heatmap" viewBox="0 0 810 120" preserveAspectRatio="xMidYMid meet">
+                    <!-- Month labels -->
+                    {{ range .Heatmap.MonthLabels }}
+                    <text x="{{ .X }}" y="10" class="heatmap-label">{{ .Label }}</text>
+                    {{ end }}
+                    <!-- Day cells -->
+                    <g transform="translate(0, 18)">
+                    {{ range .Heatmap.Cells }}
+                    <rect x="{{ .X }}" y="{{ .Y }}" width="12" height="12" rx="2"
+                          class="heatmap-cell" data-level="{{ .Level }}">
+                        <title>{{ .Date }}{{ if gt .Volume 0 }}: {{ formatVolume .Volume }} volume{{ end }}</title>
+                    </rect>
+                    {{ end }}
+                    </g>
+                </svg>
+                <div class="heatmap-legend">
+                    <span class="text-muted">Less</span>
+                    <span class="heatmap-swatch" data-level="0"></span>
+                    <span class="heatmap-swatch" data-level="1"></span>
+                    <span class="heatmap-swatch" data-level="2"></span>
+                    <span class="heatmap-swatch" data-level="3"></span>
+                    <span class="heatmap-swatch" data-level="4"></span>
+                    <span class="text-muted">More</span>
+                </div>
             </div>
         </section>
         {{ end }}
@@ -146,8 +196,8 @@
                 </thead>
                 <tbody>
                     {{ range .RecentWorkouts }}
-                    <tr onclick="window.location='/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}'">
-                        <td>{{ .Date }}</td>
+                    <tr>
+                        <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Date }}</a></td>
                         <td>{{ .SetCount }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     </tr>
@@ -189,7 +239,7 @@
                         <td>
                             {{ $tm := index $.TMByExercise .ExerciseID }}
                             {{ if $tm }}
-                                <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/training-maxes">{{ $tm.Weight }} {{ weightUnit $.Prefs }}</a>
+                                <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/training-maxes">{{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}</a>
                             {{ else }}
                                 <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/training-maxes/new" class="text-muted">Set TM</a>
                             {{ end }}

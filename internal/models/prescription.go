@@ -68,13 +68,18 @@ func (pl *PrescriptionLine) SetsSummary() string {
 
 // Prescription holds today's training prescription for an athlete.
 type Prescription struct {
-	Program      *AthleteProgram
-	CurrentWeek  int
-	CurrentDay   int
-	CycleNumber  int
-	Lines        []*PrescriptionLine
-	HasWorkout   bool   // true if athlete already has a workout logged today
-	TodayDate    string // YYYY-MM-DD
+	Program     *AthleteProgram
+	CurrentWeek int
+	CurrentDay  int
+	CycleNumber int
+	Lines       []*PrescriptionLine
+	HasWorkout  bool   // true if athlete already has a workout logged today
+	TodayDate   string // YYYY-MM-DD
+
+	// Progress tracking within the current cycle.
+	CompletedInCycle int     // workouts completed in the current cycle
+	TotalInCycle     int     // total workouts in a full cycle (weeks × days)
+	ProgressPercent  float64 // 0-100
 }
 
 // GetPrescription calculates today's training prescription for an athlete.
@@ -132,7 +137,7 @@ func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescriptio
 	}
 
 	// Get current training maxes for the athlete.
-	tms, err := CurrentTrainingMaxes(db, athleteID)
+	tms, err := ListCurrentTrainingMaxes(db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -176,51 +181,134 @@ func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescriptio
 		lines = append(lines, lineMap[eid])
 	}
 
+	// Calculate progress within the current cycle.
+	completedInCycle := position // position is 0-based index within cycle
+	progressPct := 0.0
+	if cycleLength > 0 {
+		progressPct = float64(completedInCycle) / float64(cycleLength) * 100
+	}
+
 	return &Prescription{
-		Program:     program,
-		CurrentWeek: currentWeek,
-		CurrentDay:  currentDay,
-		CycleNumber: cycleNumber,
-		Lines:       lines,
-		HasWorkout:  hasWorkout,
-		TodayDate:   todayStr,
+		Program:          program,
+		CurrentWeek:      currentWeek,
+		CurrentDay:       currentDay,
+		CycleNumber:      cycleNumber,
+		Lines:            lines,
+		HasWorkout:       hasWorkout,
+		TodayDate:        todayStr,
+		CompletedInCycle: completedInCycle,
+		TotalInCycle:     cycleLength,
+		ProgressPercent:  progressPct,
 	}, nil
-}
-
-// CurrentTrainingMaxes returns the most recent training max for each exercise
-// assigned to an athlete.
-func CurrentTrainingMaxes(db *sql.DB, athleteID int64) ([]*TrainingMax, error) {
-	rows, err := db.Query(
-		`SELECT tm.id, tm.athlete_id, tm.exercise_id, tm.weight, tm.effective_date, tm.notes, tm.created_at, e.name
-		 FROM training_maxes tm
-		 JOIN exercises e ON e.id = tm.exercise_id
-		 WHERE tm.athlete_id = ?
-		   AND tm.effective_date = (
-		       SELECT MAX(tm2.effective_date)
-		       FROM training_maxes tm2
-		       WHERE tm2.athlete_id = tm.athlete_id AND tm2.exercise_id = tm.exercise_id
-		   )
-		 ORDER BY e.name COLLATE NOCASE`,
-		athleteID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("models: current training maxes for athlete %d: %w", athleteID, err)
-	}
-	defer rows.Close()
-
-	var maxes []*TrainingMax
-	for rows.Next() {
-		tm := &TrainingMax{}
-		if err := rows.Scan(&tm.ID, &tm.AthleteID, &tm.ExerciseID, &tm.Weight,
-			&tm.EffectiveDate, &tm.Notes, &tm.CreatedAt, &tm.ExerciseName); err != nil {
-			return nil, fmt.Errorf("models: scan training max: %w", err)
-		}
-		maxes = append(maxes, tm)
-	}
-	return maxes, rows.Err()
 }
 
 // roundToNearest rounds v to the nearest increment (e.g. 2.5 for plates).
 func roundToNearest(v, increment float64) float64 {
 	return math.Round(v/increment) * increment
+}
+
+// CycleReportDay holds the prescription lines for one day in a cycle.
+type CycleReportDay struct {
+	Week  int
+	Day   int
+	Lines []*PrescriptionLine
+}
+
+// CycleReport holds a complete cycle's worth of prescriptions for printing.
+type CycleReport struct {
+	Program     *AthleteProgram
+	CycleNumber int
+	Days        []*CycleReportDay
+}
+
+// GetCycleReport generates the full prescription for every day in the current cycle.
+func GetCycleReport(db *sql.DB, athleteID int64, today time.Time) (*CycleReport, error) {
+	program, err := GetActiveProgram(db, athleteID)
+	if err != nil {
+		return nil, err
+	}
+	if program == nil {
+		return nil, nil
+	}
+
+	todayStr := today.Format("2006-01-02")
+
+	// Count completed workouts to determine current cycle number.
+	var completedWorkouts int
+	err = db.QueryRow(
+		`SELECT COUNT(*) FROM workouts WHERE athlete_id = ? AND date(date) >= date(?) AND date(date) < date(?)`,
+		athleteID, program.StartDate, todayStr,
+	).Scan(&completedWorkouts)
+	if err != nil {
+		return nil, fmt.Errorf("models: count workouts for cycle report: %w", err)
+	}
+
+	cycleLength := program.NumWeeks * program.NumDays
+	if cycleLength == 0 {
+		return nil, fmt.Errorf("models: program has zero cycle length")
+	}
+	cycleNumber := (completedWorkouts / cycleLength) + 1
+
+	// Get training maxes.
+	tms, err := ListCurrentTrainingMaxes(db, athleteID)
+	if err != nil {
+		return nil, err
+	}
+	tmMap := make(map[int64]float64)
+	for _, tm := range tms {
+		tmMap[tm.ExerciseID] = tm.Weight
+	}
+
+	// Build each day.
+	var days []*CycleReportDay
+	for w := 1; w <= program.NumWeeks; w++ {
+		for d := 1; d <= program.NumDays; d++ {
+			sets, err := ListPrescribedSetsForDay(db, program.TemplateID, w, d)
+			if err != nil {
+				return nil, err
+			}
+
+			lineMap := make(map[int64]*PrescriptionLine)
+			var lineOrder []int64
+			for _, s := range sets {
+				line, exists := lineMap[s.ExerciseID]
+				if !exists {
+					line = &PrescriptionLine{
+						ExerciseName: s.ExerciseName,
+						ExerciseID:   s.ExerciseID,
+					}
+					lineMap[s.ExerciseID] = line
+					lineOrder = append(lineOrder, s.ExerciseID)
+				}
+				line.Sets = append(line.Sets, s)
+
+				if s.Percentage.Valid && line.Percentage == nil {
+					pct := s.Percentage.Float64
+					line.Percentage = &pct
+					if tm, ok := tmMap[s.ExerciseID]; ok {
+						line.TrainingMax = &tm
+						target := roundToNearest(pct/100*tm, 2.5)
+						line.TargetWeight = &target
+					}
+				}
+			}
+
+			lines := make([]*PrescriptionLine, 0, len(lineOrder))
+			for _, eid := range lineOrder {
+				lines = append(lines, lineMap[eid])
+			}
+
+			days = append(days, &CycleReportDay{
+				Week:  w,
+				Day:   d,
+				Lines: lines,
+			})
+		}
+	}
+
+	return &CycleReport{
+		Program:     program,
+		CycleNumber: cycleNumber,
+		Days:        days,
+	}, nil
 }

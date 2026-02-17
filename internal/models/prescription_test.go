@@ -130,7 +130,7 @@ func TestCurrentTrainingMaxes(t *testing.T) {
 	SetTrainingMax(db, a.ID, bench.ID, 200, "2026-02-01", "")
 	SetTrainingMax(db, a.ID, squat.ID, 300, "2026-01-15", "")
 
-	maxes, err := CurrentTrainingMaxes(db, a.ID)
+	maxes, err := ListCurrentTrainingMaxes(db, a.ID)
 	if err != nil {
 		t.Fatalf("current training maxes: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestCurrentTrainingMaxes_Empty(t *testing.T) {
 	db := testDB(t)
 	a, _ := CreateAthlete(db, "No TM Athlete", "", "")
 
-	maxes, err := CurrentTrainingMaxes(db, a.ID)
+	maxes, err := ListCurrentTrainingMaxes(db, a.ID)
 	if err != nil {
 		t.Fatalf("current training maxes: %v", err)
 	}

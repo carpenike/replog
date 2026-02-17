@@ -831,6 +831,27 @@ main.container {
     margin: 0;
 }
 
+/* ---- RPE Coloring ---- */
+tr[data-rpe] {
+    border-left: 3px solid transparent;
+}
+
+tr[data-rpe="6"], tr[data-rpe="6.5"] {
+    border-left-color: var(--accent-green, #4caf50);
+}
+
+tr[data-rpe="7"], tr[data-rpe="7.5"] {
+    border-left-color: #8bc34a;
+}
+
+tr[data-rpe="8"], tr[data-rpe="8.5"] {
+    border-left-color: var(--accent-orange, #ff9800);
+}
+
+tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
+    border-left-color: var(--accent-red, #f44336);
+}
+
 /* ---- Week Tabs (Program Detail) ---- */
 .week-tabs {
     display: flex;
@@ -985,7 +1006,8 @@ main.container {
     margin-bottom: var(--space-lg);
 }
 
-.dashboard-grid > article {
+.dashboard-grid > article,
+.dashboard-grid > .card-link > article {
     cursor: pointer;
     margin: 0;
     background: var(--bg-2);
@@ -994,26 +1016,25 @@ main.container {
                 transform var(--duration-fast) var(--ease-default);
 }
 
-.dashboard-grid > article:hover {
+.dashboard-grid > article:hover,
+.dashboard-grid > .card-link:hover > article {
     border-color: var(--border-hover);
     box-shadow: var(--shadow-md);
     transform: translateY(-2px);
 }
 
-.dashboard-grid > article[onclick] {
-    cursor: pointer;
-}
-
-.dashboard-grid > article a {
+.card-link {
     text-decoration: none;
     color: inherit;
+    display: block;
 }
 
-.dashboard-grid > article a:hover {
+.card-link:hover {
     text-decoration: none;
 }
 
-.dashboard-grid > article h2 {
+.dashboard-grid > article h2,
+.dashboard-grid > .card-link > article h2 {
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 0.25rem;
@@ -1044,6 +1065,88 @@ main.container {
 .dashboard-grid--compact > article h2 {
     font-size: 0.875rem;
     margin-bottom: 0;
+}
+
+/* ---- Cycle Report ---- */
+.cycle-report {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    gap: var(--space-md);
+}
+
+.report-day article {
+    margin-bottom: 0;
+}
+
+.report-log-col {
+    width: 5em;
+    background: var(--bg-2);
+    border-left: 2px dashed var(--border-subtle);
+}
+
+/* ---- Athlete Cards (enriched) ---- */
+.athlete-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.athlete-card-link:hover article {
+    border-color: var(--pico-primary);
+    box-shadow: var(--shadow-md);
+}
+
+.athlete-card {
+    border-left: 3px solid var(--border-default);
+    transition: border-color var(--duration-fast) var(--ease-default),
+                box-shadow var(--duration-fast) var(--ease-default);
+}
+
+.athlete-card[data-tier="foundational"] { border-left-color: var(--tier-foundational, #4caf50); }
+.athlete-card[data-tier="intermediate"] { border-left-color: var(--tier-intermediate, #2196f3); }
+.athlete-card[data-tier="sport_performance"] { border-left-color: var(--tier-sport, #ff9800); }
+
+.athlete-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.bw-trend {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.bw-trend[data-trend="up"] { color: var(--accent-green, #4caf50); }
+.bw-trend[data-trend="down"] { color: var(--accent-orange, #ff9800); }
+.bw-trend[data-trend="flat"] { color: var(--text-tertiary); }
+
+.athlete-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-sm);
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+.last-workout.empty {
+    font-style: italic;
+}
+
+.streak-dots {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    letter-spacing: 1px;
+    color: var(--accent-green, #4caf50);
+}
+
+.streak-dots small {
+    color: var(--text-tertiary);
+    margin-left: var(--space-xs);
+    letter-spacing: normal;
 }
 
 /* ---- Empty States ---- */
@@ -1135,6 +1238,9 @@ input[inputmode="numeric"] {
     border-radius: var(--radius-lg);
     padding: var(--space-md) var(--space-lg);
     background: var(--primary-alpha-subtle);
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
 }
 
 .rest-timer.timer-done {
@@ -1142,36 +1248,52 @@ input[inputmode="numeric"] {
     background: rgba(52, 211, 153, 0.06);
 }
 
-.timer-bar {
-    height: 0.35rem;
-    background: var(--bg-3);
-    border-radius: var(--radius-pill);
-    overflow: hidden;
-    margin-bottom: 0.5rem;
+.timer-ring-container {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
 }
 
-.timer-progress {
+.timer-ring {
+    width: 100%;
     height: 100%;
-    width: 0;
-    background: var(--pico-primary);
-    transition: width 1s linear;
+    transform: rotate(-90deg);
 }
 
-.timer-done .timer-progress {
-    background: var(--color-success);
+.timer-ring-bg {
+    fill: none;
+    stroke: var(--bg-3);
+    stroke-width: 6;
+}
+
+.timer-ring-progress {
+    fill: none;
+    stroke: var(--pico-primary);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear;
+}
+
+.timer-done .timer-ring-progress {
+    stroke: var(--color-success);
+}
+
+.timer-ring-container .timer-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
 
 .timer-controls {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-}
-
-.timer-display {
-    font-size: 1.5rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    min-width: 5rem;
+    flex-wrap: wrap;
 }
 
 .timer-controls button {
@@ -1244,4 +1366,251 @@ input[inputmode="numeric"] {
 
 .streak-cell:hover .streak-tooltip {
     display: block;
+}
+
+/* ---- Dashboard Stats Row ---- */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+}
+
+.stat-card {
+    text-align: center;
+    padding: var(--space-md) var(--space-sm) !important;
+    margin: 0 !important;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ---- Workout Heatmap ---- */
+.heatmap-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.workout-heatmap {
+    width: 100%;
+    max-width: 810px;
+    height: auto;
+}
+
+.heatmap-label {
+    font-size: 10px;
+    fill: var(--text-tertiary);
+    font-family: inherit;
+}
+
+.heatmap-cell {
+    stroke: none;
+    transition: opacity var(--duration-fast) var(--ease-default);
+}
+
+.heatmap-cell:hover {
+    opacity: 0.8;
+    stroke: var(--text-primary);
+    stroke-width: 1;
+}
+
+.heatmap-cell[data-level="0"] { fill: var(--bg-3); }
+.heatmap-cell[data-level="1"] { fill: rgba(129, 140, 248, 0.25); }
+.heatmap-cell[data-level="2"] { fill: rgba(129, 140, 248, 0.45); }
+.heatmap-cell[data-level="3"] { fill: rgba(129, 140, 248, 0.70); }
+.heatmap-cell[data-level="4"] { fill: rgba(129, 140, 248, 0.95); }
+
+[data-theme="light"] .heatmap-cell[data-level="0"] { fill: #ebedf0; }
+[data-theme="light"] .heatmap-cell[data-level="1"] { fill: rgba(99, 102, 241, 0.20); }
+[data-theme="light"] .heatmap-cell[data-level="2"] { fill: rgba(99, 102, 241, 0.40); }
+[data-theme="light"] .heatmap-cell[data-level="3"] { fill: rgba(99, 102, 241, 0.60); }
+[data-theme="light"] .heatmap-cell[data-level="4"] { fill: rgba(99, 102, 241, 0.85); }
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: var(--space-sm);
+    justify-content: flex-end;
+    font-size: 0.75rem;
+}
+
+.heatmap-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.heatmap-swatch[data-level="0"] { background: var(--bg-3); }
+.heatmap-swatch[data-level="1"] { background: rgba(129, 140, 248, 0.25); }
+.heatmap-swatch[data-level="2"] { background: rgba(129, 140, 248, 0.45); }
+.heatmap-swatch[data-level="3"] { background: rgba(129, 140, 248, 0.70); }
+.heatmap-swatch[data-level="4"] { background: rgba(129, 140, 248, 0.95); }
+
+[data-theme="light"] .heatmap-swatch[data-level="0"] { background: #ebedf0; }
+[data-theme="light"] .heatmap-swatch[data-level="1"] { background: rgba(99, 102, 241, 0.20); }
+[data-theme="light"] .heatmap-swatch[data-level="2"] { background: rgba(99, 102, 241, 0.40); }
+[data-theme="light"] .heatmap-swatch[data-level="3"] { background: rgba(99, 102, 241, 0.60); }
+[data-theme="light"] .heatmap-swatch[data-level="4"] { background: rgba(99, 102, 241, 0.85); }
+
+/* ---- SVG Charts ---- */
+.chart-card {
+    margin-bottom: var(--space-lg);
+}
+
+.chart-card header {
+    padding-bottom: var(--space-xs);
+}
+
+.trend-chart {
+    width: 100%;
+    height: auto;
+}
+
+.chart-grid {
+    stroke: var(--border-subtle);
+    stroke-width: 0.5;
+    stroke-dasharray: 4 4;
+}
+
+.chart-axis-label {
+    font-size: 10px;
+    fill: var(--text-tertiary);
+    font-family: inherit;
+}
+
+.chart-line {
+    fill: none;
+    stroke: var(--accent-primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.chart-line-step {
+    fill: none;
+    stroke: var(--accent-primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.chart-area {
+    fill: var(--accent-primary);
+    opacity: 0.08;
+}
+
+.chart-dot {
+    fill: var(--accent-primary);
+    transition: r var(--duration-fast) var(--ease-default);
+}
+
+.chart-dot:hover {
+    r: 5;
+}
+
+.chart-dot-lg {
+    fill: var(--bg-0);
+    stroke: var(--accent-primary);
+    stroke-width: 2;
+}
+
+.chart-dot-lg:hover {
+    r: 6;
+    fill: var(--accent-primary);
+}
+
+.chart-bar {
+    fill: var(--accent-primary);
+    opacity: 0.7;
+    transition: opacity var(--duration-fast) var(--ease-default);
+}
+
+.chart-bar:hover {
+    opacity: 1;
+}
+
+/* ===== Last Session ("Last Time") ===== */
+.last-session {
+    margin: -0.5rem 0 0.5rem 0;
+    font-size: 0.85rem;
+}
+.last-session summary {
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem 0;
+    font-size: 0.8rem;
+}
+.last-session-sets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    padding: 0.375rem 0;
+}
+.last-set-chip {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--border-radius);
+    background: var(--bg-1);
+    border: 1px solid var(--border-default);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+/* ===== Program Progress Bar ===== */
+.program-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.progress-bar-segmented {
+    display: flex;
+    gap: 3px;
+    flex: 1;
+}
+.progress-week {
+    display: flex;
+    gap: 2px;
+    flex: 1;
+}
+.progress-day {
+    height: 8px;
+    flex: 1;
+    border-radius: 2px;
+    background: var(--bg-2);
+    transition: background var(--duration-fast) var(--ease-default);
+}
+.progress-day.filled {
+    background: var(--accent-primary);
+}
+.progress-day.today {
+    background: var(--accent-secondary, #f59e0b);
+    box-shadow: 0 0 4px var(--accent-secondary, #f59e0b);
+}
+.progress-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }

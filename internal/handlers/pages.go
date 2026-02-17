@@ -38,6 +38,14 @@ func (p *Pages) Index(w http.ResponseWriter, r *http.Request) {
 		} else {
 			data["Athletes"] = athletes
 		}
+
+		// Load dashboard summary stats.
+		stats, err := models.GetDashboardStats(p.DB)
+		if err != nil {
+			log.Printf("handlers: dashboard stats: %v", err)
+		} else {
+			data["Stats"] = stats
+		}
 	}
 
 	if err := p.Templates.Render(w, r, "index.html", data); err != nil {

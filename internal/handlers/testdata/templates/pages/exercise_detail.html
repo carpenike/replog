@@ -85,7 +85,7 @@
                         <td>{{ .WorkoutDate }}</td>
                         <td>{{ .SetNumber }}</td>
                         <td>{{ .Reps }}</td>
-                        <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                        <td>{{ if .Weight.Valid }}{{ formatWeight .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
                     </tr>
                     {{ end }}
                 </tbody>

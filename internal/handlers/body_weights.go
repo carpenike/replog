@@ -57,12 +57,24 @@ func (h *BodyWeights) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load chart data for body weight trend.
+	prefs := middleware.PrefsFromContext(r.Context())
+	unit := models.DefaultWeightUnit
+	if prefs != nil {
+		unit = prefs.WeightUnit
+	}
+	chartData, chartErr := models.BodyWeightChartData(h.DB, athleteID, 30, unit)
+	if chartErr != nil {
+		log.Printf("handlers: body weight chart for athlete %d: %v", athleteID, chartErr)
+	}
+
 	data := map[string]any{
 		"Athlete":    athlete,
 		"Entries":    page.Entries,
 		"HasMore":    page.HasMore,
 		"NextOffset": offset + models.BodyWeightPageSize,
 		"Today":      time.Now().Format("2006-01-02"),
+		"Chart":      chartData,
 	}
 	if err := h.Templates.Render(w, r, "body_weights.html", data); err != nil {
 		log.Printf("handlers: body weights template: %v", err)

@@ -219,6 +219,7 @@ func main() {
 	mux.Handle("POST /athletes/{id}/program", requireCoach(programs.AssignProgram))
 	mux.Handle("POST /athletes/{id}/program/deactivate", requireCoach(programs.DeactivateProgram))
 	mux.Handle("GET /athletes/{id}/prescription", requireAuth(programs.Prescription))
+	mux.Handle("GET /athletes/{id}/report", requireAuth(programs.CycleReport))
 
 	// Start server.
 	log.Printf("RepLog listening on %s", addr)

@@ -1,6 +1,6 @@
 // rest-timer.js — Countdown rest timer between sets.
 // Activated by ?timer=SECONDS query parameter on workout detail page.
-// Persists across htmx navigations using the timer container element.
+// Uses an SVG ring for the countdown animation.
 (function () {
     "use strict";
 
@@ -25,10 +25,18 @@
     var running = true;
 
     var display = timerEl.querySelector(".timer-display");
-    var progress = timerEl.querySelector(".timer-progress");
+    var ringProgress = timerEl.querySelector(".timer-ring-progress");
     var toggleBtn = timerEl.querySelector(".timer-toggle");
     var resetBtn = timerEl.querySelector(".timer-reset");
     var dismissBtn = timerEl.querySelector(".timer-dismiss");
+
+    // SVG ring setup: circumference for r=54.
+    var radius = 54;
+    var circumference = 2 * Math.PI * radius;
+    if (ringProgress) {
+        ringProgress.style.strokeDasharray = circumference;
+        ringProgress.style.strokeDashoffset = "0";
+    }
 
     timerEl.style.display = "";
 
@@ -40,13 +48,13 @@
 
     function render() {
         display.textContent = formatTime(remaining);
-        if (progress) {
-            var pct = totalSeconds > 0 ? ((totalSeconds - remaining) / totalSeconds) * 100 : 100;
-            progress.style.width = pct + "%";
+        if (ringProgress) {
+            var pct = totalSeconds > 0 ? (totalSeconds - remaining) / totalSeconds : 1;
+            ringProgress.style.strokeDashoffset = circumference * (1 - pct);
         }
         if (remaining <= 0) {
             timerEl.classList.add("timer-done");
-            display.textContent = "REST COMPLETE";
+            display.textContent = "DONE";
         } else {
             timerEl.classList.remove("timer-done");
         }

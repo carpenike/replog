@@ -9,11 +9,13 @@
         {{ if .Programs }}
         <div class="dashboard-grid">
             {{ range .Programs }}
-            <article onclick="window.location='/programs/{{ .ID }}'">
-                <h2>{{ .Name }}</h2>
-                <p>{{ .NumWeeks }} week{{ if ne .NumWeeks 1 }}s{{ end }} × {{ .NumDays }} day{{ if ne .NumDays 1 }}s{{ end }}/week
-                    {{ if gt .AthleteCount 0 }}· {{ .AthleteCount }} athlete{{ if ne .AthleteCount 1 }}s{{ end }}{{ end }}</p>
-            </article>
+            <a href="/programs/{{ .ID }}" class="card-link">
+                <article>
+                    <h2>{{ .Name }}</h2>
+                    <p>{{ .NumWeeks }} week{{ if ne .NumWeeks 1 }}s{{ end }} × {{ .NumDays }} day{{ if ne .NumDays 1 }}s{{ end }}/week
+                        {{ if gt .AthleteCount 0 }}· {{ .AthleteCount }} athlete{{ if ne .AthleteCount 1 }}s{{ end }}{{ end }}</p>
+                </article>
+            </a>
             {{ end }}
         </div>
         {{ else }}

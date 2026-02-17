@@ -34,29 +34,29 @@
 
         <!-- Hub Cards -->
         <div class="dashboard-grid">
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/workouts/new'">
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="card-link"><article>
                 <h2>New Workout</h2>
                 <p>Start logging today's session</p>
-            </article>
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/workouts'">
+            </article></a>
+            <a href="/athletes/{{ .Athlete.ID }}/workouts" class="card-link"><article>
                 <h2>Workouts</h2>
                 <p>{{ if .RecentWorkouts }}{{ len .RecentWorkouts }} recent{{ else }}No workouts yet{{ end }}</p>
-            </article>
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/body-weights'">
+            </article></a>
+            <a href="/athletes/{{ .Athlete.ID }}/body-weights" class="card-link"><article>
                 <h2>Body Weight</h2>
-                <p>{{ if .LatestWeight }}{{ .LatestWeight.Weight }} {{ weightUnit .Prefs }}{{ else }}No data{{ end }}</p>
-            </article>
+                <p>{{ if .LatestWeight }}{{ formatWeight .LatestWeight.Weight }} {{ weightUnit .Prefs }}{{ else }}No data{{ end }}</p>
+            </article></a>
             {{ if .ActiveProgram }}
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/prescription'">
+            <a href="/athletes/{{ .Athlete.ID }}/prescription" class="card-link"><article>
                 <h2>Program</h2>
                 <p>{{ .ActiveProgram.TemplateName }}</p>
-            </article>
+            </article></a>
             {{ else if .User.IsCoach }}
             {{ if .ProgramTemplates }}
-            <article onclick="window.location='/athletes/{{ .Athlete.ID }}/program/assign'">
+            <a href="/athletes/{{ .Athlete.ID }}/program/assign" class="card-link"><article>
                 <h2>Program</h2>
                 <p>Assign a program</p>
-            </article>
+            </article></a>
             {{ end }}
             {{ end }}
         </div>
@@ -146,8 +146,8 @@
                 </thead>
                 <tbody>
                     {{ range .RecentWorkouts }}
-                    <tr onclick="window.location='/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}'">
-                        <td>{{ .Date }}</td>
+                    <tr>
+                        <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Date }}</a></td>
                         <td>{{ .SetCount }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     </tr>
@@ -185,7 +185,7 @@
                         <td>
                             {{ $tm := index $.TMByExercise .ExerciseID }}
                             {{ if $tm }}
-                                <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/training-maxes">{{ $tm.Weight }} {{ weightUnit $.Prefs }}</a>
+                                <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/training-maxes">{{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}</a>
                             {{ else }}
                                 <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/training-maxes/new" class="text-muted">Set TM</a>
                             {{ end }}

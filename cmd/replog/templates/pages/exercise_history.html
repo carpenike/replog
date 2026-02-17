@@ -13,6 +13,20 @@
 
         <p>{{ .Athlete.Name }}{{ if .Exercise.Tier.Valid }} &middot; <span class="tier-badge" data-tier="{{ .Exercise.Tier.String }}">{{ tierLabel .Exercise.Tier.String }}</span>{{ end }}</p>
 
+        <!-- Volume Per Session Chart -->
+        {{ if and .VolumeChart .VolumeChart.HasData }}
+        <article class="chart-card">
+            <header><strong>Session Volume</strong> <span class="text-muted">(last 20 sessions)</span></header>
+            <svg class="trend-chart" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
+                {{ range .VolumeChart.Bars }}
+                <rect x="{{ .X }}" y="{{ .Y }}" width="{{ .Width }}" height="{{ .Height }}" class="chart-bar" rx="2">
+                    <title>{{ .Date }}: {{ formatVolume .Volume }} vol</title>
+                </rect>
+                {{ end }}
+            </svg>
+        </article>
+        {{ end }}
+
         {{ if .Days }}
         {{ range .Days }}
         <article>
@@ -23,15 +37,17 @@
                         <th scope="col">Set</th>
                         <th scope="col">Reps</th>
                         <th scope="col">Weight</th>
+                        <th scope="col">RPE</th>
                         <th scope="col">Notes</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{ range .Sets }}
-                    <tr>
+                    <tr{{ if .RPE.Valid }} data-rpe="{{ .RPE.Float64 }}"{{ end }}>
                         <td>{{ .SetNumber }}</td>
                         <td>{{ .Reps }}</td>
-                        <td>{{ if .Weight.Valid }}{{ .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                        <td>{{ if .Weight.Valid }}{{ formatWeight .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
+                        <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     </tr>
                     {{ end }}

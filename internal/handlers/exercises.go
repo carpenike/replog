@@ -373,12 +373,19 @@ func (h *Exercises) ExerciseHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load volume bar chart data.
+	volumeChart, chartErr := models.ExerciseVolumeChart(h.DB, athleteID, exerciseID, 20)
+	if chartErr != nil {
+		log.Printf("handlers: exercise volume chart for athlete %d exercise %d: %v", athleteID, exerciseID, chartErr)
+	}
+
 	data := map[string]any{
-		"Athlete":    athlete,
-		"Exercise":   exercise,
-		"Days":       page.Days,
-		"HasMore":    page.HasMore,
-		"NextOffset": offset + models.ExerciseHistoryPageSize,
+		"Athlete":     athlete,
+		"Exercise":    exercise,
+		"Days":        page.Days,
+		"HasMore":     page.HasMore,
+		"NextOffset":  offset + models.ExerciseHistoryPageSize,
+		"VolumeChart": volumeChart,
 	}
 	if err := h.Templates.Render(w, r, "exercise_history.html", data); err != nil {
 		log.Printf("handlers: exercise history template: %v", err)

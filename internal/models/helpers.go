@@ -11,3 +11,11 @@ func isUniqueViolation(err error) bool {
 func errContains(err error, substr string) bool {
 	return err != nil && strings.Contains(err.Error(), substr)
 }
+
+// normalizeDate trims any time suffix from a date string (e.g. "2025-01-01T00:00:00Z" → "2025-01-01").
+func normalizeDate(d string) string {
+	if len(d) >= 10 {
+		return d[:10]
+	}
+	return d
+}

@@ -251,7 +251,70 @@ type ExerciseHistoryEntry struct {
 	SetNumber   int
 	Reps        int
 	Weight      sql.NullFloat64
+	RPE         sql.NullFloat64
 	Notes       sql.NullString
+}
+
+// LastSessionSummary holds the previous session's data for an exercise.
+type LastSessionSummary struct {
+	Date string
+	Sets []*LastSessionSet
+}
+
+// LastSessionSet holds one set from the previous session.
+type LastSessionSet struct {
+	SetNumber int
+	Reps      int
+	Weight    sql.NullFloat64
+	RPE       sql.NullFloat64
+}
+
+// LastSessionSets returns the sets from the most recent workout before beforeDate
+// for the given athlete and exercise. Returns nil if no previous session exists.
+func LastSessionSets(db *sql.DB, athleteID, exerciseID int64, beforeDate string) (*LastSessionSummary, error) {
+	// Find the most recent workout ID for this athlete+exercise before the given date.
+	var workoutID int64
+	var workoutDate string
+	err := db.QueryRow(`
+		SELECT w.id, w.date
+		FROM workout_sets ws
+		JOIN workouts w ON w.id = ws.workout_id
+		WHERE w.athlete_id = ? AND ws.exercise_id = ? AND date(w.date) < date(?)
+		ORDER BY w.date DESC
+		LIMIT 1`, athleteID, exerciseID, beforeDate).Scan(&workoutID, &workoutDate)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("models: last session for athlete %d exercise %d: %w", athleteID, exerciseID, err)
+	}
+
+	rows, err := db.Query(`
+		SELECT set_number, reps, weight, rpe
+		FROM workout_sets
+		WHERE workout_id = ? AND exercise_id = ?
+		ORDER BY set_number`, workoutID, exerciseID)
+	if err != nil {
+		return nil, fmt.Errorf("models: last session sets: %w", err)
+	}
+	defer rows.Close()
+
+	var sets []*LastSessionSet
+	for rows.Next() {
+		s := &LastSessionSet{}
+		if err := rows.Scan(&s.SetNumber, &s.Reps, &s.Weight, &s.RPE); err != nil {
+			return nil, fmt.Errorf("models: scan last session set: %w", err)
+		}
+		sets = append(sets, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &LastSessionSummary{
+		Date: normalizeDate(workoutDate),
+		Sets: sets,
+	}, nil
 }
 
 // ExerciseHistoryDay groups sets performed on a single workout date.
@@ -326,7 +389,7 @@ func ListExerciseHistory(db *sql.DB, athleteID, exerciseID int64, offset int) (*
 	args = append(args, exerciseID)
 
 	rows, err := db.Query(`
-		SELECT ws.workout_id, w.date, ws.set_number, ws.reps, ws.weight, ws.notes
+		SELECT ws.workout_id, w.date, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.notes
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id
 		WHERE ws.workout_id IN (`+string(placeholders)+`) AND ws.exercise_id = ?
@@ -341,7 +404,7 @@ func ListExerciseHistory(db *sql.DB, athleteID, exerciseID int64, offset int) (*
 
 	for rows.Next() {
 		e := &ExerciseHistoryEntry{}
-		if err := rows.Scan(&e.WorkoutID, &e.WorkoutDate, &e.SetNumber, &e.Reps, &e.Weight, &e.Notes); err != nil {
+		if err := rows.Scan(&e.WorkoutID, &e.WorkoutDate, &e.SetNumber, &e.Reps, &e.Weight, &e.RPE, &e.Notes); err != nil {
 			return nil, fmt.Errorf("models: scan exercise history entry: %w", err)
 		}
 
@@ -377,13 +440,14 @@ type RecentExerciseSet struct {
 	SetNumber   int
 	Reps        int
 	Weight      sql.NullFloat64
+	RPE         sql.NullFloat64
 }
 
 // ListRecentSetsForExercise returns the most recent sets logged for an exercise
 // across all athletes, limited to 20 entries.
 func ListRecentSetsForExercise(db *sql.DB, exerciseID int64) ([]*RecentExerciseSet, error) {
 	rows, err := db.Query(`
-		SELECT a.name, a.id, w.date, ws.set_number, ws.reps, ws.weight
+		SELECT a.name, a.id, w.date, ws.set_number, ws.reps, ws.weight, ws.rpe
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id
 		JOIN athletes a ON a.id = w.athlete_id
@@ -398,7 +462,7 @@ func ListRecentSetsForExercise(db *sql.DB, exerciseID int64) ([]*RecentExerciseS
 	var sets []*RecentExerciseSet
 	for rows.Next() {
 		s := &RecentExerciseSet{}
-		if err := rows.Scan(&s.AthleteName, &s.AthleteID, &s.WorkoutDate, &s.SetNumber, &s.Reps, &s.Weight); err != nil {
+		if err := rows.Scan(&s.AthleteName, &s.AthleteID, &s.WorkoutDate, &s.SetNumber, &s.Reps, &s.Weight, &s.RPE); err != nil {
 			return nil, fmt.Errorf("models: scan recent exercise set: %w", err)
 		}
 		sets = append(sets, s)

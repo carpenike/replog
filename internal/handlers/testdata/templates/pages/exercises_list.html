@@ -8,9 +8,9 @@
 
         <div class="dashboard-grid dashboard-grid--compact">
             {{ range .Tiers }}
-            <article onclick="window.location='/exercises{{ if .Value }}?tier={{ .Value }}{{ end }}'" class="{{ if eq .Value $.TierFilter }}active{{ end }}">
+            <a href="/exercises{{ if .Value }}?tier={{ .Value }}{{ end }}" class="card-link"><article class="{{ if eq .Value $.TierFilter }}active{{ end }}">
                 <h2>{{ .Label }}</h2>
-            </article>
+            </article></a>
             {{ end }}
         </div>
 
@@ -25,8 +25,8 @@
             </thead>
             <tbody>
                 {{ range .Exercises }}
-                <tr onclick="window.location='/exercises/{{ .ID }}'">
-                    <td>{{ .Name }}</td>
+                <tr>
+                    <td><a href="/exercises/{{ .ID }}">{{ .Name }}</a></td>
                     <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td>{{ if .TargetReps.Valid }}{{ .TargetReps.Int64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                 </tr>

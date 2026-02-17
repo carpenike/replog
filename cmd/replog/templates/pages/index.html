@@ -7,19 +7,46 @@
     {{ if .User.IsCoach }}
     <p>Track your training. Review your progress. Stay consistent.</p>
 
+    {{ if .Stats }}
+    <div class="stats-row">
+        <article class="stat-card">
+            <div class="stat-value">{{ .Stats.WeekSessions }}</div>
+            <div class="stat-label">Sessions This Week</div>
+        </article>
+        <article class="stat-card">
+            <div class="stat-value">{{ formatVolume .Stats.WeekVolume }}</div>
+            <div class="stat-label">Volume This Week ({{ weightUnit .Prefs }})</div>
+        </article>
+        <article class="stat-card">
+            <div class="stat-value">{{ .Stats.TrainedThisWeek }}/{{ .Stats.TotalAthletes }}</div>
+            <div class="stat-label">Athletes Trained</div>
+        </article>
+        <article class="stat-card">
+            <div class="stat-value">{{ .Stats.ConsecutiveWeeks }}w</div>
+            <div class="stat-label">Week Streak</div>
+        </article>
+    </div>
+    {{ end }}
+
     <div class="dashboard-grid">
-        <article onclick="window.location='/athletes'">
-            <h2>Athletes</h2>
-            <p>Manage athlete profiles and tiers</p>
-        </article>
-        <article onclick="window.location='/exercises'">
-            <h2>Exercises</h2>
-            <p>Browse and manage the exercise library</p>
-        </article>
-        <article onclick="window.location='/users'">
-            <h2>Users</h2>
-            <p>Manage login accounts and roles</p>
-        </article>
+        <a href="/athletes" class="card-link">
+            <article>
+                <h2>Athletes</h2>
+                <p>Manage athlete profiles and tiers</p>
+            </article>
+        </a>
+        <a href="/exercises" class="card-link">
+            <article>
+                <h2>Exercises</h2>
+                <p>Browse and manage the exercise library</p>
+            </article>
+        </a>
+        <a href="/users" class="card-link">
+            <article>
+                <h2>Users</h2>
+                <p>Manage login accounts and roles</p>
+            </article>
+        </a>
     </div>
 
     {{ if .Athletes }}
@@ -38,8 +65,8 @@
             </thead>
             <tbody>
                 {{ range .Athletes }}
-                <tr onclick="window.location='/athletes/{{ .ID }}'">
-                    <td>{{ .Name }}</td>
+                <tr>
+                    <td><a href="/athletes/{{ .ID }}">{{ .Name }}</a></td>
                     <td>{{ if .Tier.Valid }}<span class="tier-badge" data-tier="{{ .Tier.String }}">{{ tierLabel .Tier.String }}</span>{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     <td>{{ .ActiveAssignments }}</td>
                     <td><a href="/athletes/{{ .ID }}/workouts/new" role="button" class="outline secondary">New Workout</a></td>

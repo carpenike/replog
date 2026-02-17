@@ -543,3 +543,39 @@ func (h *Programs) AssignProgramForm(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }
+
+// CycleReport renders a print-friendly cycle report for an athlete.
+func (h *Programs) CycleReport(w http.ResponseWriter, r *http.Request) {
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+	if err != nil {
+		log.Printf("handlers: get athlete %d for cycle report: %v", athleteID, err)
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+
+	report, err := models.GetCycleReport(h.DB, athleteID, time.Now())
+	if err != nil {
+		log.Printf("handlers: get cycle report for athlete %d: %v", athleteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if report == nil {
+		http.Error(w, "No active program", http.StatusNotFound)
+		return
+	}
+
+	data := map[string]any{
+		"Athlete": athlete,
+		"Report":  report,
+	}
+	if err := h.Templates.Render(w, r, "cycle_report.html", data); err != nil {
+		log.Printf("handlers: cycle report template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
