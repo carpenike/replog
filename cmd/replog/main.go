@@ -374,11 +374,19 @@ func main() {
 		r.Post("/programs/{id}/sets", programs.AddSet)
 		r.Post("/programs/{id}/sets/{setID}/delete", programs.DeleteSet)
 
+		// Progression Rules (coach-only).
+		r.Post("/programs/{id}/progression", programs.AddProgressionRule)
+		r.Post("/programs/{id}/progression/{ruleID}/delete", programs.DeleteProgressionRule)
+
 		// Athlete Programs — assignment (coach-only).
 		r.Get("/athletes/{id}/program/assign", programs.AssignProgramForm)
 		r.Get("/athletes/{id}/program/compatibility", programs.ProgramCompatibility)
 		r.Post("/athletes/{id}/program", programs.AssignProgram)
 		r.Post("/athletes/{id}/program/deactivate", programs.DeactivateProgram)
+
+		// Cycle Review — TM bump suggestions (coach-only).
+		r.Get("/athletes/{id}/cycle-review", programs.CycleReview)
+		r.Post("/athletes/{id}/cycle-review", programs.ApplyTMBumps)
 	})
 
 	// --- Admin-only routes — RequireAuth + CSRF + RequireAdmin ---

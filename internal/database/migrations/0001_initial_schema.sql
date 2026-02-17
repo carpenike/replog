@@ -184,6 +184,19 @@ CREATE TABLE IF NOT EXISTS athlete_programs (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_programs_active
     ON athlete_programs(athlete_id) WHERE active = 1;
 
+-- Per-exercise TM increment rules for a program template.
+-- Defines how much to suggest bumping the training max after a cycle completes.
+CREATE TABLE IF NOT EXISTS progression_rules (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id  INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE CASCADE,
+    exercise_id  INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    increment    REAL    NOT NULL,
+    UNIQUE(template_id, exercise_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_progression_rules_template
+    ON progression_rules(template_id);
+
 CREATE TABLE IF NOT EXISTS login_tokens (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -381,6 +394,7 @@ DROP INDEX IF EXISTS idx_login_tokens_token;
 DROP INDEX IF EXISTS idx_workout_reviews_status;
 DROP INDEX IF EXISTS idx_workout_reviews_workout_id;
 DROP INDEX IF EXISTS idx_user_preferences_user_id;
+DROP INDEX IF EXISTS idx_progression_rules_template;
 DROP INDEX IF EXISTS idx_athlete_programs_active;
 DROP INDEX IF EXISTS idx_prescribed_sets_template;
 DROP INDEX IF EXISTS idx_body_weights_athlete_date;
@@ -396,6 +410,7 @@ DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS webauthn_credentials;
 DROP TABLE IF EXISTS login_tokens;
 DROP TABLE IF EXISTS workout_reviews;
+DROP TABLE IF EXISTS progression_rules;
 DROP TABLE IF EXISTS athlete_programs;
 DROP TABLE IF EXISTS prescribed_sets;
 DROP TABLE IF EXISTS program_templates;

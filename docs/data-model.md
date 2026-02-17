@@ -34,6 +34,8 @@ These were resolved interactively before schema design:
 
 14. **Rep type tracks per-side and timed sets.** The `rep_type` column on `prescribed_sets` and `workout_sets` uses an enum (`reps`, `each_side`, `seconds`). This avoids encoding modifiers in notes fields — "5/ea" or "30s" are first-class data. The `reps` column continues to hold the numeric value; `rep_type` determines how to display it.
 
+15. **Progression rules are suggestions, not automation.** The `progression_rules` table stores per-exercise TM increment amounts for each program template (e.g. +5 lbs for upper body, +10 lbs for lower body in 5/3/1). At cycle boundaries, the app surfaces suggested TM bumps alongside AMRAP results from the completed cycle. The coach decides whether to apply, edit, or skip each suggestion. The app never auto-applies TM changes — this preserves the "logbook, not coach" principle while removing the friction of manually remembering increment rules.
+
 ## Entity Relationship Diagram
 
 ```mermaid
@@ -152,6 +154,8 @@ erDiagram
     exercises ||--o{ prescribed_sets : "used in"
     athletes ||--o{ athlete_programs : "follows"
     program_templates ||--o{ athlete_programs : "assigned via"
+    program_templates ||--o{ progression_rules : "has rules"
+    exercises ||--o{ progression_rules : "incremented by"
     equipment ||--o{ exercise_equipment : "required by"
     exercises ||--o{ exercise_equipment : "requires"
     equipment ||--o{ athlete_equipment : "owned by"
@@ -221,6 +225,13 @@ erDiagram
         TEXT goal "nullable"
         DATETIME created_at
         DATETIME updated_at
+    }
+
+    progression_rules {
+        INTEGER id PK
+        INTEGER template_id FK
+        INTEGER exercise_id FK
+        REAL increment "TM bump amount"
     }
 ```
 
@@ -467,6 +478,21 @@ erDiagram
 - `goal` holds a cycle-specific training goal ("increase squat TM by 10 lbs"). Nullable.
 - Program cycles repeat automatically when all weeks × days are exhausted.
 
+### `progression_rules`
+
+| Column        | Type         | Constraints                          |
+|--------------|-------------|--------------------------------------|
+| `id`         | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `template_id`| INTEGER      | NOT NULL, FK → program_templates(id) ON DELETE CASCADE |
+| `exercise_id`| INTEGER      | NOT NULL, FK → exercises(id) ON DELETE CASCADE |
+| `increment`  | REAL         | NOT NULL                             |
+
+- Per-exercise training max increment rule within a program template.
+- `increment` is the suggested TM bump amount (e.g. 5.0 or 10.0 lbs) after a successful cycle.
+- `UNIQUE(template_id, exercise_id)` — one rule per exercise per template.
+- Cascades on delete from both template and exercise sides.
+- Used by the cycle review screen to suggest TM updates — the coach still decides whether to apply, edit, or skip.
+
 ## SQLite DDL
 
 ```sql
@@ -704,6 +730,17 @@ CREATE TABLE IF NOT EXISTS athlete_programs (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_programs_active
     ON athlete_programs(athlete_id) WHERE active = 1;
 
+CREATE TABLE IF NOT EXISTS progression_rules (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id  INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE CASCADE,
+    exercise_id  INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    increment    REAL    NOT NULL,
+    UNIQUE(template_id, exercise_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_progression_rules_template
+    ON progression_rules(template_id);
+
 CREATE TRIGGER IF NOT EXISTS trigger_program_templates_updated_at
 AFTER UPDATE ON program_templates FOR EACH ROW
 WHEN OLD.updated_at = NEW.updated_at
@@ -864,5 +901,4 @@ INSERT INTO exercises (name, tier, form_notes) VALUES
 ## Future Considerations (v2+)
 
 - **Exercise categories/tags**: Muscle group, movement pattern (push/pull/hinge/squat/carry).
-- **Auto-progression rules**: Optional per-template rules for automatic training max bumps (e.g. +5 lb on successful cycle completion).
 - **Program template sharing/import**: JSON export/import of templates between deployments.

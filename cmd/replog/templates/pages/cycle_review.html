@@ -1,0 +1,102 @@
+{{ define "title" }}RepLog — Cycle Review{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Cycle Review
+        </div>
+
+        {{ if not .Summary }}
+        <hgroup>
+            <h1>No Completed Cycle</h1>
+            <p>{{ .Athlete.Name }} hasn't completed a full training cycle yet. Come back after all workouts in the current cycle are logged.</p>
+        </hgroup>
+        {{ else }}
+        <div class="page-header">
+            <hgroup>
+                <h1>Cycle {{ .Summary.CycleNumber }} Review</h1>
+                <p>{{ .Summary.Program.TemplateName }} · {{ .Athlete.Name }} · {{ .Summary.CycleStart }} to {{ .Summary.CycleEnd }}</p>
+            </hgroup>
+        </div>
+
+        {{ if .Summary.AllAMRAPs }}
+        <details open>
+            <summary><strong>AMRAP Results This Cycle</strong></summary>
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Week</th>
+                        <th scope="col">Day</th>
+                        <th scope="col">Reps</th>
+                        <th scope="col">Weight</th>
+                        <th scope="col">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Summary.AllAMRAPs }}
+                    <tr>
+                        <td>{{ .ExerciseName }}</td>
+                        <td>{{ .Week }}</td>
+                        <td>{{ .Day }}</td>
+                        <td>{{ .Reps }}</td>
+                        <td>{{ formatWeight .Weight }}</td>
+                        <td>{{ .WorkoutDate }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </details>
+        {{ end }}
+
+        {{ if .Summary.Suggestions }}
+        <h2>Training Max Adjustments</h2>
+        <p class="text-muted">Review the suggested TM bumps below. Check the exercises you want to apply, then submit.</p>
+
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/cycle-review">
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Apply</th>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Current TM</th>
+                        <th scope="col">Increment</th>
+                        <th scope="col">New TM</th>
+                        <th scope="col">AMRAP Info</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Summary.Suggestions }}
+                    <tr>
+                        <td>
+                            <input type="hidden" name="exercise_id" value="{{ .ExerciseID }}">
+                            <input type="checkbox" name="apply_{{ .ExerciseID }}" value="1" checked>
+                            <input type="hidden" name="tm_{{ .ExerciseID }}" value="{{ formatWeight .SuggestedTM }}">
+                        </td>
+                        <td>{{ .ExerciseName }}</td>
+                        <td>{{ formatWeight .CurrentTM }}</td>
+                        <td>+{{ .IncrementLabel }}</td>
+                        <td><strong>{{ formatWeight .SuggestedTM }}</strong></td>
+                        <td>
+                            {{ if .AMRAPResults }}
+                            {{ range .AMRAPResults }}
+                            <small>W{{ .Week }}D{{ .Day }}: {{ .Reps }} × {{ formatWeight .Weight }}</small><br>
+                            {{ end }}
+                            {{ else }}
+                            <span class="text-muted">No AMRAP data</span>
+                            {{ end }}
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+
+            <div class="page-actions">
+                <button type="submit">Apply Selected TM Bumps</button>
+                <a href="/athletes/{{ .Athlete.ID }}" role="button" class="outline secondary">Skip / Go Back</a>
+            </div>
+        </form>
+        {{ else }}
+        <p class="text-muted">No progression rules configured for this program. Add them on the <a href="/programs/{{ .Summary.Program.TemplateID }}">program template</a> page.</p>
+        {{ end }}
+        {{ end }}
+{{ end }}

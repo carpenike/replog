@@ -116,4 +116,55 @@
             {{ end }}
         </details>
         {{ end }}
+
+        <!-- Progression Rules -->
+        {{ if or $.User.IsCoach $.User.IsAdmin }}
+        <details{{ if .ProgressionRules }} open{{ end }}>
+            <summary><strong>Progression Rules</strong> <span class="text-muted">(TM increments per cycle)</span></summary>
+
+            {{ if .ProgressionRules }}
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Increment</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .ProgressionRules }}
+                    <tr>
+                        <td>{{ .ExerciseName }}</td>
+                        <td>+{{ .IncrementLabel }}</td>
+                        <td>
+                            <form method="POST" action="/programs/{{ $.Program.ID }}/progression/{{ .ID }}/delete" class="inline">
+                                <button type="submit" class="outline contrast">✕</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p class="text-muted">No progression rules yet. Add one below to suggest TM bumps at cycle boundaries.</p>
+            {{ end }}
+
+            <form method="POST" action="/programs/{{ .Program.ID }}/progression" class="add-set-inline">
+                <div class="grid">
+                    <label for="prog_exercise_id">Exercise
+                        <select id="prog_exercise_id" name="exercise_id" required>
+                            <option value="">Select…</option>
+                            {{ range .Exercises }}
+                            <option value="{{ .ID }}">{{ .Name }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+                    <label for="prog_increment">Increment per cycle
+                        <input type="number" id="prog_increment" name="increment" min="0.5" step="0.5" required placeholder="e.g. 5">
+                    </label>
+                </div>
+                <button type="submit" class="outline secondary">+ Add Rule</button>
+            </form>
+        </details>
+        {{ end }}
 {{ end }}

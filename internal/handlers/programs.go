@@ -169,12 +169,21 @@ func (h *Programs) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load progression rules for this template.
+	progressionRules, err := models.ListProgressionRules(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: list progression rules for template %d: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	data := map[string]any{
-		"Program":     tmpl,
-		"WeekTabs":    weekTabs,
-		"CurrentWeek": currentWeek,
-		"Days":        days,
-		"Exercises":   exercises,
+		"Program":          tmpl,
+		"WeekTabs":         weekTabs,
+		"CurrentWeek":      currentWeek,
+		"Days":             days,
+		"Exercises":        exercises,
+		"ProgressionRules": progressionRules,
 	}
 	if err := h.Templates.Render(w, r, "program_detail.html", data); err != nil {
 		log.Printf("handlers: program detail template: %v", err)
@@ -642,4 +651,168 @@ func (h *Programs) CycleReport(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: cycle report template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
+}
+
+// AddProgressionRule adds or updates a progression rule for a program template. Coach only.
+func (h *Programs) AddProgressionRule(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	templateID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid program ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	exerciseID, err := strconv.ParseInt(r.FormValue("exercise_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Exercise is required", http.StatusBadRequest)
+		return
+	}
+
+	increment, err := strconv.ParseFloat(r.FormValue("increment"), 64)
+	if err != nil || increment <= 0 {
+		http.Error(w, "Increment must be a positive number", http.StatusBadRequest)
+		return
+	}
+
+	_, err = models.SetProgressionRule(h.DB, templateID, exerciseID, increment)
+	if err != nil {
+		log.Printf("handlers: set progression rule (template=%d, exercise=%d): %v", templateID, exerciseID, err)
+		http.Error(w, "Failed to save progression rule", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/programs/%d", templateID), http.StatusSeeOther)
+}
+
+// DeleteProgressionRule removes a progression rule from a program template. Coach only.
+func (h *Programs) DeleteProgressionRule(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	templateID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid program ID", http.StatusBadRequest)
+		return
+	}
+
+	ruleID, err := strconv.ParseInt(r.PathValue("ruleID"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid rule ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := models.DeleteProgressionRule(h.DB, ruleID); err != nil {
+		log.Printf("handlers: delete progression rule %d: %v", ruleID, err)
+		http.Error(w, "Failed to delete progression rule", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/programs/%d", templateID), http.StatusSeeOther)
+}
+
+// CycleReview renders the cycle review page showing TM bump suggestions. Coach only.
+func (h *Programs) CycleReview(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+	if err != nil {
+		log.Printf("handlers: get athlete %d for cycle review: %v", athleteID, err)
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+
+	summary, err := models.GetCycleSummary(h.DB, athleteID, time.Now())
+	if err != nil {
+		log.Printf("handlers: get cycle summary for athlete %d: %v", athleteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]any{
+		"Athlete": athlete,
+		"Summary": summary,
+	}
+	if err := h.Templates.Render(w, r, "cycle_review.html", data); err != nil {
+		log.Printf("handlers: cycle review template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// ApplyTMBumps processes the coach's TM bump decisions from the cycle review form.
+func (h *Programs) ApplyTMBumps(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	today := time.Now().Format("2006-01-02")
+	applied := 0
+
+	// The form submits selected exercise IDs + their suggested TMs.
+	exerciseIDs := r.Form["exercise_id"]
+	for _, eidStr := range exerciseIDs {
+		exerciseID, err := strconv.ParseInt(eidStr, 10, 64)
+		if err != nil {
+			continue
+		}
+
+		// Check if this exercise was selected (checkbox).
+		if r.FormValue(fmt.Sprintf("apply_%d", exerciseID)) != "1" {
+			continue
+		}
+
+		// Get the suggested TM value for this exercise.
+		tmStr := r.FormValue(fmt.Sprintf("tm_%d", exerciseID))
+		newTM, err := strconv.ParseFloat(tmStr, 64)
+		if err != nil || newTM <= 0 {
+			continue
+		}
+
+		notes := fmt.Sprintf("Cycle progression bump")
+		_, err = models.SetTrainingMax(h.DB, athleteID, exerciseID, newTM, today, notes)
+		if err != nil {
+			log.Printf("handlers: apply TM bump (athlete=%d, exercise=%d): %v", athleteID, exerciseID, err)
+			// Continue with other exercises even if one fails.
+		} else {
+			applied++
+		}
+	}
+
+	log.Printf("handlers: applied %d TM bumps for athlete %d", applied, athleteID)
+	http.Redirect(w, r, fmt.Sprintf("/athletes/%d", athleteID), http.StatusSeeOther)
 }
