@@ -1,0 +1,58 @@
+{{ define "program-compatibility" }}
+<section id="equipment-audit" class="equipment-audit">
+    {{ if .Compatibility }}
+    {{ $c := .Compatibility }}
+    <h3>Equipment Audit</h3>
+
+    {{ if not $c.Exercises }}
+    <p class="text-muted">This program has no exercises defined yet.</p>
+    {{ else }}
+    <!-- Summary badge -->
+    {{ if $c.Ready }}
+    <p><span class="status-badge status-badge--ok">&#10003; Ready</span>
+        {{ .Athlete.Name }} has all required equipment ({{ $c.ReadyCount }}/{{ $c.TotalCount }} exercises).
+    </p>
+    {{ else }}
+    <p><span class="status-badge status-badge--missing">&#10007; Missing Equipment</span>
+        {{ .Athlete.Name }} is missing equipment for {{ subtract $c.TotalCount $c.ReadyCount }} of {{ $c.TotalCount }} exercises.
+    </p>
+    {{ end }}
+
+    <!-- Per-exercise breakdown -->
+    <table class="striped">
+        <thead>
+            <tr>
+                <th scope="col">Exercise</th>
+                <th scope="col">Status</th>
+                <th scope="col">Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range $c.Exercises }}
+            <tr>
+                <td><a href="/exercises/{{ .ExerciseID }}">{{ .ExerciseName }}</a></td>
+                <td>
+                    {{ if .HasRequired }}
+                    <span class="status-badge status-badge--ok">&#10003; Ready</span>
+                    {{ else }}
+                    <span class="status-badge status-badge--missing">&#10007; Missing</span>
+                    {{ end }}
+                </td>
+                <td>
+                    {{ if .Missing }}
+                    <span class="text-muted">Missing: </span>
+                    {{ range $i, $eq := .Missing }}{{ if $i }}, {{ end }}{{ $eq.EquipmentName }}{{ end }}
+                    {{ else if not .Available }}
+                    <span class="text-muted">No equipment required</span>
+                    {{ else }}
+                    <span class="text-muted">All equipment available</span>
+                    {{ end }}
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+    {{ end }}
+    {{ end }}
+</section>
+{{ end }}

@@ -123,6 +123,16 @@ func seedExercise(t testing.TB, db *sql.DB, name, tier string) *models.Exercise 
 	return e
 }
 
+// seedEquipment creates an equipment item and returns it.
+func seedEquipment(t testing.TB, db *sql.DB, name string) *models.Equipment {
+	t.Helper()
+	e, err := models.CreateEquipment(db, name, "")
+	if err != nil {
+		t.Fatalf("seed equipment %q: %v", name, err)
+	}
+	return e
+}
+
 // requestWithUser creates an HTTP request with the given user set in context
 // (simulating the RequireAuth middleware).
 func requestWithUser(method, target string, body url.Values, user *models.User) *http.Request {

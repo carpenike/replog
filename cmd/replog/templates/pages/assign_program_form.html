@@ -14,13 +14,21 @@
         {{ if .Programs }}
         <form method="POST" action="/athletes/{{ .Athlete.ID }}/program">
             <label for="template_id">Program Template
-                <select id="template_id" name="template_id" required>
+                <select id="template_id" name="template_id" required
+                        hx-get="/athletes/{{ .Athlete.ID }}/program/compatibility"
+                        hx-target="#equipment-audit"
+                        hx-swap="outerHTML"
+                        hx-trigger="change"
+                        hx-include="[name='template_id']">
                     <option value="">Select program…</option>
                     {{ range .Programs }}
                     <option value="{{ .ID }}">{{ .Name }} ({{ .NumWeeks }}w × {{ .NumDays }}d)</option>
                     {{ end }}
                 </select>
             </label>
+
+            <!-- Equipment audit loads here via htmx when a program is selected -->
+            <section id="equipment-audit"></section>
 
             <label for="start_date">Start Date
                 <input type="date" id="start_date" name="start_date" required value="{{ .TodayDate }}">

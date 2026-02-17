@@ -376,6 +376,7 @@ func main() {
 
 		// Athlete Programs — assignment (coach-only).
 		r.Get("/athletes/{id}/program/assign", programs.AssignProgramForm)
+		r.Get("/athletes/{id}/program/compatibility", programs.ProgramCompatibility)
 		r.Post("/athletes/{id}/program", programs.AssignProgram)
 		r.Post("/athletes/{id}/program/deactivate", programs.DeactivateProgram)
 	})

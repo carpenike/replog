@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/carpenike/replog/internal/models"
@@ -649,6 +650,98 @@ func TestPrograms_AssignProgramForm(t *testing.T) {
 
 		if rr.Code != http.StatusForbidden {
 			t.Errorf("expected 403, got %d", rr.Code)
+		}
+	})
+}
+
+func TestPrograms_ProgramCompatibility(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	a := seedAthlete(t, db, "Tester", "")
+	barbell := seedEquipment(t, db, "Barbell")
+	rack := seedEquipment(t, db, "Squat Rack")
+	bench := seedEquipment(t, db, "Bench")
+
+	// Exercise requiring barbell + rack.
+	squat := seedExercise(t, db, "Squat", "")
+	models.AddExerciseEquipment(db, squat.ID, barbell.ID, false)
+	models.AddExerciseEquipment(db, squat.ID, rack.ID, false)
+
+	// Exercise requiring barbell + bench.
+	benchPress := seedExercise(t, db, "Bench Press", "")
+	models.AddExerciseEquipment(db, benchPress.ID, barbell.ID, false)
+	models.AddExerciseEquipment(db, benchPress.ID, bench.ID, false)
+
+	// Program with both exercises.
+	reps := 5
+	pct1 := 80.0
+	pct2 := 75.0
+	tmpl, _ := models.CreateProgramTemplate(db, "Strength", "", 4, 3)
+	models.CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, 1, &reps, &pct1, "reps", "")
+	models.CreatePrescribedSet(db, tmpl.ID, benchPress.ID, 1, 2, 1, &reps, &pct2, "reps", "")
+
+	h := &Programs{DB: db, Templates: tc}
+
+	t.Run("missing equipment shows not ready", func(t *testing.T) {
+		// Athlete has only barbell — missing rack and bench.
+		models.AddAthleteEquipment(db, a.ID, barbell.ID)
+
+		req := requestWithUser("GET",
+			fmt.Sprintf("/athletes/%d/program/compatibility?template_id=%d", a.ID, tmpl.ID),
+			nil, coach)
+		req.SetPathValue("id", itoa(a.ID))
+		rr := httptest.NewRecorder()
+		h.ProgramCompatibility(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rr.Code)
+		}
+		body := rr.Body.String()
+		if !strings.Contains(body, "Missing Equipment") {
+			t.Errorf("expected 'Missing Equipment' in response body")
+		}
+	})
+
+	t.Run("all equipment shows ready", func(t *testing.T) {
+		// Give athlete all equipment.
+		models.AddAthleteEquipment(db, a.ID, rack.ID)
+		models.AddAthleteEquipment(db, a.ID, bench.ID)
+
+		req := requestWithUser("GET",
+			fmt.Sprintf("/athletes/%d/program/compatibility?template_id=%d", a.ID, tmpl.ID),
+			nil, coach)
+		req.SetPathValue("id", itoa(a.ID))
+		rr := httptest.NewRecorder()
+		h.ProgramCompatibility(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rr.Code)
+		}
+		body := rr.Body.String()
+		if !strings.Contains(body, "Ready") {
+			t.Errorf("expected 'Ready' in response body")
+		}
+		if strings.Contains(body, "Missing Equipment") {
+			t.Errorf("did not expect 'Missing Equipment' in response body")
+		}
+	})
+
+	t.Run("no template_id returns empty section", func(t *testing.T) {
+		req := requestWithUser("GET",
+			fmt.Sprintf("/athletes/%d/program/compatibility", a.ID),
+			nil, coach)
+		req.SetPathValue("id", itoa(a.ID))
+		rr := httptest.NewRecorder()
+		h.ProgramCompatibility(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rr.Code)
+		}
+		body := rr.Body.String()
+		if !strings.Contains(body, `id="equipment-audit"`) {
+			t.Errorf("expected empty equipment-audit section")
 		}
 	})
 }

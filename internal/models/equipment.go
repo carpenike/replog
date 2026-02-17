@@ -50,6 +50,16 @@ type EquipmentCompatibility struct {
 	Optional     []ExerciseEquipment // optional equipment (for display)
 }
 
+// ProgramCompatibility summarizes equipment readiness for an entire program template.
+type ProgramCompatibility struct {
+	TemplateID   int64
+	TemplateName string
+	Ready        bool                     // true if athlete has equipment for all exercises
+	Exercises    []EquipmentCompatibility  // per-exercise breakdown
+	ReadyCount   int                      // exercises with all required equipment
+	TotalCount   int                      // total unique exercises in program
+}
+
 // CreateEquipment inserts a new equipment item.
 func CreateEquipment(db *sql.DB, name, description string) (*Equipment, error) {
 	var descVal sql.NullString
@@ -440,4 +450,94 @@ func CheckAthleteExerciseCompatibility(db *sql.DB, athleteID int64) ([]Equipment
 	}
 
 	return results, nil
+}
+
+// CheckProgramCompatibility checks whether an athlete has the required equipment
+// for every exercise in a program template. It examines all unique exercises
+// referenced by the template's prescribed sets.
+func CheckProgramCompatibility(db *sql.DB, athleteID, templateID int64) (*ProgramCompatibility, error) {
+	// Get program template info.
+	tmpl, err := GetProgramTemplateByID(db, templateID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all unique exercises referenced by this template's prescribed sets.
+	rows, err := db.Query(
+		`SELECT DISTINCT ps.exercise_id, e.name
+		 FROM prescribed_sets ps
+		 JOIN exercises e ON e.id = ps.exercise_id
+		 WHERE ps.template_id = ?
+		 ORDER BY e.name COLLATE NOCASE`,
+		templateID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("models: list program exercises for compatibility (template=%d): %w", templateID, err)
+	}
+	defer rows.Close()
+
+	type exerciseRef struct {
+		id   int64
+		name string
+	}
+	var exercises []exerciseRef
+	for rows.Next() {
+		var ref exerciseRef
+		if err := rows.Scan(&ref.id, &ref.name); err != nil {
+			return nil, fmt.Errorf("models: scan exercise ref: %w", err)
+		}
+		exercises = append(exercises, ref)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Get athlete's equipment set once.
+	athleteIDs, err := AthleteEquipmentIDs(db, athleteID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &ProgramCompatibility{
+		TemplateID:   templateID,
+		TemplateName: tmpl.Name,
+		Ready:        true,
+		TotalCount:   len(exercises),
+	}
+
+	for _, ex := range exercises {
+		eqList, err := ListExerciseEquipment(db, ex.id)
+		if err != nil {
+			return nil, err
+		}
+
+		compat := EquipmentCompatibility{
+			ExerciseID:   ex.id,
+			ExerciseName: ex.name,
+			HasRequired:  true,
+		}
+
+		for _, eq := range eqList {
+			if eq.Optional {
+				compat.Optional = append(compat.Optional, eq)
+				continue
+			}
+			if athleteIDs[eq.EquipmentID] {
+				compat.Available = append(compat.Available, eq)
+			} else {
+				compat.Missing = append(compat.Missing, eq)
+				compat.HasRequired = false
+			}
+		}
+
+		if compat.HasRequired {
+			result.ReadyCount++
+		} else {
+			result.Ready = false
+		}
+
+		result.Exercises = append(result.Exercises, compat)
+	}
+
+	return result, nil
 }

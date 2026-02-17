@@ -439,6 +439,95 @@ func TestEquipmentCascadeOnAthleteDelete(t *testing.T) {
 	}
 }
 
+func TestCheckProgramCompatibility(t *testing.T) {
+	db := testDB(t)
+
+	athlete, _ := CreateAthlete(db, "Athlete", "", "", "", sql.NullInt64{})
+	barbell, _ := CreateEquipment(db, "Barbell", "")
+	rack, _ := CreateEquipment(db, "Squat Rack", "")
+	bench, _ := CreateEquipment(db, "Flat Bench", "")
+
+	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
+	AddExerciseEquipment(db, squat.ID, barbell.ID, false)
+	AddExerciseEquipment(db, squat.ID, rack.ID, false)
+
+	benchPress, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
+	AddExerciseEquipment(db, benchPress.ID, barbell.ID, false)
+	AddExerciseEquipment(db, benchPress.ID, bench.ID, false)
+
+	pushUps, _ := CreateExercise(db, "Push-ups", "", "", "", 0)
+
+	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 3)
+	reps := 5
+	pct := 80.0
+	CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, 1, &reps, &pct, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, benchPress.ID, 1, 2, 1, &reps, &pct, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, pushUps.ID, 1, 3, 1, &reps, nil, "reps", "")
+
+	t.Run("no equipment — partial readiness", func(t *testing.T) {
+		result, err := CheckProgramCompatibility(db, athlete.ID, tmpl.ID)
+		if err != nil {
+			t.Fatalf("check: %v", err)
+		}
+		if result.Ready {
+			t.Error("should not be ready with no equipment")
+		}
+		if result.TotalCount != 3 {
+			t.Errorf("total = %d, want 3", result.TotalCount)
+		}
+		// Push-ups has no requirements, so should be ready.
+		if result.ReadyCount != 1 {
+			t.Errorf("ready = %d, want 1 (push-ups only)", result.ReadyCount)
+		}
+	})
+
+	t.Run("partial equipment", func(t *testing.T) {
+		AddAthleteEquipment(db, athlete.ID, barbell.ID)
+
+		result, err := CheckProgramCompatibility(db, athlete.ID, tmpl.ID)
+		if err != nil {
+			t.Fatalf("check: %v", err)
+		}
+		if result.Ready {
+			t.Error("should not be fully ready — missing rack and bench")
+		}
+		// Push-ups ready, squat missing rack, bench press missing bench.
+		if result.ReadyCount != 1 {
+			t.Errorf("ready = %d, want 1", result.ReadyCount)
+		}
+	})
+
+	t.Run("all equipment — fully ready", func(t *testing.T) {
+		AddAthleteEquipment(db, athlete.ID, rack.ID)
+		AddAthleteEquipment(db, athlete.ID, bench.ID)
+
+		result, err := CheckProgramCompatibility(db, athlete.ID, tmpl.ID)
+		if err != nil {
+			t.Fatalf("check: %v", err)
+		}
+		if !result.Ready {
+			t.Error("should be fully ready with all equipment")
+		}
+		if result.ReadyCount != result.TotalCount {
+			t.Errorf("ready/total = %d/%d, want equal", result.ReadyCount, result.TotalCount)
+		}
+	})
+
+	t.Run("empty program — ready by default", func(t *testing.T) {
+		emptyTmpl, _ := CreateProgramTemplate(db, "Empty", "", 1, 1)
+		result, err := CheckProgramCompatibility(db, athlete.ID, emptyTmpl.ID)
+		if err != nil {
+			t.Fatalf("check: %v", err)
+		}
+		if !result.Ready {
+			t.Error("empty program should be ready")
+		}
+		if result.TotalCount != 0 {
+			t.Errorf("total = %d, want 0", result.TotalCount)
+		}
+	})
+}
+
 func TestEquipmentCascadeOnExerciseDelete(t *testing.T) {
 	db := testDB(t)
 

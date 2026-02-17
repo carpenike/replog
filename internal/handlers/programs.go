@@ -546,6 +546,60 @@ func (h *Programs) AssignProgramForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ProgramCompatibility returns an HTML fragment showing whether an athlete
+// has the required equipment for a given program template. Used by htmx on
+// the assign-program form to preview equipment readiness.
+func (h *Programs) ProgramCompatibility(w http.ResponseWriter, r *http.Request) {
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	templateIDStr := r.URL.Query().Get("template_id")
+	if templateIDStr == "" {
+		// No program selected — return empty div to clear the audit section.
+		w.Write([]byte(`<section id="equipment-audit"></section>`))
+		return
+	}
+
+	templateID, err := strconv.ParseInt(templateIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid template ID", http.StatusBadRequest)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+	if err != nil {
+		log.Printf("handlers: get athlete %d for compatibility: %v", athleteID, err)
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+
+	compat, err := models.CheckProgramCompatibility(h.DB, athleteID, templateID)
+	if err != nil {
+		log.Printf("handlers: check program compatibility (athlete=%d, template=%d): %v", athleteID, templateID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]any{
+		"Athlete":       athlete,
+		"Compatibility": compat,
+	}
+
+	ts, ok := h.Templates["_program_compatibility"]
+	if !ok {
+		log.Printf("handlers: program compatibility template not found in cache")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if err := ts.ExecuteTemplate(w, "program-compatibility", data); err != nil {
+		log.Printf("handlers: program compatibility template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
 // CycleReport renders a print-friendly cycle report for an athlete.
 func (h *Programs) CycleReport(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
