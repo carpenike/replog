@@ -180,11 +180,14 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Load latest body weight for the summary card.
-	latestWeight, err := models.LatestBodyWeight(h.DB, id)
-	if err != nil {
-		log.Printf("handlers: latest body weight for athlete %d: %v", id, err)
-		// Non-fatal — continue without weight data.
+	// Load latest body weight for the summary card (only if tracking is enabled).
+	var latestWeight *models.BodyWeight
+	if athlete.TrackBodyWeight {
+		latestWeight, err = models.LatestBodyWeight(h.DB, id)
+		if err != nil {
+			log.Printf("handlers: latest body weight for athlete %d: %v", id, err)
+			// Non-fatal — continue without weight data.
+		}
 	}
 
 	// Load weekly completion streaks (last 8 weeks).
@@ -328,7 +331,7 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.UpdateAthlete(h.DB, id, name, r.FormValue("tier"), r.FormValue("notes"), athlete.CoachID)
+	_, err = models.UpdateAthlete(h.DB, id, name, r.FormValue("tier"), r.FormValue("notes"), athlete.CoachID, r.FormValue("track_body_weight") == "1")
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Athlete not found", http.StatusNotFound)
 		return

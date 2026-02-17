@@ -42,10 +42,12 @@
                 <h2>Workouts</h2>
                 <p>{{ if .RecentWorkouts }}{{ len .RecentWorkouts }} recent{{ else }}No workouts yet{{ end }}</p>
             </article></a>
+            {{ if .Athlete.TrackBodyWeight }}
             <a href="/athletes/{{ .Athlete.ID }}/body-weights" class="card-link"><article>
                 <h2>Body Weight</h2>
                 <p>{{ if .LatestWeight }}{{ formatWeight .LatestWeight.Weight }} {{ weightUnit .Prefs }}{{ else }}No data{{ end }}</p>
             </article></a>
+            {{ end }}
             {{ if .ActiveProgram }}
             <a href="/athletes/{{ .Athlete.ID }}/prescription" class="card-link"><article>
                 <h2>Program</h2>

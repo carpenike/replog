@@ -32,6 +32,14 @@
                 <textarea id="notes" name="notes" rows="3">{{ if .Athlete }}{{ if .Athlete.Notes.Valid }}{{ .Athlete.Notes.String }}{{ end }}{{ end }}</textarea>
             </label>
 
+            <fieldset>
+                <label for="track_body_weight">
+                    <input type="checkbox" id="track_body_weight" name="track_body_weight" value="1"
+                           {{ if .Athlete }}{{ if .Athlete.TrackBodyWeight }}checked{{ end }}{{ else }}checked{{ end }}>
+                    Track body weight
+                </label>
+            </fieldset>
+
             <div role="group">
                 <button type="submit"
                     {{ if .Athlete }}hx-confirm="Are you sure you want to save changes to this athlete's profile?"{{ end }}

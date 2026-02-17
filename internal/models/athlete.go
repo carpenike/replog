@@ -14,6 +14,7 @@ type Athlete struct {
 	Tier              sql.NullString
 	Notes             sql.NullString
 	CoachID           sql.NullInt64
+	TrackBodyWeight   bool
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	ActiveAssignments int // populated by list queries
@@ -28,6 +29,7 @@ type AthleteCardInfo struct {
 	LastWorkoutDate   sql.NullString // most recent workout date, null if none
 	WeekStreak        int            // consecutive weeks with a workout
 	BWTrend           string         // "up", "down", "flat", or "" if insufficient data
+	TrackBodyWeight   bool           // whether body weight tracking is enabled
 }
 
 // CreateAthlete inserts a new athlete. coachID links the athlete to a coach.
@@ -42,7 +44,7 @@ func CreateAthlete(db *sql.DB, name, tier, notes string, coachID sql.NullInt64) 
 	}
 
 	result, err := db.Exec(
-		`INSERT INTO athletes (name, tier, notes, coach_id) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO athletes (name, tier, notes, coach_id, track_body_weight) VALUES (?, ?, ?, ?, 1)`,
 		name, tierVal, notesVal, coachID,
 	)
 	if err != nil {
@@ -57,11 +59,13 @@ func CreateAthlete(db *sql.DB, name, tier, notes string, coachID sql.NullInt64) 
 func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 	a := &Athlete{}
 	err := db.QueryRow(
-		`SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.created_at, a.updated_at,
+		`SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.track_body_weight,
+		        a.created_at, a.updated_at,
 		        COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 		                  WHERE ae.athlete_id = a.id AND ae.active = 1), 0)
 		 FROM athletes a WHERE a.id = ?`, id,
-	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments)
+	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.TrackBodyWeight,
+		&a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -72,7 +76,7 @@ func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 }
 
 // UpdateAthlete modifies an existing athlete's fields.
-func UpdateAthlete(db *sql.DB, id int64, name, tier, notes string, coachID sql.NullInt64) (*Athlete, error) {
+func UpdateAthlete(db *sql.DB, id int64, name, tier, notes string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -83,8 +87,8 @@ func UpdateAthlete(db *sql.DB, id int64, name, tier, notes string, coachID sql.N
 	}
 
 	result, err := db.Exec(
-		`UPDATE athletes SET name = ?, tier = ?, notes = ?, coach_id = ? WHERE id = ?`,
-		name, tierVal, notesVal, coachID, id,
+		`UPDATE athletes SET name = ?, tier = ?, notes = ?, coach_id = ?, track_body_weight = ? WHERE id = ?`,
+		name, tierVal, notesVal, coachID, trackBodyWeight, id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: update athlete %d: %w", id, err)
@@ -158,7 +162,8 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 	var err error
 	if coachID.Valid {
 		rows, err = db.Query(`
-			SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.created_at, a.updated_at,
+			SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.track_body_weight,
+			       a.created_at, a.updated_at,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
 			FROM athletes a
@@ -167,7 +172,8 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 			LIMIT 100`, coachID.Int64)
 	} else {
 		rows, err = db.Query(`
-			SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.created_at, a.updated_at,
+			SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.track_body_weight,
+			       a.created_at, a.updated_at,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
 			FROM athletes a
@@ -182,7 +188,8 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 	var athletes []*Athlete
 	for rows.Next() {
 		a := &Athlete{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.TrackBodyWeight,
+			&a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
 			return nil, fmt.Errorf("models: scan athlete: %w", err)
 		}
 		athletes = append(athletes, a)
@@ -195,7 +202,8 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 // Pass 0 for exceptAthleteID to exclude no one extra.
 func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error) {
 	rows, err := db.Query(`
-		SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.created_at, a.updated_at,
+		SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.track_body_weight,
+		       a.created_at, a.updated_at,
 		       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 		                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
 		FROM athletes a
@@ -211,7 +219,8 @@ func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error
 	var athletes []*Athlete
 	for rows.Next() {
 		a := &Athlete{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.TrackBodyWeight,
+			&a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
 			return nil, fmt.Errorf("models: scan available athlete: %w", err)
 		}
 		athletes = append(athletes, a)
@@ -231,7 +240,8 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 			SELECT a.id, a.name, a.tier,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
-			       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout
+			       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout,
+			       a.track_body_weight
 			FROM athletes a
 			WHERE a.coach_id = ?
 			ORDER BY a.name COLLATE NOCASE
@@ -241,7 +251,8 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 			SELECT a.id, a.name, a.tier,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
-			       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout
+			       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout,
+			       a.track_body_weight
 			FROM athletes a
 			ORDER BY a.name COLLATE NOCASE
 			LIMIT 100`)
@@ -254,7 +265,7 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 	var cards []*AthleteCardInfo
 	for rows.Next() {
 		c := &AthleteCardInfo{}
-		if err := rows.Scan(&c.ID, &c.Name, &c.Tier, &c.ActiveAssignments, &c.LastWorkoutDate); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Tier, &c.ActiveAssignments, &c.LastWorkoutDate, &c.TrackBodyWeight); err != nil {
 			return nil, fmt.Errorf("models: scan athlete card: %w", err)
 		}
 		cards = append(cards, c)
@@ -266,7 +277,9 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 	// Enrich each card with streak and BW trend.
 	for _, c := range cards {
 		c.WeekStreak = athleteWeekStreak(db, c.ID)
-		c.BWTrend = athleteBWTrend(db, c.ID)
+		if c.TrackBodyWeight {
+			c.BWTrend = athleteBWTrend(db, c.ID)
+		}
 	}
 
 	return cards, nil

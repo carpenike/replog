@@ -45,6 +45,11 @@ func (h *BodyWeights) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !athlete.TrackBodyWeight {
+		http.Error(w, "Body weight tracking is disabled for this athlete", http.StatusNotFound)
+		return
+	}
+
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 	if offset < 0 {
 		offset = 0
@@ -94,6 +99,22 @@ func (h *BodyWeights) Create(w http.ResponseWriter, r *http.Request) {
 
 	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Check if body weight tracking is enabled for this athlete.
+	athleteForCheck, err := models.GetAthleteByID(h.DB, athleteID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get athlete %d for body weight create: %v", athleteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !athleteForCheck.TrackBodyWeight {
+		http.Error(w, "Body weight tracking is disabled for this athlete", http.StatusNotFound)
 		return
 	}
 
@@ -161,6 +182,22 @@ func (h *BodyWeights) Delete(w http.ResponseWriter, r *http.Request) {
 
 	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Check if body weight tracking is enabled for this athlete.
+	athleteForCheck, err := models.GetAthleteByID(h.DB, athleteID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get athlete %d for body weight delete: %v", athleteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !athleteForCheck.TrackBodyWeight {
+		http.Error(w, "Body weight tracking is disabled for this athlete", http.StatusNotFound)
 		return
 	}
 

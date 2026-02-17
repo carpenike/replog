@@ -60,6 +60,7 @@ erDiagram
         TEXT tier "nullable"
         TEXT notes "nullable"
         INTEGER coach_id FK "nullable"
+        INTEGER track_body_weight "0 or 1, default 1"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -233,17 +234,20 @@ erDiagram
 
 ### `athletes`
 
-| Column       | Type         | Constraints                          |
-|-------------|-------------|--------------------------------------|
-| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
-| `name`      | TEXT         | NOT NULL COLLATE NOCASE               |
-| `tier`      | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
-| `notes`     | TEXT         | NULL                                 |
-| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
-| `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| Column              | Type         | Constraints                          |
+|--------------------|-------------|--------------------------------------|
+| `id`               | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `name`             | TEXT         | NOT NULL COLLATE NOCASE               |
+| `tier`             | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
+| `notes`            | TEXT         | NULL                                 |
+| `coach_id`         | INTEGER      | NULL, FK → users(id)                 |
+| `track_body_weight`| INTEGER      | NOT NULL DEFAULT 1, CHECK(track_body_weight IN (0, 1)) |
+| `created_at`       | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`       | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - `tier` is nullable — adults running their own programs don't use the tier system.
 - `notes` holds free-form coaching observations ("ready to try intermediate bench").
+- `track_body_weight` controls whether body weight tracking UI is visible for this athlete. Defaults to enabled.
 
 ### `exercises`
 

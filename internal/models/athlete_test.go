@@ -22,6 +22,9 @@ func TestCreateAthlete(t *testing.T) {
 		if !a.Notes.Valid || a.Notes.String != "test notes" {
 			t.Errorf("notes = %v, want test notes", a.Notes)
 		}
+		if !a.TrackBodyWeight {
+			t.Error("TrackBodyWeight should default to true")
+		}
 	})
 
 	t.Run("nullable tier and notes", func(t *testing.T) {
@@ -73,7 +76,7 @@ func TestUpdateAthlete(t *testing.T) {
 	}
 
 	t.Run("update name and tier", func(t *testing.T) {
-		updated, err := UpdateAthlete(db, a.ID, "David", "intermediate", "promoted", sql.NullInt64{})
+		updated, err := UpdateAthlete(db, a.ID, "David", "intermediate", "promoted", sql.NullInt64{}, true)
 		if err != nil {
 			t.Fatalf("update athlete: %v", err)
 		}
@@ -85,8 +88,18 @@ func TestUpdateAthlete(t *testing.T) {
 		}
 	})
 
+	t.Run("disable body weight tracking", func(t *testing.T) {
+		updated, err := UpdateAthlete(db, a.ID, "David", "intermediate", "", sql.NullInt64{}, false)
+		if err != nil {
+			t.Fatalf("update athlete: %v", err)
+		}
+		if updated.TrackBodyWeight {
+			t.Error("TrackBodyWeight should be false after update")
+		}
+	})
+
 	t.Run("not found", func(t *testing.T) {
-		_, err := UpdateAthlete(db, 99999, "Nobody", "", "", sql.NullInt64{})
+		_, err := UpdateAthlete(db, 99999, "Nobody", "", "", sql.NullInt64{}, true)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}

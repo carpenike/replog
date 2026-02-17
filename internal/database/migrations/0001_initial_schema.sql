@@ -1,13 +1,14 @@
 -- +goose Up
 
 CREATE TABLE IF NOT EXISTS athletes (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL COLLATE NOCASE,
-    tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
-    notes       TEXT,
-    coach_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    name                TEXT    NOT NULL COLLATE NOCASE,
+    tier                TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
+    notes               TEXT,
+    coach_id            INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    track_body_weight   INTEGER NOT NULL DEFAULT 1 CHECK(track_body_weight IN (0, 1)),
+    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS users (

@@ -310,3 +310,66 @@ func TestBodyWeights_Delete_NonCoachOwnAthlete(t *testing.T) {
 		t.Errorf("expected 303, got %d", rr.Code)
 	}
 }
+
+func TestBodyWeights_List_TrackingDisabled(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "NoTrack", "")
+
+	// Disable body weight tracking.
+	models.UpdateAthlete(db, a.ID, "NoTrack", "", "", a.CoachID, false)
+
+	h := &BodyWeights{DB: db, Templates: tc}
+	req := requestWithUser("GET", "/athletes/"+itoa(a.ID)+"/body-weights", nil, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	rr := httptest.NewRecorder()
+	h.List(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 when tracking disabled, got %d", rr.Code)
+	}
+}
+
+func TestBodyWeights_Create_TrackingDisabled(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "NoTrack", "")
+
+	// Disable body weight tracking.
+	models.UpdateAthlete(db, a.ID, "NoTrack", "", "", a.CoachID, false)
+
+	h := &BodyWeights{DB: db, Templates: tc}
+	form := url.Values{"date": {"2026-02-01"}, "weight": {"185"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(a.ID)+"/body-weights", form, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 when tracking disabled, got %d", rr.Code)
+	}
+}
+
+func TestBodyWeights_Delete_TrackingDisabled(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "NoTrack", "")
+	bw, _ := models.CreateBodyWeight(db, a.ID, "2026-02-01", 185.0, "")
+
+	// Disable body weight tracking after creating an entry.
+	models.UpdateAthlete(db, a.ID, "NoTrack", "", "", a.CoachID, false)
+
+	h := &BodyWeights{DB: db, Templates: tc}
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/body-weights/%d/delete", a.ID, bw.ID), nil, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	req.SetPathValue("bwID", itoa(bw.ID))
+	rr := httptest.NewRecorder()
+	h.Delete(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404 when tracking disabled, got %d", rr.Code)
+	}
+}
