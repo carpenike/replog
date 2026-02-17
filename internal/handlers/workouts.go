@@ -162,6 +162,15 @@ func (h *Workouts) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-approve when a coach/admin creates a workout on behalf of an athlete.
+	user := middleware.UserFromContext(r.Context())
+	if user.IsCoach || user.IsAdmin {
+		if err := models.AutoApproveWorkout(h.DB, workout.ID, user.ID); err != nil {
+			log.Printf("handlers: auto-approve workout %d: %v", workout.ID, err)
+			// Non-fatal — the workout was created successfully.
+		}
+	}
+
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10)+"/workouts/"+strconv.FormatInt(workout.ID, 10), http.StatusSeeOther)
 }
 
@@ -531,6 +540,14 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-approve when a coach/admin logs sets for an athlete.
+	user := middleware.UserFromContext(r.Context())
+	if user.IsCoach || user.IsAdmin {
+		if err := models.AutoApproveWorkout(h.DB, workoutID, user.ID); err != nil {
+			log.Printf("handlers: auto-approve workout %d: %v", workoutID, err)
+		}
+	}
+
 	// Look up exercise rest time for the timer.
 	restSeconds := models.DefaultRestSeconds
 	if ex, exErr := models.GetExerciseByID(h.DB, exerciseID); exErr == nil {
@@ -719,6 +736,14 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: update set %d: %v", setID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// Auto-approve when a coach/admin edits a set.
+	user := middleware.UserFromContext(r.Context())
+	if user.IsCoach || user.IsAdmin {
+		if err := models.AutoApproveWorkout(h.DB, workoutID, user.ID); err != nil {
+			log.Printf("handlers: auto-approve workout %d: %v", workoutID, err)
+		}
 	}
 
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10)+"/workouts/"+strconv.FormatInt(workoutID, 10), http.StatusSeeOther)

@@ -230,3 +230,24 @@ func CreateOrUpdateWorkoutReview(db *sql.DB, workoutID, coachID int64, status, n
 	}
 	return CreateWorkoutReview(db, workoutID, coachID, status, notes)
 }
+
+// AutoApproveWorkout creates an "approved" review for the given workout if no
+// review exists yet. This is called when a coach or admin enters workout data
+// on behalf of an athlete — the act of coaching implies approval. Returns nil
+// without error if a review already exists.
+func AutoApproveWorkout(db *sql.DB, workoutID, coachUserID int64) error {
+	_, err := GetWorkoutReviewByWorkoutID(db, workoutID)
+	if err == nil {
+		// Review already exists — nothing to do.
+		return nil
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return fmt.Errorf("models: check review for auto-approve workout %d: %w", workoutID, err)
+	}
+
+	_, err = CreateWorkoutReview(db, workoutID, coachUserID, ReviewStatusApproved, "")
+	if err != nil {
+		return fmt.Errorf("models: auto-approve workout %d: %w", workoutID, err)
+	}
+	return nil
+}

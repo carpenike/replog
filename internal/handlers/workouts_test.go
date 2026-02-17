@@ -826,3 +826,93 @@ func TestWorkouts_Show_WithPrescription(t *testing.T) {
 		t.Error("expected scaffold log button in prescription")
 	}
 }
+
+func TestWorkouts_Create_CoachAutoApproves(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "AutoApproveKid", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{"date": {"2026-03-15"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	// The workout should have an auto-approved review.
+	w, _ := models.GetWorkoutByAthleteDate(db, athlete.ID, "2026-03-15")
+	rev, err := models.GetWorkoutReviewByWorkoutID(db, w.ID)
+	if err != nil {
+		t.Fatalf("expected auto-approved review, got error: %v", err)
+	}
+	if rev.Status != models.ReviewStatusApproved {
+		t.Errorf("review status = %q, want %q", rev.Status, models.ReviewStatusApproved)
+	}
+}
+
+func TestWorkouts_Create_NonCoachNoAutoApprove(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "SelfLogKid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{"date": {"2026-03-16"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts", form, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	// The workout should NOT have a review.
+	w, _ := models.GetWorkoutByAthleteDate(db, athlete.ID, "2026-03-16")
+	_, err := models.GetWorkoutReviewByWorkoutID(db, w.ID)
+	if err == nil {
+		t.Error("expected no review for non-coach created workout, but found one")
+	}
+}
+
+func TestWorkouts_AddSet_CoachAutoApproves(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "AddSetApproveKid", "")
+	ex := seedExercise(t, db, "Deadlift", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-03-17", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	form := url.Values{
+		"exercise_id": {itoa(ex.ID)},
+		"reps":        {"5"},
+		"weight":      {"315"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/workouts/"+itoa(workout.ID)+"/sets", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.AddSet(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	// Should have an auto-approved review now.
+	rev, err := models.GetWorkoutReviewByWorkoutID(db, workout.ID)
+	if err != nil {
+		t.Fatalf("expected auto-approved review, got error: %v", err)
+	}
+	if rev.Status != models.ReviewStatusApproved {
+		t.Errorf("review status = %q, want %q", rev.Status, models.ReviewStatusApproved)
+	}
+}

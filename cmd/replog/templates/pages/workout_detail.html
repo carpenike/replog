@@ -119,6 +119,7 @@
 
         <!-- Coach Review Section -->
         {{ if .Review }}
+        {{ if or .Review.Notes.Valid (eq .Review.Status "needs_work") }}
         <section class="review-section">
             <h2>Coach Review</h2>
             <article class="review-card" data-status="{{ .Review.Status }}">
@@ -154,9 +155,10 @@
                 {{ end }}
             </article>
         </section>
+        {{ end }}
         {{ else if .CanManage }}
-        <section class="review-section">
-            <h2>Coach Review</h2>
+        <details class="review-section">
+            <summary>Coach Review</summary>
             <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review">
                 <fieldset role="group">
                     <label><input type="radio" name="status" value="approved" checked> Approved</label>
@@ -167,7 +169,7 @@
                 </label>
                 <button type="submit">Submit Review</button>
             </form>
-        </section>
+        </details>
         {{ end }}
 
         <!-- Add Set Form -->

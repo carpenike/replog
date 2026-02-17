@@ -257,3 +257,66 @@ func TestDeleteCoachPreservesReview(t *testing.T) {
 		t.Errorf("notes should be preserved, got %v", got.Notes)
 	}
 }
+
+func TestAutoApproveWorkout(t *testing.T) {
+	db := testDB(t)
+
+	athlete, _ := CreateAthlete(db, "Auto-Approve Athlete", "", "", "", sql.NullInt64{})
+	coach := seedCoachUser(t, db)
+	workout, _ := CreateWorkout(db, athlete.ID, "2026-04-01", "")
+
+	// Auto-approve should create a review.
+	if err := AutoApproveWorkout(db, workout.ID, coach.ID); err != nil {
+		t.Fatalf("auto-approve: %v", err)
+	}
+
+	rev, err := GetWorkoutReviewByWorkoutID(db, workout.ID)
+	if err != nil {
+		t.Fatalf("get review after auto-approve: %v", err)
+	}
+	if rev.Status != ReviewStatusApproved {
+		t.Errorf("status = %q, want %q", rev.Status, ReviewStatusApproved)
+	}
+	if !rev.CoachID.Valid || rev.CoachID.Int64 != coach.ID {
+		t.Errorf("coach_id = %v, want %d", rev.CoachID, coach.ID)
+	}
+
+	// Calling again should be a no-op (no error, no duplicate).
+	if err := AutoApproveWorkout(db, workout.ID, coach.ID); err != nil {
+		t.Fatalf("auto-approve idempotent: %v", err)
+	}
+
+	// Verify it's still just one review.
+	var count int
+	db.QueryRow(`SELECT COUNT(*) FROM workout_reviews WHERE workout_id = ?`, workout.ID).Scan(&count)
+	if count != 1 {
+		t.Errorf("review count = %d, want 1", count)
+	}
+}
+
+func TestAutoApproveWorkout_SkipsExistingReview(t *testing.T) {
+	db := testDB(t)
+
+	athlete, _ := CreateAthlete(db, "Skip Approve Athlete", "", "", "", sql.NullInt64{})
+	coach := seedCoachUser(t, db)
+	workout, _ := CreateWorkout(db, athlete.ID, "2026-04-02", "")
+
+	// Manually mark as needs_work.
+	_, err := CreateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusNeedsWork, "Fix your form")
+	if err != nil {
+		t.Fatalf("create review: %v", err)
+	}
+
+	// Auto-approve should not overwrite the existing review.
+	if err := AutoApproveWorkout(db, workout.ID, coach.ID); err != nil {
+		t.Fatalf("auto-approve with existing review: %v", err)
+	}
+
+	rev, err := GetWorkoutReviewByWorkoutID(db, workout.ID)
+	if err != nil {
+		t.Fatalf("get review: %v", err)
+	}
+	if rev.Status != ReviewStatusNeedsWork {
+		t.Errorf("status = %q, want %q (should not be overwritten)", rev.Status, ReviewStatusNeedsWork)
+	}
+}
