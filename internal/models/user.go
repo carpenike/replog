@@ -19,6 +19,9 @@ var ErrDuplicateUsername = errors.New("duplicate username")
 // ErrAthleteAlreadyLinked is returned when an athlete is already linked to another user.
 var ErrAthleteAlreadyLinked = errors.New("athlete already linked to another user")
 
+// ErrNoPassword is returned when authenticating a user that has no password set.
+var ErrNoPassword = errors.New("account has no password")
+
 // User represents a login account in the system.
 type User struct {
 	ID           int64
@@ -29,6 +32,12 @@ type User struct {
 	IsCoach      bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+// HasPassword reports whether the user has a password set.
+// Passwordless users authenticate via magic links or passkeys.
+func (u *User) HasPassword() bool {
+	return u.PasswordHash != ""
 }
 
 // UserWithAthlete extends User with the linked athlete's name.
@@ -53,10 +62,15 @@ func CheckPassword(hash, password string) bool {
 
 // CreateUser inserts a new user. Returns ErrDuplicateUsername if the username
 // is already taken. When athleteID is valid the user is linked atomically.
+// If password is empty the user is created without a password (passwordless).
 func CreateUser(db *sql.DB, username, password, email string, isCoach bool, athleteID sql.NullInt64) (*User, error) {
-	hash, err := HashPassword(password)
-	if err != nil {
-		return nil, err
+	var hashVal sql.NullString
+	if password != "" {
+		hash, err := HashPassword(password)
+		if err != nil {
+			return nil, err
+		}
+		hashVal = sql.NullString{String: hash, Valid: true}
 	}
 
 	var emailVal sql.NullString
@@ -71,7 +85,7 @@ func CreateUser(db *sql.DB, username, password, email string, isCoach bool, athl
 
 	result, err := db.Exec(
 		`INSERT INTO users (username, email, password_hash, is_coach, athlete_id) VALUES (?, ?, ?, ?, ?)`,
-		username, emailVal, hash, coachInt, athleteID,
+		username, emailVal, hashVal, coachInt, athleteID,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -91,7 +105,7 @@ func CreateUser(db *sql.DB, username, password, email string, isCoach bool, athl
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	u := &User{}
 	err := db.QueryRow(
-		`SELECT id, username, email, password_hash, athlete_id, is_coach, created_at, updated_at
+		`SELECT id, username, email, COALESCE(password_hash, ''), athlete_id, is_coach, created_at, updated_at
 		 FROM users WHERE id = ?`, id,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -107,7 +121,7 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	u := &User{}
 	err := db.QueryRow(
-		`SELECT id, username, email, password_hash, athlete_id, is_coach, created_at, updated_at
+		`SELECT id, username, email, COALESCE(password_hash, ''), athlete_id, is_coach, created_at, updated_at
 		 FROM users WHERE username = ?`, username,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -120,11 +134,15 @@ func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 }
 
 // Authenticate verifies a username/password combination and returns the user
-// if valid, or ErrNotFound if the credentials are wrong.
+// if valid. Returns ErrNotFound if credentials are wrong, or ErrNoPassword
+// if the account has no password set (passwordless-only).
 func Authenticate(db *sql.DB, username, password string) (*User, error) {
 	u, err := GetUserByUsername(db, username)
 	if err != nil {
 		return nil, err
+	}
+	if !u.HasPassword() {
+		return nil, ErrNoPassword
 	}
 	if !CheckPassword(u.PasswordHash, password) {
 		return nil, ErrNotFound
@@ -145,7 +163,7 @@ func CountUsers(db *sql.DB) (int, error) {
 // ListUsers returns all users with linked athlete names, ordered by username.
 func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 	rows, err := db.Query(`
-		SELECT u.id, u.username, u.email, u.password_hash, u.athlete_id, u.is_coach, u.created_at, u.updated_at,
+		SELECT u.id, u.username, u.email, COALESCE(u.password_hash, ''), u.athlete_id, u.is_coach, u.created_at, u.updated_at,
 		       a.name
 		FROM users u
 		LEFT JOIN athletes a ON u.athlete_id = a.id

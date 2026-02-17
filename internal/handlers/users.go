@@ -76,11 +76,11 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	isCoach := r.FormValue("is_coach") == "1"
 
-	if username == "" || password == "" {
-		h.renderFormError(w, r, "Username and password are required.", nil)
+	if username == "" {
+		h.renderFormError(w, r, "Username is required.", nil)
 		return
 	}
-	if len(password) < 6 {
+	if password != "" && len(password) < 6 {
 		h.renderFormError(w, r, "Password must be at least 6 characters.", nil)
 		return
 	}
@@ -195,10 +195,17 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate password early — before committing profile changes.
+	// Block password changes for passwordless users.
 	newPassword := r.FormValue("password")
-	if newPassword != "" && len(newPassword) < 6 {
-		h.renderFormError(w, r, "Password must be at least 6 characters.", u)
-		return
+	if newPassword != "" {
+		if !u.HasPassword() {
+			h.renderFormError(w, r, "This account uses passwordless login. Password cannot be set.", u)
+			return
+		}
+		if len(newPassword) < 6 {
+			h.renderFormError(w, r, "Password must be at least 6 characters.", u)
+			return
+		}
 	}
 
 	var athleteID sql.NullInt64

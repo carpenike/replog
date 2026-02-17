@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -467,6 +468,60 @@ func TestUsers_Update_DuplicateAthleteLink(t *testing.T) {
 	}
 	req := requestWithUser("POST", "/users/"+itoa(user2.ID), form, coach)
 	req.SetPathValue("id", itoa(user2.ID))
+	rr := httptest.NewRecorder()
+	h.Update(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}
+
+func TestUsers_Create_Passwordless(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	h := &Users{DB: db, Templates: tc}
+
+	form := url.Values{
+		"username": {"kiduser"},
+	}
+	req := requestWithUser("POST", "/users", form, coach)
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	u, err := models.GetUserByUsername(db, "kiduser")
+	if err != nil {
+		t.Fatalf("get user kiduser: %v", err)
+	}
+	if u.HasPassword() {
+		t.Error("expected passwordless user, but HasPassword() is true")
+	}
+}
+
+func TestUsers_Update_BlockPasswordForPasswordless(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	// Create a passwordless user.
+	target, err := models.CreateUser(db, "nopw", "", "", false, sql.NullInt64{})
+	if err != nil {
+		t.Fatalf("create passwordless user: %v", err)
+	}
+
+	h := &Users{DB: db, Templates: tc}
+
+	form := url.Values{
+		"username": {"nopw"},
+		"password": {"newpassword123"},
+	}
+	req := requestWithUser("POST", "/users/"+itoa(target.ID), form, coach)
+	req.SetPathValue("id", itoa(target.ID))
 	rr := httptest.NewRecorder()
 	h.Update(rr, req)
 

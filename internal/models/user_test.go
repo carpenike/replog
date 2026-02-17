@@ -46,6 +46,19 @@ func TestCreateUser(t *testing.T) {
 			t.Errorf("err = %v, want ErrAthleteAlreadyLinked", err)
 		}
 	})
+
+	t.Run("passwordless create", func(t *testing.T) {
+		u, err := CreateUser(db, "kiduser", "", "", false, sql.NullInt64{})
+		if err != nil {
+			t.Fatalf("create passwordless user: %v", err)
+		}
+		if u.HasPassword() {
+			t.Error("expected passwordless user, but HasPassword() is true")
+		}
+		if u.Username != "kiduser" {
+			t.Errorf("username = %q, want kiduser", u.Username)
+		}
+	})
 }
 
 func TestAuthenticate(t *testing.T) {
@@ -74,6 +87,32 @@ func TestAuthenticate(t *testing.T) {
 		_, err := Authenticate(db, "nobody", "anything")
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
+		}
+	})
+
+	t.Run("passwordless user", func(t *testing.T) {
+		CreateUser(db, "kidonly", "", "", false, sql.NullInt64{})
+		_, err := Authenticate(db, "kidonly", "anything")
+		if err != ErrNoPassword {
+			t.Errorf("err = %v, want ErrNoPassword", err)
+		}
+	})
+}
+
+func TestHasPassword(t *testing.T) {
+	db := testDB(t)
+
+	t.Run("user with password", func(t *testing.T) {
+		u, _ := CreateUser(db, "withpw", "secret123", "", false, sql.NullInt64{})
+		if !u.HasPassword() {
+			t.Error("HasPassword() should be true for user with password")
+		}
+	})
+
+	t.Run("user without password", func(t *testing.T) {
+		u, _ := CreateUser(db, "nopw", "", "", false, sql.NullInt64{})
+		if u.HasPassword() {
+			t.Error("HasPassword() should be false for passwordless user")
 		}
 	})
 }

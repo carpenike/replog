@@ -18,11 +18,19 @@
                        {{ if .Error }}aria-invalid="true"{{ end }}>
             </label>
 
-            <label for="password">Password{{ if .EditUser }} <small>(leave blank to keep current)</small>{{ end }}
-                <input type="password" id="password" name="password"
-                       {{ if not .EditUser }}required{{ end }}
-                       minlength="6">
+            {{ if .EditUser }}
+                {{ if .EditUser.HasPassword }}
+                <label for="password">Password <small>(leave blank to keep current)</small>
+                    <input type="password" id="password" name="password" minlength="6">
+                </label>
+                {{ else }}
+                <p><small>This account uses passwordless login (magic link / passkey). No password is set.</small></p>
+                {{ end }}
+            {{ else }}
+            <label for="password">Password <small>(optional — leave blank for passwordless account)</small>
+                <input type="password" id="password" name="password" minlength="6">
             </label>
+            {{ end }}
 
             <label for="email">Email
                 <input type="email" id="email" name="email"

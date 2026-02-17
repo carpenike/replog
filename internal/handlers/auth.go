@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 
@@ -54,8 +55,13 @@ func (a *Auth) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	user, err := models.Authenticate(a.DB, username, password)
 	if err != nil {
-		log.Printf("handlers: login failed for %q: %v", username, err)
-		a.Sessions.Put(r.Context(), "flash_error", "Invalid username or password")
+		if errors.Is(err, models.ErrNoPassword) {
+			log.Printf("handlers: passwordless user %q attempted password login", username)
+			a.Sessions.Put(r.Context(), "flash_error", "This account uses passwordless login. Use your login link or passkey.")
+		} else {
+			log.Printf("handlers: login failed for %q: %v", username, err)
+			a.Sessions.Put(r.Context(), "flash_error", "Invalid username or password")
+		}
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}

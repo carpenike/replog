@@ -164,3 +164,32 @@ func TestAuth_Logout_DestroysSession(t *testing.T) {
 		t.Errorf("expected redirect to /login, got %q", loc)
 	}
 }
+
+func TestAuth_LoginSubmit_PasswordlessUserRejects(t *testing.T) {
+	db := testDB(t)
+	sm := testSessionManager()
+	tc := testTemplateCache(t)
+
+	// Create a passwordless user.
+	_, err := models.CreateUser(db, "kidonly", "", "", false, sql.NullInt64{})
+	if err != nil {
+		t.Fatalf("create passwordless user: %v", err)
+	}
+
+	auth := &Auth{DB: db, Sessions: sm, Templates: tc}
+
+	form := url.Values{"username": {"kidonly"}, "password": {"anything"}}
+	req := httptest.NewRequest("POST", "/login", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	handler := sm.LoadAndSave(http.HandlerFunc(auth.LoginSubmit))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected redirect 303, got %d", rr.Code)
+	}
+	if loc := rr.Header().Get("Location"); loc != "/login" {
+		t.Errorf("expected redirect to /login, got %q", loc)
+	}
+}
