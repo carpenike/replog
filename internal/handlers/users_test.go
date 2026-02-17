@@ -665,7 +665,7 @@ func TestUsers_Create_InlineAthleteDefaultsToUsername(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get athlete: %v", err)
 	}
-	if athlete.Name != "kidnoname" {
-		t.Errorf("athlete name = %q, want kidnoname", athlete.Name)
+	if athlete.Name != "Kidnoname" {
+		t.Errorf("athlete name = %q, want Kidnoname", athlete.Name)
 	}
 }

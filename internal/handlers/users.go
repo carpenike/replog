@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/carpenike/replog/internal/middleware"
@@ -107,7 +108,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 		// Inline athlete creation. Default to username if no name provided.
 		newAthleteName := r.FormValue("new_athlete_name")
 		if newAthleteName == "" {
-			newAthleteName = username
+			newAthleteName = strings.ToUpper(username[:1]) + username[1:]
 		}
 		athlete, err := models.CreateAthlete(h.DB, newAthleteName, "", "", sql.NullInt64{})
 		if err != nil {
