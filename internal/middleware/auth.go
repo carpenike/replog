@@ -71,23 +71,70 @@ func PrefsFromContext(ctx context.Context) *models.UserPreferences {
 }
 
 // CanAccessAthlete checks whether the authenticated user is allowed to access
-// the given athlete. Coaches can access any athlete; non-coaches can only access
-// their own linked athlete. Returns true if access is allowed.
-func CanAccessAthlete(user *models.User, athleteID int64) bool {
-	if user.IsCoach {
+// the given athlete. Admins can access any athlete; coaches can access athletes
+// assigned to them; non-coaches can only access their own linked athlete.
+// Loads the athlete from the database to verify coach ownership.
+func CanAccessAthlete(db *sql.DB, user *models.User, athleteID int64) bool {
+	if user.IsAdmin {
 		return true
 	}
-	return user.AthleteID.Valid && user.AthleteID.Int64 == athleteID
+	// Own linked athlete profile.
+	if user.AthleteID.Valid && user.AthleteID.Int64 == athleteID {
+		return true
+	}
+	if user.IsCoach {
+		athlete, err := models.GetAthleteByID(db, athleteID)
+		if err != nil {
+			return false
+		}
+		return athlete.CoachID.Valid && athlete.CoachID.Int64 == user.ID
+	}
+	return false
 }
 
-// RequireCoach returns 403 if the user is not a coach.
+// CanManageAthlete checks whether the user can manage (edit/delete/assign) the
+// given athlete. Admins can manage any athlete. Coaches can only manage athletes
+// where athlete.CoachID matches the user's ID.
+func CanManageAthlete(user *models.User, athlete *models.Athlete) bool {
+	if user.IsAdmin {
+		return true
+	}
+	if user.IsCoach {
+		return athlete.CoachID.Valid && athlete.CoachID.Int64 == user.ID
+	}
+	return false
+}
+
+// RequireCoach returns 403 if the user is not a coach or admin.
 func RequireCoach(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := UserFromContext(r.Context())
-		if user == nil || !user.IsCoach {
+		if user == nil || (!user.IsCoach && !user.IsAdmin) {
 			http.Error(w, "Forbidden — coach access required", http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// RequireAdmin returns 403 if the user is not an admin.
+func RequireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := UserFromContext(r.Context())
+		if user == nil || !user.IsAdmin {
+			http.Error(w, "Forbidden — admin access required", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// CoachAthleteFilter returns the coach ID to use for filtering athlete lists.
+// Admins get sql.NullInt64{} (invalid = no filter, see all athletes).
+// Coaches get their own user ID as the filter.
+func CoachAthleteFilter(user *models.User) sql.NullInt64 {
+	if user.IsAdmin {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: user.ID, Valid: true}
 }

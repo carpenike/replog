@@ -1,13 +1,14 @@
 package models
 
 import (
+	"database/sql"
 	"strings"
 	"testing"
 )
 
 func TestCreateBodyWeight(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "")
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
 
 	t.Run("basic create", func(t *testing.T) {
 		bw, err := CreateBodyWeight(db, a.ID, "2026-02-01", 185.5, "morning weigh-in")
@@ -33,7 +34,7 @@ func TestCreateBodyWeight(t *testing.T) {
 	})
 
 	t.Run("different athlete same date", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Another Athlete", "", "")
+		a2, _ := CreateAthlete(db, "Another Athlete", "", "", sql.NullInt64{})
 		bw, err := CreateBodyWeight(db, a2.ID, "2026-02-01", 150.0, "")
 		if err != nil {
 			t.Fatalf("create body weight for different athlete: %v", err)
@@ -56,7 +57,7 @@ func TestCreateBodyWeight(t *testing.T) {
 
 func TestGetBodyWeightByID(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "")
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
 
 	t.Run("found", func(t *testing.T) {
 		created, _ := CreateBodyWeight(db, a.ID, "2026-02-01", 185.0, "")
@@ -79,7 +80,7 @@ func TestGetBodyWeightByID(t *testing.T) {
 
 func TestDeleteBodyWeight(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "")
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
 
 	t.Run("delete existing", func(t *testing.T) {
 		bw, _ := CreateBodyWeight(db, a.ID, "2026-02-01", 185.0, "")
@@ -102,7 +103,7 @@ func TestDeleteBodyWeight(t *testing.T) {
 
 func TestListBodyWeights(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "")
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
 
 	t.Run("empty list", func(t *testing.T) {
 		page, err := ListBodyWeights(db, a.ID, 0)
@@ -139,7 +140,7 @@ func TestListBodyWeights(t *testing.T) {
 	})
 
 	t.Run("pagination", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Paginator", "", "")
+		a2, _ := CreateAthlete(db, "Paginator", "", "", sql.NullInt64{})
 		// Insert more than one page of entries.
 		for i := 1; i <= BodyWeightPageSize+5; i++ {
 			date := mustParseDate("2026-01-01").AddDate(0, 0, i).Format("2006-01-02")
@@ -172,7 +173,7 @@ func TestListBodyWeights(t *testing.T) {
 
 func TestLatestBodyWeight(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "")
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
 
 	t.Run("no entries", func(t *testing.T) {
 		bw, err := LatestBodyWeight(db, a.ID)

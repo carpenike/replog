@@ -328,7 +328,7 @@ func (h *Exercises) ExerciseHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !middleware.CanAccessAthlete(user, athleteID) {
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}

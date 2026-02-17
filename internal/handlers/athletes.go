@@ -18,11 +18,11 @@ type Athletes struct {
 	Templates TemplateCache
 }
 
-// List renders the athlete list page. Coaches see all athletes; non-coaches
-// are redirected to their own athlete profile.
+// List renders the athlete list page. Coaches see their own athletes;
+// admins see all athletes; non-coaches are redirected to their own athlete profile.
 func (h *Athletes) List(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		if user.AthleteID.Valid {
 			http.Redirect(w, r, "/athletes/"+strconv.FormatInt(user.AthleteID.Int64, 10), http.StatusSeeOther)
 		} else {
@@ -31,7 +31,8 @@ func (h *Athletes) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athletes, err := models.ListAthleteCards(h.DB)
+	coachFilter := middleware.CoachAthleteFilter(user)
+	athletes, err := models.ListAthleteCards(h.DB, coachFilter)
 	if err != nil {
 		log.Printf("handlers: list athlete cards: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -47,10 +48,10 @@ func (h *Athletes) List(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// NewForm renders the new athlete form. Coach only.
+// NewForm renders the new athlete form. Coach or admin only.
 func (h *Athletes) NewForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -64,10 +65,10 @@ func (h *Athletes) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Create processes the new athlete form submission. Coach only.
+// Create processes the new athlete form submission. Coach or admin only.
 func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -89,7 +90,7 @@ func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athlete, err := models.CreateAthlete(h.DB, name, r.FormValue("tier"), r.FormValue("notes"))
+	athlete, err := models.CreateAthlete(h.DB, name, r.FormValue("tier"), r.FormValue("notes"), sql.NullInt64{Int64: user.ID, Valid: true})
 	if err != nil {
 		log.Printf("handlers: create athlete: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -109,11 +110,6 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !middleware.CanAccessAthlete(user, id) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
 	athlete, err := models.GetAthleteByID(h.DB, id)
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Athlete not found", http.StatusNotFound)
@@ -123,6 +119,22 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: get athlete %d: %v", id, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// Check access: admins see all, coaches see their own athletes, non-coaches see own profile.
+	if !user.IsAdmin {
+		if user.IsCoach {
+			// Coach can view own linked athlete profile or athletes they coach.
+			ownProfile := user.AthleteID.Valid && user.AthleteID.Int64 == id
+			ownsAthlete := athlete.CoachID.Valid && athlete.CoachID.Int64 == user.ID
+			if !ownProfile && !ownsAthlete {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
+		} else if !user.AthleteID.Valid || user.AthleteID.Int64 != id {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
 	}
 
 	assignments, err := models.ListActiveAssignments(h.DB, id)
@@ -158,9 +170,9 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		recentWorkouts = recentWorkouts[:5]
 	}
 
-	// Load deactivated assignments for reactivation UI (coach only).
+	// Load deactivated assignments for reactivation UI (coach/admin only for managed athletes).
 	var deactivated []*models.AthleteExercise
-	if user.IsCoach {
+	if middleware.CanManageAthlete(user, athlete) {
 		deactivated, err = models.ListDeactivatedAssignments(h.DB, id)
 		if err != nil {
 			log.Printf("handlers: list deactivated assignments for athlete %d: %v", id, err)
@@ -205,9 +217,9 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Load available program templates for assignment (coach only).
+	// Load available program templates for assignment (coach/admin only for managed athletes).
 	var programTemplates []*models.ProgramTemplate
-	if user.IsCoach {
+	if middleware.CanManageAthlete(user, athlete) {
 		programTemplates, err = models.ListProgramTemplates(h.DB)
 		if err != nil {
 			log.Printf("handlers: list program templates for athlete %d: %v", id, err)
@@ -226,6 +238,7 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		"ActiveProgram":    activeProgram,
 		"Prescription":     prescription,
 		"ProgramTemplates": programTemplates,
+		"CanManage":        middleware.CanManageAthlete(user, athlete),
 		"TodayDate":        time.Now().Format("2006-01-02"),
 	}
 	if err := h.Templates.Render(w, r, "athlete_detail.html", data); err != nil {
@@ -234,13 +247,9 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// EditForm renders the edit athlete form. Coach only.
+// EditForm renders the edit athlete form. Coach (owns athlete) or admin only.
 func (h *Athletes) EditForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -259,6 +268,11 @@ func (h *Athletes) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !middleware.CanManageAthlete(user, athlete) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	data := map[string]any{
 		"Athlete": athlete,
 		"Tiers":   tierOptions(),
@@ -269,17 +283,29 @@ func (h *Athletes) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Update processes the edit athlete form submission. Coach only.
+// Update processes the edit athlete form submission. Coach (owns athlete) or admin only.
 func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, id)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get athlete %d for update: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if !middleware.CanManageAthlete(user, athlete) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -302,7 +328,7 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.UpdateAthlete(h.DB, id, name, r.FormValue("tier"), r.FormValue("notes"))
+	_, err = models.UpdateAthlete(h.DB, id, name, r.FormValue("tier"), r.FormValue("notes"), athlete.CoachID)
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Athlete not found", http.StatusNotFound)
 		return
@@ -316,17 +342,29 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
 }
 
-// Delete removes an athlete. Coach only.
+// Delete removes an athlete. Coach (owns athlete) or admin only.
 func (h *Athletes) Delete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, id)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get athlete %d for delete: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if !middleware.CanManageAthlete(user, athlete) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -344,17 +382,29 @@ func (h *Athletes) Delete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes", http.StatusSeeOther)
 }
 
-// Promote advances an athlete to the next tier. Coach only.
+// Promote advances an athlete to the next tier. Coach (owns athlete) or admin only.
 func (h *Athletes) Promote(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, id)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get athlete %d for promote: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if !middleware.CanManageAthlete(user, athlete) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 

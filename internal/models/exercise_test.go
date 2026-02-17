@@ -52,7 +52,7 @@ func TestDeleteExercise(t *testing.T) {
 
 	t.Run("delete referenced (RESTRICT)", func(t *testing.T) {
 		e2, _ := CreateExercise(db, "Deadlift", "", 0, "", "", 0)
-		a, _ := CreateAthlete(db, "Test Athlete", "", "")
+		a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
 		w, _ := CreateWorkout(db, a.ID, "2026-01-01", "")
 		_, err := AddSet(db, w.ID, e2.ID, 5, 225, 0, "")
 		if err != nil {

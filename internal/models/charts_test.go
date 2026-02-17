@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"testing"
 )
 
@@ -135,7 +136,7 @@ func TestBodyWeightChartData(t *testing.T) {
 	db := testDB(t)
 
 	// Create athlete and seed body weight entries.
-	athlete, err := CreateAthlete(db, "Chart Athlete", "", "")
+	athlete, err := CreateAthlete(db, "Chart Athlete", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -181,7 +182,7 @@ func TestBodyWeightChartData_Empty(t *testing.T) {
 func TestTrainingMaxChartData(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "TM Chart Athlete", "", "")
+	athlete, err := CreateAthlete(db, "TM Chart Athlete", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -221,7 +222,7 @@ func TestTrainingMaxChartData(t *testing.T) {
 func TestExerciseVolumeChart(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Vol Athlete", "", "")
+	athlete, err := CreateAthlete(db, "Vol Athlete", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -277,7 +278,7 @@ func TestExerciseVolumeChart_Empty(t *testing.T) {
 func TestWorkoutHeatmap(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Heatmap Athlete", "", "")
+	athlete, err := CreateAthlete(db, "Heatmap Athlete", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -314,7 +315,7 @@ func TestWorkoutHeatmap(t *testing.T) {
 func TestWorkoutHeatmap_Empty(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Empty Heatmap", "", "")
+	athlete, err := CreateAthlete(db, "Empty Heatmap", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}

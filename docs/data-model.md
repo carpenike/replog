@@ -22,7 +22,7 @@ These were resolved interactively before schema design:
 
 8. **Users and athletes are separate entities.** Users are login accounts (username + password hash + email). Athletes are training subjects. A user links to an athlete via `athlete_id` — coaches can manage all athletes, non-coaches can only view/log their own. The bootstrap logic auto-creates the first user (as coach) from env vars on first run.
 
-9. **Simple access control via `is_coach` flag.** Coaches see and manage all athletes. Non-coach users (kids) are linked to exactly one athlete and can only view/log/edit their own workouts. No roles table, no permissions matrix.
+9. **Three-tier access control: admin, coach, athlete.** Admins see and manage all athletes and users. Coaches see only athletes assigned to them (`coach_id`). Non-coach users (athletes) are linked to exactly one athlete and can only view/log/edit their own workouts. Roles overlap — an admin can also be a coach, and an athlete can also be a coach. The `is_admin` and `is_coach` flags on the users table control permissions.
 
 10. **Program templates are separate from the logbook.** The app's core is a logbook — it records what happened. Program templates layer on a prescription engine: coaches define templates (weeks × days × prescribed sets with percentages), assign them to athletes, and the app calculates today's target weights from training maxes. Position advances by counting completed workouts since assignment start, and cycles repeat automatically.
 
@@ -39,6 +39,7 @@ erDiagram
         TEXT password_hash
         INTEGER athlete_id FK "nullable"
         INTEGER is_coach "0 or 1"
+        INTEGER is_admin "0 or 1"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -58,6 +59,7 @@ erDiagram
         TEXT name "COLLATE NOCASE"
         TEXT tier "nullable"
         TEXT notes "nullable"
+        INTEGER coach_id FK "nullable"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -125,6 +127,7 @@ erDiagram
     }
 
     users ||--o| athletes : "linked profile"
+    users ||--o{ athletes : "coaches"
     users ||--o| user_preferences : "has preferences"
     athletes ||--o{ athlete_exercises : "has"
     exercises ||--o{ athlete_exercises : "assigned via"
@@ -427,6 +430,7 @@ CREATE TABLE IF NOT EXISTS athletes (
     name        TEXT    NOT NULL COLLATE NOCASE,
     tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
     notes       TEXT,
+    coach_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -438,6 +442,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash   TEXT    NOT NULL,
     athlete_id      INTEGER REFERENCES athletes(id) ON DELETE SET NULL,
     is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
+    is_admin        INTEGER NOT NULL DEFAULT 0 CHECK(is_admin IN (0, 1)),
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -514,6 +519,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_exercises_unique_active
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_unique_athlete_id
     ON users(athlete_id) WHERE athlete_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_athletes_coach_id
+    ON athletes(coach_id);
 
 CREATE INDEX IF NOT EXISTS idx_athlete_exercises_athlete_id
     ON athlete_exercises(athlete_id);

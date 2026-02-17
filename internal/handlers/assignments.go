@@ -17,10 +17,10 @@ type Assignments struct {
 	Templates TemplateCache
 }
 
-// Assign creates a new active assignment for an athlete. Coach only.
+// Assign creates a new active assignment for an athlete. Coach/admin only.
 func (h *Assignments) Assign(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -28,6 +28,11 @@ func (h *Assignments) Assign(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -62,10 +67,10 @@ func (h *Assignments) Assign(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10), http.StatusSeeOther)
 }
 
-// Deactivate removes an active assignment. Coach only.
+// Deactivate removes an active assignment. Coach/admin only.
 func (h *Assignments) Deactivate(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -73,6 +78,11 @@ func (h *Assignments) Deactivate(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -96,10 +106,10 @@ func (h *Assignments) Deactivate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10), http.StatusSeeOther)
 }
 
-// AssignForm renders the form to assign an exercise to an athlete. Coach only.
+// AssignForm renders the form to assign an exercise to an athlete. Coach/admin only.
 func (h *Assignments) AssignForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -107,6 +117,11 @@ func (h *Assignments) AssignForm(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -140,10 +155,10 @@ func (h *Assignments) AssignForm(w http.ResponseWriter, r *http.Request) {
 
 // Reactivate creates a new active assignment row for a previously deactivated
 // athlete+exercise pair. This preserves the audit trail with a fresh assigned_at.
-// Coach only.
+// Coach/admin only.
 func (h *Assignments) Reactivate(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -151,6 +166,11 @@ func (h *Assignments) Reactivate(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 

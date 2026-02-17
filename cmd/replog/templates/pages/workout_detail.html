@@ -10,7 +10,7 @@
                 <h1>{{ .Workout.Date }}{{ if .Review }} <span class="review-badge" data-status="{{ .Review.Status }}">{{ if eq .Review.Status "approved" }}✓ Reviewed{{ else }}⚠ Needs Work{{ end }}</span>{{ end }}</h1>
                 <p>{{ .Athlete.Name }} &mdash; {{ .Workout.SetCount }} sets logged</p>
             </hgroup>
-            {{ if .User.IsCoach }}
+            {{ if .CanManage }}
             <div class="page-actions">
                 <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/delete" class="inline"
                       hx-confirm="Delete this workout and all its sets?">
@@ -128,7 +128,7 @@
                 {{ if .Review.Notes.Valid }}
                 <p>{{ .Review.Notes.String }}</p>
                 {{ end }}
-                {{ if .User.IsCoach }}
+                {{ if .CanManage }}
                 <footer>
                     <details>
                         <summary>Update Review</summary>
@@ -153,7 +153,7 @@
                 {{ end }}
             </article>
         </section>
-        {{ else if .User.IsCoach }}
+        {{ else if .CanManage }}
         <section class="review-section">
             <h2>Coach Review</h2>
             <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review">

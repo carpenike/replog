@@ -17,7 +17,7 @@ func TestLoginTokens_TokenLogin_Success(t *testing.T) {
 	sm := testSessionManager()
 	tc := testTemplateCache(t)
 
-	user, err := models.CreateUser(db, "kid1", "password123", "", false, sql.NullInt64{})
+	user, err := models.CreateUser(db, "kid1", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestLoginTokens_TokenLogin_ExpiredToken(t *testing.T) {
 	sm := testSessionManager()
 	tc := testTemplateCache(t)
 
-	user, _ := models.CreateUser(db, "kid2", "password123", "", false, sql.NullInt64{})
+	user, _ := models.CreateUser(db, "kid2", "password123", "", false, false, sql.NullInt64{})
 
 	past := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	lt, _ := models.CreateLoginToken(db, user.ID, "expired", &past)
@@ -117,7 +117,7 @@ func TestLoginTokens_GenerateToken_CoachCanGenerate(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 
-	kid, _ := models.CreateUser(db, "kiduser", "password123", "", false, sql.NullInt64{})
+	kid, _ := models.CreateUser(db, "kiduser", "password123", "", false, false, sql.NullInt64{})
 
 	h := &LoginTokens{DB: db, Templates: tc}
 
@@ -170,7 +170,7 @@ func TestLoginTokens_DeleteToken_CoachCanDelete(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 
-	kid, _ := models.CreateUser(db, "kiduser2", "password123", "", false, sql.NullInt64{})
+	kid, _ := models.CreateUser(db, "kiduser2", "password123", "", false, false, sql.NullInt64{})
 	lt, _ := models.CreateLoginToken(db, kid.ID, "iPad", nil)
 
 	h := &LoginTokens{DB: db, Templates: tc}

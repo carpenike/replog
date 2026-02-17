@@ -9,7 +9,7 @@ func TestCreateUser(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("basic create", func(t *testing.T) {
-		u, err := CreateUser(db, "admin", "password123", "admin@test.com", true, sql.NullInt64{})
+		u, err := CreateUser(db, "admin", "password123", "admin@test.com", true, false, sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create user: %v", err)
 		}
@@ -25,30 +25,30 @@ func TestCreateUser(t *testing.T) {
 	})
 
 	t.Run("duplicate username", func(t *testing.T) {
-		_, err := CreateUser(db, "admin", "other", "", false, sql.NullInt64{})
+		_, err := CreateUser(db, "admin", "other", "", false, false, sql.NullInt64{})
 		if err != ErrDuplicateUsername {
 			t.Errorf("err = %v, want ErrDuplicateUsername", err)
 		}
 	})
 
 	t.Run("case insensitive duplicate", func(t *testing.T) {
-		_, err := CreateUser(db, "ADMIN", "other", "", false, sql.NullInt64{})
+		_, err := CreateUser(db, "ADMIN", "other", "", false, false, sql.NullInt64{})
 		if err != ErrDuplicateUsername {
 			t.Errorf("err = %v, want ErrDuplicateUsername", err)
 		}
 	})
 
 	t.Run("duplicate athlete link on create", func(t *testing.T) {
-		a, _ := CreateAthlete(db, "Solo", "", "")
-		CreateUser(db, "first_link", "password123", "", false, sql.NullInt64{Int64: a.ID, Valid: true})
-		_, err := CreateUser(db, "second_link", "password123", "", false, sql.NullInt64{Int64: a.ID, Valid: true})
+		a, _ := CreateAthlete(db, "Solo", "", "", sql.NullInt64{})
+		CreateUser(db, "first_link", "password123", "", false, false, sql.NullInt64{Int64: a.ID, Valid: true})
+		_, err := CreateUser(db, "second_link", "password123", "", false, false, sql.NullInt64{Int64: a.ID, Valid: true})
 		if err != ErrAthleteAlreadyLinked {
 			t.Errorf("err = %v, want ErrAthleteAlreadyLinked", err)
 		}
 	})
 
 	t.Run("passwordless create", func(t *testing.T) {
-		u, err := CreateUser(db, "kiduser", "", "", false, sql.NullInt64{})
+		u, err := CreateUser(db, "kiduser", "", "", false, false, sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create passwordless user: %v", err)
 		}
@@ -64,7 +64,7 @@ func TestCreateUser(t *testing.T) {
 func TestAuthenticate(t *testing.T) {
 	db := testDB(t)
 
-	CreateUser(db, "testuser", "correct-password", "", false, sql.NullInt64{})
+	CreateUser(db, "testuser", "correct-password", "", false, false, sql.NullInt64{})
 
 	t.Run("valid credentials", func(t *testing.T) {
 		u, err := Authenticate(db, "testuser", "correct-password")
@@ -91,7 +91,7 @@ func TestAuthenticate(t *testing.T) {
 	})
 
 	t.Run("passwordless user", func(t *testing.T) {
-		CreateUser(db, "kidonly", "", "", false, sql.NullInt64{})
+		CreateUser(db, "kidonly", "", "", false, false, sql.NullInt64{})
 		_, err := Authenticate(db, "kidonly", "anything")
 		if err != ErrNoPassword {
 			t.Errorf("err = %v, want ErrNoPassword", err)
@@ -103,14 +103,14 @@ func TestHasPassword(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("user with password", func(t *testing.T) {
-		u, _ := CreateUser(db, "withpw", "secret123", "", false, sql.NullInt64{})
+		u, _ := CreateUser(db, "withpw", "secret123", "", false, false, sql.NullInt64{})
 		if !u.HasPassword() {
 			t.Error("HasPassword() should be true for user with password")
 		}
 	})
 
 	t.Run("user without password", func(t *testing.T) {
-		u, _ := CreateUser(db, "nopw", "", "", false, sql.NullInt64{})
+		u, _ := CreateUser(db, "nopw", "", "", false, false, sql.NullInt64{})
 		if u.HasPassword() {
 			t.Error("HasPassword() should be false for passwordless user")
 		}
@@ -128,8 +128,8 @@ func TestCountUsers(t *testing.T) {
 		t.Errorf("count = %d, want 0", count)
 	}
 
-	CreateUser(db, "u1", "pass", "", false, sql.NullInt64{})
-	CreateUser(db, "u2", "pass", "", true, sql.NullInt64{})
+	CreateUser(db, "u1", "pass", "", false, false, sql.NullInt64{})
+	CreateUser(db, "u2", "pass", "", true, false, sql.NullInt64{})
 
 	count, err = CountUsers(db)
 	if err != nil {
@@ -143,7 +143,7 @@ func TestCountUsers(t *testing.T) {
 func TestUpdatePassword(t *testing.T) {
 	db := testDB(t)
 
-	u, _ := CreateUser(db, "pwuser", "old-password", "", false, sql.NullInt64{})
+	u, _ := CreateUser(db, "pwuser", "old-password", "", false, false, sql.NullInt64{})
 
 	if err := UpdatePassword(db, u.ID, "new-password"); err != nil {
 		t.Fatalf("update password: %v", err)
@@ -165,7 +165,7 @@ func TestUpdatePassword(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	db := testDB(t)
 
-	u, _ := CreateUser(db, "delme", "pass", "", false, sql.NullInt64{})
+	u, _ := CreateUser(db, "delme", "pass", "", false, false, sql.NullInt64{})
 
 	if err := DeleteUser(db, u.ID); err != nil {
 		t.Fatalf("delete user: %v", err)
@@ -180,9 +180,9 @@ func TestDeleteUser(t *testing.T) {
 func TestListUsers(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Linked Athlete", "", "")
-	CreateUser(db, "alice", "pass", "alice@test.com", true, sql.NullInt64{})
-	CreateUser(db, "bob", "pass", "", false, sql.NullInt64{Int64: a.ID, Valid: true})
+	a, _ := CreateAthlete(db, "Linked Athlete", "", "", sql.NullInt64{})
+	CreateUser(db, "alice", "pass", "alice@test.com", true, false, sql.NullInt64{})
+	CreateUser(db, "bob", "pass", "", false, false, sql.NullInt64{Int64: a.ID, Valid: true})
 
 	users, err := ListUsers(db)
 	if err != nil {
@@ -207,10 +207,10 @@ func TestListUsers(t *testing.T) {
 func TestUpdateUser(t *testing.T) {
 	db := testDB(t)
 
-	u, _ := CreateUser(db, "original", "pass", "orig@test.com", false, sql.NullInt64{})
+	u, _ := CreateUser(db, "original", "pass", "orig@test.com", false, false, sql.NullInt64{})
 
 	t.Run("basic update", func(t *testing.T) {
-		updated, err := UpdateUser(db, u.ID, "renamed", "new@test.com", sql.NullInt64{}, true)
+		updated, err := UpdateUser(db, u.ID, "renamed", "new@test.com", sql.NullInt64{}, true, false)
 		if err != nil {
 			t.Fatalf("update user: %v", err)
 		}
@@ -223,16 +223,16 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("duplicate username", func(t *testing.T) {
-		CreateUser(db, "taken", "pass", "", false, sql.NullInt64{})
-		_, err := UpdateUser(db, u.ID, "taken", "", sql.NullInt64{}, false)
+		CreateUser(db, "taken", "pass", "", false, false, sql.NullInt64{})
+		_, err := UpdateUser(db, u.ID, "taken", "", sql.NullInt64{}, false, false)
 		if err != ErrDuplicateUsername {
 			t.Errorf("err = %v, want ErrDuplicateUsername", err)
 		}
 	})
 
 	t.Run("link athlete", func(t *testing.T) {
-		a, _ := CreateAthlete(db, "Kid", "", "")
-		updated, err := UpdateUser(db, u.ID, "renamed", "", sql.NullInt64{Int64: a.ID, Valid: true}, false)
+		a, _ := CreateAthlete(db, "Kid", "", "", sql.NullInt64{})
+		updated, err := UpdateUser(db, u.ID, "renamed", "", sql.NullInt64{Int64: a.ID, Valid: true}, false, false)
 		if err != nil {
 			t.Fatalf("update user: %v", err)
 		}
@@ -245,8 +245,8 @@ func TestUpdateUser(t *testing.T) {
 		// "renamed" user is linked to "Kid" from the previous subtest.
 		// Try linking a new user to the same athlete.
 		a, _ := GetUserByUsername(db, "renamed")
-		other, _ := CreateUser(db, "other", "pass", "", false, sql.NullInt64{})
-		_, err := UpdateUser(db, other.ID, "other", "", sql.NullInt64{Int64: a.AthleteID.Int64, Valid: true}, false)
+		other, _ := CreateUser(db, "other", "pass", "", false, false, sql.NullInt64{})
+		_, err := UpdateUser(db, other.ID, "other", "", sql.NullInt64{Int64: a.AthleteID.Int64, Valid: true}, false, false)
 		if err != ErrAthleteAlreadyLinked {
 			t.Errorf("err = %v, want ErrAthleteAlreadyLinked", err)
 		}

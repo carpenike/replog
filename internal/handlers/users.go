@@ -13,7 +13,7 @@ import (
 	"github.com/carpenike/replog/internal/models"
 )
 
-// Users handles user management (coach-only).
+// Users handles user management (admin-only).
 type Users struct {
 	DB        *sql.DB
 	Sessions  *scs.SessionManager
@@ -24,7 +24,7 @@ type Users struct {
 // List renders all users.
 func (h *Users) List(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -57,7 +57,7 @@ func (h *Users) List(w http.ResponseWriter, r *http.Request) {
 // NewForm renders the create-user form.
 func (h *Users) NewForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -80,7 +80,7 @@ func (h *Users) NewForm(w http.ResponseWriter, r *http.Request) {
 // Create handles user creation.
 func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -89,6 +89,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	email := r.FormValue("email")
 	isCoach := r.FormValue("is_coach") == "1"
+	isAdmin := r.FormValue("is_admin") == "1"
 
 	if username == "" {
 		h.renderFormError(w, r, "Username is required.", nil)
@@ -108,7 +109,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 			h.renderFormError(w, r, "Athlete name is required when creating a new athlete.", nil)
 			return
 		}
-		athlete, err := models.CreateAthlete(h.DB, newAthleteName, "", "")
+		athlete, err := models.CreateAthlete(h.DB, newAthleteName, "", "", sql.NullInt64{})
 		if err != nil {
 			log.Printf("handlers: inline create athlete: %v", err)
 			h.renderFormError(w, r, "Failed to create athlete.", nil)
@@ -122,7 +123,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	newUser, err := models.CreateUser(h.DB, username, password, email, isCoach, athleteID)
+	newUser, err := models.CreateUser(h.DB, username, password, email, isCoach, isAdmin, athleteID)
 	if errors.Is(err, models.ErrDuplicateUsername) {
 		h.renderFormError(w, r, "Username already taken.", nil)
 		return
@@ -169,7 +170,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 // EditForm renders the edit-user form.
 func (h *Users) EditForm(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
-	if !authUser.IsCoach {
+	if !authUser.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -218,7 +219,7 @@ func (h *Users) EditForm(w http.ResponseWriter, r *http.Request) {
 // Update handles user profile update.
 func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
-	if !authUser.IsCoach {
+	if !authUser.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -243,6 +244,7 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	email := r.FormValue("email")
 	isCoach := r.FormValue("is_coach") == "1"
+	isAdmin := r.FormValue("is_admin") == "1"
 
 	if username == "" {
 		h.renderFormError(w, r, "Username is required.", u)
@@ -272,7 +274,7 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err = models.UpdateUser(h.DB, id, username, email, athleteID, isCoach)
+	_, err = models.UpdateUser(h.DB, id, username, email, athleteID, isCoach, isAdmin)
 	if errors.Is(err, models.ErrDuplicateUsername) {
 		h.renderFormError(w, r, "Username already taken.", u)
 		return
@@ -302,7 +304,7 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 // Delete handles user deletion.
 func (h *Users) Delete(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
-	if !authUser.IsCoach {
+	if !authUser.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}

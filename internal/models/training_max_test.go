@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"strings"
 	"testing"
 	"time"
@@ -9,7 +10,7 @@ import (
 func TestTrainingMaxCRUD(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "TM Athlete", "", "")
+	a, _ := CreateAthlete(db, "TM Athlete", "", "", sql.NullInt64{})
 	e, _ := CreateExercise(db, "TM Exercise", "", 0, "", "", 0)
 
 	t.Run("set training max", func(t *testing.T) {
@@ -65,7 +66,7 @@ func TestTrainingMaxCRUD(t *testing.T) {
 func TestListCurrentTrainingMaxes(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "TM List Athlete", "", "")
+	a, _ := CreateAthlete(db, "TM List Athlete", "", "", sql.NullInt64{})
 	e1, _ := CreateExercise(db, "TM List Ex 1", "", 0, "", "", 0)
 	e2, _ := CreateExercise(db, "TM List Ex 2", "", 0, "", "", 0)
 

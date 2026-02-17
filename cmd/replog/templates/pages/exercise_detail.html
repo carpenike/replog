@@ -9,7 +9,7 @@
             <h1>{{ .Exercise.Name }}
                 {{ if .Exercise.Tier.Valid }}<span class="tier-badge" data-tier="{{ .Exercise.Tier.String }}">{{ tierLabel .Exercise.Tier.String }}</span>{{ end }}
             </h1>
-            {{ if .User.IsCoach }}
+            {{ if or .User.IsCoach .User.IsAdmin }}
             <div class="page-actions">
                 <a href="/exercises/{{ .Exercise.ID }}/edit" role="button" class="outline secondary">Edit</a>
                 <form method="POST" action="/exercises/{{ .Exercise.ID }}/delete" class="inline"

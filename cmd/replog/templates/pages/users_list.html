@@ -33,7 +33,7 @@
                 <tr>
                     <td>{{ .Username }}</td>
                     <td>{{ if .Email.Valid }}{{ .Email.String }}{{ else }}<small>—</small>{{ end }}</td>
-                    <td>{{ if .IsCoach }}<mark>Coach</mark>{{ else }}Kid{{ end }}</td>
+                    <td>{{ if .IsAdmin }}<mark>Admin</mark>{{ end }} {{ if .IsCoach }}<mark>Coach</mark>{{ end }}{{ if and (not .IsAdmin) (not .IsCoach) }}Kid{{ end }}</td>
                     <td>
                         {{ if .AthleteID.Valid }}
                             <a href="/athletes/{{ .AthleteID.Int64 }}">{{ if .AthleteName.Valid }}{{ .AthleteName.String }}{{ else }}Athlete #{{ .AthleteID.Int64 }}{{ end }}</a>

@@ -3,7 +3,7 @@
 {{ define "content" }}
         <div class="page-header">
             <h1>Exercises</h1>
-            {{ if .User.IsCoach }}<a href="/exercises/new" role="button">New Exercise</a>{{ end }}
+            {{ if or .User.IsCoach .User.IsAdmin }}<a href="/exercises/new" role="button">New Exercise</a>{{ end }}
         </div>
 
         <div class="dashboard-grid dashboard-grid--compact">
@@ -38,7 +38,7 @@
         {{ else }}
         <article class="empty-state">
             <p>No exercises{{ if .TierFilter }} matching this filter{{ end }}.</p>
-            {{ if .User.IsCoach }}<a href="/exercises/new" role="button">Add First Exercise</a>{{ end }}
+            {{ if or .User.IsCoach .User.IsAdmin }}<a href="/exercises/new" role="button">Add First Exercise</a>{{ end }}
         </article>
         {{ end }}
 {{ end }}

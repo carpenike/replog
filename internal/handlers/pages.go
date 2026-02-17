@@ -23,16 +23,17 @@ func (p *Pages) Index(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
 	// Non-coach with linked athlete → redirect to their athlete profile.
-	if !user.IsCoach && user.AthleteID.Valid {
+	if !user.IsCoach && !user.IsAdmin && user.AthleteID.Valid {
 		http.Redirect(w, r, "/athletes/"+strconv.FormatInt(user.AthleteID.Int64, 10), http.StatusSeeOther)
 		return
 	}
 
 	data := map[string]any{}
 
-	if user.IsCoach {
-		// Coach dashboard — show athletes for quick navigation.
-		athletes, err := models.ListAthletes(p.DB)
+	if user.IsCoach || user.IsAdmin {
+		// Coach/admin dashboard — show athletes for quick navigation.
+		coachFilter := middleware.CoachAthleteFilter(user)
+		athletes, err := models.ListAthletes(p.DB, coachFilter)
 		if err != nil {
 			log.Printf("handlers: list athletes for dashboard: %v", err)
 		} else {

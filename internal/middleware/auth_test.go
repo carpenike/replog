@@ -57,7 +57,7 @@ func TestRequireAuth_SetsUserInContext(t *testing.T) {
 	db := testDB(t)
 	sm := testSessionManager()
 
-	user, err := models.CreateUser(db, "testcoach", "password123", "test@example.com", true, sql.NullInt64{})
+	user, err := models.CreateUser(db, "testcoach", "password123", "test@example.com", true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestRequireAuth_InvalidSessionRedirects(t *testing.T) {
 	sm := testSessionManager()
 
 	// Create and then delete the user, so the session points to a nonexistent user.
-	user, err := models.CreateUser(db, "ghostuser", "password123", "", true, sql.NullInt64{})
+	user, err := models.CreateUser(db, "ghostuser", "password123", "", true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -148,48 +148,82 @@ func TestUserFromContext_ReturnsNilWithoutUser(t *testing.T) {
 }
 
 func TestCanAccessAthlete(t *testing.T) {
+	db := testDB(t)
+
+	// Create a coach user.
+	coach, err := models.CreateUser(db, "coach1", "password123", "", true, false, sql.NullInt64{})
+	if err != nil {
+		t.Fatalf("create coach: %v", err)
+	}
+	// Create an admin user.
+	admin, err := models.CreateUser(db, "admin1", "password123", "", false, true, sql.NullInt64{})
+	if err != nil {
+		t.Fatalf("create admin: %v", err)
+	}
+
+	// Create athletes: one owned by coach, one unowned.
+	ownedAthlete, err := models.CreateAthlete(db, "OwnedKid", "", "", sql.NullInt64{Int64: coach.ID, Valid: true})
+	if err != nil {
+		t.Fatalf("create owned athlete: %v", err)
+	}
+	unownedAthlete, err := models.CreateAthlete(db, "UnownedKid", "", "", sql.NullInt64{})
+	if err != nil {
+		t.Fatalf("create unowned athlete: %v", err)
+	}
+
+	// Create a non-coach user linked to ownedAthlete.
+	kid, err := models.CreateUser(db, "kid1", "password123", "", false, false, sql.NullInt64{Int64: ownedAthlete.ID, Valid: true})
+	if err != nil {
+		t.Fatalf("create kid: %v", err)
+	}
+
 	tests := []struct {
-		name      string
-		isCoach   bool
-		athleteID sql.NullInt64
-		targetID  int64
-		want      bool
+		name     string
+		user     *models.User
+		targetID int64
+		want     bool
 	}{
 		{
-			name:     "coach can access any athlete",
-			isCoach:  true,
-			targetID: 99,
+			name:     "admin can access any athlete",
+			user:     admin,
+			targetID: unownedAthlete.ID,
 			want:     true,
 		},
 		{
-			name:      "non-coach can access own athlete",
-			isCoach:   false,
-			athleteID: sql.NullInt64{Int64: 5, Valid: true},
-			targetID:  5,
-			want:      true,
+			name:     "coach can access owned athlete",
+			user:     coach,
+			targetID: ownedAthlete.ID,
+			want:     true,
 		},
 		{
-			name:      "non-coach cannot access other athlete",
-			isCoach:   false,
-			athleteID: sql.NullInt64{Int64: 5, Valid: true},
-			targetID:  10,
-			want:      false,
+			name:     "coach cannot access unowned athlete",
+			user:     coach,
+			targetID: unownedAthlete.ID,
+			want:     false,
+		},
+		{
+			name:     "non-coach can access own athlete",
+			user:     kid,
+			targetID: ownedAthlete.ID,
+			want:     true,
+		},
+		{
+			name:     "non-coach cannot access other athlete",
+			user:     kid,
+			targetID: unownedAthlete.ID,
+			want:     false,
 		},
 		{
 			name:     "non-coach without linked athlete cannot access",
-			isCoach:  false,
-			targetID: 5,
+			user:     &models.User{},
+			targetID: ownedAthlete.ID,
 			want:     false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			user := &models.User{
-				IsCoach:   tt.isCoach,
-				AthleteID: tt.athleteID,
-			}
-			got := CanAccessAthlete(user, tt.targetID)
+			got := CanAccessAthlete(db, tt.user, tt.targetID)
 			if got != tt.want {
 				t.Errorf("CanAccessAthlete() = %v, want %v", got, tt.want)
 			}

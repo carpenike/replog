@@ -208,6 +208,11 @@ func main() {
 		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, middleware.RequireCoach(http.HandlerFunc(h))))
 	}
 
+	// Admin-only routes — RequireAuth + CSRF + RequireAdmin for user management.
+	requireAdmin := func(h http.HandlerFunc) http.Handler {
+		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, middleware.RequireAdmin(http.HandlerFunc(h))))
+	}
+
 	mux.Handle("GET /{$}", requireAuth(pages.Index))
 
 	// Athletes CRUD.
@@ -265,17 +270,17 @@ func main() {
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/review", requireCoach(reviews.SubmitReview))
 	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/review/delete", requireCoach(reviews.DeleteReview))
 
-	// Users (coach-only).
-	mux.Handle("GET /users", requireCoach(users.List))
-	mux.Handle("GET /users/new", requireCoach(users.NewForm))
-	mux.Handle("POST /users", requireCoach(users.Create))
-	mux.Handle("GET /users/{id}/edit", requireCoach(users.EditForm))
-	mux.Handle("POST /users/{id}", requireCoach(users.Update))
-	mux.Handle("POST /users/{id}/delete", requireCoach(users.Delete))
+	// Users (admin-only).
+	mux.Handle("GET /users", requireAdmin(users.List))
+	mux.Handle("GET /users/new", requireAdmin(users.NewForm))
+	mux.Handle("POST /users", requireAdmin(users.Create))
+	mux.Handle("GET /users/{id}/edit", requireAdmin(users.EditForm))
+	mux.Handle("POST /users/{id}", requireAdmin(users.Update))
+	mux.Handle("POST /users/{id}/delete", requireAdmin(users.Delete))
 
-	// Login Token management (coach-only).
-	mux.Handle("POST /users/{id}/tokens", requireCoach(loginTokens.GenerateToken))
-	mux.Handle("POST /users/{id}/tokens/{tokenID}/delete", requireCoach(loginTokens.DeleteToken))
+	// Login Token management (admin-only).
+	mux.Handle("POST /users/{id}/tokens", requireAdmin(loginTokens.GenerateToken))
+	mux.Handle("POST /users/{id}/tokens/{tokenID}/delete", requireAdmin(loginTokens.DeleteToken))
 
 	// Passkey/WebAuthn routes (only registered when WebAuthn is configured).
 	if passkeys != nil {
@@ -340,7 +345,7 @@ func bootstrapAdmin(db *sql.DB) error {
 		return fmt.Errorf("no users exist and REPLOG_ADMIN_USER / REPLOG_ADMIN_PASS env vars are not set")
 	}
 
-	user, err := models.CreateUser(db, username, password, email, true, sql.NullInt64{})
+	user, err := models.CreateUser(db, username, password, email, true, true, sql.NullInt64{})
 	if err != nil {
 		return fmt.Errorf("create admin user: %w", err)
 	}

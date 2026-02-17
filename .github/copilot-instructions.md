@@ -64,6 +64,7 @@ Key patterns:
 - Training max history: multiple rows per athlete+exercise, current = latest `effective_date`
 - `updated_at` triggers use `WHEN OLD.updated_at = NEW.updated_at` guard to prevent recursion
 - Foreign key ON DELETE: CASCADE from athletes, RESTRICT from exercises (protect logged history), SET NULL for users.athlete_id and workout_reviews.coach_id
+- Coach ownership: `athletes.coach_id` FK to `users(id)` — coaches only see/manage their assigned athletes
 
 ## SQLite Rules
 
@@ -93,11 +94,14 @@ Key patterns:
 
 ## Auth & Access Control
 
-- Two roles: coach (`is_coach = 1`) and non-coach (kid)
-- Coaches see and manage all athletes, exercises, assignments, workouts
-- Non-coaches are linked to one athlete via `users.athlete_id` — can only view/log their own
+- Three tiers: admin (`is_admin = 1`), coach (`is_coach = 1`), athlete (non-coach)
+- Roles overlap: an admin can also be a coach, an athlete can also be a coach
+- Admins see and manage all athletes, exercises, assignments, workouts, and users
+- Coaches see and manage only athletes assigned to them via `athletes.coach_id`
+- Non-coaches (athletes) are linked to one athlete via `users.athlete_id` — can only view/log their own
 - Unlinked non-coach users see an informative message, not a blank screen
-- First-run bootstrap: create admin from `REPLOG_ADMIN_USER`, `REPLOG_ADMIN_PASS`, `REPLOG_ADMIN_EMAIL` env vars
+- User management is admin-only
+- First-run bootstrap: create admin+coach from `REPLOG_ADMIN_USER`, `REPLOG_ADMIN_PASS`, `REPLOG_ADMIN_EMAIL` env vars
 - Session lifetime: 30 days, `HttpOnly`, `SameSite=Lax`
 
 ## Build & Run

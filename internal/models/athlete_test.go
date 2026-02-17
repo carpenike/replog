@@ -9,7 +9,7 @@ func TestCreateAthlete(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("basic create", func(t *testing.T) {
-		a, err := CreateAthlete(db, "Alice", "foundational", "test notes")
+		a, err := CreateAthlete(db, "Alice", "foundational", "test notes", sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create athlete: %v", err)
 		}
@@ -25,7 +25,7 @@ func TestCreateAthlete(t *testing.T) {
 	})
 
 	t.Run("nullable tier and notes", func(t *testing.T) {
-		a, err := CreateAthlete(db, "Bob", "", "")
+		a, err := CreateAthlete(db, "Bob", "", "", sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create athlete: %v", err)
 		}
@@ -41,7 +41,7 @@ func TestCreateAthlete(t *testing.T) {
 func TestGetAthleteByID(t *testing.T) {
 	db := testDB(t)
 
-	created, err := CreateAthlete(db, "Charlie", "", "")
+	created, err := CreateAthlete(db, "Charlie", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -67,13 +67,13 @@ func TestGetAthleteByID(t *testing.T) {
 func TestUpdateAthlete(t *testing.T) {
 	db := testDB(t)
 
-	a, err := CreateAthlete(db, "Dave", "foundational", "")
+	a, err := CreateAthlete(db, "Dave", "foundational", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
 
 	t.Run("update name and tier", func(t *testing.T) {
-		updated, err := UpdateAthlete(db, a.ID, "David", "intermediate", "promoted")
+		updated, err := UpdateAthlete(db, a.ID, "David", "intermediate", "promoted", sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("update athlete: %v", err)
 		}
@@ -86,7 +86,7 @@ func TestUpdateAthlete(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		_, err := UpdateAthlete(db, 99999, "Nobody", "", "")
+		_, err := UpdateAthlete(db, 99999, "Nobody", "", "", sql.NullInt64{})
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -96,7 +96,7 @@ func TestUpdateAthlete(t *testing.T) {
 func TestDeleteAthlete(t *testing.T) {
 	db := testDB(t)
 
-	a, err := CreateAthlete(db, "Eve", "", "")
+	a, err := CreateAthlete(db, "Eve", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestListAthletes(t *testing.T) {
 	db := testDB(t)
 
 	// Start with empty list.
-	athletes, err := ListAthletes(db)
+	athletes, err := ListAthletes(db, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("list athletes: %v", err)
 	}
@@ -130,10 +130,10 @@ func TestListAthletes(t *testing.T) {
 		t.Fatalf("expected 0 athletes, got %d", len(athletes))
 	}
 
-	CreateAthlete(db, "Zara", "", "")
-	CreateAthlete(db, "Aaron", "", "")
+	CreateAthlete(db, "Zara", "", "", sql.NullInt64{})
+	CreateAthlete(db, "Aaron", "", "", sql.NullInt64{})
 
-	athletes, err = ListAthletes(db)
+	athletes, err = ListAthletes(db, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("list athletes: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestPromoteAthlete(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("promote foundational to intermediate", func(t *testing.T) {
-		a, err := CreateAthlete(db, "PromoKid", "foundational", "")
+		a, err := CreateAthlete(db, "PromoKid", "foundational", "", sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -184,7 +184,7 @@ func TestPromoteAthlete(t *testing.T) {
 	})
 
 	t.Run("promote intermediate to sport_performance", func(t *testing.T) {
-		a, err := CreateAthlete(db, "PromoKid2", "intermediate", "")
+		a, err := CreateAthlete(db, "PromoKid2", "intermediate", "", sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -198,7 +198,7 @@ func TestPromoteAthlete(t *testing.T) {
 	})
 
 	t.Run("already at highest tier", func(t *testing.T) {
-		a, err := CreateAthlete(db, "MaxTier", "sport_performance", "")
+		a, err := CreateAthlete(db, "MaxTier", "sport_performance", "", sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -209,7 +209,7 @@ func TestPromoteAthlete(t *testing.T) {
 	})
 
 	t.Run("no tier set", func(t *testing.T) {
-		a, err := CreateAthlete(db, "NoTier", "", "")
+		a, err := CreateAthlete(db, "NoTier", "", "", sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -231,12 +231,12 @@ func TestListAvailableAthletes(t *testing.T) {
 	db := testDB(t)
 
 	// Create 3 athletes.
-	a1, _ := CreateAthlete(db, "Alice", "", "")
-	a2, _ := CreateAthlete(db, "Bob", "", "")
-	a3, _ := CreateAthlete(db, "Charlie", "", "")
+	a1, _ := CreateAthlete(db, "Alice", "", "", sql.NullInt64{})
+	a2, _ := CreateAthlete(db, "Bob", "", "", sql.NullInt64{})
+	a3, _ := CreateAthlete(db, "Charlie", "", "", sql.NullInt64{})
 
 	// Link Alice to a user.
-	CreateUser(db, "alice_user", "password123", "", false, sql.NullInt64{Int64: a1.ID, Valid: true})
+	CreateUser(db, "alice_user", "password123", "", false, false, sql.NullInt64{Int64: a1.ID, Valid: true})
 
 	t.Run("excludes linked athletes", func(t *testing.T) {
 		athletes, err := ListAvailableAthletes(db, 0)

@@ -50,7 +50,7 @@
         {{ else }}
         <article class="empty-state">
             <p>No active program assigned to {{ .Athlete.Name }}.</p>
-            {{ if .User.IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/program/assign" role="button">Assign a Program</a>{{ end }}
+            {{ if or .User.IsCoach .User.IsAdmin }}<a href="/athletes/{{ .Athlete.ID }}/program/assign" role="button">Assign a Program</a>{{ end }}
         </article>
         {{ end }}
 {{ end }}

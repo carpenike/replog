@@ -13,6 +13,7 @@ type Athlete struct {
 	Name              string
 	Tier              sql.NullString
 	Notes             sql.NullString
+	CoachID           sql.NullInt64
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	ActiveAssignments int // populated by list queries
@@ -29,8 +30,8 @@ type AthleteCardInfo struct {
 	BWTrend           string         // "up", "down", "flat", or "" if insufficient data
 }
 
-// CreateAthlete inserts a new athlete.
-func CreateAthlete(db *sql.DB, name, tier, notes string) (*Athlete, error) {
+// CreateAthlete inserts a new athlete. coachID links the athlete to a coach.
+func CreateAthlete(db *sql.DB, name, tier, notes string, coachID sql.NullInt64) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -41,8 +42,8 @@ func CreateAthlete(db *sql.DB, name, tier, notes string) (*Athlete, error) {
 	}
 
 	result, err := db.Exec(
-		`INSERT INTO athletes (name, tier, notes) VALUES (?, ?, ?)`,
-		name, tierVal, notesVal,
+		`INSERT INTO athletes (name, tier, notes, coach_id) VALUES (?, ?, ?, ?)`,
+		name, tierVal, notesVal, coachID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: create athlete %q: %w", name, err)
@@ -56,11 +57,11 @@ func CreateAthlete(db *sql.DB, name, tier, notes string) (*Athlete, error) {
 func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 	a := &Athlete{}
 	err := db.QueryRow(
-		`SELECT a.id, a.name, a.tier, a.notes, a.created_at, a.updated_at,
+		`SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.created_at, a.updated_at,
 		        COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 		                  WHERE ae.athlete_id = a.id AND ae.active = 1), 0)
 		 FROM athletes a WHERE a.id = ?`, id,
-	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments)
+	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -71,7 +72,7 @@ func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 }
 
 // UpdateAthlete modifies an existing athlete's fields.
-func UpdateAthlete(db *sql.DB, id int64, name, tier, notes string) (*Athlete, error) {
+func UpdateAthlete(db *sql.DB, id int64, name, tier, notes string, coachID sql.NullInt64) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -82,8 +83,8 @@ func UpdateAthlete(db *sql.DB, id int64, name, tier, notes string) (*Athlete, er
 	}
 
 	result, err := db.Exec(
-		`UPDATE athletes SET name = ?, tier = ?, notes = ? WHERE id = ?`,
-		name, tierVal, notesVal, id,
+		`UPDATE athletes SET name = ?, tier = ?, notes = ?, coach_id = ? WHERE id = ?`,
+		name, tierVal, notesVal, coachID, id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: update athlete %d: %w", id, err)
@@ -149,15 +150,30 @@ func PromoteAthlete(db *sql.DB, id int64) (*Athlete, error) {
 	return GetAthleteByID(db, id)
 }
 
-// ListAthletes returns all athletes with their active assignment count.
-func ListAthletes(db *sql.DB) ([]*Athlete, error) {
-	rows, err := db.Query(`
-		SELECT a.id, a.name, a.tier, a.notes, a.created_at, a.updated_at,
-		       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
-		                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
-		FROM athletes a
-		ORDER BY a.name COLLATE NOCASE
-		LIMIT 100`)
+// ListAthletes returns athletes with their active assignment count.
+// If coachID is valid, only returns athletes belonging to that coach.
+// Pass sql.NullInt64{} (invalid) to return all athletes (admin view).
+func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
+	var rows *sql.Rows
+	var err error
+	if coachID.Valid {
+		rows, err = db.Query(`
+			SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.created_at, a.updated_at,
+			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
+			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
+			FROM athletes a
+			WHERE a.coach_id = ?
+			ORDER BY a.name COLLATE NOCASE
+			LIMIT 100`, coachID.Int64)
+	} else {
+		rows, err = db.Query(`
+			SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.created_at, a.updated_at,
+			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
+			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
+			FROM athletes a
+			ORDER BY a.name COLLATE NOCASE
+			LIMIT 100`)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("models: list athletes: %w", err)
 	}
@@ -166,7 +182,7 @@ func ListAthletes(db *sql.DB) ([]*Athlete, error) {
 	var athletes []*Athlete
 	for rows.Next() {
 		a := &Athlete{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
 			return nil, fmt.Errorf("models: scan athlete: %w", err)
 		}
 		athletes = append(athletes, a)
@@ -179,7 +195,7 @@ func ListAthletes(db *sql.DB) ([]*Athlete, error) {
 // Pass 0 for exceptAthleteID to exclude no one extra.
 func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error) {
 	rows, err := db.Query(`
-		SELECT a.id, a.name, a.tier, a.notes, a.created_at, a.updated_at,
+		SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.created_at, a.updated_at,
 		       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 		                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
 		FROM athletes a
@@ -195,7 +211,7 @@ func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error
 	var athletes []*Athlete
 	for rows.Next() {
 		a := &Athlete{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
 			return nil, fmt.Errorf("models: scan available athlete: %w", err)
 		}
 		athletes = append(athletes, a)
@@ -205,15 +221,31 @@ func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error
 
 // ListAthleteCards returns enriched athlete data for the athlete list view.
 // Includes last workout date, week streak, and body weight trend.
-func ListAthleteCards(db *sql.DB) ([]*AthleteCardInfo, error) {
-	rows, err := db.Query(`
-		SELECT a.id, a.name, a.tier,
-		       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
-		                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
-		       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout
-		FROM athletes a
-		ORDER BY a.name COLLATE NOCASE
-		LIMIT 100`)
+// If coachID is valid, only returns athletes belonging to that coach.
+// Pass sql.NullInt64{} (invalid) to return all athletes (admin view).
+func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, error) {
+	var rows *sql.Rows
+	var err error
+	if coachID.Valid {
+		rows, err = db.Query(`
+			SELECT a.id, a.name, a.tier,
+			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
+			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
+			       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout
+			FROM athletes a
+			WHERE a.coach_id = ?
+			ORDER BY a.name COLLATE NOCASE
+			LIMIT 100`, coachID.Int64)
+	} else {
+		rows, err = db.Query(`
+			SELECT a.id, a.name, a.tier,
+			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
+			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
+			       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout
+			FROM athletes a
+			ORDER BY a.name COLLATE NOCASE
+			LIMIT 100`)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("models: list athlete cards: %w", err)
 	}

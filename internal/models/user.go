@@ -30,6 +30,7 @@ type User struct {
 	PasswordHash string
 	AthleteID    sql.NullInt64
 	IsCoach      bool
+	IsAdmin      bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -63,7 +64,7 @@ func CheckPassword(hash, password string) bool {
 // CreateUser inserts a new user. Returns ErrDuplicateUsername if the username
 // is already taken. When athleteID is valid the user is linked atomically.
 // If password is empty the user is created without a password (passwordless).
-func CreateUser(db *sql.DB, username, password, email string, isCoach bool, athleteID sql.NullInt64) (*User, error) {
+func CreateUser(db *sql.DB, username, password, email string, isCoach bool, isAdmin bool, athleteID sql.NullInt64) (*User, error) {
 	var hashVal sql.NullString
 	if password != "" {
 		hash, err := HashPassword(password)
@@ -83,9 +84,14 @@ func CreateUser(db *sql.DB, username, password, email string, isCoach bool, athl
 		coachInt = 1
 	}
 
+	adminInt := 0
+	if isAdmin {
+		adminInt = 1
+	}
+
 	result, err := db.Exec(
-		`INSERT INTO users (username, email, password_hash, is_coach, athlete_id) VALUES (?, ?, ?, ?, ?)`,
-		username, emailVal, hashVal, coachInt, athleteID,
+		`INSERT INTO users (username, email, password_hash, is_coach, is_admin, athlete_id) VALUES (?, ?, ?, ?, ?, ?)`,
+		username, emailVal, hashVal, coachInt, adminInt, athleteID,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -105,9 +111,9 @@ func CreateUser(db *sql.DB, username, password, email string, isCoach bool, athl
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	u := &User{}
 	err := db.QueryRow(
-		`SELECT id, username, email, COALESCE(password_hash, ''), athlete_id, is_coach, created_at, updated_at
+		`SELECT id, username, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, created_at, updated_at
 		 FROM users WHERE id = ?`, id,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -121,9 +127,9 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	u := &User{}
 	err := db.QueryRow(
-		`SELECT id, username, email, COALESCE(password_hash, ''), athlete_id, is_coach, created_at, updated_at
+		`SELECT id, username, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, created_at, updated_at
 		 FROM users WHERE username = ?`, username,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -163,7 +169,7 @@ func CountUsers(db *sql.DB) (int, error) {
 // ListUsers returns all users with linked athlete names, ordered by username.
 func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 	rows, err := db.Query(`
-		SELECT u.id, u.username, u.email, COALESCE(u.password_hash, ''), u.athlete_id, u.is_coach, u.created_at, u.updated_at,
+		SELECT u.id, u.username, u.email, COALESCE(u.password_hash, ''), u.athlete_id, u.is_coach, u.is_admin, u.created_at, u.updated_at,
 		       a.name
 		FROM users u
 		LEFT JOIN athletes a ON u.athlete_id = a.id
@@ -178,7 +184,7 @@ func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 	var users []*UserWithAthlete
 	for rows.Next() {
 		u := &UserWithAthlete{}
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.CreatedAt, &u.UpdatedAt, &u.AthleteName); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.CreatedAt, &u.UpdatedAt, &u.AthleteName); err != nil {
 			return nil, fmt.Errorf("models: list users scan: %w", err)
 		}
 		users = append(users, u)
@@ -188,7 +194,7 @@ func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 
 // UpdateUser updates a user's profile fields (not password).
 // Returns ErrDuplicateUsername if the new username conflicts.
-func UpdateUser(db *sql.DB, id int64, username, email string, athleteID sql.NullInt64, isCoach bool) (*User, error) {
+func UpdateUser(db *sql.DB, id int64, username, email string, athleteID sql.NullInt64, isCoach bool, isAdmin bool) (*User, error) {
 	var emailVal sql.NullString
 	if email != "" {
 		emailVal = sql.NullString{String: email, Valid: true}
@@ -199,9 +205,14 @@ func UpdateUser(db *sql.DB, id int64, username, email string, athleteID sql.Null
 		coachInt = 1
 	}
 
+	adminInt := 0
+	if isAdmin {
+		adminInt = 1
+	}
+
 	_, err := db.Exec(
-		`UPDATE users SET username = ?, email = ?, athlete_id = ?, is_coach = ? WHERE id = ?`,
-		username, emailVal, athleteID, coachInt, id,
+		`UPDATE users SET username = ?, email = ?, athlete_id = ?, is_coach = ?, is_admin = ? WHERE id = ?`,
+		username, emailVal, athleteID, coachInt, adminInt, id,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {

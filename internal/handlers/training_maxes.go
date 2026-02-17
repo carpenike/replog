@@ -18,10 +18,10 @@ type TrainingMaxes struct {
 	Templates TemplateCache
 }
 
-// NewForm renders the form to set a new training max. Coach only.
+// NewForm renders the form to set a new training max. Coach/admin only.
 func (h *TrainingMaxes) NewForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -29,6 +29,11 @@ func (h *TrainingMaxes) NewForm(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -71,10 +76,10 @@ func (h *TrainingMaxes) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Create processes the new training max form submission. Coach only.
+// Create processes the new training max form submission. Coach/admin only.
 func (h *TrainingMaxes) Create(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -82,6 +87,11 @@ func (h *TrainingMaxes) Create(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -135,7 +145,7 @@ func (h *TrainingMaxes) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !middleware.CanAccessAthlete(user, athleteID) {
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}

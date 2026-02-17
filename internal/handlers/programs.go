@@ -40,7 +40,7 @@ func (h *Programs) List(w http.ResponseWriter, r *http.Request) {
 // NewForm renders the new program template form. Coach only.
 func (h *Programs) NewForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -55,7 +55,7 @@ func (h *Programs) NewForm(w http.ResponseWriter, r *http.Request) {
 // Create processes the new program template form submission. Coach only.
 func (h *Programs) Create(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -185,7 +185,7 @@ func (h *Programs) Show(w http.ResponseWriter, r *http.Request) {
 // EditForm renders the edit form for a program template. Coach only.
 func (h *Programs) EditForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -215,7 +215,7 @@ func (h *Programs) EditForm(w http.ResponseWriter, r *http.Request) {
 // Update processes the edit program template form submission. Coach only.
 func (h *Programs) Update(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -260,7 +260,7 @@ func (h *Programs) Update(w http.ResponseWriter, r *http.Request) {
 // Delete processes the delete program template action. Coach only.
 func (h *Programs) Delete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -288,7 +288,7 @@ func (h *Programs) Delete(w http.ResponseWriter, r *http.Request) {
 // AddSet adds a prescribed set to a program template. Coach only.
 func (h *Programs) AddSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -359,7 +359,7 @@ func (h *Programs) AddSet(w http.ResponseWriter, r *http.Request) {
 // DeleteSet removes a prescribed set from a program template. Coach only.
 func (h *Programs) DeleteSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -397,7 +397,7 @@ func (h *Programs) DeleteSet(w http.ResponseWriter, r *http.Request) {
 // AssignProgram assigns a program template to an athlete. Coach only.
 func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -442,7 +442,7 @@ func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 // DeactivateProgram deactivates an athlete's current program. Coach only.
 func (h *Programs) DeactivateProgram(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -508,7 +508,7 @@ func (h *Programs) Prescription(w http.ResponseWriter, r *http.Request) {
 // AssignProgramForm renders the form to assign a program to an athlete. Coach only.
 func (h *Programs) AssignProgramForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}

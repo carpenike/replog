@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS athletes (
     name        TEXT    NOT NULL COLLATE NOCASE,
     tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
     notes       TEXT,
+    coach_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -16,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash   TEXT,
     athlete_id      INTEGER REFERENCES athletes(id) ON DELETE SET NULL,
     is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
+    is_admin        INTEGER NOT NULL DEFAULT 0 CHECK(is_admin IN (0, 1)),
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -98,6 +100,9 @@ CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id
 
 CREATE INDEX IF NOT EXISTS idx_athlete_exercises_athlete_id
     ON athlete_exercises(athlete_id);
+
+CREATE INDEX IF NOT EXISTS idx_athletes_coach_id
+    ON athletes(coach_id);
 
 CREATE INDEX IF NOT EXISTS idx_workout_sets_workout
     ON workout_sets(workout_id);

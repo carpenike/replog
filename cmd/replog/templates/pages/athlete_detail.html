@@ -11,7 +11,7 @@
                     {{ if .Athlete.Tier.Valid }}<span class="tier-badge" data-tier="{{ .Athlete.Tier.String }}">{{ tierLabel .Athlete.Tier.String }}</span>{{ else }}<span class="tier-badge" data-tier="none">No Tier</span>{{ end }}
                 </h1>
             </hgroup>
-            {{ if .User.IsCoach }}
+            {{ if .CanManage }}
             <div class="page-actions">
                 {{ if .Athlete.Tier.Valid }}{{ if ne (nextTier .Athlete.Tier.String) "" }}
                 <form method="POST" action="/athletes/{{ .Athlete.ID }}/promote" class="inline"
@@ -65,7 +65,7 @@
                     <p>Print-friendly plan</p>
                 </article>
             </a>
-            {{ else if .User.IsCoach }}
+            {{ else if .CanManage }}
             {{ if .ProgramTemplates }}
             <a href="/athletes/{{ .Athlete.ID }}/program/assign" class="card-link">
                 <article>
@@ -134,7 +134,7 @@
                 <h2>Today's Prescription</h2>
                 <div class="page-actions">
                     <a href="/athletes/{{ .Athlete.ID }}/prescription" role="button" class="outline secondary">Full Prescription</a>
-                    {{ if .User.IsCoach }}
+                    {{ if .CanManage }}
                     <form method="POST" action="/athletes/{{ .Athlete.ID }}/program/deactivate" class="inline"
                           hx-confirm="Deactivate {{ .ActiveProgram.TemplateName }} for {{ .Athlete.Name }}?">
                         <button type="submit" class="outline contrast">Deactivate</button>
@@ -211,7 +211,7 @@
         <section>
             <div class="page-header">
                 <h2>Assigned Exercises</h2>
-                {{ if .User.IsCoach }}
+                {{ if .CanManage }}
                 <div class="page-actions">
                     <a href="/athletes/{{ .Athlete.ID }}/assignments/new" role="button">Assign Exercise</a>
                 </div>
@@ -247,7 +247,7 @@
                         <td class="text-muted">{{ .AssignedAt.Format "Jan 2, 2006" }}</td>
                         <td class="set-actions">
                             <a href="/athletes/{{ $.Athlete.ID }}/exercises/{{ .ExerciseID }}/history" role="button" class="outline secondary">History</a>
-                            {{ if $.User.IsCoach }}
+                            {{ if $.CanManage }}
                             <form method="POST" action="/athletes/{{ $.Athlete.ID }}/assignments/{{ .ID }}/deactivate" class="inline"
                                   hx-confirm="Remove {{ .ExerciseName }} from {{ $.Athlete.Name }}?">
                                 <button type="submit" class="outline contrast">Remove</button>
@@ -261,13 +261,13 @@
             {{ else }}
             <article class="empty-state">
                 <p>No exercises assigned yet.</p>
-                {{ if .User.IsCoach }}<a href="/athletes/{{ .Athlete.ID }}/assignments/new" role="button">Assign First Exercise</a>{{ end }}
+                {{ if .CanManage }}<a href="/athletes/{{ .Athlete.ID }}/assignments/new" role="button">Assign First Exercise</a>{{ end }}
             </article>
             {{ end }}
         </section>
 
         <!-- Deactivated Exercises (reactivatable) -->
-        {{ if and .User.IsCoach .Deactivated }}
+        {{ if and .CanManage .Deactivated }}
         <details>
             <summary>Previously Assigned ({{ len .Deactivated }})</summary>
             <p class="text-muted">These exercises were previously assigned and can be reactivated.</p>

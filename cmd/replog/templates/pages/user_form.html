@@ -44,6 +44,15 @@
                 </select>
             </label>
 
+            <fieldset>
+                <legend>Admin</legend>
+                <label for="is_admin">
+                    <input type="checkbox" id="is_admin" name="is_admin" value="1"
+                           {{ if .EditUser }}{{ if .EditUser.IsAdmin }}checked{{ end }}{{ end }}>
+                    Administrator (can manage users, see all athletes)
+                </label>
+            </fieldset>
+
             <label for="athlete_id">Linked Athlete
                 <select id="athlete_id" name="athlete_id" onchange="document.getElementById('new-athlete-fields').style.display = this.value === '__new__' ? '' : 'none'">
                     <option value="">None</option>

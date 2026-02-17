@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"strings"
 	"testing"
 )
@@ -8,7 +9,7 @@ import (
 func TestWorkoutCRUD(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Workout Athlete", "", "")
+	a, _ := CreateAthlete(db, "Workout Athlete", "", "", sql.NullInt64{})
 
 	t.Run("create workout", func(t *testing.T) {
 		w, err := CreateWorkout(db, a.ID, "2026-02-01", "leg day")
@@ -41,7 +42,7 @@ func TestWorkoutCRUD(t *testing.T) {
 func TestUpdateWorkoutNotes(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Notes Athlete", "", "")
+	a, _ := CreateAthlete(db, "Notes Athlete", "", "", sql.NullInt64{})
 	w, _ := CreateWorkout(db, a.ID, "2026-03-01", "")
 
 	if err := UpdateWorkoutNotes(db, w.ID, "updated notes"); err != nil {
@@ -57,7 +58,7 @@ func TestUpdateWorkoutNotes(t *testing.T) {
 func TestDeleteWorkout(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Del Athlete", "", "")
+	a, _ := CreateAthlete(db, "Del Athlete", "", "", sql.NullInt64{})
 	w, _ := CreateWorkout(db, a.ID, "2026-04-01", "")
 
 	if err := DeleteWorkout(db, w.ID); err != nil {
@@ -72,7 +73,7 @@ func TestDeleteWorkout(t *testing.T) {
 func TestListWorkouts(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "List Athlete", "", "")
+	a, _ := CreateAthlete(db, "List Athlete", "", "", sql.NullInt64{})
 	CreateWorkout(db, a.ID, "2026-01-01", "")
 	CreateWorkout(db, a.ID, "2026-01-15", "")
 	CreateWorkout(db, a.ID, "2026-01-10", "")
@@ -93,7 +94,7 @@ func TestListWorkouts(t *testing.T) {
 func TestGetWorkoutByAthleteDate(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Date Athlete", "", "")
+	a, _ := CreateAthlete(db, "Date Athlete", "", "", sql.NullInt64{})
 	w, _ := CreateWorkout(db, a.ID, "2026-03-15", "found me")
 
 	t.Run("found", func(t *testing.T) {

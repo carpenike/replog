@@ -10,7 +10,7 @@ import (
 
 func TestCreateWebAuthnCredential(t *testing.T) {
 	db := testDB(t)
-	user, err := CreateUser(db, "passkeyuser", "password123", "", false, sql.NullInt64{})
+	user, err := CreateUser(db, "passkeyuser", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -93,8 +93,8 @@ func TestCreateWebAuthnCredential(t *testing.T) {
 
 func TestListWebAuthnCredentialsByUser(t *testing.T) {
 	db := testDB(t)
-	user1, _ := CreateUser(db, "user1", "pass", "", false, sql.NullInt64{})
-	user2, _ := CreateUser(db, "user2", "pass", "", false, sql.NullInt64{})
+	user1, _ := CreateUser(db, "user1", "pass", "", false, false, sql.NullInt64{})
+	user2, _ := CreateUser(db, "user2", "pass", "", false, false, sql.NullInt64{})
 
 	// Create credentials for user1.
 	for i, label := range []string{"iPad", "iPhone"} {
@@ -132,7 +132,7 @@ func TestListWebAuthnCredentialsByUser(t *testing.T) {
 
 func TestGetWebAuthnCredentialsByUser(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "libuser", "pass", "", false, sql.NullInt64{})
+	user, _ := CreateUser(db, "libuser", "pass", "", false, false, sql.NullInt64{})
 
 	cred := &webauthn.Credential{
 		ID:              []byte("lib-cred-1"),
@@ -182,7 +182,7 @@ func TestGetWebAuthnCredentialsByUser(t *testing.T) {
 
 func TestGetUserByCredentialID(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "credlookup", "pass", "", false, sql.NullInt64{})
+	user, _ := CreateUser(db, "credlookup", "pass", "", false, false, sql.NullInt64{})
 
 	credID := []byte("lookup-cred-id")
 	cred := &webauthn.Credential{
@@ -215,7 +215,7 @@ func TestGetUserByCredentialID(t *testing.T) {
 
 func TestDeleteWebAuthnCredential(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "delcred", "pass", "", false, sql.NullInt64{})
+	user, _ := CreateUser(db, "delcred", "pass", "", false, false, sql.NullInt64{})
 
 	cred := &webauthn.Credential{
 		ID:              []byte("del-cred-1"),
@@ -248,7 +248,7 @@ func TestDeleteWebAuthnCredential(t *testing.T) {
 
 func TestUpdateWebAuthnCredentialSignCount(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "signcount", "pass", "", false, sql.NullInt64{})
+	user, _ := CreateUser(db, "signcount", "pass", "", false, false, sql.NullInt64{})
 
 	credID := []byte("signcount-cred")
 	cred := &webauthn.Credential{
@@ -280,7 +280,7 @@ func TestUpdateWebAuthnCredentialSignCount(t *testing.T) {
 
 func TestWebAuthnUser(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "wauser", "pass", "wa@test.com", false, sql.NullInt64{})
+	user, _ := CreateUser(db, "wauser", "pass", "wa@test.com", false, false, sql.NullInt64{})
 
 	cred := &webauthn.Credential{
 		ID:              []byte("wa-user-cred"),
@@ -330,7 +330,7 @@ func TestWebAuthnUser(t *testing.T) {
 
 func TestDeleteWebAuthnCredentialsByUser(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "delall", "pass", "", false, sql.NullInt64{})
+	user, _ := CreateUser(db, "delall", "pass", "", false, false, sql.NullInt64{})
 
 	for i := 0; i < 3; i++ {
 		cred := &webauthn.Credential{

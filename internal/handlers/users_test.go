@@ -571,7 +571,7 @@ func TestUsers_Update_BlockPasswordForPasswordless(t *testing.T) {
 	coach := seedCoach(t, db)
 
 	// Create a passwordless user.
-	target, err := models.CreateUser(db, "nopw", "", "", false, sql.NullInt64{})
+	target, err := models.CreateUser(db, "nopw", "", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create passwordless user: %v", err)
 	}

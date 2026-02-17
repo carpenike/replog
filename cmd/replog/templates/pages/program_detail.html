@@ -78,7 +78,7 @@
             {{ end }}
 
             <!-- Inline Add Set Form -->
-            {{ if $.User.IsCoach }}
+            {{ if or $.User.IsCoach $.User.IsAdmin }}
             <form method="POST" action="/programs/{{ $.Program.ID }}/sets" class="add-set-inline">
                 <input type="hidden" name="week" value="{{ $.CurrentWeek }}">
                 <input type="hidden" name="day" value="{{ .Day }}">

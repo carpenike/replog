@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"testing"
 )
 
@@ -78,7 +79,7 @@ func TestDeleteProgramTemplate(t *testing.T) {
 
 	t.Run("delete in use", func(t *testing.T) {
 		tmpl, _ := CreateProgramTemplate(db, "In Use", "", 1, 1)
-		a, _ := CreateAthlete(db, "Test Athlete", "", "")
+		a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
 		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "")
 		if err != nil {
 			t.Fatalf("assign program: %v", err)
@@ -162,7 +163,7 @@ func TestAthleteProgram(t *testing.T) {
 	db := testDB(t)
 
 	tmpl, _ := CreateProgramTemplate(db, "5/3/1", "", 4, 4)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "")
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
 
 	t.Run("assign program", func(t *testing.T) {
 		ap, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "Starting cycle")
@@ -239,7 +240,7 @@ func TestGetPrescription(t *testing.T) {
 		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 2, i, &reps, &pct, "")
 	}
 
-	a, _ := CreateAthlete(db, "Test Athlete", "", "")
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
 
 	// Set training maxes.
 	SetTrainingMax(db, a.ID, bench.ID, 200, "2026-01-01", "")
@@ -306,7 +307,7 @@ func TestGetPrescription(t *testing.T) {
 	})
 
 	t.Run("no active program", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "No Program", "", "")
+		a2, _ := CreateAthlete(db, "No Program", "", "", sql.NullInt64{})
 		rx, err := GetPrescription(db, a2.ID, mustParseDate("2026-02-01"))
 		if err != nil {
 			t.Fatalf("get prescription: %v", err)

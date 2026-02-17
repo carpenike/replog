@@ -1,13 +1,14 @@
 package models
 
 import (
+	"database/sql"
 	"testing"
 )
 
 func TestAssignmentLifecycle(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Assign Athlete", "", "")
+	a, _ := CreateAthlete(db, "Assign Athlete", "", "", sql.NullInt64{})
 	e, _ := CreateExercise(db, "Assign Exercise", "foundational", 20, "", "", 0)
 
 	t.Run("assign exercise", func(t *testing.T) {
@@ -71,7 +72,7 @@ func TestAssignmentLifecycle(t *testing.T) {
 func TestListDeactivatedAssignments(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Deact Athlete", "", "")
+	a, _ := CreateAthlete(db, "Deact Athlete", "", "", sql.NullInt64{})
 	e1, _ := CreateExercise(db, "Deact Ex 1", "", 0, "", "", 0)
 	e2, _ := CreateExercise(db, "Deact Ex 2", "", 0, "", "", 0)
 
@@ -95,7 +96,7 @@ func TestListDeactivatedAssignments(t *testing.T) {
 func TestListUnassignedExercises(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Unassigned Athlete", "", "")
+	a, _ := CreateAthlete(db, "Unassigned Athlete", "", "", sql.NullInt64{})
 	e1, _ := CreateExercise(db, "Assigned Ex", "", 0, "", "", 0)
 	CreateExercise(db, "Free Ex", "", 0, "", "", 0)
 
@@ -116,8 +117,8 @@ func TestListUnassignedExercises(t *testing.T) {
 func TestListAssignedAthletes(t *testing.T) {
 	db := testDB(t)
 
-	a1, _ := CreateAthlete(db, "Alice", "", "")
-	a2, _ := CreateAthlete(db, "Bob", "", "")
+	a1, _ := CreateAthlete(db, "Alice", "", "", sql.NullInt64{})
+	a2, _ := CreateAthlete(db, "Bob", "", "", sql.NullInt64{})
 	e, _ := CreateExercise(db, "Shared Exercise", "", 0, "", "", 0)
 
 	AssignExercise(db, a1.ID, e.ID)

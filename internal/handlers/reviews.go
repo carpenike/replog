@@ -20,7 +20,7 @@ type Reviews struct {
 // SubmitReview creates or updates a coach review for a workout.
 func (h *Reviews) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -28,6 +28,11 @@ func (h *Reviews) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -76,10 +81,10 @@ func (h *Reviews) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10)+"/workouts/"+strconv.FormatInt(workoutID, 10), http.StatusSeeOther)
 }
 
-// DeleteReview removes a review from a workout. Coach only.
+// DeleteReview removes a review from a workout. Coach/admin only.
 func (h *Reviews) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -87,6 +92,11 @@ func (h *Reviews) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -135,7 +145,7 @@ func (h *Reviews) DeleteReview(w http.ResponseWriter, r *http.Request) {
 // PendingReviews renders the coach review dashboard showing all unreviewed workouts.
 func (h *Reviews) PendingReviews(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
+	if !user.IsCoach && !user.IsAdmin {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}

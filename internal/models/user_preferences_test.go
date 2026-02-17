@@ -8,7 +8,7 @@ import (
 func TestGetUserPreferences_defaults(t *testing.T) {
 	db := testDB(t)
 
-	u, err := CreateUser(db, "prefuser", "password123", "", false, sql.NullInt64{})
+	u, err := CreateUser(db, "prefuser", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestGetUserPreferences_defaults(t *testing.T) {
 func TestUpsertUserPreferences(t *testing.T) {
 	db := testDB(t)
 
-	u, err := CreateUser(db, "prefuser", "password123", "", false, sql.NullInt64{})
+	u, err := CreateUser(db, "prefuser", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestUpsertUserPreferences(t *testing.T) {
 func TestEnsureUserPreferences(t *testing.T) {
 	db := testDB(t)
 
-	u, err := CreateUser(db, "ensureuser", "password123", "", false, sql.NullInt64{})
+	u, err := CreateUser(db, "ensureuser", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
