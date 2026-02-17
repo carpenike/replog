@@ -23,7 +23,7 @@
             </hgroup>
 
             {{ if .Error }}
-            <p><ins>{{ .Error }}</ins></p>
+            <div class="alert alert-error" role="alert">{{ .Error }}</div>
             {{ end }}
 
             <form method="POST" action="/login">

@@ -120,8 +120,8 @@ func TestAuth_LoginSubmit_InvalidCredentials(t *testing.T) {
 		t.Errorf("expected redirect 303, got %d", rr.Code)
 	}
 	loc := rr.Header().Get("Location")
-	if !strings.Contains(loc, "/login") || !strings.Contains(loc, "error=") {
-		t.Errorf("expected redirect to /login with error, got %q", loc)
+	if loc != "/login" {
+		t.Errorf("expected redirect to /login, got %q", loc)
 	}
 }
 

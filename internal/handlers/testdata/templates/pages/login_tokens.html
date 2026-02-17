@@ -1,0 +1,11 @@
+{{ define "title" }}RepLog — Login Tokens{{ end }}
+
+{{ define "content" }}
+        <div id="login-tokens-section">
+            <h2>Device Login Links</h2>
+            {{ if .NewTokenURL }}<p>{{ .NewTokenURL }}</p>{{ end }}
+            {{ range .Tokens }}
+            <p>Token: {{ .ID }} {{ if .Label.Valid }}{{ .Label.String }}{{ end }}</p>
+            {{ end }}
+        </div>
+{{ end }}

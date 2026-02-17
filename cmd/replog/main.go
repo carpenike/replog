@@ -115,12 +115,17 @@ func main() {
 		DB:        db,
 		Templates: tc,
 	}
+	loginTokens := &handlers.LoginTokens{
+		DB:        db,
+		Sessions:  sessionManager,
+		Templates: tc,
+	}
 
 	// Set up routes.
 	mux := http.NewServeMux()
 
 	// Static files and health check — no auth required.
-	mux.Handle("GET /static/", http.FileServerFS(staticFS))
+	mux.Handle("GET /static/", staticCacheControl(http.FileServerFS(staticFS)))
 	mux.HandleFunc("GET /health", handleHealth)
 
 	// Login/logout — session loaded but no auth required.
@@ -199,6 +204,10 @@ func main() {
 	mux.Handle("POST /users/{id}", requireCoach(users.Update))
 	mux.Handle("POST /users/{id}/delete", requireCoach(users.Delete))
 
+	// Login Token management (coach-only).
+	mux.Handle("POST /users/{id}/tokens", requireCoach(loginTokens.GenerateToken))
+	mux.Handle("POST /users/{id}/tokens/{tokenID}/delete", requireCoach(loginTokens.DeleteToken))
+
 	// User Preferences (self-service — any authenticated user).
 	mux.Handle("GET /preferences", requireAuth(preferences.EditForm))
 	mux.Handle("POST /preferences", requireAuth(preferences.Update))
@@ -223,7 +232,7 @@ func main() {
 
 	// Start server.
 	log.Printf("RepLog listening on %s", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := http.ListenAndServe(addr, middleware.RequestLogger(mux)); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }
@@ -259,4 +268,12 @@ func bootstrapAdmin(db *sql.DB) error {
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintln(w, "ok")
+}
+
+// staticCacheControl wraps a handler to set Cache-Control headers on static assets.
+func staticCacheControl(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		next.ServeHTTP(w, r)
+	})
 }

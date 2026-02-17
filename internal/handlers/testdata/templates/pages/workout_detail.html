@@ -91,7 +91,7 @@
             <h2>Log a Set</h2>
 
             {{ if .SetError }}
-            <p><ins>{{ .SetError }}</ins></p>
+            <div class="alert alert-error" role="alert">{{ .SetError }}</div>
             {{ end }}
 
             {{ if and .Prescription .Prescription.Lines }}

@@ -13,7 +13,7 @@
         <p>{{ .Set.ExerciseName }} — Set #{{ .Set.SetNumber }}</p>
 
         {{ if .Error }}
-        <p><ins>{{ .Error }}</ins></p>
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
         {{ end }}
 
         <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/sets/{{ .Set.ID }}">

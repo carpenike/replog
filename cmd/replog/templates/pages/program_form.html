@@ -8,7 +8,7 @@
         <h1>{{ if .Program }}Edit {{ .Program.Name }}{{ else }}New Program Template{{ end }}</h1>
 
         {{ if .Error }}
-        <p><ins>{{ .Error }}</ins></p>
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
         {{ end }}
 
         <form method="POST" action="{{ if .Program }}/programs/{{ .Program.ID }}{{ else }}/programs{{ end }}">

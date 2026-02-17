@@ -24,8 +24,11 @@ func (a *Auth) LoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Pop flash error from session (set during failed login).
+	errorMsg := a.Sessions.PopString(r.Context(), "flash_error")
+
 	data := map[string]any{
-		"Error": r.URL.Query().Get("error"),
+		"Error": errorMsg,
 	}
 	if err := a.Templates["login.html"].ExecuteTemplate(w, "login", data); err != nil {
 		log.Printf("handlers: login template error: %v", err)
@@ -44,14 +47,16 @@ func (a *Auth) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if username == "" || password == "" {
-		http.Redirect(w, r, "/login?error=Username+and+password+are+required", http.StatusSeeOther)
+		a.Sessions.Put(r.Context(), "flash_error", "Username and password are required")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	user, err := models.Authenticate(a.DB, username, password)
 	if err != nil {
 		log.Printf("handlers: login failed for %q: %v", username, err)
-		http.Redirect(w, r, "/login?error=Invalid+username+or+password", http.StatusSeeOther)
+		a.Sessions.Put(r.Context(), "flash_error", "Invalid username or password")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 

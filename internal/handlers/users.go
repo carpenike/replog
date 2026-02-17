@@ -143,9 +143,17 @@ func (h *Users) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokens, err := models.ListLoginTokensByUser(h.DB, u.ID)
+	if err != nil {
+		log.Printf("handlers: list login tokens for user %d: %v", u.ID, err)
+		// Non-fatal — render without tokens.
+		tokens = nil
+	}
+
 	data := map[string]any{
 		"EditUser": u,
 		"Athletes": athletes,
+		"Tokens":   tokens,
 	}
 	if err := h.Templates.Render(w, r, "user_form.html", data); err != nil {
 		log.Printf("handlers: render edit user form: %v", err)

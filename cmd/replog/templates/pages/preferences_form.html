@@ -8,11 +8,11 @@
         <h1>Preferences</h1>
 
         {{ if .Success }}
-        <p><ins>Preferences saved successfully.</ins></p>
+        <div class="alert alert-success" role="alert">Preferences saved successfully.</div>
         {{ end }}
 
         {{ if .Error }}
-        <p><ins>{{ .Error }}</ins></p>
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
         {{ end }}
 
         <form method="POST" action="/preferences">

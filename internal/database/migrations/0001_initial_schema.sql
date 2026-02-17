@@ -155,6 +155,18 @@ CREATE TABLE IF NOT EXISTS athlete_programs (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_programs_active
     ON athlete_programs(athlete_id) WHERE active = 1;
 
+CREATE TABLE IF NOT EXISTS login_tokens (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token       TEXT    NOT NULL UNIQUE,
+    label       TEXT,
+    expires_at  DATETIME,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_tokens_token ON login_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_login_tokens_user_id ON login_tokens(user_id);
+
 -- Session store for alexedwards/scs
 CREATE TABLE IF NOT EXISTS sessions (
     token  TEXT PRIMARY KEY,
@@ -250,6 +262,8 @@ DROP TRIGGER IF EXISTS trigger_user_preferences_updated_at;
 DROP TRIGGER IF EXISTS trigger_users_updated_at;
 
 DROP INDEX IF EXISTS idx_sessions_expiry;
+DROP INDEX IF EXISTS idx_login_tokens_user_id;
+DROP INDEX IF EXISTS idx_login_tokens_token;
 DROP INDEX IF EXISTS idx_user_preferences_user_id;
 DROP INDEX IF EXISTS idx_athlete_programs_active;
 DROP INDEX IF EXISTS idx_prescribed_sets_template;
@@ -260,6 +274,7 @@ DROP INDEX IF EXISTS idx_users_unique_athlete_id;
 DROP INDEX IF EXISTS idx_athlete_exercises_unique_active;
 
 DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS login_tokens;
 DROP TABLE IF EXISTS athlete_programs;
 DROP TABLE IF EXISTS prescribed_sets;
 DROP TABLE IF EXISTS program_templates;

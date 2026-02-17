@@ -8,7 +8,7 @@
         <h1>{{ if .Athlete }}Edit {{ .Athlete.Name }}{{ else }}New Athlete{{ end }}</h1>
 
         {{ if .Error }}
-        <p><ins>{{ .Error }}</ins></p>
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
         {{ end }}
 
         <form method="POST" action="{{ if .Athlete }}/athletes/{{ .Athlete.ID }}{{ else }}/athletes{{ end }}">

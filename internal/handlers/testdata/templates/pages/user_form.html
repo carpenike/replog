@@ -8,7 +8,7 @@
         <h1>{{ if .EditUser }}Edit {{ .EditUser.Username }}{{ else }}New User{{ end }}</h1>
 
         {{ if .Error }}
-        <p><ins>{{ .Error }}</ins></p>
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
         {{ end }}
 
         <form method="POST" action="{{ if .EditUser }}/users/{{ .EditUser.ID }}{{ else }}/users{{ end }}">
@@ -54,6 +54,13 @@
         </form>
 
         {{ if .EditUser }}
+        <hr>
+        <div id="login-tokens-section">
+            <h2>Device Login Links</h2>
+            {{ range .Tokens }}
+            <p>Token: {{ .ID }}</p>
+            {{ end }}
+        </div>
         <hr>
         <section>
             <h2>Danger Zone</h2>

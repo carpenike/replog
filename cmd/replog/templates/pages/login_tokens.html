@@ -1,0 +1,67 @@
+{{ define "title" }}RepLog — Login Tokens{{ end }}
+
+{{ define "content" }}
+        <div id="login-tokens-section">
+            <h2>Device Login Links</h2>
+            <p><small>Generate a link your kid can bookmark or add to their iOS home screen for passwordless login.</small></p>
+
+            {{ if .NewTokenURL }}
+            <article style="border-left: 3px solid var(--pico-primary); padding-left: 1rem;">
+                <p><strong>New login link created!</strong></p>
+                <p>Copy this link and send it to the device. It will only be shown once in full.</p>
+                <input type="text" value="{{ .NewTokenURL }}" readonly onclick="this.select()" aria-label="Login URL">
+                <p><small>Tip: On iOS Safari, open this link, then tap Share → Add to Home Screen for one-tap login.</small></p>
+            </article>
+            {{ end }}
+
+            <form hx-post="/users/{{ .UserID }}/tokens" hx-target="#login-tokens-section" hx-swap="outerHTML">
+                {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
+                <div class="grid">
+                    <label for="token-label">Device Label
+                        <input type="text" id="token-label" name="label" placeholder="e.g. iPad, iPhone" autocomplete="off">
+                    </label>
+                    <div style="display:flex; align-items:flex-end;">
+                        <button type="submit">Generate Link</button>
+                    </div>
+                </div>
+            </form>
+
+            {{ if .Tokens }}
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Label</th>
+                        <th scope="col">Created</th>
+                        <th scope="col">Status</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Tokens }}
+                    <tr>
+                        <td>{{ if .Label.Valid }}{{ .Label.String }}{{ else }}<small>—</small>{{ end }}</td>
+                        <td><small>{{ .CreatedAt.Format "Jan 2, 2006" }}</small></td>
+                        <td>
+                            {{ if .IsExpired }}
+                                <mark class="secondary">Expired</mark>
+                            {{ else }}
+                                <mark>Active</mark>
+                            {{ end }}
+                        </td>
+                        <td>
+                            <form method="POST" action="/users/{{ .UserID }}/tokens/{{ .ID }}/delete"
+                                  hx-post="/users/{{ .UserID }}/tokens/{{ .ID }}/delete"
+                                  hx-target="#login-tokens-section" hx-swap="outerHTML"
+                                  hx-confirm="Revoke this login link? The device will need a new link to log in.">
+                                <button type="submit" class="outline secondary" style="margin:0; padding:0.25rem 0.5rem;">Revoke</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ else }}
+            <p><small>No active login links.</small></p>
+            {{ end }}
+        </div>
+{{ end }}

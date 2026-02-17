@@ -9,7 +9,7 @@
         <p>Choose an exercise to assign to {{ .Athlete.Name }}.</p>
 
         {{ if .Error }}
-        <p><ins>{{ .Error }}</ins></p>
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
         {{ end }}
 
         {{ if .Exercises }}
