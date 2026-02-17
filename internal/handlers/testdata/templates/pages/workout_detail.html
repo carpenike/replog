@@ -138,7 +138,7 @@
             </details>
             {{ end }}
 
-            <button type="button" class="outline secondary unscripted-toggle" onclick="var f=document.getElementById('unscripted-form');f.hidden=!f.hidden;this.hidden=true">+ Add Unscripted Set</button>
+            <button type="button" id="unscripted-toggle" class="outline secondary" onclick="document.getElementById('unscripted-form').hidden=false;this.hidden=true">+ Add Unscripted Set</button>
             <div id="unscripted-form" hidden>
             {{ else if .Assigned }}
             <details>
@@ -198,7 +198,10 @@
                 <label for="set_notes">Notes
                     <input type="text" id="set_notes" name="notes" placeholder="Optional per-set note">
                 </label>
-                <button type="submit" aria-busy="false">Log Set</button>
+                <div class="unscripted-form-actions">
+                    <button type="submit" aria-busy="false">Log Set</button>
+                    <button type="button" class="outline contrast" onclick="document.getElementById('unscripted-form').hidden=true;document.getElementById('unscripted-toggle').hidden=false">Cancel</button>
+                </div>
             </form>
 
             {{ if and .Prescription .Prescription.Lines }}

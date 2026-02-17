@@ -976,6 +976,13 @@ details.scaffold-exercise > summary {
     padding: 0.5rem 0.75rem;
 }
 
+/* ---- Unscripted Set Form Actions ---- */
+.unscripted-form-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
 /* ---- Set Actions ---- */
 .set-actions {
     display: flex;
