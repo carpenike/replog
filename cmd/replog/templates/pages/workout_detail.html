@@ -1,13 +1,13 @@
-{{ define "title" }}RepLog — Workout {{ .Workout.Date }}{{ end }}
+{{ define "title" }}RepLog — Workout {{ formatDateStr .Prefs .Workout.Date }}{{ end }}
 
 {{ define "content" }}
         <div class="breadcrumb">
-            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}/workouts">Workouts</a> &rsaquo; {{ .Workout.Date }}
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}/workouts">Workouts</a> &rsaquo; {{ formatDateStr .Prefs .Workout.Date }}
         </div>
 
         <div class="page-header">
             <hgroup>
-                <h1>{{ .Workout.Date }}{{ if .Review }} <span class="review-badge" data-status="{{ .Review.Status }}">{{ if eq .Review.Status "approved" }}✓ Reviewed{{ else }}⚠ Needs Work{{ end }}</span>{{ end }}</h1>
+                <h1>{{ formatDateStr .Prefs .Workout.Date }}{{ if .Review }} <span class="review-badge" data-status="{{ .Review.Status }}">{{ if eq .Review.Status "approved" }}✓ Reviewed{{ else }}⚠ Needs Work{{ end }}</span>{{ end }}</h1>
                 <p>{{ .Athlete.Name }} &mdash; {{ .Workout.SetCount }} sets logged</p>
             </hgroup>
             {{ if .CanManage }}
@@ -40,7 +40,7 @@
                 <summary><strong>{{ .ExerciseName }}</strong> <span class="text-muted">({{ len .Sets }} sets)</span></summary>
                 {{ $prev := index $.LastSession .ExerciseID }}{{ if $prev }}
                 <details class="last-session">
-                    <summary>Last time ({{ $prev.Date }})</summary>
+                    <summary>Last time ({{ formatDateStr $.Prefs $prev.Date }})</summary>
                     <div class="last-session-sets">
                         {{ range $prev.Sets }}
                         <span class="last-set-chip">{{ .RepsLabel }}{{ if .Weight.Valid }}×{{ formatWeight .Weight.Float64 }}{{ end }}{{ if .RPE.Valid }} @{{ formatWeight .RPE.Float64 }}{{ end }}</span>

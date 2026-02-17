@@ -43,7 +43,7 @@
                     {{ range .Unreviewed }}
                     <tr>
                         <td><a href="/athletes/{{ .AthleteID }}">{{ .AthleteName }}</a></td>
-                        <td>{{ .Date }}</td>
+                        <td>{{ formatDateStr $.Prefs .Date }}</td>
                         <td>{{ .SetCount }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         <td><a href="/athletes/{{ .AthleteID }}/workouts/{{ .WorkoutID }}" role="button" class="outline secondary">Review</a></td>

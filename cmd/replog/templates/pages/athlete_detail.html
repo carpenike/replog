@@ -115,7 +115,7 @@
                     {{ range .Heatmap.Cells }}
                     <rect x="{{ .X }}" y="{{ .Y }}" width="12" height="12" rx="2"
                           class="heatmap-cell" data-level="{{ .Level }}">
-                        <title>{{ .Date }}{{ if gt .Volume 0.0 }}: {{ formatVolume .Volume }} volume{{ end }}</title>
+                        <title>{{ formatDateStr $.Prefs .Date }}{{ if gt .Volume 0.0 }}: {{ formatVolume .Volume }} volume{{ end }}</title>
                     </rect>
                     {{ end }}
                     </g>
@@ -203,7 +203,7 @@
                 <tbody>
                     {{ range .RecentWorkouts }}
                     <tr>
-                        <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Date }}</a></td>
+                        <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ formatDateStr $.Prefs .Date }}</a></td>
                         <td>{{ .SetCount }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     </tr>

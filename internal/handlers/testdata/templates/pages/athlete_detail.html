@@ -149,7 +149,7 @@
                 <tbody>
                     {{ range .RecentWorkouts }}
                     <tr>
-                        <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Date }}</a></td>
+                        <td><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ formatDateStr $.Prefs .Date }}</a></td>
                         <td>{{ .SetCount }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     </tr>

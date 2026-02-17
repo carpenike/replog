@@ -15,7 +15,7 @@
         {{ range .Unreviewed }}
         <tr>
             <td>{{ .AthleteName }}</td>
-            <td><a href="/athletes/{{ .AthleteID }}/workouts/{{ .WorkoutID }}">{{ .Date }}</a></td>
+            <td><a href="/athletes/{{ .AthleteID }}/workouts/{{ .WorkoutID }}">{{ formatDateStr $.Prefs .Date }}</a></td>
             <td>{{ .SetCount }}</td>
         </tr>
         {{ end }}

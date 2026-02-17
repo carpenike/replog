@@ -20,7 +20,7 @@
             <svg class="trend-chart" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
                 {{ range .VolumeChart.Bars }}
                 <rect x="{{ .X }}" y="{{ .Y }}" width="{{ .Width }}" height="{{ .Height }}" class="chart-bar" rx="2">
-                    <title>{{ .Date }}: {{ formatVolume .Volume }} vol</title>
+                    <title>{{ formatDateStr $.Prefs .Date }}: {{ formatVolume .Volume }} vol</title>
                 </rect>
                 {{ end }}
             </svg>

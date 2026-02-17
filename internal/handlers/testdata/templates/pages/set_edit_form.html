@@ -5,7 +5,7 @@
             <a href="/athletes">Athletes</a> &rsaquo;
             <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo;
             <a href="/athletes/{{ .Athlete.ID }}/workouts">Workouts</a> &rsaquo;
-            <a href="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}">{{ .Workout.Date }}</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}">{{ formatDateStr .Prefs .Workout.Date }}</a> &rsaquo;
             Edit Set
         </div>
 

@@ -147,8 +147,17 @@ var templateFuncs = template.FuncMap{
 		if dateStr == "" {
 			return ""
 		}
+		// Try YYYY-MM-DD first, then RFC3339 (modernc.org/sqlite stores DATE
+		// columns as full timestamps like "2026-02-17T00:00:00Z").
 		t, err := time.Parse("2006-01-02", dateStr)
 		if err != nil {
+			t, err = time.Parse(time.RFC3339, dateStr)
+		}
+		if err != nil {
+			// Truncate to date portion if it looks like an ISO timestamp.
+			if len(dateStr) > 10 {
+				dateStr = dateStr[:10]
+			}
 			return dateStr
 		}
 		format := models.DefaultDateFormat
