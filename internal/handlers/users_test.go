@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
+	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -500,6 +503,65 @@ func TestUsers_Create_Passwordless(t *testing.T) {
 	}
 	if u.HasPassword() {
 		t.Error("expected passwordless user, but HasPassword() is true")
+	}
+}
+
+func TestUsers_Create_PasswordlessAutoToken(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	sm := testSessionManager()
+	coach := seedCoach(t, db)
+
+	h := &Users{DB: db, Sessions: sm, Templates: tc, BaseURL: "https://example.com"}
+
+	form := url.Values{
+		"username": {"kidtoken"},
+	}
+
+	// Track flash values set during Create.
+	var flashSuccess, flashTokenURL string
+
+	// Wrap handler with session middleware so flash values are persisted.
+	handler := sm.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Inject user context (normally done by auth middleware).
+		ctx := context.WithValue(r.Context(), middleware.UserContextKey, coach)
+		h.Create(w, r.WithContext(ctx))
+
+		// Read flash values before the session commits.
+		flashSuccess = sm.GetString(r.Context(), "flash_success")
+		flashTokenURL = sm.GetString(r.Context(), "flash_token_url")
+	}))
+
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	if flashSuccess == "" {
+		t.Error("expected flash_success to be set")
+	}
+	if flashTokenURL == "" {
+		t.Fatal("expected flash_token_url to be set")
+	}
+	if !strings.Contains(flashTokenURL, "https://example.com/auth/token/") {
+		t.Errorf("token URL = %q, want prefix https://example.com/auth/token/", flashTokenURL)
+	}
+
+	// Verify a login token was actually created in the database.
+	u, err := models.GetUserByUsername(db, "kidtoken")
+	if err != nil {
+		t.Fatalf("get user: %v", err)
+	}
+	tokens, err := models.ListLoginTokensByUser(db, u.ID)
+	if err != nil {
+		t.Fatalf("list tokens: %v", err)
+	}
+	if len(tokens) != 1 {
+		t.Errorf("expected 1 token, got %d", len(tokens))
 	}
 }
 

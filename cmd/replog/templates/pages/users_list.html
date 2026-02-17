@@ -6,6 +6,16 @@
             <a href="/users/new" role="button">New User</a>
         </div>
 
+        {{ if .Success }}
+        <article style="border-left: 3px solid var(--pico-primary); padding-left: 1rem;">
+            <p><strong>{{ .Success }}</strong></p>
+            {{ if .NewTokenURL }}
+            <input type="text" value="{{ .NewTokenURL }}" readonly onclick="this.select()" aria-label="Login URL" style="margin-bottom: 0.5rem;">
+            <p><small>Tip: On iOS Safari, open this link, then tap Share → Add to Home Screen for one-tap login.</small></p>
+            {{ end }}
+        </article>
+        {{ end }}
+
         {{ if .Users }}
         <table class="striped">
             <thead>

@@ -123,7 +123,9 @@ func main() {
 	}
 	users := &handlers.Users{
 		DB:        db,
+		Sessions:  sessionManager,
 		Templates: tc,
+		BaseURL:   baseURL,
 	}
 	bodyWeights := &handlers.BodyWeights{
 		DB:        db,

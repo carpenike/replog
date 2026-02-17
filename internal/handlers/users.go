@@ -3,10 +3,12 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
@@ -14,7 +16,9 @@ import (
 // Users handles user management (coach-only).
 type Users struct {
 	DB        *sql.DB
+	Sessions  *scs.SessionManager
 	Templates TemplateCache
+	BaseURL   string // External base URL for login links. If empty, inferred from request.
 }
 
 // List renders all users.
@@ -32,8 +36,18 @@ func (h *Users) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Pop flash data from session (set after passwordless user creation).
+	flashSuccess := ""
+	flashTokenURL := ""
+	if h.Sessions != nil {
+		flashSuccess = h.Sessions.PopString(r.Context(), "flash_success")
+		flashTokenURL = h.Sessions.PopString(r.Context(), "flash_token_url")
+	}
+
 	data := map[string]any{
-		"Users": users,
+		"Users":        users,
+		"Success":      flashSuccess,
+		"NewTokenURL":  flashTokenURL,
 	}
 	if err := h.Templates.Render(w, r, "users_list.html", data); err != nil {
 		log.Printf("handlers: render users list: %v", err)
@@ -93,7 +107,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err := models.CreateUser(h.DB, username, password, email, isCoach, athleteID)
+	newUser, err := models.CreateUser(h.DB, username, password, email, isCoach, athleteID)
 	if errors.Is(err, models.ErrDuplicateUsername) {
 		h.renderFormError(w, r, "Username already taken.", nil)
 		return
@@ -106,6 +120,32 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: create user: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
+	}
+
+	// For passwordless users, auto-generate a login token and flash the URL.
+	if !newUser.HasPassword() && h.Sessions != nil {
+		label := r.FormValue("token_label")
+		if label == "" {
+			label = "auto"
+		}
+		lt, err := models.CreateLoginToken(h.DB, newUser.ID, label, nil)
+		if err != nil {
+			log.Printf("handlers: auto-create token for user %d: %v", newUser.ID, err)
+		} else {
+			var loginURL string
+			if h.BaseURL != "" {
+				loginURL = fmt.Sprintf("%s/auth/token/%s", h.BaseURL, lt.Token)
+			} else {
+				scheme := "http"
+				if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+					scheme = "https"
+				}
+				loginURL = fmt.Sprintf("%s://%s/auth/token/%s", scheme, r.Host, lt.Token)
+			}
+			h.Sessions.Put(r.Context(), "flash_success",
+				fmt.Sprintf("User %q created successfully. Copy the login link below.", newUser.Username))
+			h.Sessions.Put(r.Context(), "flash_token_url", loginURL)
+		}
 	}
 
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
