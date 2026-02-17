@@ -217,7 +217,7 @@
                     <input type="hidden" name="exercise_id" value="{{ $line.ExerciseID }}">
                     <input type="hidden" name="rep_type" value="{{ $s.RepType }}">
                     <div class="scaffold-grid">
-                        <span class="scaffold-target">Set {{ $s.SetNumber }}: {{ $s.RepsLabel }}{{ if $s.PercentageLabel }} @ {{ $s.PercentageLabel }}{{ end }}{{ if $s.TargetWeightLabel }} &rarr; {{ $s.TargetWeightLabel }} {{ weightUnit $.Prefs }}{{ end }}{{ if $s.Notes.Valid }} <span class="text-muted">({{ $s.Notes.String }})</span>{{ end }}</span>
+                        <span class="scaffold-target">Set {{ $s.SetNumber }}: {{ $s.RepsLabel }} reps{{ if $s.PercentageLabel }} @ {{ $s.PercentageLabel }}{{ end }}{{ if $s.TargetWeightLabel }} &rarr; {{ $s.TargetWeightLabel }} {{ weightUnit $.Prefs }}{{ else if not $s.Percentage.Valid }} &times; BW{{ end }}{{ if $s.Notes.Valid }} <span class="text-muted">({{ $s.Notes.String }})</span>{{ end }}</span>
                         <label class="field-sm">Reps
                             <input type="number" name="reps" min="1" required value="{{ if $s.Reps.Valid }}{{ $s.Reps.Int64 }}{{ end }}" inputmode="numeric"{{ if not $s.Reps.Valid }} placeholder="AMRAP"{{ end }}>
                         </label>
