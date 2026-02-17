@@ -76,8 +76,9 @@ Key patterns:
 
 ## Coding Standards
 
-- Use stdlib `net/http` patterns — `http.HandlerFunc`, `http.ServeMux`
-- No web framework (no gin, echo, chi, fiber) — keep dependencies minimal
+- Use stdlib `net/http` patterns — `http.HandlerFunc`, `http.Handler` interfaces
+- Use `chi` router (`github.com/go-chi/chi/v5`) for routing with group-based middleware
+- No full web framework (no gin, echo, fiber) — chi is the only router dependency
 - Error handling: wrap with `fmt.Errorf("context: %w", err)`, return errors up
 - No ORM — write SQL queries directly in the models layer
 - Keep handlers thin: validate input → call model → render template

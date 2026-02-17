@@ -14,6 +14,7 @@ import (
 
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 
@@ -184,148 +185,184 @@ func main() {
 		log.Printf("WebAuthn disabled: set REPLOG_WEBAUTHN_RPID and REPLOG_WEBAUTHN_ORIGINS to enable passkeys")
 	}
 
-	// Set up routes.
-	mux := http.NewServeMux()
+	// Set up router.
+	r := chi.NewRouter()
+
+	// Global middleware — applied to every request.
+	r.Use(middleware.RequestLogger)
 
 	// Error page renderer for middleware — uses the template cache to render
 	// styled error pages instead of plain text responses.
 	renderError := middleware.ErrorRenderer(tc.RenderErrorPage)
 
-	// Static files and health check — no auth required.
-	mux.Handle("GET /static/", staticCacheControl(http.FileServerFS(staticFS)))
-	mux.HandleFunc("GET /health", handleHealth)
-
-	// Login/logout — session loaded but no auth required.
-	mux.Handle("GET /login", sessionManager.LoadAndSave(http.HandlerFunc(auth.LoginPage)))
-	mux.Handle("POST /login", sessionManager.LoadAndSave(http.HandlerFunc(auth.LoginSubmit)))
-	mux.Handle("POST /logout", sessionManager.LoadAndSave(http.HandlerFunc(auth.Logout)))
-	mux.Handle("GET /auth/token/{token}", sessionManager.LoadAndSave(http.HandlerFunc(loginTokens.TokenLogin)))
-
-	// Authenticated routes — wrapped with RequireAuth + CSRF middleware.
-	requireAuth := func(h http.HandlerFunc) http.Handler {
-		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, http.HandlerFunc(h)))
+	// Middleware adapters — convert existing middleware to chi-compatible middleware.
+	withAuth := func(next http.Handler) http.Handler {
+		return middleware.RequireAuth(sessionManager, db, next)
+	}
+	withCSRF := func(next http.Handler) http.Handler {
+		return middleware.CSRFProtect(sessionManager, next)
+	}
+	withCoach := func(next http.Handler) http.Handler {
+		return middleware.RequireCoach(renderError, next)
+	}
+	withAdmin := func(next http.Handler) http.Handler {
+		return middleware.RequireAdmin(renderError, next)
 	}
 
-	// Coach-only routes — RequireAuth + CSRF + RequireCoach for defense-in-depth.
-	// Handlers also check is_coach inline, but this provides an extra layer.
-	requireCoach := func(h http.HandlerFunc) http.Handler {
-		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, middleware.RequireCoach(renderError, http.HandlerFunc(h))))
-	}
+	// --- Public routes — no auth required ---
+	r.Handle("/static/*", staticCacheControl(http.FileServerFS(staticFS)))
+	r.Get("/health", handleHealth)
 
-	// Admin-only routes — RequireAuth + CSRF + RequireAdmin for user management.
-	requireAdmin := func(h http.HandlerFunc) http.Handler {
-		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, middleware.RequireAdmin(renderError, http.HandlerFunc(h))))
-	}
+	// --- Session-loaded routes — login/logout/token auth ---
+	r.Group(func(r chi.Router) {
+		r.Use(sessionManager.LoadAndSave)
 
-	mux.Handle("GET /{$}", requireAuth(pages.Index))
+		r.Get("/login", auth.LoginPage)
+		r.Post("/login", auth.LoginSubmit)
+		r.Post("/logout", auth.Logout)
+		r.Get("/auth/token/{token}", loginTokens.TokenLogin)
 
-	// Athletes CRUD.
-	mux.Handle("GET /athletes", requireAuth(athletes.List))
-	mux.Handle("GET /athletes/new", requireCoach(athletes.NewForm))
-	mux.Handle("POST /athletes", requireCoach(athletes.Create))
-	mux.Handle("GET /athletes/{id}", requireAuth(athletes.Show))
-	mux.Handle("GET /athletes/{id}/edit", requireCoach(athletes.EditForm))
-	mux.Handle("POST /athletes/{id}", requireCoach(athletes.Update))
-	mux.Handle("POST /athletes/{id}/delete", requireCoach(athletes.Delete))
-	mux.Handle("POST /athletes/{id}/promote", requireCoach(athletes.Promote))
+		// Passkey login ceremony (unauthenticated, session required).
+		if passkeys != nil {
+			r.Get("/passkeys/login/begin", passkeys.BeginLogin)
+			r.Post("/passkeys/login/finish", passkeys.FinishLogin)
+		}
+	})
 
-	// Exercises CRUD.
-	mux.Handle("GET /exercises", requireAuth(exercises.List))
-	mux.Handle("GET /exercises/new", requireCoach(exercises.NewForm))
-	mux.Handle("POST /exercises", requireCoach(exercises.Create))
-	mux.Handle("GET /exercises/{id}", requireAuth(exercises.Show))
-	mux.Handle("GET /exercises/{id}/edit", requireCoach(exercises.EditForm))
-	mux.Handle("POST /exercises/{id}", requireCoach(exercises.Update))
-	mux.Handle("POST /exercises/{id}/delete", requireCoach(exercises.Delete))
+	// --- Authenticated routes — RequireAuth + CSRF ---
+	r.Group(func(r chi.Router) {
+		r.Use(withAuth)
+		r.Use(withCSRF)
 
-	// Assignments (coach only).
-	mux.Handle("GET /athletes/{id}/assignments/new", requireCoach(assignments.AssignForm))
-	mux.Handle("POST /athletes/{id}/assignments", requireCoach(assignments.Assign))
-	mux.Handle("POST /athletes/{id}/assignments/{assignmentID}/deactivate", requireCoach(assignments.Deactivate))
-	mux.Handle("POST /athletes/{id}/assignments/reactivate", requireCoach(assignments.Reactivate))
+		r.Get("/", pages.Index)
 
-	// Training Maxes.
-	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/training-maxes", requireAuth(trainingMaxes.History))
-	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/training-maxes/new", requireCoach(trainingMaxes.NewForm))
-	mux.Handle("POST /athletes/{id}/exercises/{exerciseID}/training-maxes", requireCoach(trainingMaxes.Create))
+		// User Preferences (self-service — any authenticated user).
+		r.Get("/preferences", preferences.EditForm)
+		r.Post("/preferences", preferences.Update)
 
-	// Exercise History per athlete.
-	mux.Handle("GET /athletes/{id}/exercises/{exerciseID}/history", requireAuth(exercises.ExerciseHistory))
+		// Athletes — read access.
+		r.Get("/athletes", athletes.List)
+		r.Get("/athletes/{id}", athletes.Show)
 
-	// Body Weights.
-	mux.Handle("GET /athletes/{id}/body-weights", requireAuth(bodyWeights.List))
-	mux.Handle("POST /athletes/{id}/body-weights", requireAuth(bodyWeights.Create))
-	mux.Handle("POST /athletes/{id}/body-weights/{bwID}/delete", requireAuth(bodyWeights.Delete))
+		// Exercises — read access.
+		r.Get("/exercises", exercises.List)
+		r.Get("/exercises/{id}", exercises.Show)
 
-	// Workouts.
-	mux.Handle("GET /athletes/{id}/workouts", requireAuth(workouts.List))
-	mux.Handle("GET /athletes/{id}/workouts/new", requireAuth(workouts.NewForm))
-	mux.Handle("POST /athletes/{id}/workouts", requireAuth(workouts.Create))
-	mux.Handle("GET /athletes/{id}/workouts/{workoutID}", requireAuth(workouts.Show))
-	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/notes", requireAuth(workouts.UpdateNotes))
-	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/delete", requireCoach(workouts.Delete))
-	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets", requireAuth(workouts.AddSet))
-	mux.Handle("GET /athletes/{id}/workouts/{workoutID}/sets/{setID}/edit", requireAuth(workouts.EditSetForm))
-	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}", requireAuth(workouts.UpdateSet))
-	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/sets/{setID}/delete", requireAuth(workouts.DeleteSet))
+		// Training Max history — read access.
+		r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes", trainingMaxes.History)
 
-	// Workout Reviews (coach-only).
-	mux.Handle("GET /reviews/pending", requireCoach(reviews.PendingReviews))
-	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/review", requireCoach(reviews.SubmitReview))
-	mux.Handle("POST /athletes/{id}/workouts/{workoutID}/review/delete", requireCoach(reviews.DeleteReview))
+		// Exercise History per athlete — read access.
+		r.Get("/athletes/{id}/exercises/{exerciseID}/history", exercises.ExerciseHistory)
 
-	// Users (admin-only).
-	mux.Handle("GET /users", requireAdmin(users.List))
-	mux.Handle("GET /users/new", requireAdmin(users.NewForm))
-	mux.Handle("POST /users", requireAdmin(users.Create))
-	mux.Handle("GET /users/{id}/edit", requireAdmin(users.EditForm))
-	mux.Handle("POST /users/{id}", requireAdmin(users.Update))
-	mux.Handle("POST /users/{id}/delete", requireAdmin(users.Delete))
+		// Body Weights.
+		r.Get("/athletes/{id}/body-weights", bodyWeights.List)
+		r.Post("/athletes/{id}/body-weights", bodyWeights.Create)
+		r.Post("/athletes/{id}/body-weights/{bwID}/delete", bodyWeights.Delete)
 
-	// Login Token management (admin-only).
-	mux.Handle("POST /users/{id}/tokens", requireAdmin(loginTokens.GenerateToken))
-	mux.Handle("POST /users/{id}/tokens/{tokenID}/delete", requireAdmin(loginTokens.DeleteToken))
+		// Workouts — athlete self-service.
+		r.Get("/athletes/{id}/workouts", workouts.List)
+		r.Get("/athletes/{id}/workouts/new", workouts.NewForm)
+		r.Post("/athletes/{id}/workouts", workouts.Create)
+		r.Get("/athletes/{id}/workouts/{workoutID}", workouts.Show)
+		r.Post("/athletes/{id}/workouts/{workoutID}/notes", workouts.UpdateNotes)
+		r.Post("/athletes/{id}/workouts/{workoutID}/sets", workouts.AddSet)
+		r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/edit", workouts.EditSetForm)
+		r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}", workouts.UpdateSet)
+		r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/delete", workouts.DeleteSet)
 
-	// Passkey/WebAuthn routes (only registered when WebAuthn is configured).
-	if passkeys != nil {
-		// Login ceremony — unauthenticated, session loaded.
-		mux.Handle("GET /passkeys/login/begin", sessionManager.LoadAndSave(http.HandlerFunc(passkeys.BeginLogin)))
-		mux.Handle("POST /passkeys/login/finish", sessionManager.LoadAndSave(http.HandlerFunc(passkeys.FinishLogin)))
+		// Athlete Programs — prescription view (athlete self-service).
+		r.Get("/athletes/{id}/prescription", programs.Prescription)
+		r.Get("/athletes/{id}/report", programs.CycleReport)
 
-		// Registration ceremony — requires auth.
-		mux.Handle("GET /passkeys/register/begin", requireAuth(passkeys.BeginRegistration))
-		mux.Handle("POST /passkeys/register/finish", requireAuth(passkeys.FinishRegistration))
-		mux.Handle("POST /passkeys/register/label", requireAuth(passkeys.SetLabel))
+		// Passkey registration (requires auth, not coach/admin).
+		if passkeys != nil {
+			r.Get("/passkeys/register/begin", passkeys.BeginRegistration)
+			r.Post("/passkeys/register/finish", passkeys.FinishRegistration)
+			r.Post("/passkeys/register/label", passkeys.SetLabel)
 
-		// Credential management — users can delete their own, coaches can delete any.
-		mux.Handle("POST /users/{id}/passkeys/{credentialID}/delete", requireAuth(passkeys.DeleteCredential))
-	}
+			// Credential management — handler checks ownership internally.
+			r.Post("/users/{id}/passkeys/{credentialID}/delete", passkeys.DeleteCredential)
+		}
+	})
 
-	// User Preferences (self-service — any authenticated user).
-	mux.Handle("GET /preferences", requireAuth(preferences.EditForm))
-	mux.Handle("POST /preferences", requireAuth(preferences.Update))
+	// --- Coach-only routes — RequireAuth + CSRF + RequireCoach ---
+	r.Group(func(r chi.Router) {
+		r.Use(withAuth)
+		r.Use(withCSRF)
+		r.Use(withCoach)
 
-	// Program Templates (coach-only for management).
-	mux.Handle("GET /programs", requireCoach(programs.List))
-	mux.Handle("GET /programs/new", requireCoach(programs.NewForm))
-	mux.Handle("POST /programs", requireCoach(programs.Create))
-	mux.Handle("GET /programs/{id}", requireCoach(programs.Show))
-	mux.Handle("GET /programs/{id}/edit", requireCoach(programs.EditForm))
-	mux.Handle("POST /programs/{id}", requireCoach(programs.Update))
-	mux.Handle("POST /programs/{id}/delete", requireCoach(programs.Delete))
-	mux.Handle("POST /programs/{id}/sets", requireCoach(programs.AddSet))
-	mux.Handle("POST /programs/{id}/sets/{setID}/delete", requireCoach(programs.DeleteSet))
+		// Athletes — management.
+		r.Get("/athletes/new", athletes.NewForm)
+		r.Post("/athletes", athletes.Create)
+		r.Get("/athletes/{id}/edit", athletes.EditForm)
+		r.Post("/athletes/{id}", athletes.Update)
+		r.Post("/athletes/{id}/delete", athletes.Delete)
+		r.Post("/athletes/{id}/promote", athletes.Promote)
 
-	// Athlete Programs (assignment + prescription).
-	mux.Handle("GET /athletes/{id}/program/assign", requireCoach(programs.AssignProgramForm))
-	mux.Handle("POST /athletes/{id}/program", requireCoach(programs.AssignProgram))
-	mux.Handle("POST /athletes/{id}/program/deactivate", requireCoach(programs.DeactivateProgram))
-	mux.Handle("GET /athletes/{id}/prescription", requireAuth(programs.Prescription))
-	mux.Handle("GET /athletes/{id}/report", requireAuth(programs.CycleReport))
+		// Exercises — management.
+		r.Get("/exercises/new", exercises.NewForm)
+		r.Post("/exercises", exercises.Create)
+		r.Get("/exercises/{id}/edit", exercises.EditForm)
+		r.Post("/exercises/{id}", exercises.Update)
+		r.Post("/exercises/{id}/delete", exercises.Delete)
+
+		// Assignments (coach only).
+		r.Get("/athletes/{id}/assignments/new", assignments.AssignForm)
+		r.Post("/athletes/{id}/assignments", assignments.Assign)
+		r.Post("/athletes/{id}/assignments/{assignmentID}/deactivate", assignments.Deactivate)
+		r.Post("/athletes/{id}/assignments/reactivate", assignments.Reactivate)
+
+		// Training Maxes — management.
+		r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes/new", trainingMaxes.NewForm)
+		r.Post("/athletes/{id}/exercises/{exerciseID}/training-maxes", trainingMaxes.Create)
+
+		// Workouts — coach-only actions.
+		r.Post("/athletes/{id}/workouts/{workoutID}/delete", workouts.Delete)
+
+		// Workout Reviews (coach-only).
+		r.Get("/reviews/pending", reviews.PendingReviews)
+		r.Post("/athletes/{id}/workouts/{workoutID}/review", reviews.SubmitReview)
+		r.Post("/athletes/{id}/workouts/{workoutID}/review/delete", reviews.DeleteReview)
+
+		// Program Templates (coach-only for management).
+		r.Get("/programs", programs.List)
+		r.Get("/programs/new", programs.NewForm)
+		r.Post("/programs", programs.Create)
+		r.Get("/programs/{id}", programs.Show)
+		r.Get("/programs/{id}/edit", programs.EditForm)
+		r.Post("/programs/{id}", programs.Update)
+		r.Post("/programs/{id}/delete", programs.Delete)
+		r.Post("/programs/{id}/sets", programs.AddSet)
+		r.Post("/programs/{id}/sets/{setID}/delete", programs.DeleteSet)
+
+		// Athlete Programs — assignment (coach-only).
+		r.Get("/athletes/{id}/program/assign", programs.AssignProgramForm)
+		r.Post("/athletes/{id}/program", programs.AssignProgram)
+		r.Post("/athletes/{id}/program/deactivate", programs.DeactivateProgram)
+	})
+
+	// --- Admin-only routes — RequireAuth + CSRF + RequireAdmin ---
+	r.Group(func(r chi.Router) {
+		r.Use(withAuth)
+		r.Use(withCSRF)
+		r.Use(withAdmin)
+
+		// Users management.
+		r.Get("/users", users.List)
+		r.Get("/users/new", users.NewForm)
+		r.Post("/users", users.Create)
+		r.Get("/users/{id}/edit", users.EditForm)
+		r.Post("/users/{id}", users.Update)
+		r.Post("/users/{id}/delete", users.Delete)
+
+		// Login Token management.
+		r.Post("/users/{id}/tokens", loginTokens.GenerateToken)
+		r.Post("/users/{id}/tokens/{tokenID}/delete", loginTokens.DeleteToken)
+	})
 
 	// Start server.
 	log.Printf("RepLog listening on %s", addr)
-	if err := http.ListenAndServe(addr, middleware.RequestLogger(mux)); err != nil {
+	if err := http.ListenAndServe(addr, r); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

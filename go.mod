@@ -5,6 +5,8 @@ go 1.25.6
 require (
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de
 	github.com/alexedwards/scs/v2 v2.9.0
+	github.com/go-chi/chi/v5 v5.2.5
+	github.com/go-webauthn/webauthn v0.15.0
 	github.com/pressly/goose/v3 v3.26.0
 	golang.org/x/crypto v0.43.0
 	modernc.org/sqlite v1.45.0
@@ -14,7 +16,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/go-webauthn/webauthn v0.15.0 // indirect
 	github.com/go-webauthn/x v0.1.26 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/google/go-tpm v0.9.6 // indirect

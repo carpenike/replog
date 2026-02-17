@@ -6,7 +6,7 @@ applyTo: "**/*.go"
 
 ## General
 
-- Target Go 1.24+ — use `net/http` routing enhancements (method patterns in `ServeMux`)
+- Target Go 1.24+ — use `chi` router (`github.com/go-chi/chi/v5`) for routing with group-based middleware
 - Module path: `github.com/carpenike/replog`
 - All application code lives under `internal/` — it is not importable externally
 
@@ -20,10 +20,19 @@ applyTo: "**/*.go"
 ## HTTP Handlers
 
 - Use `http.HandlerFunc` signature — `func(w http.ResponseWriter, r *http.Request)`
-- Register routes on `http.ServeMux` — no third-party router
+- Register routes on `chi.Router` (`github.com/go-chi/chi/v5`) — routes grouped by auth level
 - Keep handlers thin: parse request → validate → call model → render template → handle error
 - Return HTML fragments for htmx partial requests, full pages for normal navigation
 - Use `http.Error(w, msg, code)` for error responses
+
+## Routing with chi
+
+- Use `chi.NewRouter()` as the top-level router
+- Group routes by authorization level using `r.Group()`: public, session-loaded, authenticated, coach-only, admin-only
+- Apply middleware via `r.Use()` on groups — middleware is inherited by all routes in the group
+- Use `r.Get()`, `r.Post()`, etc. — chi sets stdlib `PathValue` so handlers use `r.PathValue("id")`
+- Never apply auth middleware per-route with wrapper functions — rely on group-level `r.Use()` for defense-in-depth
+- chi is the only allowed router dependency — no gin, echo, fiber, or other frameworks
 
 ## Templates
 
