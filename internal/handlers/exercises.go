@@ -47,8 +47,18 @@ func (h *Exercises) NewForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	allEquipment, err := models.ListEquipment(h.DB)
+	if err != nil {
+		log.Printf("handlers: list equipment for exercise form: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	data := map[string]any{
-		"Tiers": tierOptions(),
+		"Tiers":            tierOptions(),
+		"AllEquipment":     allEquipment,
+		"SelectedRequired": map[int64]bool{},
+		"SelectedOptional": map[int64]bool{},
 	}
 	if err := h.Templates.Render(w, r, "exercise_form.html", data); err != nil {
 		log.Printf("handlers: exercise new form template: %v", err)
@@ -71,10 +81,15 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 
 	name := r.FormValue("name")
 	if name == "" {
+		allEquipment, _ := models.ListEquipment(h.DB)
+		reqIDs, optIDs := parseEquipmentSelections(r)
 		data := map[string]any{
-			"Error": "Name is required",
-			"Tiers": tierOptions(),
-			"Form":  r.Form,
+			"Error":            "Name is required",
+			"Tiers":            tierOptions(),
+			"Form":             r.Form,
+			"AllEquipment":     allEquipment,
+			"SelectedRequired": idSliceToMap(reqIDs),
+			"SelectedOptional": idSliceToMap(optIDs),
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		h.Templates.Render(w, r, "exercise_form.html", data)
@@ -83,12 +98,18 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 
 	restSeconds, _ := strconv.Atoi(r.FormValue("rest_seconds"))
 
+	allEquipment, _ := models.ListEquipment(h.DB)
+	reqIDs, optIDs := parseEquipmentSelections(r)
+
 	exercise, err := models.CreateExercise(h.DB, name, r.FormValue("tier"), r.FormValue("form_notes"), r.FormValue("demo_url"), restSeconds)
 	if errors.Is(err, models.ErrDuplicateExerciseName) {
 		data := map[string]any{
-			"Error": "An exercise with that name already exists",
-			"Tiers": tierOptions(),
-			"Form":  r.Form,
+			"Error":            "An exercise with that name already exists",
+			"Tiers":            tierOptions(),
+			"Form":             r.Form,
+			"AllEquipment":     allEquipment,
+			"SelectedRequired": idSliceToMap(reqIDs),
+			"SelectedOptional": idSliceToMap(optIDs),
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		h.Templates.Render(w, r, "exercise_form.html", data)
@@ -98,6 +119,10 @@ func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: create exercise: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if err := models.SyncExerciseEquipment(h.DB, exercise.ID, reqIDs, optIDs); err != nil {
+		log.Printf("handlers: sync exercise equipment on create: %v", err)
 	}
 
 	http.Redirect(w, r, "/exercises/"+strconv.FormatInt(exercise.ID, 10), http.StatusSeeOther)
@@ -232,9 +257,16 @@ func (h *Exercises) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	allEquipment, _ := models.ListEquipment(h.DB)
+	exEquip, _ := models.ListExerciseEquipment(h.DB, exercise.ID)
+	reqMap, optMap := exerciseEquipmentToMaps(exEquip)
+
 	data := map[string]any{
-		"Exercise": exercise,
-		"Tiers":    tierOptions(),
+		"Exercise":         exercise,
+		"Tiers":            tierOptions(),
+		"AllEquipment":     allEquipment,
+		"SelectedRequired": reqMap,
+		"SelectedOptional": optMap,
 	}
 	if err := h.Templates.Render(w, r, "exercise_form.html", data); err != nil {
 		log.Printf("handlers: exercise edit form template: %v", err)
@@ -261,14 +293,20 @@ func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	allEquipment, _ := models.ListEquipment(h.DB)
+	reqIDs, optIDs := parseEquipmentSelections(r)
+
 	name := r.FormValue("name")
 	if name == "" {
 		exercise, _ := models.GetExerciseByID(h.DB, id)
 		data := map[string]any{
-			"Error":    "Name is required",
-			"Exercise": exercise,
-			"Tiers":    tierOptions(),
-			"Form":     r.Form,
+			"Error":            "Name is required",
+			"Exercise":         exercise,
+			"Tiers":            tierOptions(),
+			"Form":             r.Form,
+			"AllEquipment":     allEquipment,
+			"SelectedRequired": idSliceToMap(reqIDs),
+			"SelectedOptional": idSliceToMap(optIDs),
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		h.Templates.Render(w, r, "exercise_form.html", data)
@@ -285,10 +323,13 @@ func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(err, models.ErrDuplicateExerciseName) {
 		exercise, _ := models.GetExerciseByID(h.DB, id)
 		data := map[string]any{
-			"Error":    "An exercise with that name already exists",
-			"Exercise": exercise,
-			"Tiers":    tierOptions(),
-			"Form":     r.Form,
+			"Error":            "An exercise with that name already exists",
+			"Exercise":         exercise,
+			"Tiers":            tierOptions(),
+			"Form":             r.Form,
+			"AllEquipment":     allEquipment,
+			"SelectedRequired": idSliceToMap(reqIDs),
+			"SelectedOptional": idSliceToMap(optIDs),
 		}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		h.Templates.Render(w, r, "exercise_form.html", data)
@@ -298,6 +339,10 @@ func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: update exercise %d: %v", id, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if err := models.SyncExerciseEquipment(h.DB, id, reqIDs, optIDs); err != nil {
+		log.Printf("handlers: sync exercise equipment on update %d: %v", id, err)
 	}
 
 	http.Redirect(w, r, "/exercises/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
@@ -422,4 +467,45 @@ func (h *Exercises) ExerciseHistory(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: exercise history template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
+}
+
+// parseEquipmentSelections reads equipment_ids and equipment_type_{id} fields
+// from the form and returns required and optional equipment ID slices.
+func parseEquipmentSelections(r *http.Request) (required, optional []int64) {
+	for _, idStr := range r.Form["equipment_ids"] {
+		eqID, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			continue
+		}
+		if r.FormValue("equipment_type_"+idStr) == "optional" {
+			optional = append(optional, eqID)
+		} else {
+			required = append(required, eqID)
+		}
+	}
+	return required, optional
+}
+
+// exerciseEquipmentToMaps converts a slice of ExerciseEquipment into required
+// and optional maps keyed by equipment ID (for template checkbox state).
+func exerciseEquipmentToMaps(items []models.ExerciseEquipment) (req, opt map[int64]bool) {
+	req = make(map[int64]bool)
+	opt = make(map[int64]bool)
+	for _, item := range items {
+		if item.Optional {
+			opt[item.EquipmentID] = true
+		} else {
+			req[item.EquipmentID] = true
+		}
+	}
+	return req, opt
+}
+
+// idSliceToMap converts a slice of int64 IDs into a map[int64]bool.
+func idSliceToMap(ids []int64) map[int64]bool {
+	m := make(map[int64]bool, len(ids))
+	for _, id := range ids {
+		m[id] = true
+	}
+	return m
 }

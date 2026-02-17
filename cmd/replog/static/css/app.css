@@ -1989,3 +1989,21 @@ article.error-page [role="button"] {
 .inline-checkbox input[type="checkbox"] {
     margin: 0;
 }
+
+/* Equipment row in exercise form */
+.equipment-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+.equipment-row .inline-checkbox {
+    flex: 1;
+}
+.equipment-type-select {
+    width: auto;
+    min-width: 120px;
+    margin-bottom: 0;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}

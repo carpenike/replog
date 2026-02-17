@@ -211,6 +211,42 @@ func ListExerciseEquipment(db *sql.DB, exerciseID int64) ([]ExerciseEquipment, e
 	return items, rows.Err()
 }
 
+// SyncExerciseEquipment replaces all equipment links for an exercise.
+// required and optional are slices of equipment IDs.
+func SyncExerciseEquipment(db *sql.DB, exerciseID int64, required, optional []int64) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("models: sync exercise equipment begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Remove all existing links.
+	if _, err := tx.Exec(`DELETE FROM exercise_equipment WHERE exercise_id = ?`, exerciseID); err != nil {
+		return fmt.Errorf("models: sync exercise equipment delete: %w", err)
+	}
+
+	stmt, err := tx.Prepare(
+		`INSERT INTO exercise_equipment (exercise_id, equipment_id, optional) VALUES (?, ?, ?)`,
+	)
+	if err != nil {
+		return fmt.Errorf("models: sync exercise equipment prepare: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, eqID := range required {
+		if _, err := stmt.Exec(exerciseID, eqID, 0); err != nil {
+			return fmt.Errorf("models: sync exercise equipment insert required (equipment=%d): %w", eqID, err)
+		}
+	}
+	for _, eqID := range optional {
+		if _, err := stmt.Exec(exerciseID, eqID, 1); err != nil {
+			return fmt.Errorf("models: sync exercise equipment insert optional (equipment=%d): %w", eqID, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
 // --- Athlete Equipment (inventory) ---
 
 // AddAthleteEquipment adds an equipment item to an athlete's inventory.

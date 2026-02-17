@@ -42,6 +42,28 @@
                        value="{{ if .Exercise }}{{ if .Exercise.RestSeconds.Valid }}{{ .Exercise.RestSeconds.Int64 }}{{ end }}{{ end }}">
             </label>
 
+            {{ if .AllEquipment }}
+            <fieldset>
+                <legend>Equipment Requirements</legend>
+                {{ $selectedRequired := .SelectedRequired }}
+                {{ $selectedOptional := .SelectedOptional }}
+                {{ range .AllEquipment }}
+                <div class="equipment-row">
+                    <label class="inline-checkbox">
+                        <input type="checkbox" name="equipment_ids" value="{{ .ID }}"
+                               {{ if index $selectedRequired .ID }}checked{{ end }}
+                               {{ if index $selectedOptional .ID }}checked{{ end }}>
+                        {{ .Name }}
+                    </label>
+                    <select name="equipment_type_{{ .ID }}" class="equipment-type-select">
+                        <option value="required" {{ if index $selectedRequired .ID }}selected{{ end }}>Required</option>
+                        <option value="optional" {{ if index $selectedOptional .ID }}selected{{ end }}>Optional</option>
+                    </select>
+                </div>
+                {{ end }}
+            </fieldset>
+            {{ end }}
+
             <div role="group">
                 <button type="submit">{{ if .Exercise }}Save Changes{{ else }}Create Exercise{{ end }}</button>
                 <a href="/exercises" role="button" class="secondary">Cancel</a>
