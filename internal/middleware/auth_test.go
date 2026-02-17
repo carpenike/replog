@@ -234,7 +234,7 @@ func TestCanAccessAthlete(t *testing.T) {
 func TestRequireCoach_ForbidsNonCoach(t *testing.T) {
 	nonCoach := &models.User{IsCoach: false}
 
-	handler := RequireCoach(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := RequireCoach(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("handler should not be called for non-coach")
 	}))
 
@@ -254,7 +254,7 @@ func TestRequireCoach_AllowsCoach(t *testing.T) {
 	coach := &models.User{IsCoach: true}
 	called := false
 
-	handler := RequireCoach(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := RequireCoach(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 		w.WriteHeader(http.StatusOK)
 	}))

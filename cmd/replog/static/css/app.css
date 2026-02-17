@@ -1748,3 +1748,35 @@ input[inputmode="numeric"] {
     gap: var(--space-sm);
     align-items: center;
 }
+
+/* ---- Error Page ---- */
+article.error-page {
+    text-align: center;
+    margin: var(--space-2xl) auto;
+    padding: var(--space-2xl) var(--space-lg);
+    max-width: 500px;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+article.error-page .error-code {
+    font-size: 5rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+article.error-page h1 {
+    margin-bottom: var(--space-md);
+}
+
+article.error-page p {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-xl);
+}
+
+article.error-page [role="button"] {
+    display: inline-block;
+}

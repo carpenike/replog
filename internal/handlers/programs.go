@@ -41,7 +41,7 @@ func (h *Programs) List(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) NewForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *Programs) NewForm(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) Create(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -186,7 +186,7 @@ func (h *Programs) Show(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) EditForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -216,7 +216,7 @@ func (h *Programs) EditForm(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) Update(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -261,7 +261,7 @@ func (h *Programs) Update(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) Delete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -289,7 +289,7 @@ func (h *Programs) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) AddSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -360,7 +360,7 @@ func (h *Programs) AddSet(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) DeleteSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -398,7 +398,7 @@ func (h *Programs) DeleteSet(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -443,7 +443,7 @@ func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) DeactivateProgram(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -509,7 +509,7 @@ func (h *Programs) Prescription(w http.ResponseWriter, r *http.Request) {
 func (h *Programs) AssignProgramForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 

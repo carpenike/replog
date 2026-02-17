@@ -26,7 +26,7 @@ type Users struct {
 func (h *Users) List(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -59,7 +59,7 @@ func (h *Users) List(w http.ResponseWriter, r *http.Request) {
 func (h *Users) NewForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *Users) NewForm(w http.ResponseWriter, r *http.Request) {
 func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -172,7 +172,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 func (h *Users) EditForm(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
 	if !authUser.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -221,7 +221,7 @@ func (h *Users) EditForm(w http.ResponseWriter, r *http.Request) {
 func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
 	if !authUser.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -307,7 +307,7 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 func (h *Users) Delete(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
 	if !authUser.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 

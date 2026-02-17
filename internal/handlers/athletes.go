@@ -52,7 +52,7 @@ func (h *Athletes) List(w http.ResponseWriter, r *http.Request) {
 func (h *Athletes) NewForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -69,7 +69,7 @@ func (h *Athletes) NewForm(w http.ResponseWriter, r *http.Request) {
 func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -128,11 +128,11 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 			ownProfile := user.AthleteID.Valid && user.AthleteID.Int64 == id
 			ownsAthlete := athlete.CoachID.Valid && athlete.CoachID.Int64 == user.ID
 			if !ownProfile && !ownsAthlete {
-				http.Error(w, "Forbidden", http.StatusForbidden)
+				h.Templates.Forbidden(w, r)
 				return
 			}
 		} else if !user.AthleteID.Valid || user.AthleteID.Int64 != id {
-			http.Error(w, "Forbidden", http.StatusForbidden)
+			h.Templates.Forbidden(w, r)
 			return
 		}
 	}
@@ -272,7 +272,7 @@ func (h *Athletes) EditForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !middleware.CanManageAthlete(user, athlete) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -308,7 +308,7 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !middleware.CanManageAthlete(user, athlete) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -367,7 +367,7 @@ func (h *Athletes) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !middleware.CanManageAthlete(user, athlete) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -407,7 +407,7 @@ func (h *Athletes) Promote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !middleware.CanManageAthlete(user, athlete) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 

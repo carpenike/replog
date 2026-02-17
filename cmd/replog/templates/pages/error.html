@@ -1,0 +1,10 @@
+{{ define "title" }}RepLog — {{ .ErrorTitle }}{{ end }}
+
+{{ define "content" }}
+        <article class="error-page">
+            <div class="error-code">{{ .ErrorCode }}</div>
+            <h1>{{ .ErrorTitle }}</h1>
+            <p>{{ .ErrorMessage }}</p>
+            <a href="/" role="button">Go Home</a>
+        </article>
+{{ end }}

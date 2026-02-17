@@ -43,7 +43,7 @@ func (h *Exercises) List(w http.ResponseWriter, r *http.Request) {
 func (h *Exercises) NewForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -60,7 +60,7 @@ func (h *Exercises) NewForm(w http.ResponseWriter, r *http.Request) {
 func (h *Exercises) Create(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -179,7 +179,7 @@ func (h *Exercises) Show(w http.ResponseWriter, r *http.Request) {
 func (h *Exercises) EditForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -214,7 +214,7 @@ func (h *Exercises) EditForm(w http.ResponseWriter, r *http.Request) {
 func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -276,7 +276,7 @@ func (h *Exercises) Update(w http.ResponseWriter, r *http.Request) {
 func (h *Exercises) Delete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -329,7 +329,7 @@ func (h *Exercises) ExerciseHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 

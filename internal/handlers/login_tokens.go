@@ -61,7 +61,7 @@ func (h *LoginTokens) TokenLogin(w http.ResponseWriter, r *http.Request) {
 func (h *LoginTokens) GenerateToken(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
 	if !authUser.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -123,7 +123,7 @@ func (h *LoginTokens) GenerateToken(w http.ResponseWriter, r *http.Request) {
 func (h *LoginTokens) DeleteToken(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
 	if !authUser.IsCoach {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 

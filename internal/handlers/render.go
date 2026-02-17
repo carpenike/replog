@@ -232,6 +232,50 @@ func (tc TemplateCache) RenderErrorFragment(w http.ResponseWriter, msg string) e
 	return ts.ExecuteTemplate(w, "error-fragment", msg)
 }
 
+// RenderErrorPage renders a full-page styled error with the base layout.
+// It sets the HTTP status code and displays a user-friendly error page with
+// title, message, and a link back home. For non-boosted htmx requests, only
+// the content fragment is returned.
+func (tc TemplateCache) RenderErrorPage(w http.ResponseWriter, r *http.Request, status int, title, message string) {
+	data := map[string]any{
+		"ErrorCode":    status,
+		"ErrorTitle":   title,
+		"ErrorMessage": message,
+	}
+
+	// Inject authenticated user for base layout nav rendering.
+	if user := middleware.UserFromContext(r.Context()); user != nil {
+		data["User"] = user
+	}
+
+	// Inject user preferences for template helpers.
+	if prefs := middleware.PrefsFromContext(r.Context()); prefs != nil {
+		data["Prefs"] = prefs
+	}
+
+	// Inject CSRF token.
+	if token := middleware.CSRFTokenFromContext(r.Context()); token != "" {
+		data["CSRFToken"] = token
+	}
+
+	w.WriteHeader(status)
+
+	ts, ok := tc["error.html"]
+	if !ok {
+		// Fallback to plain text if error template is missing.
+		http.Error(w, fmt.Sprintf("%d %s", status, title), status)
+		return
+	}
+
+	// Non-boosted htmx requests get just the content fragment.
+	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Boosted") != "true" {
+		ts.ExecuteTemplate(w, "content", data)
+		return
+	}
+
+	ts.ExecuteTemplate(w, "base", data)
+}
+
 // Render executes a page template with the base layout. It automatically injects
 // the authenticated User into the template data for nav rendering. For non-boosted
 // htmx requests, only the content fragment is returned.
@@ -272,4 +316,22 @@ func (tc TemplateCache) Render(w http.ResponseWriter, r *http.Request, name stri
 	}
 
 	return ts.ExecuteTemplate(w, "base", data)
+}
+
+// Forbidden renders a 403 error page. Convenience wrapper around RenderErrorPage.
+func (tc TemplateCache) Forbidden(w http.ResponseWriter, r *http.Request) {
+	tc.RenderErrorPage(w, r, http.StatusForbidden, "Access Denied",
+		"You don't have permission to perform this action.")
+}
+
+// NotFound renders a 404 error page. Convenience wrapper around RenderErrorPage.
+func (tc TemplateCache) NotFound(w http.ResponseWriter, r *http.Request) {
+	tc.RenderErrorPage(w, r, http.StatusNotFound, "Not Found",
+		"The page you're looking for doesn't exist or has been moved.")
+}
+
+// ServerError renders a 500 error page. Convenience wrapper around RenderErrorPage.
+func (tc TemplateCache) ServerError(w http.ResponseWriter, r *http.Request) {
+	tc.RenderErrorPage(w, r, http.StatusInternalServerError, "Server Error",
+		"Something went wrong. Please try again later.")
 }

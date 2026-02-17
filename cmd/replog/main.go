@@ -187,6 +187,10 @@ func main() {
 	// Set up routes.
 	mux := http.NewServeMux()
 
+	// Error page renderer for middleware — uses the template cache to render
+	// styled error pages instead of plain text responses.
+	renderError := middleware.ErrorRenderer(tc.RenderErrorPage)
+
 	// Static files and health check — no auth required.
 	mux.Handle("GET /static/", staticCacheControl(http.FileServerFS(staticFS)))
 	mux.HandleFunc("GET /health", handleHealth)
@@ -205,12 +209,12 @@ func main() {
 	// Coach-only routes — RequireAuth + CSRF + RequireCoach for defense-in-depth.
 	// Handlers also check is_coach inline, but this provides an extra layer.
 	requireCoach := func(h http.HandlerFunc) http.Handler {
-		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, middleware.RequireCoach(http.HandlerFunc(h))))
+		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, middleware.RequireCoach(renderError, http.HandlerFunc(h))))
 	}
 
 	// Admin-only routes — RequireAuth + CSRF + RequireAdmin for user management.
 	requireAdmin := func(h http.HandlerFunc) http.Handler {
-		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, middleware.RequireAdmin(http.HandlerFunc(h))))
+		return middleware.RequireAuth(sessionManager, db, middleware.CSRFProtect(sessionManager, middleware.RequireAdmin(renderError, http.HandlerFunc(h))))
 	}
 
 	mux.Handle("GET /{$}", requireAuth(pages.Index))

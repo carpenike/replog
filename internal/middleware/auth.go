@@ -105,12 +105,21 @@ func CanManageAthlete(user *models.User, athlete *models.Athlete) bool {
 	return false
 }
 
+// ErrorRenderer is a function that renders a styled error page. Middleware
+// accepts this as a parameter to avoid importing the handlers package.
+type ErrorRenderer func(w http.ResponseWriter, r *http.Request, status int, title, message string)
+
 // RequireCoach returns 403 if the user is not a coach or admin.
-func RequireCoach(next http.Handler) http.Handler {
+// If onError is nil, falls back to plain text http.Error.
+func RequireCoach(onError ErrorRenderer, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := UserFromContext(r.Context())
 		if user == nil || (!user.IsCoach && !user.IsAdmin) {
-			http.Error(w, "Forbidden — coach access required", http.StatusForbidden)
+			if onError != nil {
+				onError(w, r, http.StatusForbidden, "Access Denied", "You need coach or admin permissions to access this page. Please contact your administrator if you believe this is an error.")
+			} else {
+				http.Error(w, "Forbidden — coach access required", http.StatusForbidden)
+			}
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -118,11 +127,16 @@ func RequireCoach(next http.Handler) http.Handler {
 }
 
 // RequireAdmin returns 403 if the user is not an admin.
-func RequireAdmin(next http.Handler) http.Handler {
+// If onError is nil, falls back to plain text http.Error.
+func RequireAdmin(onError ErrorRenderer, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := UserFromContext(r.Context())
 		if user == nil || !user.IsAdmin {
-			http.Error(w, "Forbidden — admin access required", http.StatusForbidden)
+			if onError != nil {
+				onError(w, r, http.StatusForbidden, "Access Denied", "You need admin permissions to access this page. Please contact your administrator if you believe this is an error.")
+			} else {
+				http.Error(w, "Forbidden — admin access required", http.StatusForbidden)
+			}
 			return
 		}
 		next.ServeHTTP(w, r)

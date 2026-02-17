@@ -22,7 +22,7 @@ type TrainingMaxes struct {
 func (h *TrainingMaxes) NewForm(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -33,7 +33,7 @@ func (h *TrainingMaxes) NewForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *TrainingMaxes) NewForm(w http.ResponseWriter, r *http.Request) {
 func (h *TrainingMaxes) Create(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (h *TrainingMaxes) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
@@ -146,7 +146,7 @@ func (h *TrainingMaxes) History(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 

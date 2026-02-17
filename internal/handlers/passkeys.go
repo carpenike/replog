@@ -231,7 +231,7 @@ func (h *Passkeys) DeleteCredential(w http.ResponseWriter, r *http.Request) {
 
 	// Only coaches can manage other users' passkeys; users can manage their own.
 	if !authUser.IsCoach && authUser.ID != userID {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		h.Templates.Forbidden(w, r)
 		return
 	}
 
