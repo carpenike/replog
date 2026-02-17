@@ -18,6 +18,7 @@ type AthleteProgram struct {
 	StartDate  string // DATE as YYYY-MM-DD
 	Active     bool
 	Notes      sql.NullString
+	Goal       sql.NullString // short-term cycle goal
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 
@@ -28,15 +29,19 @@ type AthleteProgram struct {
 }
 
 // AssignProgram assigns a program template to an athlete. Only one active program per athlete.
-func AssignProgram(db *sql.DB, athleteID, templateID int64, startDate, notes string) (*AthleteProgram, error) {
+func AssignProgram(db *sql.DB, athleteID, templateID int64, startDate, notes, goal string) (*AthleteProgram, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
+	var goalVal sql.NullString
+	if goal != "" {
+		goalVal = sql.NullString{String: goal, Valid: true}
+	}
 
 	result, err := db.Exec(
-		`INSERT INTO athlete_programs (athlete_id, template_id, start_date, notes) VALUES (?, ?, ?, ?)`,
-		athleteID, templateID, startDate, notesVal,
+		`INSERT INTO athlete_programs (athlete_id, template_id, start_date, notes, goal) VALUES (?, ?, ?, ?, ?)`,
+		athleteID, templateID, startDate, notesVal, goalVal,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -53,13 +58,13 @@ func AssignProgram(db *sql.DB, athleteID, templateID int64, startDate, notes str
 func GetAthleteProgramByID(db *sql.DB, id int64) (*AthleteProgram, error) {
 	ap := &AthleteProgram{}
 	err := db.QueryRow(
-		`SELECT ap.id, ap.athlete_id, ap.template_id, ap.start_date, ap.active, ap.notes,
+		`SELECT ap.id, ap.athlete_id, ap.template_id, ap.start_date, ap.active, ap.notes, ap.goal,
 		        ap.created_at, ap.updated_at, pt.name, pt.num_weeks, pt.num_days
 		 FROM athlete_programs ap
 		 JOIN program_templates pt ON pt.id = ap.template_id
 		 WHERE ap.id = ?`,
 		id,
-	).Scan(&ap.ID, &ap.AthleteID, &ap.TemplateID, &ap.StartDate, &ap.Active, &ap.Notes,
+	).Scan(&ap.ID, &ap.AthleteID, &ap.TemplateID, &ap.StartDate, &ap.Active, &ap.Notes, &ap.Goal,
 		&ap.CreatedAt, &ap.UpdatedAt, &ap.TemplateName, &ap.NumWeeks, &ap.NumDays)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -74,13 +79,13 @@ func GetAthleteProgramByID(db *sql.DB, id int64) (*AthleteProgram, error) {
 func GetActiveProgram(db *sql.DB, athleteID int64) (*AthleteProgram, error) {
 	ap := &AthleteProgram{}
 	err := db.QueryRow(
-		`SELECT ap.id, ap.athlete_id, ap.template_id, ap.start_date, ap.active, ap.notes,
+		`SELECT ap.id, ap.athlete_id, ap.template_id, ap.start_date, ap.active, ap.notes, ap.goal,
 		        ap.created_at, ap.updated_at, pt.name, pt.num_weeks, pt.num_days
 		 FROM athlete_programs ap
 		 JOIN program_templates pt ON pt.id = ap.template_id
 		 WHERE ap.athlete_id = ? AND ap.active = 1`,
 		athleteID,
-	).Scan(&ap.ID, &ap.AthleteID, &ap.TemplateID, &ap.StartDate, &ap.Active, &ap.Notes,
+	).Scan(&ap.ID, &ap.AthleteID, &ap.TemplateID, &ap.StartDate, &ap.Active, &ap.Notes, &ap.Goal,
 		&ap.CreatedAt, &ap.UpdatedAt, &ap.TemplateName, &ap.NumWeeks, &ap.NumDays)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

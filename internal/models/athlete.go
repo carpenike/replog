@@ -13,6 +13,7 @@ type Athlete struct {
 	Name              string
 	Tier              sql.NullString
 	Notes             sql.NullString
+	Goal              sql.NullString // long-term athlete goal
 	CoachID           sql.NullInt64
 	TrackBodyWeight   bool
 	CreatedAt         time.Time
@@ -33,7 +34,7 @@ type AthleteCardInfo struct {
 }
 
 // CreateAthlete inserts a new athlete. coachID links the athlete to a coach.
-func CreateAthlete(db *sql.DB, name, tier, notes string, coachID sql.NullInt64) (*Athlete, error) {
+func CreateAthlete(db *sql.DB, name, tier, notes, goal string, coachID sql.NullInt64) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -42,10 +43,14 @@ func CreateAthlete(db *sql.DB, name, tier, notes string, coachID sql.NullInt64) 
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
+	var goalVal sql.NullString
+	if goal != "" {
+		goalVal = sql.NullString{String: goal, Valid: true}
+	}
 
 	result, err := db.Exec(
-		`INSERT INTO athletes (name, tier, notes, coach_id, track_body_weight) VALUES (?, ?, ?, ?, 1)`,
-		name, tierVal, notesVal, coachID,
+		`INSERT INTO athletes (name, tier, notes, goal, coach_id, track_body_weight) VALUES (?, ?, ?, ?, ?, 1)`,
+		name, tierVal, notesVal, goalVal, coachID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: create athlete %q: %w", name, err)
@@ -59,12 +64,12 @@ func CreateAthlete(db *sql.DB, name, tier, notes string, coachID sql.NullInt64) 
 func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 	a := &Athlete{}
 	err := db.QueryRow(
-		`SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.track_body_weight,
+		`SELECT a.id, a.name, a.tier, a.notes, a.goal, a.coach_id, a.track_body_weight,
 		        a.created_at, a.updated_at,
 		        COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 		                  WHERE ae.athlete_id = a.id AND ae.active = 1), 0)
 		 FROM athletes a WHERE a.id = ?`, id,
-	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.TrackBodyWeight,
+	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.Goal, &a.CoachID, &a.TrackBodyWeight,
 		&a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -76,7 +81,7 @@ func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 }
 
 // UpdateAthlete modifies an existing athlete's fields.
-func UpdateAthlete(db *sql.DB, id int64, name, tier, notes string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
+func UpdateAthlete(db *sql.DB, id int64, name, tier, notes, goal string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -85,10 +90,14 @@ func UpdateAthlete(db *sql.DB, id int64, name, tier, notes string, coachID sql.N
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
+	var goalVal sql.NullString
+	if goal != "" {
+		goalVal = sql.NullString{String: goal, Valid: true}
+	}
 
 	result, err := db.Exec(
-		`UPDATE athletes SET name = ?, tier = ?, notes = ?, coach_id = ?, track_body_weight = ? WHERE id = ?`,
-		name, tierVal, notesVal, coachID, trackBodyWeight, id,
+		`UPDATE athletes SET name = ?, tier = ?, notes = ?, goal = ?, coach_id = ?, track_body_weight = ? WHERE id = ?`,
+		name, tierVal, notesVal, goalVal, coachID, trackBodyWeight, id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: update athlete %d: %w", id, err)
@@ -162,7 +171,7 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 	var err error
 	if coachID.Valid {
 		rows, err = db.Query(`
-			SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.track_body_weight,
+			SELECT a.id, a.name, a.tier, a.notes, a.goal, a.coach_id, a.track_body_weight,
 			       a.created_at, a.updated_at,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
@@ -172,7 +181,7 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 			LIMIT 100`, coachID.Int64)
 	} else {
 		rows, err = db.Query(`
-			SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.track_body_weight,
+			SELECT a.id, a.name, a.tier, a.notes, a.goal, a.coach_id, a.track_body_weight,
 			       a.created_at, a.updated_at,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
@@ -188,7 +197,7 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 	var athletes []*Athlete
 	for rows.Next() {
 		a := &Athlete{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.TrackBodyWeight,
+		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.Goal, &a.CoachID, &a.TrackBodyWeight,
 			&a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
 			return nil, fmt.Errorf("models: scan athlete: %w", err)
 		}
@@ -202,7 +211,7 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 // Pass 0 for exceptAthleteID to exclude no one extra.
 func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error) {
 	rows, err := db.Query(`
-		SELECT a.id, a.name, a.tier, a.notes, a.coach_id, a.track_body_weight,
+		SELECT a.id, a.name, a.tier, a.notes, a.goal, a.coach_id, a.track_body_weight,
 		       a.created_at, a.updated_at,
 		       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 		                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
@@ -219,7 +228,7 @@ func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error
 	var athletes []*Athlete
 	for rows.Next() {
 		a := &Athlete{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.CoachID, &a.TrackBodyWeight,
+		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.Goal, &a.CoachID, &a.TrackBodyWeight,
 			&a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
 			return nil, fmt.Errorf("models: scan available athlete: %w", err)
 		}

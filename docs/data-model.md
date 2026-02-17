@@ -28,6 +28,10 @@ These were resolved interactively before schema design:
 
 11. **Foreign key delete behaviors are intentional.** Deleting an athlete cascades to their workouts, assignments, and training maxes. Deleting a user only unlinks their athlete profile (`SET NULL`). Deleting an exercise is restricted (`RESTRICT`) if it has been logged in any workout — prevents orphaned history.
 
+12. **Two-level goals: long-term and per-cycle.** The `goal` column on `athletes` holds a long-term training objective ("build overall strength"). The `goal` column on `athlete_programs` holds a short-term cycle-specific goal ("increase squat TM by 10 lbs"). Both are nullable free-text fields. This separation gives future LLM-based plan generation the right context at each level.
+
+13. **Rep type tracks per-side and timed sets.** The `rep_type` column on `prescribed_sets` and `workout_sets` uses an enum (`reps`, `each_side`, `seconds`). This avoids encoding modifiers in notes fields — "5/ea" or "30s" are first-class data. The `reps` column continues to hold the numeric value; `rep_type` determines how to display it.
+
 ## Entity Relationship Diagram
 
 ```mermaid
@@ -59,6 +63,7 @@ erDiagram
         TEXT name "COLLATE NOCASE"
         TEXT tier "nullable"
         TEXT notes "nullable"
+        TEXT goal "nullable"
         INTEGER coach_id FK "nullable"
         INTEGER track_body_weight "0 or 1, default 1"
         DATETIME created_at
@@ -111,6 +116,7 @@ erDiagram
         INTEGER exercise_id FK
         INTEGER set_number
         INTEGER reps
+        TEXT rep_type "reps, each_side, or seconds"
         REAL weight "nullable"
         REAL rpe "nullable, CHECK 1-10"
         TEXT notes "nullable"
@@ -173,6 +179,7 @@ erDiagram
         INTEGER day
         INTEGER set_number
         INTEGER reps "nullable, NULL = AMRAP"
+        TEXT rep_type "reps, each_side, or seconds"
         REAL percentage "nullable"
         TEXT notes "nullable"
     }
@@ -184,6 +191,7 @@ erDiagram
         DATE start_date
         INTEGER active "0 or 1"
         TEXT notes "nullable"
+        TEXT goal "nullable"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -240,6 +248,7 @@ erDiagram
 | `name`             | TEXT         | NOT NULL COLLATE NOCASE               |
 | `tier`             | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
 | `notes`            | TEXT         | NULL                                 |
+| `goal`             | TEXT         | NULL                                 |
 | `coach_id`         | INTEGER      | NULL, FK → users(id)                 |
 | `track_body_weight`| INTEGER      | NOT NULL DEFAULT 1, CHECK(track_body_weight IN (0, 1)) |
 | `created_at`       | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -247,6 +256,7 @@ erDiagram
 
 - `tier` is nullable — adults running their own programs don't use the tier system.
 - `notes` holds free-form coaching observations ("ready to try intermediate bench").
+- `goal` holds a long-term training objective ("build overall strength", "prepare for football season"). Nullable.
 - `track_body_weight` controls whether body weight tracking UI is visible for this athlete. Defaults to enabled.
 
 ### `exercises`
@@ -326,6 +336,7 @@ erDiagram
 | `set_number`| INTEGER      | NOT NULL                             |
 | `reps`      | INTEGER      | NOT NULL                             |
 | `weight`    | REAL         | NULL                                 |
+| `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds')) |
 | `rpe`       | REAL         | NULL, CHECK(rpe >= 1 AND rpe <= 10)  |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -333,6 +344,7 @@ erDiagram
 
 - One row = one set.
 - `weight` is nullable — bodyweight exercises (push-ups, bear crawls) don't need it.
+- `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s".
 - `rpe` is rate of perceived exertion (1–10 scale, half-steps allowed). Nullable — only logged when the athlete reports it.
 - `set_number` preserves ordering within exercise within workout.
 - `notes` holds per-set observations ("form broke down on rep 18").
@@ -397,11 +409,13 @@ erDiagram
 | `day`       | INTEGER      | NOT NULL                             |
 | `set_number`| INTEGER      | NOT NULL                             |
 | `reps`      | INTEGER      | NULL (NULL = AMRAP)                  |
+| `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds')) |
 | `percentage`| REAL         | NULL (% of training max)             |
 | `notes`     | TEXT         | NULL                                 |
 
 - Each row is one prescribed set within a template's week/day.
 - `reps = NULL` indicates an AMRAP (as many reps as possible) set.
+- `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s".
 - `percentage` is a decimal (e.g. 65.0 for 65%) used to calculate target weight from the athlete's training max.
 - `UNIQUE(template_id, exercise_id, week, day, set_number)` prevents duplicate sets.
 
@@ -415,6 +429,7 @@ erDiagram
 | `start_date`| DATE         | NOT NULL                             |
 | `active`    | INTEGER      | NOT NULL DEFAULT 1, CHECK(0 or 1)    |
 | `notes`     | TEXT         | NULL                                 |
+| `goal`      | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
@@ -422,6 +437,7 @@ erDiagram
 - Partial unique index enforces one active program per athlete.
 - Deactivation sets `active = 0`; reassignment creates a new row.
 - `start_date` is the reference point for calculating program position — position advances by counting completed workouts since start.
+- `goal` holds a cycle-specific training goal ("increase squat TM by 10 lbs"). Nullable.
 - Program cycles repeat automatically when all weeks × days are exhausted.
 
 ## SQLite DDL
@@ -436,7 +452,9 @@ CREATE TABLE IF NOT EXISTS athletes (
     name        TEXT    NOT NULL COLLATE NOCASE,
     tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
     notes       TEXT,
+    goal        TEXT,
     coach_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    track_body_weight INTEGER NOT NULL DEFAULT 1 CHECK(track_body_weight IN (0, 1)),
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -512,6 +530,7 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE RESTRICT,
     set_number  INTEGER NOT NULL,
     reps        INTEGER NOT NULL,
+    rep_type    TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds')),
     weight      REAL,
     rpe         REAL    CHECK(rpe >= 1 AND rpe <= 10),
     notes       TEXT,
@@ -634,6 +653,7 @@ CREATE TABLE IF NOT EXISTS prescribed_sets (
     day          INTEGER NOT NULL,
     set_number   INTEGER NOT NULL,
     reps         INTEGER,
+    rep_type     TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds')),
     percentage   REAL,
     notes        TEXT,
     UNIQUE(template_id, exercise_id, week, day, set_number)
@@ -649,6 +669,7 @@ CREATE TABLE IF NOT EXISTS athlete_programs (
     start_date   DATE    NOT NULL,
     active       INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
     notes        TEXT,
+    goal         TEXT,
     created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

@@ -90,7 +90,7 @@ func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athlete, err := models.CreateAthlete(h.DB, name, r.FormValue("tier"), r.FormValue("notes"), sql.NullInt64{Int64: user.ID, Valid: true})
+	athlete, err := models.CreateAthlete(h.DB, name, r.FormValue("tier"), r.FormValue("notes"), r.FormValue("goal"), sql.NullInt64{Int64: user.ID, Valid: true})
 	if err != nil {
 		log.Printf("handlers: create athlete: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -331,7 +331,7 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.UpdateAthlete(h.DB, id, name, r.FormValue("tier"), r.FormValue("notes"), athlete.CoachID, r.FormValue("track_body_weight") == "1")
+	_, err = models.UpdateAthlete(h.DB, id, name, r.FormValue("tier"), r.FormValue("notes"), r.FormValue("goal"), athlete.CoachID, r.FormValue("track_body_weight") == "1")
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Athlete not found", http.StatusNotFound)
 		return

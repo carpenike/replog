@@ -275,7 +275,7 @@ func TestPrograms_Delete_InUseConflict(t *testing.T) {
 	coach := seedCoach(t, db)
 	tmpl, _ := models.CreateProgramTemplate(db, "In Use", "", 1, 1)
 	a := seedAthlete(t, db, "Athlete", "")
-	models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "")
+	models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -398,7 +398,7 @@ func TestPrograms_DeleteSet_Success(t *testing.T) {
 	ex := seedExercise(t, db, "Bench", "", 0)
 
 	reps := 5
-	ps, _ := models.CreatePrescribedSet(db, tmpl.ID, ex.ID, 1, 1, 1, &reps, nil, "")
+	ps, _ := models.CreatePrescribedSet(db, tmpl.ID, ex.ID, 1, 1, 1, &reps, nil, "", "")
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -473,7 +473,7 @@ func TestPrograms_AssignProgram_AlreadyActive(t *testing.T) {
 	coach := seedCoach(t, db)
 	tmpl, _ := models.CreateProgramTemplate(db, "Conflict Test", "", 4, 4)
 	a := seedAthlete(t, db, "Athlete", "")
-	models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "")
+	models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -515,7 +515,7 @@ func TestPrograms_DeactivateProgram_Success(t *testing.T) {
 	coach := seedCoach(t, db)
 	tmpl, _ := models.CreateProgramTemplate(db, "Deactivate Test", "", 4, 4)
 	a := seedAthlete(t, db, "Athlete", "")
-	models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "")
+	models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -590,7 +590,7 @@ func TestPrograms_Prescription(t *testing.T) {
 
 	t.Run("with program", func(t *testing.T) {
 		tmpl, _ := models.CreateProgramTemplate(db, "Rx Test", "", 4, 4)
-		models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "")
+		models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
 		req := requestWithUser("GET", "/athletes/"+itoa(a.ID)+"/prescription", nil, coach)
 		req.SetPathValue("id", itoa(a.ID))

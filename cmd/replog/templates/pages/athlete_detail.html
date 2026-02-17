@@ -32,6 +32,10 @@
         <blockquote>{{ .Athlete.Notes.String }}</blockquote>
         {{ end }}
 
+        {{ if .Athlete.Goal.Valid }}
+        <p><strong>Goal:</strong> {{ .Athlete.Goal.String }}</p>
+        {{ end }}
+
         <!-- Hub Cards -->
         <div class="dashboard-grid">
             <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="card-link">

@@ -79,8 +79,8 @@ func TestDeleteProgramTemplate(t *testing.T) {
 
 	t.Run("delete in use", func(t *testing.T) {
 		tmpl, _ := CreateProgramTemplate(db, "In Use", "", 1, 1)
-		a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
-		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "")
+		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{})
+		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 		if err != nil {
 			t.Fatalf("assign program: %v", err)
 		}
@@ -101,7 +101,7 @@ func TestPrescribedSets(t *testing.T) {
 	t.Run("create prescribed set", func(t *testing.T) {
 		reps := 5
 		pct := 75.0
-		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 1, &reps, &pct, "heavy")
+		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 1, &reps, &pct, "", "heavy")
 		if err != nil {
 			t.Fatalf("create prescribed set: %v", err)
 		}
@@ -118,7 +118,7 @@ func TestPrescribedSets(t *testing.T) {
 
 	t.Run("create AMRAP set (nil reps)", func(t *testing.T) {
 		pct := 85.0
-		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 2, nil, &pct, "")
+		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 2, nil, &pct, "", "")
 		if err != nil {
 			t.Fatalf("create AMRAP set: %v", err)
 		}
@@ -152,7 +152,7 @@ func TestPrescribedSets(t *testing.T) {
 
 	t.Run("delete", func(t *testing.T) {
 		reps := 10
-		ps, _ := CreatePrescribedSet(db, tmpl.ID, e.ID, 2, 1, 1, &reps, nil, "")
+		ps, _ := CreatePrescribedSet(db, tmpl.ID, e.ID, 2, 1, 1, &reps, nil, "", "")
 		if err := DeletePrescribedSet(db, ps.ID); err != nil {
 			t.Fatalf("delete: %v", err)
 		}
@@ -163,10 +163,10 @@ func TestAthleteProgram(t *testing.T) {
 	db := testDB(t)
 
 	tmpl, _ := CreateProgramTemplate(db, "5/3/1", "", 4, 4)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{})
 
 	t.Run("assign program", func(t *testing.T) {
-		ap, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "Starting cycle")
+		ap, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "Starting cycle", "")
 		if err != nil {
 			t.Fatalf("assign: %v", err)
 		}
@@ -179,7 +179,7 @@ func TestAthleteProgram(t *testing.T) {
 	})
 
 	t.Run("duplicate active", func(t *testing.T) {
-		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-15", "")
+		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-15", "", "")
 		if err != ErrProgramAlreadyActive {
 			t.Errorf("err = %v, want ErrProgramAlreadyActive", err)
 		}
@@ -210,7 +210,7 @@ func TestAthleteProgram(t *testing.T) {
 		}
 
 		// Should be able to assign again.
-		_, err = AssignProgram(db, a.ID, tmpl.ID, "2026-03-01", "")
+		_, err = AssignProgram(db, a.ID, tmpl.ID, "2026-03-01", "", "")
 		if err != nil {
 			t.Fatalf("reassign: %v", err)
 		}
@@ -229,25 +229,25 @@ func TestGetPrescription(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		reps := 5
 		pct := 65.0
-		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, i, &reps, &pct, "")
-		CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, i, &reps, &pct, "")
+		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, i, &reps, &pct, "", "")
+		CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, i, &reps, &pct, "", "")
 	}
 
 	// W1D2: Bench 3×3 @ 75%
 	for i := 1; i <= 3; i++ {
 		reps := 3
 		pct := 75.0
-		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 2, i, &reps, &pct, "")
+		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 2, i, &reps, &pct, "", "")
 	}
 
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{})
 
 	// Set training maxes.
 	SetTrainingMax(db, a.ID, bench.ID, 200, "2026-01-01", "")
 	SetTrainingMax(db, a.ID, squat.ID, 300, "2026-01-01", "")
 
 	// Assign program starting Feb 1.
-	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "")
+	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
 	t.Run("first workout (W1D1)", func(t *testing.T) {
 		// Parse a fixed date for repeatable tests.
@@ -307,7 +307,7 @@ func TestGetPrescription(t *testing.T) {
 	})
 
 	t.Run("no active program", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "No Program", "", "", sql.NullInt64{})
+		a2, _ := CreateAthlete(db, "No Program", "", "", "", sql.NullInt64{})
 		rx, err := GetPrescription(db, a2.ID, mustParseDate("2026-02-01"))
 		if err != nil {
 			t.Fatalf("get prescription: %v", err)

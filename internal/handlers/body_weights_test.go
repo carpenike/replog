@@ -318,7 +318,7 @@ func TestBodyWeights_List_TrackingDisabled(t *testing.T) {
 	a := seedAthlete(t, db, "NoTrack", "")
 
 	// Disable body weight tracking.
-	models.UpdateAthlete(db, a.ID, "NoTrack", "", "", a.CoachID, false)
+	models.UpdateAthlete(db, a.ID, "NoTrack", "", "", "", a.CoachID, false)
 
 	h := &BodyWeights{DB: db, Templates: tc}
 	req := requestWithUser("GET", "/athletes/"+itoa(a.ID)+"/body-weights", nil, coach)
@@ -338,7 +338,7 @@ func TestBodyWeights_Create_TrackingDisabled(t *testing.T) {
 	a := seedAthlete(t, db, "NoTrack", "")
 
 	// Disable body weight tracking.
-	models.UpdateAthlete(db, a.ID, "NoTrack", "", "", a.CoachID, false)
+	models.UpdateAthlete(db, a.ID, "NoTrack", "", "", "", a.CoachID, false)
 
 	h := &BodyWeights{DB: db, Templates: tc}
 	form := url.Values{"date": {"2026-02-01"}, "weight": {"185"}}
@@ -360,7 +360,7 @@ func TestBodyWeights_Delete_TrackingDisabled(t *testing.T) {
 	bw, _ := models.CreateBodyWeight(db, a.ID, "2026-02-01", 185.0, "")
 
 	// Disable body weight tracking after creating an entry.
-	models.UpdateAthlete(db, a.ID, "NoTrack", "", "", a.CoachID, false)
+	models.UpdateAthlete(db, a.ID, "NoTrack", "", "", "", a.CoachID, false)
 
 	h := &BodyWeights{DB: db, Templates: tc}
 	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/body-weights/%d/delete", a.ID, bw.ID), nil, coach)

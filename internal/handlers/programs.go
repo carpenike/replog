@@ -345,8 +345,9 @@ func (h *Programs) AddSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notes := r.FormValue("notes")
+	repType := r.FormValue("rep_type")
 
-	_, err = models.CreatePrescribedSet(h.DB, templateID, exerciseID, week, day, setNumber, reps, percentage, notes)
+	_, err = models.CreatePrescribedSet(h.DB, templateID, exerciseID, week, day, setNumber, reps, percentage, repType, notes)
 	if err != nil {
 		log.Printf("handlers: add prescribed set to template %d: %v", templateID, err)
 		http.Error(w, "Failed to add prescribed set", http.StatusInternalServerError)
@@ -424,8 +425,9 @@ func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 		startDate = time.Now().Format("2006-01-02")
 	}
 	notes := r.FormValue("notes")
+	goal := r.FormValue("goal")
 
-	_, err = models.AssignProgram(h.DB, athleteID, templateID, startDate, notes)
+	_, err = models.AssignProgram(h.DB, athleteID, templateID, startDate, notes, goal)
 	if errors.Is(err, models.ErrProgramAlreadyActive) {
 		http.Error(w, "Athlete already has an active program. Deactivate it first.", http.StatusConflict)
 		return

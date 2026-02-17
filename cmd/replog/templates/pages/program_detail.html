@@ -97,6 +97,13 @@
                     <label for="reps_d{{ .Day }}">Reps
                         <input type="number" id="reps_d{{ .Day }}" name="reps" min="0" placeholder="AMRAP">
                     </label>
+                    <label for="rep_type_d{{ .Day }}">Rep Type
+                        <select id="rep_type_d{{ .Day }}" name="rep_type">
+                            <option value="reps">Reps</option>
+                            <option value="each_side">Each Side</option>
+                            <option value="seconds">Seconds</option>
+                        </select>
+                    </label>
                     <label for="pct_d{{ .Day }}">% TM
                         <input type="number" id="pct_d{{ .Day }}" name="percentage" min="0" max="200" step="0.5" placeholder="e.g. 75">
                     </label>

@@ -43,7 +43,7 @@
                     <summary>Last time ({{ $prev.Date }})</summary>
                     <div class="last-session-sets">
                         {{ range $prev.Sets }}
-                        <span class="last-set-chip">{{ .Reps }}{{ if .Weight.Valid }}×{{ formatWeight .Weight.Float64 }}{{ end }}{{ if .RPE.Valid }} @{{ formatWeight .RPE.Float64 }}{{ end }}</span>
+                        <span class="last-set-chip">{{ .RepsLabel }}{{ if .Weight.Valid }}×{{ formatWeight .Weight.Float64 }}{{ end }}{{ if .RPE.Valid }} @{{ formatWeight .RPE.Float64 }}{{ end }}</span>
                         {{ end }}
                     </div>
                 </details>
@@ -63,7 +63,7 @@
                         {{ range .Sets }}
                         <tr{{ if .RPE.Valid }} data-rpe="{{ .RPE.Float64 }}"{{ end }}>
                             <td>{{ .SetNumber }}</td>
-                            <td>{{ .Reps }}</td>
+                            <td>{{ .RepsLabel }}</td>
                             <td>{{ if .Weight.Valid }}{{ formatWeight .Weight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">BW</span>{{ end }}</td>
                             <td>{{ if .RPE.Valid }}{{ .RPE.Float64 }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                             <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
@@ -82,6 +82,7 @@
                 {{ $last := lastSet .Sets }}
                 <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets" class="quick-add-form">
                     <input type="hidden" name="exercise_id" value="{{ .ExerciseID }}">
+                    {{ if $last }}<input type="hidden" name="rep_type" value="{{ $last.RepType }}">{{ end }}
                     <div class="quick-add-grid">
                         <label class="field-sm">Reps
                             <input type="number" name="reps" min="1" required value="{{ if $last }}{{ $last.Reps }}{{ end }}" inputmode="numeric">
@@ -278,6 +279,13 @@
                     </label>
                     <label for="rpe" class="field-sm">RPE
                         <input type="number" id="rpe" name="rpe" step="0.5" min="1" max="10" placeholder="1-10" inputmode="numeric">
+                    </label>
+                    <label for="rep_type" class="field-sm">Rep Type
+                        <select id="rep_type" name="rep_type">
+                            <option value="reps">Reps</option>
+                            <option value="each_side">Each Side</option>
+                            <option value="seconds">Seconds</option>
+                        </select>
                     </label>
                 </div>
                 <label for="set_notes">Notes

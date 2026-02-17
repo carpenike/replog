@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS athletes (
     name                TEXT    NOT NULL COLLATE NOCASE,
     tier                TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
     notes               TEXT,
+    goal                TEXT,
     coach_id            INTEGER REFERENCES users(id) ON DELETE SET NULL,
     track_body_weight   INTEGER NOT NULL DEFAULT 1 CHECK(track_body_weight IN (0, 1)),
     created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -82,6 +83,7 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE RESTRICT,
     set_number  INTEGER NOT NULL,
     reps        INTEGER NOT NULL,
+    rep_type    TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds')),
     weight      REAL,
     rpe         REAL    CHECK(rpe >= 1 AND rpe <= 10),
     notes       TEXT,
@@ -156,6 +158,7 @@ CREATE TABLE IF NOT EXISTS prescribed_sets (
     day         INTEGER NOT NULL,
     set_number  INTEGER NOT NULL,
     reps        INTEGER,
+    rep_type    TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds')),
     percentage  REAL,
     notes       TEXT,
     UNIQUE(template_id, week, day, exercise_id, set_number)
@@ -171,6 +174,7 @@ CREATE TABLE IF NOT EXISTS athlete_programs (
     start_date  DATE    NOT NULL,
     active      INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
     notes       TEXT,
+    goal        TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

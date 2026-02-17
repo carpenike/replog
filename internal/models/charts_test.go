@@ -136,7 +136,7 @@ func TestBodyWeightChartData(t *testing.T) {
 	db := testDB(t)
 
 	// Create athlete and seed body weight entries.
-	athlete, err := CreateAthlete(db, "Chart Athlete", "", "", sql.NullInt64{})
+	athlete, err := CreateAthlete(db, "Chart Athlete", "", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestBodyWeightChartData_Empty(t *testing.T) {
 func TestTrainingMaxChartData(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "TM Chart Athlete", "", "", sql.NullInt64{})
+	athlete, err := CreateAthlete(db, "TM Chart Athlete", "", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestTrainingMaxChartData(t *testing.T) {
 func TestExerciseVolumeChart(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Vol Athlete", "", "", sql.NullInt64{})
+	athlete, err := CreateAthlete(db, "Vol Athlete", "", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -239,7 +239,7 @@ func TestExerciseVolumeChart(t *testing.T) {
 		if err != nil {
 			t.Fatalf("create workout: %v", err)
 		}
-		_, err = AddSet(db, w.ID, exercise.ID, 5, 100.0, 0, "")
+		_, err = AddSet(db, w.ID, exercise.ID, 5, 100.0, 0, "", "")
 		if err != nil {
 			t.Fatalf("add set: %v", err)
 		}
@@ -278,7 +278,7 @@ func TestExerciseVolumeChart_Empty(t *testing.T) {
 func TestWorkoutHeatmap(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Heatmap Athlete", "", "", sql.NullInt64{})
+	athlete, err := CreateAthlete(db, "Heatmap Athlete", "", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -292,7 +292,7 @@ func TestWorkoutHeatmap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
-	_, err = AddSet(db, w.ID, exercise.ID, 3, 200.0, 0, "")
+	_, err = AddSet(db, w.ID, exercise.ID, 3, 200.0, 0, "", "")
 	if err != nil {
 		t.Fatalf("add set: %v", err)
 	}
@@ -315,7 +315,7 @@ func TestWorkoutHeatmap(t *testing.T) {
 func TestWorkoutHeatmap_Empty(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Empty Heatmap", "", "", sql.NullInt64{})
+	athlete, err := CreateAthlete(db, "Empty Heatmap", "", "", "", sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}

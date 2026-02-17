@@ -488,6 +488,7 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notes := r.FormValue("notes")
+	repType := r.FormValue("rep_type")
 
 	var rpe float64
 	if rs := r.FormValue("rpe"); rs != "" {
@@ -513,9 +514,9 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if setCount > 1 {
-		_, err = models.AddMultipleSets(h.DB, workoutID, exerciseID, setCount, reps, weight, rpe, notes)
+		_, err = models.AddMultipleSets(h.DB, workoutID, exerciseID, setCount, reps, weight, rpe, repType, notes)
 	} else {
-		_, err = models.AddSet(h.DB, workoutID, exerciseID, reps, weight, rpe, notes)
+		_, err = models.AddSet(h.DB, workoutID, exerciseID, reps, weight, rpe, repType, notes)
 	}
 	if err != nil {
 		log.Printf("handlers: add set(s) to workout %d: %v", workoutID, err)

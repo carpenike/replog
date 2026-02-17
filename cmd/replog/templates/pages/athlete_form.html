@@ -32,6 +32,10 @@
                 <textarea id="notes" name="notes" rows="3">{{ if .Athlete }}{{ if .Athlete.Notes.Valid }}{{ .Athlete.Notes.String }}{{ end }}{{ end }}</textarea>
             </label>
 
+            <label for="goal">Goal
+                <textarea id="goal" name="goal" rows="2" placeholder="Long-term training goal">{{ if .Athlete }}{{ if .Athlete.Goal.Valid }}{{ .Athlete.Goal.String }}{{ end }}{{ end }}</textarea>
+            </label>
+
             <fieldset>
                 <label for="track_body_weight">
                     <input type="checkbox" id="track_body_weight" name="track_body_weight" value="1"
