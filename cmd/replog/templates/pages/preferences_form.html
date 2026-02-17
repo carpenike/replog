@@ -93,13 +93,13 @@
                 {{ end }}
             </div>
 
-            <fieldset role="group">
-                <input type="text" id="passkey-label" placeholder="Label (e.g. iPad)" aria-label="Passkey label">
-                <button type="button"
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+                <input type="text" id="passkey-label" placeholder="Label (e.g. iPad)" aria-label="Passkey label" style="flex:1; margin-bottom:0;">
+                <button type="button" style="width:auto; white-space:nowrap; margin-bottom:0;"
                         onclick="RepLogPasskeys.register('passkey-label', 'passkey-register-status')">
                     Register Passkey
                 </button>
-            </fieldset>
+            </div>
             <small id="passkey-register-status" class="passkey-status"></small>
         </section>
         <script src="/static/js/passkeys.js"></script>
