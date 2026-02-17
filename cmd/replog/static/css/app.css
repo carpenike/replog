@@ -1990,6 +1990,26 @@ article.error-page [role="button"] {
     margin: 0;
 }
 
+/* Exercise detail: equipment add form with select + optional + button */
+.inline-form fieldset[role="group"] {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+.inline-form fieldset[role="group"] select {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.inline-form fieldset[role="group"] .inline-checkbox {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+.inline-form fieldset[role="group"] button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 /* Equipment row in exercise form */
 .equipment-row {
     display: flex;
@@ -1999,10 +2019,13 @@ article.error-page [role="button"] {
 }
 .equipment-row .inline-checkbox {
     flex: 1;
+    min-width: 0;
 }
 .equipment-type-select {
     width: auto;
     min-width: 120px;
+    max-width: 140px;
+    flex-shrink: 0;
     margin-bottom: 0;
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
