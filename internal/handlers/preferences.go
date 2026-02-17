@@ -26,11 +26,20 @@ func (h *Preferences) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	passkeys, err := models.ListWebAuthnCredentialsByUser(h.DB, user.ID)
+	if err != nil {
+		log.Printf("handlers: list passkeys for user %d: %v", user.ID, err)
+		// Non-fatal — render without passkeys.
+		passkeys = nil
+	}
+
 	data := map[string]any{
 		"EditPrefs":       prefs,
 		"WeightUnits":     models.ValidWeightUnits,
 		"DateFormats":     models.ValidDateFormats,
 		"CommonTimezones": commonTimezones,
+		"Passkeys":        passkeys,
+		"UserID":          user.ID,
 	}
 	if err := h.Templates.Render(w, r, "preferences_form.html", data); err != nil {
 		log.Printf("handlers: render preferences form: %v", err)

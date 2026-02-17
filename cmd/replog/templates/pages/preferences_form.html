@@ -51,4 +51,56 @@
                 <a href="/" role="button" class="secondary">Cancel</a>
             </div>
         </form>
+
+        <hr>
+
+        <section data-passkey>
+            <h2>Passkeys</h2>
+            <p>Register Face ID, Touch ID, or a security key for passwordless sign-in.</p>
+
+            <div id="passkeys-list">
+                {{ if .Passkeys }}
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Label</th>
+                            <th scope="col">Registered</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Passkeys }}
+                        <tr>
+                            <td>{{ if .Label.Valid }}{{ .Label.String }}{{ else }}<em>Unnamed</em>{{ end }}</td>
+                            <td>{{ .CreatedAt.Format "Jan 2, 2006" }}</td>
+                            <td>
+                                <form method="POST"
+                                      action="/users/{{ $.UserID }}/passkeys/{{ .ID }}/delete"
+                                      hx-post="/users/{{ $.UserID }}/passkeys/{{ .ID }}/delete"
+                                      hx-target="#passkeys-list"
+                                      hx-swap="innerHTML"
+                                      hx-confirm="Remove this passkey?">
+                                    {{ if $.CSRFToken }}<input type="hidden" name="csrf_token" value="{{ $.CSRFToken }}">{{ end }}
+                                    <button type="submit" class="secondary outline" style="padding:0.25rem 0.5rem; font-size:0.875rem;">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ else }}
+                <p><em>No passkeys registered yet.</em></p>
+                {{ end }}
+            </div>
+
+            <fieldset role="group">
+                <input type="text" id="passkey-label" placeholder="Label (e.g. iPad)" aria-label="Passkey label">
+                <button type="button"
+                        onclick="RepLogPasskeys.register('passkey-label', 'passkey-register-status')">
+                    Register Passkey
+                </button>
+            </fieldset>
+            <small id="passkey-register-status" class="passkey-status"></small>
+        </section>
+        <script src="/static/js/passkeys.js"></script>
 {{ end }}

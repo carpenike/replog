@@ -7,6 +7,7 @@
     <title>RepLog — Login</title>
     <link rel="stylesheet" href="/static/css/pico.min.css">
     <link rel="stylesheet" href="/static/css/app.css">
+    <script src="/static/js/passkeys.js"></script>
     <script>
         (function() {
             var saved = localStorage.getItem("theme") || "dark";
@@ -26,16 +27,27 @@
             <div class="alert alert-error" role="alert">{{ .Error }}</div>
             {{ end }}
 
-            <form method="POST" action="/login">
-                <label for="username">Username
-                    <input type="text" id="username" name="username" required autofocus autocomplete="username"
-                           {{ if .Error }}aria-invalid="true"{{ end }}>
-                </label>
-                <label for="password">Password
-                    <input type="password" id="password" name="password" required autocomplete="current-password">
-                </label>
-                <button type="submit">Sign In</button>
-            </form>
+            <div data-passkey style="margin-bottom:1rem;">
+                <button type="button" class="contrast outline" style="width:100%;"
+                        onclick="RepLogPasskeys.login('passkey-login-status')">
+                    Sign in with Passkey
+                </button>
+                <small id="passkey-login-status" class="passkey-status"></small>
+            </div>
+
+            <details open>
+                <summary>Sign in with password</summary>
+                <form method="POST" action="/login">
+                    <label for="username">Username
+                        <input type="text" id="username" name="username" required autofocus autocomplete="username"
+                               {{ if .Error }}aria-invalid="true"{{ end }}>
+                    </label>
+                    <label for="password">Password
+                        <input type="password" id="password" name="password" required autocomplete="current-password">
+                    </label>
+                    <button type="submit">Sign In</button>
+                </form>
+            </details>
         </article>
     </main>
 </body>

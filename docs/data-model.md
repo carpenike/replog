@@ -601,6 +601,39 @@ WHEN OLD.updated_at = NEW.updated_at
 BEGIN
     UPDATE athlete_programs SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
+
+CREATE TABLE IF NOT EXISTS login_tokens (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token       TEXT    NOT NULL UNIQUE,
+    label       TEXT,
+    expires_at  DATETIME,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_tokens_token ON login_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_login_tokens_user_id ON login_tokens(user_id);
+
+CREATE TABLE IF NOT EXISTS webauthn_credentials (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    credential_id   BLOB    NOT NULL UNIQUE,
+    public_key      BLOB    NOT NULL,
+    attestation_type TEXT   NOT NULL DEFAULT '',
+    transport       TEXT,
+    sign_count      INTEGER NOT NULL DEFAULT 0,
+    clone_warning   INTEGER NOT NULL DEFAULT 0 CHECK(clone_warning IN (0, 1)),
+    attachment      TEXT    NOT NULL DEFAULT '',
+    aaguid          BLOB,
+    flags_user_present    INTEGER NOT NULL DEFAULT 0 CHECK(flags_user_present IN (0, 1)),
+    flags_user_verified   INTEGER NOT NULL DEFAULT 0 CHECK(flags_user_verified IN (0, 1)),
+    flags_backup_eligible INTEGER NOT NULL DEFAULT 0 CHECK(flags_backup_eligible IN (0, 1)),
+    flags_backup_state    INTEGER NOT NULL DEFAULT 0 CHECK(flags_backup_state IN (0, 1)),
+    label           TEXT,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user_id ON webauthn_credentials(user_id);
 ```
 
 ## Seed Data (Development)

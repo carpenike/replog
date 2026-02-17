@@ -167,6 +167,27 @@ CREATE TABLE IF NOT EXISTS login_tokens (
 CREATE INDEX IF NOT EXISTS idx_login_tokens_token ON login_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_login_tokens_user_id ON login_tokens(user_id);
 
+CREATE TABLE IF NOT EXISTS webauthn_credentials (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    credential_id   BLOB    NOT NULL UNIQUE,
+    public_key      BLOB    NOT NULL,
+    attestation_type TEXT   NOT NULL DEFAULT '',
+    transport       TEXT,
+    sign_count      INTEGER NOT NULL DEFAULT 0,
+    clone_warning   INTEGER NOT NULL DEFAULT 0 CHECK(clone_warning IN (0, 1)),
+    attachment      TEXT    NOT NULL DEFAULT '',
+    aaguid          BLOB,
+    flags_user_present    INTEGER NOT NULL DEFAULT 0 CHECK(flags_user_present IN (0, 1)),
+    flags_user_verified   INTEGER NOT NULL DEFAULT 0 CHECK(flags_user_verified IN (0, 1)),
+    flags_backup_eligible INTEGER NOT NULL DEFAULT 0 CHECK(flags_backup_eligible IN (0, 1)),
+    flags_backup_state    INTEGER NOT NULL DEFAULT 0 CHECK(flags_backup_state IN (0, 1)),
+    label           TEXT,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user_id ON webauthn_credentials(user_id);
+
 -- Session store for alexedwards/scs
 CREATE TABLE IF NOT EXISTS sessions (
     token  TEXT PRIMARY KEY,
@@ -262,6 +283,7 @@ DROP TRIGGER IF EXISTS trigger_user_preferences_updated_at;
 DROP TRIGGER IF EXISTS trigger_users_updated_at;
 
 DROP INDEX IF EXISTS idx_sessions_expiry;
+DROP INDEX IF EXISTS idx_webauthn_credentials_user_id;
 DROP INDEX IF EXISTS idx_login_tokens_user_id;
 DROP INDEX IF EXISTS idx_login_tokens_token;
 DROP INDEX IF EXISTS idx_user_preferences_user_id;
@@ -274,6 +296,7 @@ DROP INDEX IF EXISTS idx_users_unique_athlete_id;
 DROP INDEX IF EXISTS idx_athlete_exercises_unique_active;
 
 DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS webauthn_credentials;
 DROP TABLE IF EXISTS login_tokens;
 DROP TABLE IF EXISTS athlete_programs;
 DROP TABLE IF EXISTS prescribed_sets;

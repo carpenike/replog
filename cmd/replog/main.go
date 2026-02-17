@@ -8,10 +8,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
+
 	"github.com/carpenike/replog/internal/database"
 	"github.com/carpenike/replog/internal/handlers"
 	"github.com/carpenike/replog/internal/middleware"
@@ -121,6 +125,40 @@ func main() {
 		Templates: tc,
 	}
 
+	// Configure WebAuthn for passkey support.
+	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
+	rpOrigins := os.Getenv("REPLOG_WEBAUTHN_ORIGINS")
+
+	var passkeys *handlers.Passkeys
+	if rpID != "" && rpOrigins != "" {
+		origins := strings.Split(rpOrigins, ",")
+		for i := range origins {
+			origins[i] = strings.TrimSpace(origins[i])
+		}
+
+		wa, err := webauthn.New(&webauthn.Config{
+			RPDisplayName: "RepLog",
+			RPID:          rpID,
+			RPOrigins:     origins,
+			AuthenticatorSelection: protocol.AuthenticatorSelection{
+				UserVerification: protocol.VerificationPreferred,
+			},
+		})
+		if err != nil {
+			log.Fatalf("Failed to configure WebAuthn: %v", err)
+		}
+
+		passkeys = &handlers.Passkeys{
+			DB:        db,
+			Sessions:  sessionManager,
+			WebAuthn:  wa,
+			Templates: tc,
+		}
+		log.Printf("WebAuthn enabled: RPID=%s, Origins=%v", rpID, origins)
+	} else {
+		log.Printf("WebAuthn disabled: set REPLOG_WEBAUTHN_RPID and REPLOG_WEBAUTHN_ORIGINS to enable passkeys")
+	}
+
 	// Set up routes.
 	mux := http.NewServeMux()
 
@@ -207,6 +245,21 @@ func main() {
 	// Login Token management (coach-only).
 	mux.Handle("POST /users/{id}/tokens", requireCoach(loginTokens.GenerateToken))
 	mux.Handle("POST /users/{id}/tokens/{tokenID}/delete", requireCoach(loginTokens.DeleteToken))
+
+	// Passkey/WebAuthn routes (only registered when WebAuthn is configured).
+	if passkeys != nil {
+		// Login ceremony — unauthenticated, session loaded.
+		mux.Handle("GET /passkeys/login/begin", sessionManager.LoadAndSave(http.HandlerFunc(passkeys.BeginLogin)))
+		mux.Handle("POST /passkeys/login/finish", sessionManager.LoadAndSave(http.HandlerFunc(passkeys.FinishLogin)))
+
+		// Registration ceremony — requires auth.
+		mux.Handle("GET /passkeys/register/begin", requireAuth(passkeys.BeginRegistration))
+		mux.Handle("POST /passkeys/register/finish", requireAuth(passkeys.FinishRegistration))
+		mux.Handle("POST /passkeys/register/label", requireAuth(passkeys.SetLabel))
+
+		// Credential management — users can delete their own, coaches can delete any.
+		mux.Handle("POST /users/{id}/passkeys/{credentialID}/delete", requireAuth(passkeys.DeleteCredential))
+	}
 
 	// User Preferences (self-service — any authenticated user).
 	mux.Handle("GET /preferences", requireAuth(preferences.EditForm))

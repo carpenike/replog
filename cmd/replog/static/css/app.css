@@ -1651,3 +1651,18 @@ input[inputmode="numeric"] {
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
+
+/* =========================================================
+   Passkey / WebAuthn status messages
+   ========================================================= */
+.passkey-status {
+    display: block;
+    margin-top: var(--space-xs);
+    min-height: 1.2em;
+}
+.passkey-status.success {
+    color: var(--pico-ins-color, #2ecc40);
+}
+.passkey-status.error {
+    color: var(--pico-del-color, #e74c3c);
+}
