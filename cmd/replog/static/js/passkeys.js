@@ -193,8 +193,8 @@
             });
 
             if (!finishResp.ok) {
-                var err = await finishResp.json();
-                throw new Error(err.error || "Authentication failed");
+                var errBody = await finishResp.json().catch(function() { return {}; });
+                throw new Error(errBody.error || "Authentication failed. Please try another sign-in method.");
             }
 
             var result = await finishResp.json();

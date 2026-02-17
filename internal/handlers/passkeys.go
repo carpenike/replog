@@ -168,7 +168,7 @@ func (h *Passkeys) FinishLogin(w http.ResponseWriter, r *http.Request) {
 	foundUser, credential, err := h.WebAuthn.FinishPasskeyLogin(handler, session, r)
 	if err != nil {
 		log.Printf("handlers: finish webauthn login: %v", err)
-		jsonError(w, "Login failed", http.StatusUnauthorized)
+		jsonError(w, "Passkey not recognized. It may have been removed or belong to a different account. Try signing in with a password or login link instead.", http.StatusUnauthorized)
 		return
 	}
 
