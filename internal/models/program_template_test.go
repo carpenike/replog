@@ -358,14 +358,35 @@ func TestCopyWeek(t *testing.T) {
 		}
 	})
 
-	t.Run("copy to week with existing sets skips duplicates", func(t *testing.T) {
+	t.Run("copy replaces existing sets in target week", func(t *testing.T) {
 		// Week 2 already has 3 sets from the previous subtest.
+		// Add an extra set to week 2 that doesn't exist in week 1.
+		e3, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
+		r8 := 8
+		CreatePrescribedSet(db, tmpl.ID, e3.ID, 2, 3, 1, &r8, nil, nil, 0, "", "")
+
+		// Copy week 1 → week 2 again; should replace all 4 sets with 3.
 		inserted, err := CopyWeek(db, tmpl.ID, 1, 2)
 		if err != nil {
 			t.Fatalf("copy week: %v", err)
 		}
-		if inserted != 0 {
-			t.Errorf("inserted = %d, want 0 (all duplicates)", inserted)
+		if inserted != 3 {
+			t.Errorf("inserted = %d, want 3", inserted)
+		}
+
+		// Verify the extra set is gone.
+		sets, err := ListPrescribedSets(db, tmpl.ID)
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		week2Sets := 0
+		for _, s := range sets {
+			if s.Week == 2 {
+				week2Sets++
+			}
+		}
+		if week2Sets != 3 {
+			t.Errorf("week 2 sets = %d, want 3 (extra set should be deleted)", week2Sets)
 		}
 	})
 

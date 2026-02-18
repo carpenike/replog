@@ -250,16 +250,24 @@ func UpdatePrescribedSet(db *sql.DB, id int64, exerciseID int64, setNumber int, 
 	return GetPrescribedSetByID(db, id)
 }
 
-// CopyWeek duplicates all prescribed sets from sourceWeek to targetWeek
-// within the same program template. Existing sets in the target week that
-// would conflict (same day, exercise_id, set_number) are skipped.
-// Returns the number of sets actually inserted.
+// CopyWeek replaces all prescribed sets in targetWeek with copies from
+// sourceWeek within the same program template. Any existing sets in the
+// target week are deleted first. Returns the number of sets inserted.
 func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("models: copy week begin tx: %w", err)
 	}
 	defer tx.Rollback()
+
+	// Delete existing sets in target week.
+	_, err = tx.Exec(
+		`DELETE FROM prescribed_sets WHERE template_id = ? AND week = ?`,
+		templateID, targetWeek,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("models: copy week delete target: %w", err)
+	}
 
 	rows, err := tx.Query(
 		`SELECT day, exercise_id, set_number, reps, percentage,
@@ -310,9 +318,6 @@ func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, er
 			s.reps, s.percentage, s.absoluteWeight, s.sortOrder, s.repType, s.notes,
 		)
 		if err != nil {
-			if isUniqueViolation(err) {
-				continue // skip duplicates
-			}
 			return 0, fmt.Errorf("models: copy week insert: %w", err)
 		}
 		inserted++

@@ -44,7 +44,7 @@
                     <option value="{{ .Week }}">Week {{ .Week }}</option>
                     {{ end }}{{ end }}
                 </select>
-                <button type="submit" class="outline secondary" hx-confirm="Copy all sets from Week {{ .CurrentWeek }} to the selected week? Existing sets in the target week will be kept.">Copy</button>
+                <button type="submit" class="outline secondary" hx-confirm="Replace all sets in the selected week with sets from Week {{ .CurrentWeek }}?">Copy</button>
             </div>
         </form>
         {{ end }}
@@ -80,12 +80,62 @@
                         <td>{{ .RepsLabel }}</td>
                         <td>{{ if .Percentage.Valid }}{{ printf "%.0f" .Percentage.Float64 }}%{{ else }}{{ .AbsoluteWeightLabel }}{{ end }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                        <td>
+                        <td class="action-buttons">
+                            {{ if or $.User.IsCoach $.User.IsAdmin }}
+                            <button type="button" class="outline secondary" onclick="var r=document.getElementById('edit-set-{{ .ID }}');r.style.display=r.style.display==='none'?'':'none'">✎</button>
                             <form method="POST" action="/programs/{{ $.Program.ID }}/sets/{{ .ID }}/delete?week={{ $.CurrentWeek }}" class="inline">
                                 <button type="submit" class="outline contrast">✕</button>
                             </form>
+                            {{ end }}
                         </td>
                     </tr>
+                    {{ if or $.User.IsCoach $.User.IsAdmin }}
+                    {{ $set := . }}
+                    <tr id="edit-set-{{ .ID }}" class="edit-row" style="display: none;">
+                        <td colspan="7">
+                            <form method="POST" action="/programs/{{ $.Program.ID }}/sets/{{ .ID }}/update" class="edit-set-inline">
+                                <input type="hidden" name="week" value="{{ $.CurrentWeek }}">
+                                <div class="grid">
+                                    <label>Exercise
+                                        <select name="exercise_id" required>
+                                            {{ range $.Exercises }}
+                                            <option value="{{ .ID }}"{{ if eq .ID $set.ExerciseID }} selected{{ end }}>{{ .Name }}{{ if .Tier.Valid }} ({{ tierLabel .Tier.String }}){{ end }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                    <label>Set #
+                                        <input type="number" name="set_number" min="1" required value="{{ .SetNumber }}">
+                                    </label>
+                                    <label>Reps
+                                        <input type="number" name="reps" min="0" placeholder="AMRAP"{{ if .Reps.Valid }} value="{{ .Reps.Int64 }}"{{ end }}>
+                                    </label>
+                                    <label>Rep Type
+                                        <select name="rep_type">
+                                            <option value="reps"{{ if eq .RepType "reps" }} selected{{ end }}>Reps</option>
+                                            <option value="each_side"{{ if eq .RepType "each_side" }} selected{{ end }}>Each Side</option>
+                                            <option value="seconds"{{ if eq .RepType "seconds" }} selected{{ end }}>Seconds</option>
+                                            <option value="distance"{{ if eq .RepType "distance" }} selected{{ end }}>Distance (yd)</option>
+                                        </select>
+                                    </label>
+                                    <label>% TM
+                                        <input type="number" name="percentage" min="0" max="200" step="0.5" placeholder="e.g. 75"{{ if .Percentage.Valid }} value="{{ printf "%.1f" .Percentage.Float64 }}"{{ end }}>
+                                    </label>
+                                    <label>Fixed Weight
+                                        <input type="number" name="absolute_weight" min="0" step="0.5" placeholder="e.g. 25"{{ if .AbsoluteWeight.Valid }} value="{{ printf "%.1f" .AbsoluteWeight.Float64 }}"{{ end }}>
+                                    </label>
+                                    <label>Order
+                                        <input type="number" name="sort_order" min="0" value="{{ .SortOrder }}">
+                                    </label>
+                                    <label>Notes
+                                        <input type="text" name="notes" placeholder="Optional"{{ if .Notes.Valid }} value="{{ .Notes.String }}"{{ end }}>
+                                    </label>
+                                </div>
+                                <button type="submit" class="outline secondary">Save</button>
+                                <button type="button" class="outline" onclick="this.closest('.edit-row').style.display='none'">Cancel</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{ end }}
                     {{ end }}
                 </tbody>
             </table>

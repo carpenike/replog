@@ -418,6 +418,86 @@ func (h *Programs) DeleteSet(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
+// UpdateSet updates an existing prescribed set in a program template. Coach only.
+func (h *Programs) UpdateSet(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	templateID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid program ID", http.StatusBadRequest)
+		return
+	}
+
+	setID, err := strconv.ParseInt(r.PathValue("setID"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid set ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	exerciseID, err := strconv.ParseInt(r.FormValue("exercise_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Exercise is required", http.StatusBadRequest)
+		return
+	}
+
+	setNumber, err := strconv.Atoi(r.FormValue("set_number"))
+	if err != nil || setNumber < 1 {
+		http.Error(w, "Valid set number is required", http.StatusBadRequest)
+		return
+	}
+
+	var reps *int
+	if repsStr := r.FormValue("reps"); repsStr != "" {
+		v, err := strconv.Atoi(repsStr)
+		if err == nil {
+			reps = &v
+		}
+	}
+
+	var percentage *float64
+	if pctStr := r.FormValue("percentage"); pctStr != "" {
+		v, err := strconv.ParseFloat(pctStr, 64)
+		if err == nil {
+			percentage = &v
+		}
+	}
+
+	var absoluteWeight *float64
+	if awStr := r.FormValue("absolute_weight"); awStr != "" {
+		v, err := strconv.ParseFloat(awStr, 64)
+		if err == nil {
+			absoluteWeight = &v
+		}
+	}
+
+	sortOrder, _ := strconv.Atoi(r.FormValue("sort_order"))
+	notes := r.FormValue("notes")
+	repType := r.FormValue("rep_type")
+
+	_, err = models.UpdatePrescribedSet(h.DB, setID, exerciseID, setNumber, reps, percentage, absoluteWeight, sortOrder, repType, notes)
+	if err != nil {
+		log.Printf("handlers: update prescribed set %d: %v", setID, err)
+		http.Error(w, "Failed to update prescribed set", http.StatusInternalServerError)
+		return
+	}
+
+	weekParam := r.FormValue("week")
+	redirectURL := fmt.Sprintf("/programs/%d", templateID)
+	if weekParam != "" {
+		redirectURL += "?week=" + weekParam
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+}
+
 // AssignProgram assigns a program template to an athlete. Coach only.
 func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
