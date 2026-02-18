@@ -37,7 +37,7 @@
                     {{ if and .AvatarUser .AvatarUser.HasAvatar }}
                     <form method="POST" action="/avatars/delete" style="margin-top: 0.5rem;">
                         {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
-                        <button type="submit" class="secondary outline" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">Remove Avatar</button>
+                        <button type="submit" class="outline secondary">Remove Avatar</button>
                     </form>
                     {{ end }}
                 </div>
@@ -112,7 +112,7 @@
                                       hx-swap="innerHTML"
                                       hx-confirm="Remove this passkey?">
                                     {{ if $.CSRFToken }}<input type="hidden" name="csrf_token" value="{{ $.CSRFToken }}">{{ end }}
-                                    <button type="submit" class="secondary outline" style="padding:0.25rem 0.5rem; font-size:0.875rem;">Remove</button>
+                                    <button type="submit" class="outline secondary">Remove</button>
                                 </form>
                             </td>
                         </tr>
@@ -126,7 +126,7 @@
 
             <div style="display:flex; gap:0.5rem; align-items:center;">
                 <input type="text" id="passkey-label" placeholder="Label (e.g. iPad)" aria-label="Passkey label" style="flex:1; margin-bottom:0;">
-                <button type="button" style="width:auto; white-space:nowrap; margin-bottom:0;"
+                <button type="button" class="btn-inline"
                         onclick="RepLogPasskeys.register('passkey-label', 'passkey-register-status')">
                     Register Passkey
                 </button>

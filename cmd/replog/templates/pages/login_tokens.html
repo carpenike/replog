@@ -11,7 +11,7 @@
                 <p>Copy this link and send it to the device. It will only be shown once in full.</p>
                 <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem;">
                     <input type="text" value="{{ .NewTokenURL }}" readonly onclick="this.select()" aria-label="Login URL" style="flex:1; margin-bottom:0;">
-                    <button type="button" style="width:auto; white-space:nowrap; margin-bottom:0;" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='Copy'},2000)})">Copy</button>
+                    <button type="button" class="btn-inline" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='Copy'},2000)})">Copy</button>
                 </div>
                 <p><small>Tip: On iOS Safari, open this link, then tap Share → Add to Home Screen for one-tap login.</small></p>
             </article>
@@ -21,7 +21,7 @@
                 {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
                 <div style="display:flex; gap:0.5rem; align-items:center;">
                     <input type="text" id="token-label" name="label" placeholder="e.g. iPad, iPhone" autocomplete="off" aria-label="Device Label" style="flex:1; margin-bottom:0;">
-                    <button type="submit" style="width:auto; white-space:nowrap; margin-bottom:0;">Generate Link</button>
+                    <button type="submit" class="btn-inline">Generate Link</button>
                 </div>
             </form>
 
@@ -52,7 +52,7 @@
                                   hx-post="/users/{{ .UserID }}/tokens/{{ .ID }}/delete"
                                   hx-target="#login-tokens-section" hx-swap="outerHTML"
                                   hx-confirm="Revoke this login link? The device will need a new link to log in.">
-                                <button type="submit" class="outline secondary" style="margin:0; padding:0.25rem 0.5rem;">Revoke</button>
+                                <button type="submit" class="outline secondary">Revoke</button>
                             </form>
                         </td>
                     </tr>

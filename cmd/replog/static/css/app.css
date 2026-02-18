@@ -225,6 +225,22 @@ form > div[role="group"] > :last-child {
     padding: 0.35rem 0.75rem;
 }
 
+/* Danger / destructive primary button */
+.btn-danger {
+    --pico-background-color: #d1242f;
+    --pico-border-color: #d1242f;
+    --pico-color: #fff;
+    --pico-primary-hover-background: #b31d28;
+    --pico-primary-hover-border: #b31d28;
+}
+
+/* Inline utility buttons (copy, generate link, register passkey) */
+.btn-inline {
+    width: auto;
+    white-space: nowrap;
+    margin-bottom: 0;
+}
+
 /* ---- Inputs ---- */
 input:not([type="checkbox"]):not([type="radio"]),
 select,

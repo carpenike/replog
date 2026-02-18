@@ -58,7 +58,7 @@
                         {{ if or $.User.IsCoach $.User.IsAdmin }}
                         <td>
                             <form method="POST" action="/exercises/{{ $.Exercise.ID }}/equipment/{{ .EquipmentID }}/delete" class="inline">
-                                <button type="submit" class="outline contrast small">Remove</button>
+                                <button type="submit" class="outline contrast">Remove</button>
                             </form>
                         </td>
                         {{ end }}

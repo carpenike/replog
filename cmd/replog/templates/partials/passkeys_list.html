@@ -21,7 +21,7 @@
                       hx-swap="innerHTML"
                       hx-confirm="Remove this passkey?">
                     {{ if $.CSRFToken }}<input type="hidden" name="csrf_token" value="{{ $.CSRFToken }}">{{ end }}
-                    <button type="submit" class="secondary outline" style="padding:0.25rem 0.5rem; font-size:0.875rem;">Remove</button>
+                    <button type="submit" class="outline secondary">Remove</button>
                 </form>
             </td>
         </tr>

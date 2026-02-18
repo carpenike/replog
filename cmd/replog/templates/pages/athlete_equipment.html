@@ -44,7 +44,7 @@
                         <td>
                             <form method="POST" action="/athletes/{{ $.Athlete.ID }}/equipment/{{ .EquipmentID }}/delete" class="inline"
                                   hx-confirm="Remove {{ .EquipmentName }} from {{ $.Athlete.Name }}'s equipment?">
-                                <button type="submit" class="outline contrast small">Remove</button>
+                                <button type="submit" class="outline contrast">Remove</button>
                             </form>
                         </td>
                     </tr>

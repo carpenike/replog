@@ -25,10 +25,10 @@
                     {{ if or $.User.IsCoach $.User.IsAdmin }}
                     <td>
                         <div role="group">
-                            <a href="/equipment/{{ .ID }}/edit" role="button" class="outline secondary small">Edit</a>
+                            <a href="/equipment/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
                             <form method="POST" action="/equipment/{{ .ID }}/delete" class="inline"
                                   hx-confirm="Delete {{ .Name }}? This will remove it from all exercises and athletes.">
-                                <button type="submit" class="outline contrast small">Delete</button>
+                                <button type="submit" class="outline contrast">Delete</button>
                             </form>
                         </div>
                     </td>
