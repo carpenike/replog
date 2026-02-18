@@ -252,7 +252,7 @@ func UpdatePrescribedSet(db *sql.DB, id int64, exerciseID int64, setNumber int, 
 
 // CopyWeek duplicates all prescribed sets from sourceWeek to targetWeek
 // within the same program template. Existing sets in the target week that
-// would conflict (same day_number, exercise_id, set_number) are skipped.
+// would conflict (same day, exercise_id, set_number) are skipped.
 // Returns the number of sets actually inserted.
 func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, error) {
 	tx, err := db.Begin()
@@ -262,11 +262,11 @@ func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, er
 	defer tx.Rollback()
 
 	rows, err := tx.Query(
-		`SELECT day_number, exercise_id, set_number, reps, percentage,
+		`SELECT day, exercise_id, set_number, reps, percentage,
 		        absolute_weight, sort_order, rep_type, notes
 		   FROM prescribed_sets
-		  WHERE template_id = ? AND week_number = ?
-		  ORDER BY day_number, sort_order`,
+		  WHERE template_id = ? AND week = ?
+		  ORDER BY day, sort_order`,
 		templateID, sourceWeek,
 	)
 	if err != nil {
@@ -275,7 +275,7 @@ func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, er
 	defer rows.Close()
 
 	type setRow struct {
-		dayNumber      int
+		day            int
 		exerciseID     int64
 		setNumber      int
 		reps           sql.NullInt64
@@ -288,7 +288,7 @@ func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, er
 	var sets []setRow
 	for rows.Next() {
 		var s setRow
-		if err := rows.Scan(&s.dayNumber, &s.exerciseID, &s.setNumber,
+		if err := rows.Scan(&s.day, &s.exerciseID, &s.setNumber,
 			&s.reps, &s.percentage, &s.absoluteWeight,
 			&s.sortOrder, &s.repType, &s.notes); err != nil {
 			return 0, fmt.Errorf("models: copy week scan: %w", err)
@@ -303,10 +303,10 @@ func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, er
 	for _, s := range sets {
 		_, err := tx.Exec(
 			`INSERT INTO prescribed_sets
-			   (template_id, week_number, day_number, exercise_id, set_number,
+			   (template_id, week, day, exercise_id, set_number,
 			    reps, percentage, absolute_weight, sort_order, rep_type, notes)
 			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			templateID, targetWeek, s.dayNumber, s.exerciseID, s.setNumber,
+			templateID, targetWeek, s.day, s.exerciseID, s.setNumber,
 			s.reps, s.percentage, s.absoluteWeight, s.sortOrder, s.repType, s.notes,
 		)
 		if err != nil {

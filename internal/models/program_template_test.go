@@ -317,3 +317,65 @@ func TestGetPrescription(t *testing.T) {
 		}
 	})
 }
+
+func TestCopyWeek(t *testing.T) {
+	db := testDB(t)
+
+	tmpl, _ := CreateProgramTemplate(db, "Copy Test", "", 3, 3, false)
+	e1, _ := CreateExercise(db, "Squat", "", "", "", 0)
+	e2, _ := CreateExercise(db, "Bench", "", "", "", 0)
+
+	// Populate week 1 with sets across two days.
+	r5 := 5
+	r10 := 10
+	pct := 75.0
+	CreatePrescribedSet(db, tmpl.ID, e1.ID, 1, 1, 1, &r5, &pct, nil, 1, "", "")
+	CreatePrescribedSet(db, tmpl.ID, e1.ID, 1, 1, 2, &r5, &pct, nil, 1, "", "")
+	CreatePrescribedSet(db, tmpl.ID, e2.ID, 1, 2, 1, &r10, nil, nil, 2, "", "notes here")
+
+	t.Run("copy to empty week", func(t *testing.T) {
+		inserted, err := CopyWeek(db, tmpl.ID, 1, 2)
+		if err != nil {
+			t.Fatalf("copy week: %v", err)
+		}
+		if inserted != 3 {
+			t.Errorf("inserted = %d, want 3", inserted)
+		}
+
+		// Verify target week has the sets.
+		sets, err := ListPrescribedSets(db, tmpl.ID)
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		week2Sets := 0
+		for _, s := range sets {
+			if s.Week == 2 {
+				week2Sets++
+			}
+		}
+		if week2Sets != 3 {
+			t.Errorf("week 2 sets = %d, want 3", week2Sets)
+		}
+	})
+
+	t.Run("copy to week with existing sets skips duplicates", func(t *testing.T) {
+		// Week 2 already has 3 sets from the previous subtest.
+		inserted, err := CopyWeek(db, tmpl.ID, 1, 2)
+		if err != nil {
+			t.Fatalf("copy week: %v", err)
+		}
+		if inserted != 0 {
+			t.Errorf("inserted = %d, want 0 (all duplicates)", inserted)
+		}
+	})
+
+	t.Run("copy from empty week inserts nothing", func(t *testing.T) {
+		inserted, err := CopyWeek(db, tmpl.ID, 3, 2)
+		if err != nil {
+			t.Fatalf("copy week: %v", err)
+		}
+		if inserted != 0 {
+			t.Errorf("inserted = %d, want 0", inserted)
+		}
+	})
+}
