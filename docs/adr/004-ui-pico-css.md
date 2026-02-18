@@ -21,7 +21,7 @@ Adopt **[Pico CSS v2](https://picocss.com/)** as the CSS foundation, with a slim
 ### What we use
 
 - `pico.min.css` (~11kb gzipped) — embedded in binary via `static/css/`
-- `app.css` (~100-150 lines) — fitness-specific overrides and components
+- `app.css` (~2,100 lines) — fitness-specific overrides, sidebar navigation layout, component styles, and responsive breakpoints
 - Pico's semantic styling (elements auto-style without classes)
 - Pico's `.container` and `.grid` for layout
 - Pico's `<article>` card styling for section containers
@@ -74,4 +74,4 @@ The current CSS works but doesn't provide dark mode, has inconsistent spacing on
 - **Positive:** New pages/features auto-style from semantic HTML — less design debt
 - **Negative:** Pico has opinions about spacing, typography, and colors — customization requires CSS variable overrides, not class changes
 - **Negative:** Advanced components (complex grids, custom progress rings) still need manual CSS on top of Pico
-- **Migration:** All 18 page templates + base layout need updating; existing custom classes are systematically replaced with semantic elements or Pico equivalents
+- **Migration:** All 48 page templates + base layout updated; existing custom classes systematically replaced with semantic elements or Pico equivalents. The `app.css` custom layer grew well beyond the initial ~150 line estimate to ~2,100 lines, primarily due to sidebar navigation, chart components, workout logging UI, responsive breakpoints, and other fitness-domain components.

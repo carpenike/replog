@@ -666,8 +666,11 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 
 		result = append(result, ep)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate export programs: %w", err)
+	}
 
-	return result, rows.Err()
+	return result, nil
 }
 
 func assignmentToExport(a *AthleteExercise, active bool) ExportAssignment {

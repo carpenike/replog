@@ -33,10 +33,11 @@ func SetTrainingMax(db *sql.DB, athleteID, exerciseID int64, weight float64, eff
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO training_maxes (athlete_id, exercise_id, weight, effective_date, notes) VALUES (?, ?, ?, ?, ?)`,
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO training_maxes (athlete_id, exercise_id, weight, effective_date, notes) VALUES (?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, exerciseID, weight, effectiveDate, notesVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, ErrDuplicateTrainingMax
@@ -44,7 +45,6 @@ func SetTrainingMax(db *sql.DB, athleteID, exerciseID int64, weight float64, eff
 		return nil, fmt.Errorf("models: set training max: %w", err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetTrainingMaxByID(db, id)
 }
 
@@ -111,7 +111,10 @@ func ListTrainingMaxHistory(db *sql.DB, athleteID, exerciseID int64) ([]*Trainin
 		}
 		maxes = append(maxes, tm)
 	}
-	return maxes, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate training max history: %w", err)
+	}
+	return maxes, nil
 }
 
 // ListCurrentTrainingMaxes returns the current (latest) training max for each
@@ -143,7 +146,10 @@ func ListCurrentTrainingMaxes(db *sql.DB, athleteID int64) ([]*TrainingMax, erro
 		}
 		maxes = append(maxes, tm)
 	}
-	return maxes, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate current training maxes: %w", err)
+	}
+	return maxes, nil
 }
 
 // ProgramExerciseTM pairs an exercise from a program template with the athlete's
@@ -185,5 +191,8 @@ func ListProgramExerciseTMs(db *sql.DB, templateID, athleteID int64) ([]*Program
 		}
 		results = append(results, pet)
 	}
-	return results, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate program exercise TMs: %w", err)
+	}
+	return results, nil
 }

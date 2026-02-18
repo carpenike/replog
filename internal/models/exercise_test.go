@@ -49,7 +49,7 @@ func TestDeleteExercise(t *testing.T) {
 
 	t.Run("delete referenced (RESTRICT)", func(t *testing.T) {
 		e2, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
-		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{})
+		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 		w, _ := CreateWorkout(db, a.ID, "2026-01-01", "")
 		_, err := AddSet(db, w.ID, e2.ID, 5, 225, 0, "", "")
 		if err != nil {
@@ -203,7 +203,7 @@ func TestFeaturedExercise(t *testing.T) {
 func TestListFeaturedLifts(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Feat Athlete", "", "", "", sql.NullInt64{})
+	athlete, _ := CreateAthlete(db, "Feat Athlete", "", "", "", sql.NullInt64{}, true)
 	squat, _ := CreateExercise(db, "F Squat", "", "", "", 0, true)
 	bench, _ := CreateExercise(db, "F Bench", "", "", "", 0, true)
 	CreateExercise(db, "F Curl", "", "", "", 0) // not featured
@@ -280,7 +280,7 @@ func TestListFeaturedLifts(t *testing.T) {
 	})
 
 	t.Run("single rep set equals weight", func(t *testing.T) {
-		athlete2, _ := CreateAthlete(db, "Single Rep Athlete", "", "", "", sql.NullInt64{})
+		athlete2, _ := CreateAthlete(db, "Single Rep Athlete", "", "", "", sql.NullInt64{}, true)
 		w, _ := CreateWorkout(db, athlete2.ID, "2026-02-01", "")
 		AddSet(db, w.ID, squat.ID, 1, 405, 0, "", "")
 

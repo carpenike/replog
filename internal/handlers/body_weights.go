@@ -130,7 +130,10 @@ func (h *BodyWeights) Create(w http.ResponseWriter, r *http.Request) {
 
 	weight, err := strconv.ParseFloat(r.FormValue("weight"), 64)
 	if err != nil || weight <= 0 {
-		athlete, _ := models.GetAthleteByID(h.DB, athleteID)
+		athlete, bwErr := models.GetAthleteByID(h.DB, athleteID)
+		if bwErr != nil {
+			log.Printf("handlers: get athlete %d for body weight form: %v", athleteID, bwErr)
+		}
 		data := map[string]any{
 			"Athlete": athlete,
 			"Error":   "Weight must be a positive number",
@@ -145,8 +148,14 @@ func (h *BodyWeights) Create(w http.ResponseWriter, r *http.Request) {
 
 	_, err = models.CreateBodyWeight(h.DB, athleteID, date, weight, notes)
 	if errors.Is(err, models.ErrDuplicateBodyWeight) {
-		athlete, _ := models.GetAthleteByID(h.DB, athleteID)
-		page, _ := models.ListBodyWeights(h.DB, athleteID, 0)
+		athlete, dupErr := models.GetAthleteByID(h.DB, athleteID)
+		if dupErr != nil {
+			log.Printf("handlers: get athlete %d for duplicate BW: %v", athleteID, dupErr)
+		}
+		page, dupErr := models.ListBodyWeights(h.DB, athleteID, 0)
+		if dupErr != nil {
+			log.Printf("handlers: list body weights for athlete %d: %v", athleteID, dupErr)
+		}
 		var entries []*models.BodyWeight
 		if page != nil {
 			entries = page.Entries

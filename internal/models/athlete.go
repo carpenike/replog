@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -34,7 +35,8 @@ type AthleteCardInfo struct {
 }
 
 // CreateAthlete inserts a new athlete. coachID links the athlete to a coach.
-func CreateAthlete(db *sql.DB, name, tier, notes, goal string, coachID sql.NullInt64) (*Athlete, error) {
+// trackBodyWeight controls whether body weight tracking is enabled (default true for new athletes).
+func CreateAthlete(db *sql.DB, name, tier, notes, goal string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -48,15 +50,20 @@ func CreateAthlete(db *sql.DB, name, tier, notes, goal string, coachID sql.NullI
 		goalVal = sql.NullString{String: goal, Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO athletes (name, tier, notes, goal, coach_id, track_body_weight) VALUES (?, ?, ?, ?, ?, 1)`,
-		name, tierVal, notesVal, goalVal, coachID,
-	)
+	trackBWInt := 0
+	if trackBodyWeight {
+		trackBWInt = 1
+	}
+
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO athletes (name, tier, notes, goal, coach_id, track_body_weight) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+		name, tierVal, notesVal, goalVal, coachID, trackBWInt,
+	).Scan(&id)
 	if err != nil {
 		return nil, fmt.Errorf("models: create athlete %q: %w", name, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetAthleteByID(db, id)
 }
 
@@ -203,7 +210,10 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 		}
 		athletes = append(athletes, a)
 	}
-	return athletes, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate athletes: %w", err)
+	}
+	return athletes, nil
 }
 
 // ListAvailableAthletes returns athletes not yet linked to any user, plus the
@@ -234,7 +244,10 @@ func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error
 		}
 		athletes = append(athletes, a)
 	}
-	return athletes, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate available athletes: %w", err)
+	}
+	return athletes, nil
 }
 
 // ListAthleteCards returns enriched athlete data for the athlete list view.
@@ -280,76 +293,204 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 		cards = append(cards, c)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("models: iterate athlete cards: %w", err)
 	}
 
-	// Enrich each card with streak and BW trend.
+	if len(cards) == 0 {
+		return cards, nil
+	}
+
+	// Batch-enrich cards with streak and BW trend (2 queries instead of N×53).
+	athleteIDs := make([]int64, len(cards))
+	for i, c := range cards {
+		athleteIDs[i] = c.ID
+	}
+
+	streaks, err := batchWeekStreaks(db, athleteIDs)
+	if err != nil {
+		log.Printf("models: batch week streaks: %v", err)
+		// Non-fatal — streaks will show as 0.
+	}
+
+	bwTrends, err := batchBWTrends(db, athleteIDs)
+	if err != nil {
+		log.Printf("models: batch BW trends: %v", err)
+		// Non-fatal — trends will show as "".
+	}
+
 	for _, c := range cards {
-		c.WeekStreak = athleteWeekStreak(db, c.ID)
-		if c.TrackBodyWeight {
-			c.BWTrend = athleteBWTrend(db, c.ID)
+		if streaks != nil {
+			c.WeekStreak = streaks[c.ID]
+		}
+		if bwTrends != nil && c.TrackBodyWeight {
+			c.BWTrend = bwTrends[c.ID]
 		}
 	}
 
 	return cards, nil
 }
 
-// athleteWeekStreak counts consecutive weeks (ending this week) with at least one workout.
-func athleteWeekStreak(db *sql.DB, athleteID int64) int {
+// batchWeekStreaks computes consecutive week streaks for multiple athletes in
+// two queries total (one for workout dates, computed in Go) instead of up to
+// 52 queries per athlete.
+func batchWeekStreaks(db *sql.DB, athleteIDs []int64) (map[int64]int, error) {
+	if len(athleteIDs) == 0 {
+		return nil, nil
+	}
+
+	// Compute the current Monday.
 	now := time.Now()
 	weekday := int(now.Weekday())
 	if weekday == 0 {
 		weekday = 7
 	}
 	monday := now.AddDate(0, 0, -(weekday - 1))
-	streak := 0
-	for i := 0; i < 52; i++ {
-		weekStart := monday.AddDate(0, 0, -7*i)
-		weekEnd := weekStart.AddDate(0, 0, 7)
-		var count int
-		err := db.QueryRow(`
-			SELECT COUNT(*) FROM workouts
-			WHERE athlete_id = ? AND date(date) >= date(?) AND date(date) < date(?)`,
-			athleteID, weekStart.Format("2006-01-02"), weekEnd.Format("2006-01-02")).Scan(&count)
-		if err != nil || count == 0 {
-			break
-		}
-		streak++
-	}
-	return streak
-}
+	cutoffStr := monday.AddDate(0, 0, -7*52).Format("2006-01-02")
+	endStr := monday.AddDate(0, 0, 7).Format("2006-01-02")
 
-// athleteBWTrend returns "up", "down", or "flat" based on the last 3 body weight entries.
-func athleteBWTrend(db *sql.DB, athleteID int64) string {
+	// Build IN clause placeholders.
+	placeholders := make([]byte, 0, len(athleteIDs)*2)
+	args := make([]any, 0, len(athleteIDs)+2)
+	for i, id := range athleteIDs {
+		if i > 0 {
+			placeholders = append(placeholders, ',')
+		}
+		placeholders = append(placeholders, '?')
+		args = append(args, id)
+	}
+	args = append(args, cutoffStr, endStr)
+
+	// Single query: get all workout dates for all athletes in the last year.
 	rows, err := db.Query(`
-		SELECT weight FROM body_weights
-		WHERE athlete_id = ?
-		ORDER BY date DESC
-		LIMIT 3`, athleteID)
+		SELECT athlete_id, date(date) FROM workouts
+		WHERE athlete_id IN (`+string(placeholders)+`)
+		  AND date(date) >= date(?) AND date(date) < date(?)
+		ORDER BY athlete_id`, args...)
 	if err != nil {
-		return ""
+		return nil, fmt.Errorf("models: batch week streaks query: %w", err)
 	}
 	defer rows.Close()
 
-	var weights []float64
+	// Collect workout dates per athlete.
+	athleteDates := make(map[int64][]string)
 	for rows.Next() {
-		var w float64
-		if err := rows.Scan(&w); err != nil {
-			return ""
+		var aid int64
+		var dateStr string
+		if err := rows.Scan(&aid, &dateStr); err != nil {
+			return nil, fmt.Errorf("models: scan batch streak date: %w", err)
 		}
-		weights = append(weights, w)
+		athleteDates[aid] = append(athleteDates[aid], dateStr)
 	}
-	if len(weights) < 2 {
-		return ""
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate batch streak dates: %w", err)
 	}
 
-	newest := weights[0]
-	oldest := weights[len(weights)-1]
-	diff := newest - oldest
-	if diff > 0.5 {
-		return "up"
-	} else if diff < -0.5 {
-		return "down"
+	// Compute streaks in Go.
+	result := make(map[int64]int, len(athleteIDs))
+	for _, aid := range athleteIDs {
+		dates := athleteDates[aid]
+		if len(dates) == 0 {
+			continue
+		}
+
+		// Determine which week offsets have workouts.
+		weekHasWorkout := make(map[int]bool)
+		for _, ds := range dates {
+			t, err := time.Parse("2006-01-02", ds)
+			if err != nil {
+				continue
+			}
+			// Compute the Monday of this workout's week.
+			wd := int(t.Weekday())
+			if wd == 0 {
+				wd = 7
+			}
+			wMonday := t.AddDate(0, 0, -(wd - 1))
+			// Week offset: difference in days between current Monday and workout Monday, divided by 7.
+			diffDays := int(monday.Sub(wMonday).Hours() / 24)
+			weekOffset := diffDays / 7
+			if weekOffset >= 0 && weekOffset < 52 {
+				weekHasWorkout[weekOffset] = true
+			}
+		}
+
+		streak := 0
+		for i := 0; i < 52; i++ {
+			if !weekHasWorkout[i] {
+				break
+			}
+			streak++
+		}
+		result[aid] = streak
 	}
-	return "flat"
+
+	return result, nil
+}
+
+// batchBWTrends computes body weight trends for multiple athletes in a single
+// query using ROW_NUMBER() instead of one query per athlete.
+func batchBWTrends(db *sql.DB, athleteIDs []int64) (map[int64]string, error) {
+	if len(athleteIDs) == 0 {
+		return nil, nil
+	}
+
+	// Build IN clause placeholders.
+	placeholders := make([]byte, 0, len(athleteIDs)*2)
+	args := make([]any, 0, len(athleteIDs))
+	for i, id := range athleteIDs {
+		if i > 0 {
+			placeholders = append(placeholders, ',')
+		}
+		placeholders = append(placeholders, '?')
+		args = append(args, id)
+	}
+
+	// Single query: last 3 body weight entries per athlete via window function.
+	rows, err := db.Query(`
+		SELECT athlete_id, weight FROM (
+			SELECT athlete_id, weight, date,
+			       ROW_NUMBER() OVER (PARTITION BY athlete_id ORDER BY date DESC) AS rn
+			FROM body_weights
+			WHERE athlete_id IN (`+string(placeholders)+`)
+		) WHERE rn <= 3
+		ORDER BY athlete_id, rn`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("models: batch BW trends query: %w", err)
+	}
+	defer rows.Close()
+
+	// Collect weights per athlete (newest first).
+	athleteWeights := make(map[int64][]float64)
+	for rows.Next() {
+		var aid int64
+		var w float64
+		if err := rows.Scan(&aid, &w); err != nil {
+			return nil, fmt.Errorf("models: scan batch BW weight: %w", err)
+		}
+		athleteWeights[aid] = append(athleteWeights[aid], w)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate batch BW weights: %w", err)
+	}
+
+	// Compute trends.
+	result := make(map[int64]string, len(athleteIDs))
+	for _, aid := range athleteIDs {
+		weights := athleteWeights[aid]
+		if len(weights) < 2 {
+			continue
+		}
+		newest := weights[0]
+		oldest := weights[len(weights)-1]
+		diff := newest - oldest
+		if diff > 0.5 {
+			result[aid] = "up"
+		} else if diff < -0.5 {
+			result[aid] = "down"
+		} else {
+			result[aid] = "flat"
+		}
+	}
+
+	return result, nil
 }

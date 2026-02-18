@@ -8,7 +8,7 @@ import (
 func TestAssignmentLifecycle(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Assign Athlete", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Assign Athlete", "", "", "", sql.NullInt64{}, true)
 	e, _ := CreateExercise(db, "Assign Exercise", "foundational", "", "", 0)
 
 	t.Run("assign exercise", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestAssignmentLifecycle(t *testing.T) {
 func TestListDeactivatedAssignments(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Deact Athlete", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Deact Athlete", "", "", "", sql.NullInt64{}, true)
 	e1, _ := CreateExercise(db, "Deact Ex 1", "", "", "", 0)
 	e2, _ := CreateExercise(db, "Deact Ex 2", "", "", "", 0)
 
@@ -96,7 +96,7 @@ func TestListDeactivatedAssignments(t *testing.T) {
 func TestListUnassignedExercises(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Unassigned Athlete", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Unassigned Athlete", "", "", "", sql.NullInt64{}, true)
 	e1, _ := CreateExercise(db, "Assigned Ex", "", "", "", 0)
 	CreateExercise(db, "Free Ex", "", "", "", 0)
 
@@ -117,8 +117,8 @@ func TestListUnassignedExercises(t *testing.T) {
 func TestListAssignedAthletes(t *testing.T) {
 	db := testDB(t)
 
-	a1, _ := CreateAthlete(db, "Alice", "", "", "", sql.NullInt64{})
-	a2, _ := CreateAthlete(db, "Bob", "", "", "", sql.NullInt64{})
+	a1, _ := CreateAthlete(db, "Alice", "", "", "", sql.NullInt64{}, true)
+	a2, _ := CreateAthlete(db, "Bob", "", "", "", sql.NullInt64{}, true)
 	e, _ := CreateExercise(db, "Shared Exercise", "", "", "", 0)
 
 	AssignExercise(db, a1.ID, e.ID, 0)
@@ -165,7 +165,7 @@ func TestListAssignedAthletes(t *testing.T) {
 func TestAssignProgramExercises(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Program Athlete", "", "", "", sql.NullInt64{})
+	athlete, _ := CreateAthlete(db, "Program Athlete", "", "", "", sql.NullInt64{}, true)
 	ex1, _ := CreateExercise(db, "Squat", "", "", "", 0)
 	ex2, _ := CreateExercise(db, "Bench", "", "", "", 0)
 	ex3, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
@@ -204,7 +204,7 @@ func TestAssignProgramExercises(t *testing.T) {
 	})
 
 	t.Run("partial overlap", func(t *testing.T) {
-		athlete2, _ := CreateAthlete(db, "Partial Athlete", "", "", "", sql.NullInt64{})
+		athlete2, _ := CreateAthlete(db, "Partial Athlete", "", "", "", sql.NullInt64{}, true)
 		AssignExercise(db, athlete2.ID, ex1.ID, 0) // pre-assign one exercise
 
 		n, err := AssignProgramExercises(db, athlete2.ID, tmpl.ID)

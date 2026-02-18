@@ -162,7 +162,10 @@ func ListWebAuthnCredentialsByUser(db *sql.DB, userID int64) ([]*WebAuthnCredent
 		}
 		creds = append(creds, &wc)
 	}
-	return creds, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate webauthn credentials: %w", err)
+	}
+	return creds, nil
 }
 
 // GetWebAuthnCredentialsByUser returns all credentials as webauthn.Credential for the library.

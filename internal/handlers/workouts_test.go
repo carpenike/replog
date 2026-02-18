@@ -250,8 +250,12 @@ func TestWorkouts_AddSet_InvalidReps(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h.AddSet(rr, req)
 
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rr.Code)
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303 redirect, got %d", rr.Code)
+	}
+	loc := rr.Header().Get("Location")
+	if !strings.Contains(loc, "error=") {
+		t.Errorf("expected error param in redirect, got %q", loc)
 	}
 }
 
@@ -316,8 +320,12 @@ func TestWorkouts_AddSet_BulkTooMany(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h.AddSet(rr, req)
 
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 for >20 sets, got %d", rr.Code)
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303 redirect for >20 sets, got %d", rr.Code)
+	}
+	loc := rr.Header().Get("Location")
+	if !strings.Contains(loc, "error=") {
+		t.Errorf("expected error param in redirect, got %q", loc)
 	}
 }
 

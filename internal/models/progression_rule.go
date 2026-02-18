@@ -81,7 +81,10 @@ func ListProgressionRules(db *sql.DB, templateID int64) ([]*ProgressionRule, err
 		}
 		rules = append(rules, pr)
 	}
-	return rules, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate progression rules: %w", err)
+	}
+	return rules, nil
 }
 
 // DeleteProgressionRule removes a progression rule by ID.

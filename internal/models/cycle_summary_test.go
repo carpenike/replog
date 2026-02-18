@@ -9,7 +9,7 @@ import (
 func TestGetCycleSummary_NoProgramReturnsNil(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{}, true)
 
 	summary, err := GetCycleSummary(db, a.ID, time.Now())
 	if err != nil {
@@ -23,7 +23,7 @@ func TestGetCycleSummary_NoProgramReturnsNil(t *testing.T) {
 func TestGetCycleSummary_NoCycleCompletedReturnsNil(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{}, true)
 	tmpl, _ := CreateProgramTemplate(db, "531", "", 3, 4)
 	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
 
@@ -40,7 +40,7 @@ func TestGetCycleSummary_NoCycleCompletedReturnsNil(t *testing.T) {
 func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{}, true)
 	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
 	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 
@@ -134,7 +134,7 @@ func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 func TestGetCycleSummary_NoTMSkipsExercise(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{}, true)
 	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
 
 	tmpl, _ := CreateProgramTemplate(db, "531", "", 1, 2)

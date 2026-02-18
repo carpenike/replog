@@ -32,10 +32,11 @@ func CreateWorkout(db *sql.DB, athleteID int64, date, notes string) (*Workout, e
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO workouts (athlete_id, date, notes) VALUES (?, ?, ?)`,
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO workouts (athlete_id, date, notes) VALUES (?, ?, ?) RETURNING id`,
 		athleteID, date, notesVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, ErrWorkoutExists
@@ -43,7 +44,6 @@ func CreateWorkout(db *sql.DB, athleteID int64, date, notes string) (*Workout, e
 		return nil, fmt.Errorf("models: create workout for athlete %d on %s: %w", athleteID, date, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetWorkoutByID(db, id)
 }
 

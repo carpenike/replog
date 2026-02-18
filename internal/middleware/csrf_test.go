@@ -201,3 +201,86 @@ func TestCSRFProtect_AllowsGetWithoutToken(t *testing.T) {
 		t.Errorf("expected 200, got %d", rr.Code)
 	}
 }
+
+func TestCSRFProtect_RejectsPutDeletePatchWithoutToken(t *testing.T) {
+	sm := testSessionManager()
+
+	for _, method := range []string{http.MethodPut, http.MethodDelete, http.MethodPatch} {
+		t.Run(method, func(t *testing.T) {
+			var mutatingCallCount int
+			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					mutatingCallCount++
+				}
+				w.WriteHeader(http.StatusOK)
+			})
+
+			handler := sm.LoadAndSave(CSRFProtect(sm, inner))
+
+			// GET to establish session with CSRF token.
+			getReq := httptest.NewRequest("GET", "/", nil)
+			getRR := httptest.NewRecorder()
+			handler.ServeHTTP(getRR, getReq)
+
+			cookies := getRR.Result().Cookies()
+
+			// State-changing request without token.
+			req := httptest.NewRequest(method, "/", nil)
+			for _, c := range cookies {
+				req.AddCookie(c)
+			}
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+
+			if mutatingCallCount > 0 {
+				t.Errorf("handler should not be called for %s without CSRF token", method)
+			}
+			if rr.Code != http.StatusForbidden {
+				t.Errorf("expected 403 for %s, got %d", method, rr.Code)
+			}
+		})
+	}
+}
+
+func TestCSRFProtect_AcceptsPutDeletePatchWithToken(t *testing.T) {
+	sm := testSessionManager()
+
+	for _, method := range []string{http.MethodPut, http.MethodDelete, http.MethodPatch} {
+		t.Run(method, func(t *testing.T) {
+			var called bool
+			var gotToken string
+			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				called = true
+				gotToken = CSRFTokenFromContext(r.Context())
+				w.WriteHeader(http.StatusOK)
+			})
+
+			handler := sm.LoadAndSave(CSRFProtect(sm, inner))
+
+			// GET to establish session.
+			getReq := httptest.NewRequest("GET", "/", nil)
+			getRR := httptest.NewRecorder()
+			handler.ServeHTTP(getRR, getReq)
+
+			cookies := getRR.Result().Cookies()
+			token := gotToken
+
+			// State-changing request with correct header token.
+			called = false
+			req := httptest.NewRequest(method, "/", nil)
+			req.Header.Set("X-CSRF-Token", token)
+			for _, c := range cookies {
+				req.AddCookie(c)
+			}
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+
+			if !called {
+				t.Fatalf("expected handler to be called for %s with valid CSRF token", method)
+			}
+			if rr.Code != http.StatusOK {
+				t.Errorf("expected 200 for %s, got %d", method, rr.Code)
+			}
+		})
+	}
+}

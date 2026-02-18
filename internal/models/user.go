@@ -110,10 +110,11 @@ func CreateUser(db *sql.DB, username, name, password, email string, isCoach bool
 		adminInt = 1
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO users (username, name, email, password_hash, is_coach, is_admin, athlete_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO users (username, name, email, password_hash, is_coach, is_admin, athlete_id) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		username, nameVal, emailVal, hashVal, coachInt, adminInt, athleteID,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			if errContains(err, "athlete_id") {
@@ -124,7 +125,6 @@ func CreateUser(db *sql.DB, username, name, password, email string, isCoach bool
 		return nil, fmt.Errorf("models: create user %q: %w", username, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetUserByID(db, id)
 }
 
@@ -210,7 +210,10 @@ func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 		}
 		users = append(users, u)
 	}
-	return users, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate users: %w", err)
+	}
+	return users, nil
 }
 
 // UpdateUser updates a user's profile fields (not password).
@@ -236,7 +239,7 @@ func UpdateUser(db *sql.DB, id int64, username, name, email string, athleteID sq
 		adminInt = 1
 	}
 
-	_, err := db.Exec(
+	result, err := db.Exec(
 		`UPDATE users SET username = ?, name = ?, email = ?, athlete_id = ?, is_coach = ?, is_admin = ? WHERE id = ?`,
 		username, nameVal, emailVal, athleteID, coachInt, adminInt, id,
 	)
@@ -249,6 +252,15 @@ func UpdateUser(db *sql.DB, id int64, username, name, email string, athleteID sq
 		}
 		return nil, fmt.Errorf("models: update user %d: %w", id, err)
 	}
+
+	n, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("models: update user %d rows affected: %w", id, err)
+	}
+	if n == 0 {
+		return nil, ErrNotFound
+	}
+
 	return GetUserByID(db, id)
 }
 

@@ -62,10 +62,11 @@ func CreateExercise(db *sql.DB, name, tier string, formNotes, demoURL string, re
 		restVal = sql.NullInt64{Int64: int64(restSeconds), Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds, featured) VALUES (?, ?, ?, ?, ?, ?)`,
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds, featured) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		name, tierVal, notesVal, demoVal, restVal, feat,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, ErrDuplicateExerciseName
@@ -73,7 +74,6 @@ func CreateExercise(db *sql.DB, name, tier string, formNotes, demoURL string, re
 		return nil, fmt.Errorf("models: create exercise %q: %w", name, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetExerciseByID(db, id)
 }
 
@@ -184,7 +184,10 @@ func ListExercises(db *sql.DB, tierFilter string) ([]*Exercise, error) {
 		}
 		exercises = append(exercises, e)
 	}
-	return exercises, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate exercises: %w", err)
+	}
+	return exercises, nil
 }
 
 // FeaturedLift holds summary data for one featured exercise for an athlete.
@@ -207,60 +210,79 @@ type FeaturedLift struct {
 // ListFeaturedLifts returns featured exercise summaries for an athlete.
 // For each featured exercise that the athlete has assigned (active) or has
 // logged sets for, it returns the current TM, best set, and estimated 1RM.
+//
+// Uses a single query with window functions instead of N+1 queries per exercise.
 func ListFeaturedLifts(db *sql.DB, athleteID int64) ([]*FeaturedLift, error) {
-	// Get all featured exercises.
-	rows, err := db.Query(
-		`SELECT id, name FROM exercises WHERE featured = 1 ORDER BY name COLLATE NOCASE LIMIT 50`,
-	)
+	rows, err := db.Query(`
+		WITH current_tms AS (
+			SELECT tm.exercise_id, tm.id AS tm_id, tm.weight AS tm_weight,
+			       tm.effective_date AS tm_date, tm.notes AS tm_notes, tm.created_at AS tm_created,
+			       ROW_NUMBER() OVER (PARTITION BY tm.exercise_id ORDER BY tm.effective_date DESC) AS rn
+			FROM training_maxes tm
+			WHERE tm.athlete_id = ?
+		),
+		best_sets AS (
+			SELECT ws.exercise_id, ws.weight AS best_weight, ws.reps AS best_reps, w.date AS best_date,
+			       ROW_NUMBER() OVER (PARTITION BY ws.exercise_id ORDER BY ws.weight DESC, ws.reps DESC) AS rn
+			FROM workout_sets ws
+			JOIN workouts w ON w.id = ws.workout_id
+			WHERE w.athlete_id = ? AND ws.weight IS NOT NULL AND ws.weight > 0
+		)
+		SELECT e.id, e.name,
+		       ct.tm_id, ct.tm_weight, ct.tm_date, ct.tm_notes, ct.tm_created,
+		       bs.best_weight, bs.best_reps, bs.best_date
+		FROM exercises e
+		LEFT JOIN current_tms ct ON ct.exercise_id = e.id AND ct.rn = 1
+		LEFT JOIN best_sets bs ON bs.exercise_id = e.id AND bs.rn = 1
+		WHERE e.featured = 1
+		  AND (ct.tm_id IS NOT NULL OR bs.best_weight IS NOT NULL)
+		ORDER BY e.name COLLATE NOCASE
+		LIMIT 50`, athleteID, athleteID)
 	if err != nil {
-		return nil, fmt.Errorf("models: list featured exercises: %w", err)
+		return nil, fmt.Errorf("models: list featured lifts: %w", err)
 	}
 	defer rows.Close()
 
-	type exerciseRef struct {
-		id   int64
-		name string
-	}
-	var refs []exerciseRef
-	for rows.Next() {
-		var r exerciseRef
-		if err := rows.Scan(&r.id, &r.name); err != nil {
-			return nil, fmt.Errorf("models: scan featured exercise: %w", err)
-		}
-		refs = append(refs, r)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("models: iterate featured exercises: %w", err)
-	}
-	if len(refs) == 0 {
-		return nil, nil
-	}
-
 	var lifts []*FeaturedLift
-	for _, ref := range refs {
-		lift := &FeaturedLift{
-			ExerciseID:   ref.id,
-			ExerciseName: ref.name,
+	for rows.Next() {
+		lift := &FeaturedLift{}
+
+		var tmID sql.NullInt64
+		var tmWeight sql.NullFloat64
+		var tmDate sql.NullString
+		var tmNotes sql.NullString
+		var tmCreated sql.NullTime
+
+		var bestReps sql.NullInt64
+		var bestDate sql.NullString
+
+		if err := rows.Scan(
+			&lift.ExerciseID, &lift.ExerciseName,
+			&tmID, &tmWeight, &tmDate, &tmNotes, &tmCreated,
+			&lift.BestWeight, &bestReps, &bestDate,
+		); err != nil {
+			return nil, fmt.Errorf("models: scan featured lift: %w", err)
 		}
 
-		// Current training max.
-		tm, err := CurrentTrainingMax(db, athleteID, ref.id)
-		if err == nil {
-			lift.CurrentTM = tm
+		if bestReps.Valid {
+			lift.BestReps = int(bestReps.Int64)
+		}
+		if bestDate.Valid {
+			lift.BestDate = bestDate.String
 		}
 
-		// Best logged set: highest weight with its reps (for weighted exercises).
-		err = db.QueryRow(
-			`SELECT ws.weight, ws.reps, w.date
-			 FROM workout_sets ws
-			 JOIN workouts w ON w.id = ws.workout_id
-			 WHERE w.athlete_id = ? AND ws.exercise_id = ? AND ws.weight IS NOT NULL AND ws.weight > 0
-			 ORDER BY ws.weight DESC, ws.reps DESC
-			 LIMIT 1`,
-			athleteID, ref.id,
-		).Scan(&lift.BestWeight, &lift.BestReps, &lift.BestDate)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("models: best set for athlete %d exercise %d: %w", athleteID, ref.id, err)
+		// Populate current TM if present.
+		if tmID.Valid {
+			lift.CurrentTM = &TrainingMax{
+				ID:            tmID.Int64,
+				AthleteID:     athleteID,
+				ExerciseID:    lift.ExerciseID,
+				Weight:        tmWeight.Float64,
+				EffectiveDate: tmDate.String,
+				Notes:         tmNotes,
+				CreatedAt:     tmCreated.Time,
+				ExerciseName:  lift.ExerciseName,
+			}
 		}
 
 		// Estimated 1RM via Epley formula: weight × (1 + reps/30).
@@ -272,10 +294,10 @@ func ListFeaturedLifts(db *sql.DB, athleteID int64) ([]*FeaturedLift, error) {
 			}
 		}
 
-		// Only include if there's any data for this athlete.
-		if lift.CurrentTM != nil || lift.BestWeight.Valid {
-			lifts = append(lifts, lift)
-		}
+		lifts = append(lifts, lift)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate featured lifts: %w", err)
 	}
 
 	return lifts, nil

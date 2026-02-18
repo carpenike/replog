@@ -39,10 +39,11 @@ func AssignProgram(db *sql.DB, athleteID, templateID int64, startDate, notes, go
 		goalVal = sql.NullString{String: goal, Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO athlete_programs (athlete_id, template_id, start_date, notes, goal) VALUES (?, ?, ?, ?, ?)`,
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO athlete_programs (athlete_id, template_id, start_date, notes, goal) VALUES (?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, templateID, startDate, notesVal, goalVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, ErrProgramAlreadyActive
@@ -50,7 +51,6 @@ func AssignProgram(db *sql.DB, athleteID, templateID int64, startDate, notes, go
 		return nil, fmt.Errorf("models: assign program to athlete %d: %w", athleteID, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetAthleteProgramByID(db, id)
 }
 

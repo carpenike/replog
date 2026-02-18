@@ -1,6 +1,6 @@
 # ADR 006 — Workout Import / Export
 
-> Status: **Proposed** · Date: 2026-02-17
+> Status: **Accepted** · Date: 2026-02-17
 
 ## Context
 

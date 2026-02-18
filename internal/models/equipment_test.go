@@ -215,7 +215,7 @@ func TestExerciseEquipment(t *testing.T) {
 func TestAthleteEquipment(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{})
+	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 	barbell, _ := CreateEquipment(db, "Barbell", "")
 	rack, _ := CreateEquipment(db, "Squat Rack", "")
 
@@ -279,7 +279,7 @@ func TestAthleteEquipment(t *testing.T) {
 func TestCheckExerciseCompatibility(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{})
+	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 	benchPress, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 	barbell, _ := CreateEquipment(db, "Barbell", "")
 	bench, _ := CreateEquipment(db, "Flat Bench", "")
@@ -352,7 +352,7 @@ func TestCheckExerciseCompatibility(t *testing.T) {
 func TestCheckAthleteExerciseCompatibility(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{})
+	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 	benchPress, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 	pushUps, _ := CreateExercise(db, "Push-ups", "", "", "", 0)
 
@@ -423,7 +423,7 @@ func TestCheckAthleteExerciseCompatibility(t *testing.T) {
 func TestEquipmentCascadeOnAthleteDelete(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{})
+	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 	eq, _ := CreateEquipment(db, "Barbell", "")
 	AddAthleteEquipment(db, athlete.ID, eq.ID)
 
@@ -442,7 +442,7 @@ func TestEquipmentCascadeOnAthleteDelete(t *testing.T) {
 func TestCheckProgramCompatibility(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Athlete", "", "", "", sql.NullInt64{})
+	athlete, _ := CreateAthlete(db, "Athlete", "", "", "", sql.NullInt64{}, true)
 	barbell, _ := CreateEquipment(db, "Barbell", "")
 	rack, _ := CreateEquipment(db, "Squat Rack", "")
 	bench, _ := CreateEquipment(db, "Flat Bench", "")
@@ -550,7 +550,7 @@ func TestEquipmentCascadeOnExerciseDelete(t *testing.T) {
 func TestEquipmentCascadeOnEquipmentDelete(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{})
+	athlete, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 	exercise, _ := CreateExercise(db, "Test Exercise", "", "", "", 0)
 	eq, _ := CreateEquipment(db, "Barbell", "")
 

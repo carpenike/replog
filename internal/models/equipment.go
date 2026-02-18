@@ -67,10 +67,11 @@ func CreateEquipment(db *sql.DB, name, description string) (*Equipment, error) {
 		descVal = sql.NullString{String: description, Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO equipment (name, description) VALUES (?, ?)`,
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO equipment (name, description) VALUES (?, ?) RETURNING id`,
 		name, descVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, ErrDuplicateEquipmentName
@@ -78,7 +79,6 @@ func CreateEquipment(db *sql.DB, name, description string) (*Equipment, error) {
 		return nil, fmt.Errorf("models: create equipment %q: %w", name, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetEquipmentByID(db, id)
 }
 
@@ -156,7 +156,10 @@ func ListEquipment(db *sql.DB) ([]*Equipment, error) {
 		}
 		items = append(items, e)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate equipment: %w", err)
+	}
+	return items, nil
 }
 
 // --- Exercise Equipment (requirements) ---
@@ -218,7 +221,10 @@ func ListExerciseEquipment(db *sql.DB, exerciseID int64) ([]ExerciseEquipment, e
 		}
 		items = append(items, ee)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate exercise equipment: %w", err)
+	}
+	return items, nil
 }
 
 // SyncExerciseEquipment replaces all equipment links for an exercise.
@@ -310,7 +316,10 @@ func ListAthleteEquipment(db *sql.DB, athleteID int64) ([]AthleteEquipment, erro
 		}
 		items = append(items, ae)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate athlete equipment: %w", err)
+	}
+	return items, nil
 }
 
 // AthleteEquipmentIDs returns a set of equipment IDs available to an athlete.
@@ -332,7 +341,10 @@ func AthleteEquipmentIDs(db *sql.DB, athleteID int64) (map[int64]bool, error) {
 		}
 		ids[id] = true
 	}
-	return ids, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate athlete equipment IDs: %w", err)
+	}
+	return ids, nil
 }
 
 // --- Compatibility Checks ---

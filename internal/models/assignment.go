@@ -33,10 +33,11 @@ func AssignExercise(db *sql.DB, athleteID, exerciseID int64, targetReps int) (*A
 		repsVal = sql.NullInt64{Int64: int64(targetReps), Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO athlete_exercises (athlete_id, exercise_id, target_reps, active) VALUES (?, ?, ?, 1)`,
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO athlete_exercises (athlete_id, exercise_id, target_reps, active) VALUES (?, ?, ?, 1) RETURNING id`,
 		athleteID, exerciseID, repsVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, ErrAlreadyAssigned
@@ -44,7 +45,6 @@ func AssignExercise(db *sql.DB, athleteID, exerciseID int64, targetReps int) (*A
 		return nil, fmt.Errorf("models: assign exercise %d to athlete %d: %w", exerciseID, athleteID, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetAssignmentByID(db, id)
 }
 
@@ -114,7 +114,10 @@ func ListActiveAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, err
 		}
 		assignments = append(assignments, ae)
 	}
-	return assignments, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate active assignments: %w", err)
+	}
+	return assignments, nil
 }
 
 // ListUnassignedExercises returns exercises not actively assigned to an athlete.
@@ -141,7 +144,10 @@ func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 		}
 		exercises = append(exercises, e)
 	}
-	return exercises, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate unassigned exercises: %w", err)
+	}
+	return exercises, nil
 }
 
 // ListDeactivatedAssignments returns previously deactivated (but not re-activated)
@@ -182,7 +188,10 @@ func ListDeactivatedAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise
 		}
 		assignments = append(assignments, ae)
 	}
-	return assignments, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate deactivated assignments: %w", err)
+	}
+	return assignments, nil
 }
 
 // AssignProgramExercises assigns all exercises from a program template to an
@@ -255,5 +264,8 @@ func ListAssignedAthletes(db *sql.DB, exerciseID int64) ([]*AssignedAthlete, err
 		}
 		athletes = append(athletes, a)
 	}
-	return athletes, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate assigned athletes: %w", err)
+	}
+	return athletes, nil
 }

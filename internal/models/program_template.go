@@ -31,10 +31,11 @@ func CreateProgramTemplate(db *sql.DB, name, description string, numWeeks, numDa
 		descVal = sql.NullString{String: description, Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO program_templates (name, description, num_weeks, num_days) VALUES (?, ?, ?, ?)`,
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO program_templates (name, description, num_weeks, num_days) VALUES (?, ?, ?, ?) RETURNING id`,
 		name, descVal, numWeeks, numDays,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, fmt.Errorf("models: program template %q already exists", name)
@@ -42,7 +43,6 @@ func CreateProgramTemplate(db *sql.DB, name, description string, numWeeks, numDa
 		return nil, fmt.Errorf("models: create program template: %w", err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetProgramTemplateByID(db, id)
 }
 
@@ -90,7 +90,10 @@ func ListProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
 		}
 		templates = append(templates, t)
 	}
-	return templates, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate program templates: %w", err)
+	}
+	return templates, nil
 }
 
 // UpdateProgramTemplate updates a program template's metadata.

@@ -53,11 +53,12 @@ func CreateWorkoutReview(db *sql.DB, workoutID, coachID int64, status, notes str
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
-	result, err := db.Exec(
+	var id int64
+	err := db.QueryRow(
 		`INSERT INTO workout_reviews (workout_id, coach_id, status, notes)
-		 VALUES (?, ?, ?, ?)`,
+		 VALUES (?, ?, ?, ?) RETURNING id`,
 		workoutID, coachID, status, notesVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			// Review already exists — caller should use Update instead.
@@ -66,7 +67,6 @@ func CreateWorkoutReview(db *sql.DB, workoutID, coachID int64, status, notes str
 		return nil, fmt.Errorf("models: create workout review for workout %d: %w", workoutID, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetWorkoutReviewByID(db, id)
 }
 
@@ -173,7 +173,10 @@ func ListUnreviewedWorkouts(db *sql.DB) ([]*UnreviewedWorkout, error) {
 		}
 		workouts = append(workouts, uw)
 	}
-	return workouts, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate unreviewed workouts: %w", err)
+	}
+	return workouts, nil
 }
 
 // GetReviewStats returns aggregate counts of review statuses for the coach dashboard.
@@ -213,8 +216,11 @@ func GetReviewStats(db *sql.DB) (*ReviewStats, error) {
 			stats.NeedsWork = count
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate review stats: %w", err)
+	}
 
-	return stats, rows.Err()
+	return stats, nil
 }
 
 // CreateOrUpdateWorkoutReview creates a review if none exists, or updates the

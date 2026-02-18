@@ -57,15 +57,15 @@ func CreateLoginToken(db *sql.DB, userID int64, label string, expiresAt *time.Ti
 		expiresVal = sql.NullTime{Time: *expiresAt, Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO login_tokens (user_id, token, label, expires_at) VALUES (?, ?, ?, ?)`,
+	var id int64
+	err = db.QueryRow(
+		`INSERT INTO login_tokens (user_id, token, label, expires_at) VALUES (?, ?, ?, ?) RETURNING id`,
 		userID, token, labelVal, expiresVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		return nil, fmt.Errorf("models: create login token for user %d: %w", userID, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return &LoginToken{
 		ID:        id,
 		UserID:    userID,
@@ -122,7 +122,10 @@ func ListLoginTokensByUser(db *sql.DB, userID int64) ([]*LoginToken, error) {
 		}
 		tokens = append(tokens, t)
 	}
-	return tokens, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate login tokens: %w", err)
+	}
+	return tokens, nil
 }
 
 // DeleteLoginToken removes a login token by ID. Returns ErrNotFound if the

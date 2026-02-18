@@ -84,13 +84,32 @@
 
 ---
 
+## v1.2 — Bonus Features (Implemented)
+
+- [x] **Workout import** — import CSV/JSON from Strong, Hevy, and RepLog native format with exercise mapping, preview, and conflict detection (see [ADR 006](adr/006-import-export.md))
+- [x] **Workout export** — export all athlete data as RepLog JSON for backup and migration
+- [x] **Passkey / WebAuthn auth** — passwordless login via device biometrics or security keys
+- [x] **Login tokens** — single-use magic links for onboarding new users without sharing passwords
+- [x] **Equipment tracking** — manage gym equipment inventory, link equipment to exercises, track athlete equipment access, and check program compatibility before assignment
+- [x] **Three-tier access control** — admin (`is_admin`), coach (`is_coach`), and athlete roles; admins manage all athletes and users, coaches manage only assigned athletes
+- [x] **Coach assignment** — `athletes.coach_id` scopes coaches to their assigned athletes only
+- [x] **User management** — admin-only user CRUD with role and athlete-link management
+- [x] **Athlete avatars** — upload and display profile photos
+- [x] **Workout reviews** — coaches can leave post-workout review notes; pending reviews queue
+- [x] **Cycle review & TM bumps** — cycle summary reports with coach-driven training max progression decisions
+- [x] **Progression rules** — per-exercise TM increment rules on program templates
+- [x] **User preferences** — configurable weight unit (lbs/kg), timezone, and date display format
+- [x] **Exercise history charts** — visual progress tracking via SVG charts
+
+---
+
 ## Non-Goals (v1)
 
 - No automated tier progression — the coach decides, period
 - No multi-family / multi-coach support — single family, single deployment
 - No native mobile app — responsive web is sufficient
-- No complex permissions / role-based access — just coach vs non-coach (`is_coach` flag)
-- No data export (CSV, etc.) — SQLite file is the export
+- ~~No complex permissions / role-based access~~ — three-tier model (admin/coach/athlete) implemented in v1.2
+- ~~No data export (CSV, etc.)~~ — import/export implemented in v1.2 (see [ADR 006](adr/006-import-export.md))
 - No exercise recommendation engine
 
 ---

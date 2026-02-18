@@ -38,13 +38,8 @@ const maxUploadSize = 10 << 20 // 10 MB
 
 // ExportPage renders the export options page for an athlete.
 func (h *ImportExport) ExportPage(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -70,13 +65,8 @@ func (h *ImportExport) ExportPage(w http.ResponseWriter, r *http.Request) {
 
 // ExportJSON downloads the full RepLog JSON export for an athlete.
 func (h *ImportExport) ExportJSON(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -106,13 +96,8 @@ func (h *ImportExport) ExportJSON(w http.ResponseWriter, r *http.Request) {
 
 // ExportCSV downloads a Strong-compatible CSV export for an athlete.
 func (h *ImportExport) ExportCSV(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -139,13 +124,8 @@ func (h *ImportExport) ExportCSV(w http.ResponseWriter, r *http.Request) {
 
 // ImportPage renders the import upload page.
 func (h *ImportExport) ImportPage(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -171,13 +151,8 @@ func (h *ImportExport) ImportPage(w http.ResponseWriter, r *http.Request) {
 
 // Upload handles the file upload, parses it, and redirects to the mapping step.
 func (h *ImportExport) Upload(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -330,13 +305,8 @@ func (h *ImportExport) Upload(w http.ResponseWriter, r *http.Request) {
 
 // MapPage renders the mapping UI.
 func (h *ImportExport) MapPage(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -378,13 +348,8 @@ func (h *ImportExport) MapPage(w http.ResponseWriter, r *http.Request) {
 
 // Preview processes the mapping form and shows a dry-run summary.
 func (h *ImportExport) Preview(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -487,13 +452,8 @@ func (h *ImportExport) Preview(w http.ResponseWriter, r *http.Request) {
 
 // Execute performs the actual import.
 func (h *ImportExport) Execute(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 

@@ -110,7 +110,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 		if newAthleteName == "" {
 			newAthleteName = strings.ToUpper(username[:1]) + username[1:]
 		}
-		athlete, err := models.CreateAthlete(h.DB, newAthleteName, "", "", "", sql.NullInt64{})
+		athlete, err := models.CreateAthlete(h.DB, newAthleteName, "", "", "", sql.NullInt64{}, true)
 		if err != nil {
 			log.Printf("handlers: inline create athlete: %v", err)
 			h.renderFormError(w, r, "Failed to create athlete.", nil)
@@ -338,7 +338,10 @@ func (h *Users) renderFormError(w http.ResponseWriter, r *http.Request, msg stri
 	if u != nil && u.AthleteID.Valid {
 		exceptAthleteID = u.AthleteID.Int64
 	}
-	athletes, _ := models.ListAvailableAthletes(h.DB, exceptAthleteID)
+	athletes, err := models.ListAvailableAthletes(h.DB, exceptAthleteID)
+	if err != nil {
+		log.Printf("handlers: list available athletes: %v", err)
+	}
 	data := map[string]any{
 		"Error":    msg,
 		"EditUser": u,

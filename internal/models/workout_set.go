@@ -73,10 +73,11 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 		return nil, fmt.Errorf("models: compute next set number: %w", err)
 	}
 
-	result, err := tx.Exec(
-		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+	var id int64
+	err = tx.QueryRow(
+		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		workoutID, exerciseID, nextSet, reps, weightVal, rpeVal, repType, notesVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		return nil, fmt.Errorf("models: add set to workout %d: %w", workoutID, err)
 	}
@@ -85,7 +86,6 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 		return nil, fmt.Errorf("models: commit add set: %w", err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetSetByID(db, id)
 }
 
@@ -138,14 +138,14 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 
 	var ids []int64
 	for i := 0; i < count; i++ {
-		result, err := tx.Exec(
-			`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		var id int64
+		err := tx.QueryRow(
+			`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 			workoutID, exerciseID, nextSet+i, reps, weightVal, rpeVal, repType, notesVal,
-		)
+		).Scan(&id)
 		if err != nil {
 			return nil, fmt.Errorf("models: add set %d of %d to workout %d: %w", i+1, count, workoutID, err)
 		}
-		id, _ := result.LastInsertId()
 		ids = append(ids, id)
 	}
 
@@ -571,5 +571,8 @@ func ListRecentSetsForExercise(db *sql.DB, exerciseID int64) ([]*RecentExerciseS
 		}
 		sets = append(sets, s)
 	}
-	return sets, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate recent exercise sets: %w", err)
+	}
+	return sets, nil
 }

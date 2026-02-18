@@ -28,10 +28,11 @@ func CreateBodyWeight(db *sql.DB, athleteID int64, date string, weight float64, 
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
-	result, err := db.Exec(
-		`INSERT INTO body_weights (athlete_id, date, weight, notes) VALUES (?, ?, ?, ?)`,
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO body_weights (athlete_id, date, weight, notes) VALUES (?, ?, ?, ?) RETURNING id`,
 		athleteID, date, weight, notesVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, ErrDuplicateBodyWeight
@@ -39,7 +40,6 @@ func CreateBodyWeight(db *sql.DB, athleteID int64, date string, weight float64, 
 		return nil, fmt.Errorf("models: create body weight for athlete %d: %w", athleteID, err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetBodyWeightByID(db, id)
 }
 

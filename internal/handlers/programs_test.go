@@ -759,3 +759,249 @@ func TestPrograms_ProgramCompatibility(t *testing.T) {
 		}
 	})
 }
+
+func TestPrograms_AddProgressionRule_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	tmpl, _ := models.CreateProgramTemplate(db, "Rule Program", "", 4, 4)
+	ex := seedExercise(t, db, "Squats", "")
+
+	h := &Programs{DB: db, Templates: tc}
+
+	form := url.Values{
+		"exercise_id": {itoa(ex.ID)},
+		"increment":   {"2.5"},
+	}
+	req := requestWithUser("POST", "/programs/"+itoa(tmpl.ID)+"/rules", form, coach)
+	req.SetPathValue("id", itoa(tmpl.ID))
+	rr := httptest.NewRecorder()
+	h.AddProgressionRule(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	rules, _ := models.ListProgressionRules(db, tmpl.ID)
+	if len(rules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(rules))
+	}
+	if rules[0].Increment != 2.5 {
+		t.Errorf("increment = %v, want 2.5", rules[0].Increment)
+	}
+}
+
+func TestPrograms_AddProgressionRule_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	nonCoach := seedUnlinkedNonCoach(t, db)
+
+	h := &Programs{DB: db, Templates: tc}
+
+	form := url.Values{"exercise_id": {"1"}, "increment": {"2.5"}}
+	req := requestWithUser("POST", "/programs/1/rules", form, nonCoach)
+	req.SetPathValue("id", "1")
+	rr := httptest.NewRecorder()
+	h.AddProgressionRule(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestPrograms_AddProgressionRule_InvalidIncrement(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	tmpl, _ := models.CreateProgramTemplate(db, "Rule Prog", "", 4, 4)
+	ex := seedExercise(t, db, "Bench", "")
+
+	h := &Programs{DB: db, Templates: tc}
+
+	form := url.Values{"exercise_id": {itoa(ex.ID)}, "increment": {"-5"}}
+	req := requestWithUser("POST", "/programs/"+itoa(tmpl.ID)+"/rules", form, coach)
+	req.SetPathValue("id", itoa(tmpl.ID))
+	rr := httptest.NewRecorder()
+	h.AddProgressionRule(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rr.Code)
+	}
+}
+
+func TestPrograms_DeleteProgressionRule_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	tmpl, _ := models.CreateProgramTemplate(db, "Del Rule Prog", "", 4, 4)
+	ex := seedExercise(t, db, "Deadlift", "")
+	rule, _ := models.SetProgressionRule(db, tmpl.ID, ex.ID, 5.0)
+
+	h := &Programs{DB: db, Templates: tc}
+
+	req := requestWithUser("POST", fmt.Sprintf("/programs/%d/rules/%d/delete", tmpl.ID, rule.ID), nil, coach)
+	req.SetPathValue("id", itoa(tmpl.ID))
+	req.SetPathValue("ruleID", itoa(rule.ID))
+	rr := httptest.NewRecorder()
+	h.DeleteProgressionRule(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	rules, _ := models.ListProgressionRules(db, tmpl.ID)
+	if len(rules) != 0 {
+		t.Errorf("expected 0 rules after deletion, got %d", len(rules))
+	}
+}
+
+func TestPrograms_DeleteProgressionRule_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	nonCoach := seedUnlinkedNonCoach(t, db)
+
+	h := &Programs{DB: db, Templates: tc}
+
+	req := requestWithUser("POST", "/programs/1/rules/1/delete", nil, nonCoach)
+	req.SetPathValue("id", "1")
+	req.SetPathValue("ruleID", "1")
+	rr := httptest.NewRecorder()
+	h.DeleteProgressionRule(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestPrograms_CycleReview_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "Reviewer", "")
+
+	h := &Programs{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/"+itoa(a.ID)+"/cycle-review", nil, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	rr := httptest.NewRecorder()
+	h.CycleReview(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestPrograms_CycleReview_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	nonCoach := seedUnlinkedNonCoach(t, db)
+
+	h := &Programs{DB: db, Templates: tc}
+
+	req := requestWithUser("GET", "/athletes/1/cycle-review", nil, nonCoach)
+	req.SetPathValue("id", "1")
+	rr := httptest.NewRecorder()
+	h.CycleReview(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestPrograms_ApplyTMBumps_Success(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "Bumper", "")
+
+	ex := seedExercise(t, db, "Squat", "")
+	// Seed an initial TM.
+	models.SetTrainingMax(db, a.ID, ex.ID, 100, "2026-01-01", "initial")
+
+	h := &Programs{DB: db, Templates: tc}
+
+	form := url.Values{
+		"exercise_id":                  {itoa(ex.ID)},
+		fmt.Sprintf("apply_%d", ex.ID): {"1"},
+		fmt.Sprintf("tm_%d", ex.ID):    {"105"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(a.ID)+"/cycle-review", form, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	rr := httptest.NewRecorder()
+	h.ApplyTMBumps(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	// Verify the new TM was set.
+	tm, err := models.CurrentTrainingMax(db, a.ID, ex.ID)
+	if err != nil {
+		t.Fatalf("get TM: %v", err)
+	}
+	if tm.Weight != 105 {
+		t.Errorf("TM weight = %v, want 105", tm.Weight)
+	}
+}
+
+func TestPrograms_ApplyTMBumps_NonCoachForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	nonCoach := seedUnlinkedNonCoach(t, db)
+
+	h := &Programs{DB: db, Templates: tc}
+
+	req := requestWithUser("POST", "/athletes/1/cycle-review", nil, nonCoach)
+	req.SetPathValue("id", "1")
+	rr := httptest.NewRecorder()
+	h.ApplyTMBumps(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestPrograms_ApplyTMBumps_SkipsUnchecked(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "Selective", "")
+
+	ex1 := seedExercise(t, db, "Squat", "")
+	ex2 := seedExercise(t, db, "Bench", "")
+	models.SetTrainingMax(db, a.ID, ex1.ID, 100, "2026-01-01", "")
+	models.SetTrainingMax(db, a.ID, ex2.ID, 80, "2026-01-01", "")
+
+	h := &Programs{DB: db, Templates: tc}
+
+	// Only apply bump to ex1, skip ex2 (no apply_ checkbox).
+	form := url.Values{
+		"exercise_id":                   {itoa(ex1.ID), itoa(ex2.ID)},
+		fmt.Sprintf("apply_%d", ex1.ID): {"1"},
+		fmt.Sprintf("tm_%d", ex1.ID):    {"105"},
+		fmt.Sprintf("tm_%d", ex2.ID):    {"85"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(a.ID)+"/cycle-review", form, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	rr := httptest.NewRecorder()
+	h.ApplyTMBumps(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	// ex1 should be bumped.
+	tm1, _ := models.CurrentTrainingMax(db, a.ID, ex1.ID)
+	if tm1.Weight != 105 {
+		t.Errorf("ex1 TM = %v, want 105", tm1.Weight)
+	}
+
+	// ex2 should remain unchanged.
+	tm2, _ := models.CurrentTrainingMax(db, a.ID, ex2.ID)
+	if tm2.Weight != 80 {
+		t.Errorf("ex2 TM = %v, want 80 (unchanged)", tm2.Weight)
+	}
+}

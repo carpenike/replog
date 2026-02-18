@@ -3,8 +3,10 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -19,30 +21,27 @@ type Workouts struct {
 }
 
 // checkAthleteAccess verifies the user can access the given athlete.
-// Returns false and writes an error response if access is denied.
-func checkAthleteAccess(db *sql.DB, tc TemplateCache, w http.ResponseWriter, r *http.Request) bool {
+// Returns the parsed athlete ID and true on success, or 0 and false after
+// writing an error/forbidden response.
+func checkAthleteAccess(db *sql.DB, tc TemplateCache, w http.ResponseWriter, r *http.Request) (int64, bool) {
 	user := middleware.UserFromContext(r.Context())
 	athleteIDStr := r.PathValue("id")
 	athleteID, err := strconv.ParseInt(athleteIDStr, 10, 64)
 	if err != nil {
-		return true // let the handler catch the parse error
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return 0, false
 	}
 	if !middleware.CanAccessAthlete(db, user, athleteID) {
 		tc.Forbidden(w, r)
-		return false
+		return 0, false
 	}
-	return true
+	return athleteID, true
 }
 
 // List renders the workout history for an athlete.
 func (h *Workouts) List(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -83,13 +82,8 @@ func (h *Workouts) List(w http.ResponseWriter, r *http.Request) {
 
 // NewForm renders the new workout form.
 func (h *Workouts) NewForm(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -116,13 +110,8 @@ func (h *Workouts) NewForm(w http.ResponseWriter, r *http.Request) {
 
 // Create processes the new workout form submission.
 func (h *Workouts) Create(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -176,17 +165,12 @@ func (h *Workouts) Create(w http.ResponseWriter, r *http.Request) {
 
 // Show renders the workout detail page with logged sets and add-set form.
 func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
 	user := middleware.UserFromContext(r.Context())
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
-		return
-	}
 
 	workoutID, err := strconv.ParseInt(r.PathValue("workoutID"), 10, 64)
 	if err != nil {
@@ -222,26 +206,48 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups, err := models.ListSetsByWorkout(h.DB, workoutID)
+	data, err := h.loadWorkoutShowData(user, athlete, workout)
 	if err != nil {
-		log.Printf("handlers: list sets for workout %d: %v", workoutID, err)
+		log.Printf("handlers: load workout show data %d: %v", workoutID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// Surface validation errors from AddSet/UpdateSet redirects.
+	if errMsg := r.URL.Query().Get("error"); errMsg != "" {
+		data["SetError"] = errMsg
+	}
+	// Sticky exercise: if redirected from AddSet, pre-select the exercise.
+	if eidStr := r.URL.Query().Get("exercise_id"); eidStr != "" {
+		data["SelectedExerciseID"], _ = strconv.ParseInt(eidStr, 10, 64)
+	}
+
+	if err := h.Templates.Render(w, r, "workout_detail.html", data); err != nil {
+		log.Printf("handlers: workout detail template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// loadWorkoutShowData fetches all data needed for the workout detail page.
+// Fatal queries return errors; non-fatal queries log and continue with nil/zero values.
+func (h *Workouts) loadWorkoutShowData(user *models.User, athlete *models.Athlete, workout *models.Workout) (map[string]any, error) {
+	athleteID := athlete.ID
+	workoutID := workout.ID
+
+	groups, err := models.ListSetsByWorkout(h.DB, workoutID)
+	if err != nil {
+		return nil, fmt.Errorf("list sets: %w", err)
 	}
 
 	// Load assigned exercises first, then all exercises for the full library.
 	assigned, err := models.ListActiveAssignments(h.DB, athleteID)
 	if err != nil {
-		log.Printf("handlers: list assignments for athlete %d: %v", athleteID, err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("list assignments: %w", err)
 	}
 
 	allExercises, err := models.ListExercises(h.DB, "")
 	if err != nil {
-		log.Printf("handlers: list exercises: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("list exercises: %w", err)
 	}
 
 	// Build set of assigned exercise IDs.
@@ -299,12 +305,6 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Sticky exercise: if redirected from AddSet, pre-select the exercise.
-	var selectedExerciseID int64
-	if eidStr := r.URL.Query().Get("exercise_id"); eidStr != "" {
-		selectedExerciseID, _ = strconv.ParseInt(eidStr, 10, 64)
-	}
-
 	// Build a map of exercise_id → logged set count for the prescription scaffold.
 	loggedSetCounts := make(map[int64]int)
 	for _, g := range groups {
@@ -321,35 +321,25 @@ func (h *Workouts) Show(w http.ResponseWriter, r *http.Request) {
 		// Non-fatal — continue without review data.
 	}
 
-	data := map[string]any{
-		"Athlete":            athlete,
-		"Workout":            workout,
-		"Groups":             groups,
-		"Assigned":           assigned,
-		"Unassigned":         unassigned,
-		"TMByExercise":       tmByExercise,
-		"Prescription":       prescription,
-		"LoggedSetCounts":    loggedSetCounts,
-		"LastSession":        lastSession,
-		"SelectedExerciseID": selectedExerciseID,
-		"Review":             review,
-		"CanManage":          middleware.CanManageAthlete(user, athlete),
-	}
-	if err := h.Templates.Render(w, r, "workout_detail.html", data); err != nil {
-		log.Printf("handlers: workout detail template: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-	}
+	return map[string]any{
+		"Athlete":         athlete,
+		"Workout":         workout,
+		"Groups":          groups,
+		"Assigned":        assigned,
+		"Unassigned":      unassigned,
+		"TMByExercise":    tmByExercise,
+		"Prescription":    prescription,
+		"LoggedSetCounts": loggedSetCounts,
+		"LastSession":     lastSession,
+		"Review":          review,
+		"CanManage":       middleware.CanManageAthlete(user, athlete),
+	}, nil
 }
 
 // UpdateNotes updates workout-level notes.
 func (h *Workouts) UpdateNotes(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -397,13 +387,8 @@ func (h *Workouts) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -445,13 +430,8 @@ func (h *Workouts) Delete(w http.ResponseWriter, r *http.Request) {
 
 // AddSet handles adding a set to a workout.
 func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -468,13 +448,13 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 
 	exerciseID, err := strconv.ParseInt(r.FormValue("exercise_id"), 10, 64)
 	if err != nil || exerciseID == 0 {
-		http.Error(w, "Exercise is required", http.StatusBadRequest)
+		workoutRedirectWithError(w, r, athleteID, workoutID, "Exercise is required")
 		return
 	}
 
 	reps, err := strconv.Atoi(r.FormValue("reps"))
 	if err != nil || reps <= 0 {
-		http.Error(w, "Reps must be a positive number", http.StatusBadRequest)
+		workoutRedirectWithError(w, r, athleteID, workoutID, "Reps must be a positive number")
 		return
 	}
 
@@ -482,7 +462,7 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 	if ws := r.FormValue("weight"); ws != "" {
 		weight, err = strconv.ParseFloat(ws, 64)
 		if err != nil {
-			http.Error(w, "Invalid weight", http.StatusBadRequest)
+			workoutRedirectWithError(w, r, athleteID, workoutID, "Invalid weight")
 			return
 		}
 	}
@@ -510,7 +490,7 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 	if rs := r.FormValue("rpe"); rs != "" {
 		rpe, err = strconv.ParseFloat(rs, 64)
 		if err != nil {
-			http.Error(w, "Invalid RPE", http.StatusBadRequest)
+			workoutRedirectWithError(w, r, athleteID, workoutID, "Invalid RPE")
 			return
 		}
 	}
@@ -520,11 +500,11 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 	if sc := r.FormValue("sets"); sc != "" {
 		setCount, err = strconv.Atoi(sc)
 		if err != nil || setCount < 1 {
-			http.Error(w, "Sets must be a positive number", http.StatusBadRequest)
+			workoutRedirectWithError(w, r, athleteID, workoutID, "Sets must be a positive number")
 			return
 		}
 		if setCount > 20 {
-			http.Error(w, "Cannot log more than 20 sets at once", http.StatusBadRequest)
+			workoutRedirectWithError(w, r, athleteID, workoutID, "Cannot log more than 20 sets at once")
 			return
 		}
 	}
@@ -562,13 +542,8 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 
 // EditSetForm renders the edit set form.
 func (h *Workouts) EditSetForm(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -642,13 +617,8 @@ func (h *Workouts) EditSetForm(w http.ResponseWriter, r *http.Request) {
 
 // UpdateSet processes the edit set form.
 func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -671,7 +641,7 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 
 	reps, err := strconv.Atoi(r.FormValue("reps"))
 	if err != nil || reps <= 0 {
-		http.Error(w, "Reps must be a positive number", http.StatusBadRequest)
+		workoutRedirectWithError(w, r, athleteID, workoutID, "Reps must be a positive number")
 		return
 	}
 
@@ -679,7 +649,7 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 	if ws := r.FormValue("weight"); ws != "" {
 		weight, err = strconv.ParseFloat(ws, 64)
 		if err != nil {
-			http.Error(w, "Invalid weight", http.StatusBadRequest)
+			workoutRedirectWithError(w, r, athleteID, workoutID, "Invalid weight")
 			return
 		}
 	}
@@ -706,7 +676,7 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 	if rs := r.FormValue("rpe"); rs != "" {
 		rpe, err = strconv.ParseFloat(rs, 64)
 		if err != nil {
-			http.Error(w, "Invalid RPE", http.StatusBadRequest)
+			workoutRedirectWithError(w, r, athleteID, workoutID, "Invalid RPE")
 			return
 		}
 	}
@@ -751,13 +721,8 @@ func (h *Workouts) UpdateSet(w http.ResponseWriter, r *http.Request) {
 
 // DeleteSet removes a set from a workout.
 func (h *Workouts) DeleteSet(w http.ResponseWriter, r *http.Request) {
-	if !checkAthleteAccess(h.DB, h.Templates, w, r) {
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -817,4 +782,14 @@ func (h *Workouts) DeleteSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10)+"/workouts/"+strconv.FormatInt(workoutID, 10), http.StatusSeeOther)
+}
+
+// workoutRedirectWithError redirects back to the workout detail page with an
+// error message shown to the user. Used for form validation errors that should
+// surface inline instead of as plain-text HTTP error responses.
+func workoutRedirectWithError(w http.ResponseWriter, r *http.Request, athleteID, workoutID int64, msg string) {
+	target := "/athletes/" + strconv.FormatInt(athleteID, 10) +
+		"/workouts/" + strconv.FormatInt(workoutID, 10) +
+		"?error=" + url.QueryEscape(msg)
+	http.Redirect(w, r, target, http.StatusSeeOther)
 }

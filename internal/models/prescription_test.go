@@ -121,7 +121,7 @@ func TestRoundToNearest(t *testing.T) {
 
 func TestCurrentTrainingMaxes(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "TM Athlete", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "TM Athlete", "", "", "", sql.NullInt64{}, true)
 	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 	squat, _ := CreateExercise(db, "Back Squat", "", "", "", 0)
 
@@ -154,7 +154,7 @@ func TestCurrentTrainingMaxes(t *testing.T) {
 
 func TestCurrentTrainingMaxes_Empty(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "No TM Athlete", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "No TM Athlete", "", "", "", sql.NullInt64{}, true)
 
 	maxes, err := ListCurrentTrainingMaxes(db, a.ID)
 	if err != nil {
@@ -181,7 +181,7 @@ func TestGetPrescription_CycleWraparound(t *testing.T) {
 		}
 	}
 
-	a, _ := CreateAthlete(db, "Cycle Athlete", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Cycle Athlete", "", "", "", sql.NullInt64{}, true)
 	SetTrainingMax(db, a.ID, bench.ID, 200, "2026-01-01", "")
 	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
@@ -218,7 +218,7 @@ func TestGetPrescription_NoTrainingMax(t *testing.T) {
 	pct := 75.0
 	CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, 1, &reps, &pct, "", "")
 
-	a, _ := CreateAthlete(db, "No TM Athlete", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "No TM Athlete", "", "", "", sql.NullInt64{}, true)
 	// Deliberately do NOT set a training max.
 	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
@@ -255,7 +255,7 @@ func TestGetPrescription_HasWorkoutToday(t *testing.T) {
 	reps := 5
 	CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, 1, &reps, nil, "", "")
 
-	a, _ := CreateAthlete(db, "Today Athlete", "", "", "", sql.NullInt64{})
+	a, _ := CreateAthlete(db, "Today Athlete", "", "", "", sql.NullInt64{}, true)
 	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
 	today := mustParseDate("2026-02-01")

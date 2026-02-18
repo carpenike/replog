@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/carpenike/replog/internal/importers"
@@ -167,7 +168,9 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 	for _, eqName := range pf.AthleteEquipment {
 		eqID, ok := equipmentIDMap[strings.ToLower(eqName)]
 		if ok {
-			_ = insertAthleteEquipment(tx, athleteID, eqID)
+			if err := insertAthleteEquipment(tx, athleteID, eqID); err != nil {
+				log.Printf("models: insert athlete equipment (athlete=%d, eq=%d): %v", athleteID, eqID, err)
+			}
 		}
 	}
 
@@ -377,11 +380,12 @@ func insertEquipment(tx *sql.Tx, name, description string) (int64, error) {
 	if description != "" {
 		descVal = sql.NullString{String: description, Valid: true}
 	}
-	result, err := tx.Exec(`INSERT INTO equipment (name, description) VALUES (?, ?)`, name, descVal)
+	var id int64
+	err := tx.QueryRow(`INSERT INTO equipment (name, description) VALUES (?, ?) RETURNING id`, name, descVal).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-	return result.LastInsertId()
+	return id, nil
 }
 
 func insertExercise(tx *sql.Tx, name, tier, formNotes, demoURL string, restSeconds int, featured bool) (int64, error) {
@@ -403,14 +407,15 @@ func insertExercise(tx *sql.Tx, name, tier, formNotes, demoURL string, restSecon
 	if featured {
 		featuredInt = 1
 	}
-	result, err := tx.Exec(
-		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds, featured) VALUES (?, ?, ?, ?, ?, ?)`,
+	var id int64
+	err := tx.QueryRow(
+		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds, featured) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		name, tierVal, notesVal, demoVal, restVal, featuredInt,
-	)
+	).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-	return result.LastInsertId()
+	return id, nil
 }
 
 func insertExerciseEquipment(tx *sql.Tx, exerciseID, equipmentID int64, optional bool) error {
@@ -470,14 +475,15 @@ func insertWorkout(tx *sql.Tx, athleteID int64, date, notes string) (int64, erro
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
-	result, err := tx.Exec(
-		`INSERT INTO workouts (athlete_id, date, notes) VALUES (?, ?, ?)`,
+	var id int64
+	err := tx.QueryRow(
+		`INSERT INTO workouts (athlete_id, date, notes) VALUES (?, ?, ?) RETURNING id`,
 		athleteID, date, notesVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-	return result.LastInsertId()
+	return id, nil
 }
 
 func getWorkoutByAthleteDateTx(tx *sql.Tx, athleteID int64, date string) (int64, error) {
@@ -526,14 +532,15 @@ func insertProgramTemplate(tx *sql.Tx, pt importers.ParsedProgramTemplate) (int6
 	if pt.Description != nil && *pt.Description != "" {
 		descVal = sql.NullString{String: *pt.Description, Valid: true}
 	}
-	result, err := tx.Exec(
-		`INSERT INTO program_templates (name, description, num_weeks, num_days) VALUES (?, ?, ?, ?)`,
+	var id int64
+	err := tx.QueryRow(
+		`INSERT INTO program_templates (name, description, num_weeks, num_days) VALUES (?, ?, ?, ?) RETURNING id`,
 		pt.Name, descVal, pt.NumWeeks, pt.NumDays,
-	)
+	).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-	return result.LastInsertId()
+	return id, nil
 }
 
 func insertPrescribedSet(tx *sql.Tx, templateID, exerciseID int64, ps importers.ParsedPrescribedSet) error {

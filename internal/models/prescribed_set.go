@@ -83,11 +83,12 @@ func CreatePrescribedSet(db *sql.DB, templateID, exerciseID int64, week, day, se
 		repType = "reps"
 	}
 
-	result, err := db.Exec(
+	var id int64
+	err := db.QueryRow(
 		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, rep_type, notes)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		templateID, exerciseID, week, day, setNumber, repsVal, pctVal, repType, notesVal,
-	)
+	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, fmt.Errorf("models: prescribed set already exists for week %d day %d set %d", week, day, setNumber)
@@ -95,7 +96,6 @@ func CreatePrescribedSet(db *sql.DB, templateID, exerciseID int64, week, day, se
 		return nil, fmt.Errorf("models: create prescribed set: %w", err)
 	}
 
-	id, _ := result.LastInsertId()
 	return GetPrescribedSetByID(db, id)
 }
 
@@ -142,7 +142,10 @@ func ListPrescribedSets(db *sql.DB, templateID int64) ([]*PrescribedSet, error) 
 		}
 		sets = append(sets, ps)
 	}
-	return sets, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate prescribed sets: %w", err)
+	}
+	return sets, nil
 }
 
 // ListPrescribedSetsForDay returns prescribed sets for a specific week/day.
@@ -170,7 +173,10 @@ func ListPrescribedSetsForDay(db *sql.DB, templateID int64, week, day int) ([]*P
 		}
 		sets = append(sets, ps)
 	}
-	return sets, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate prescribed sets for day: %w", err)
+	}
+	return sets, nil
 }
 
 // DeletePrescribedSet removes a prescribed set.

@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -90,7 +91,8 @@ func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athlete, err := models.CreateAthlete(h.DB, name, r.FormValue("tier"), r.FormValue("notes"), r.FormValue("goal"), sql.NullInt64{Int64: user.ID, Valid: true})
+	trackBW := r.FormValue("track_body_weight") != "0"
+	athlete, err := models.CreateAthlete(h.DB, name, r.FormValue("tier"), r.FormValue("notes"), r.FormValue("goal"), sql.NullInt64{Int64: user.ID, Valid: true}, trackBW)
 	if err != nil {
 		log.Printf("handlers: create athlete: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -137,18 +139,32 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	assignments, err := models.ListActiveAssignments(h.DB, id)
+	data, err := h.loadAthleteShowData(user, athlete)
 	if err != nil {
-		log.Printf("handlers: list assignments for athlete %d: %v", id, err)
+		log.Printf("handlers: load athlete show data %d: %v", id, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
+	if err := h.Templates.Render(w, r, "athlete_detail.html", data); err != nil {
+		log.Printf("handlers: athlete detail template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// loadAthleteShowData fetches all data needed for the athlete detail page.
+// Fatal queries return errors; non-fatal queries log and continue with nil/zero values.
+func (h *Athletes) loadAthleteShowData(user *models.User, athlete *models.Athlete) (map[string]any, error) {
+	id := athlete.ID
+
+	assignments, err := models.ListActiveAssignments(h.DB, id)
+	if err != nil {
+		return nil, fmt.Errorf("list assignments: %w", err)
+	}
+
 	currentTMs, err := models.ListCurrentTrainingMaxes(h.DB, id)
 	if err != nil {
-		log.Printf("handlers: list training maxes for athlete %d: %v", id, err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("list training maxes: %w", err)
 	}
 
 	// Build a map from exerciseID → current training max for easy lookup.
@@ -160,9 +176,7 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 	// Load recent workouts for the athlete detail page.
 	recentPage, err := models.ListWorkouts(h.DB, id, 0)
 	if err != nil {
-		log.Printf("handlers: list workouts for athlete %d: %v", id, err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("list workouts: %w", err)
 	}
 	recentWorkouts := recentPage.Workouts
 	// Limit to 5 most recent for the summary view.
@@ -236,7 +250,7 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		// Non-fatal — continue without featured data.
 	}
 
-	data := map[string]any{
+	return map[string]any{
 		"Athlete":          athlete,
 		"Assignments":      assignments,
 		"TMByExercise":     tmByExercise,
@@ -251,11 +265,7 @@ func (h *Athletes) Show(w http.ResponseWriter, r *http.Request) {
 		"FeaturedLifts":    featuredLifts,
 		"CanManage":        middleware.CanManageAthlete(user, athlete),
 		"TodayDate":        time.Now().Format("2006-01-02"),
-	}
-	if err := h.Templates.Render(w, r, "athlete_detail.html", data); err != nil {
-		log.Printf("handlers: athlete detail template: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-	}
+	}, nil
 }
 
 // EditForm renders the edit athlete form. Coach (owns athlete) or admin only.
@@ -327,7 +337,10 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 
 	name := r.FormValue("name")
 	if name == "" {
-		athlete, _ := models.GetAthleteByID(h.DB, id)
+		athlete, err := models.GetAthleteByID(h.DB, id)
+		if err != nil {
+			log.Printf("handlers: get athlete %d for edit form: %v", id, err)
+		}
 		data := map[string]any{
 			"Error":   "Name is required",
 			"Athlete": athlete,
