@@ -16,7 +16,7 @@ type WorkoutSet struct {
 	Reps       int
 	Weight     sql.NullFloat64
 	RPE        sql.NullFloat64
-	RepType    string // "reps", "each_side", or "seconds"
+	RepType    string // "reps", "each_side", "seconds", or "distance"
 	Notes      sql.NullString
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
@@ -25,13 +25,15 @@ type WorkoutSet struct {
 	ExerciseName string
 }
 
-// RepsLabel returns a display string for reps (e.g. "5", "5/ea", "30s").
+// RepsLabel returns a display string for reps (e.g. "5", "5/ea", "30s", "30yd").
 func (ws *WorkoutSet) RepsLabel() string {
 	switch ws.RepType {
 	case "each_side":
 		return fmt.Sprintf("%d/ea", ws.Reps)
 	case "seconds":
 		return fmt.Sprintf("%ds", ws.Reps)
+	case "distance":
+		return fmt.Sprintf("%dyd", ws.Reps)
 	default:
 		return fmt.Sprintf("%d", ws.Reps)
 	}
@@ -361,13 +363,15 @@ type LastSessionSet struct {
 	RepType   string
 }
 
-// RepsLabel returns a display string for reps (e.g. "5", "5/ea", "30s").
+// RepsLabel returns a display string for reps (e.g. "5", "5/ea", "30s", "30yd").
 func (ls *LastSessionSet) RepsLabel() string {
 	switch ls.RepType {
 	case "each_side":
 		return fmt.Sprintf("%d/ea", ls.Reps)
 	case "seconds":
 		return fmt.Sprintf("%ds", ls.Reps)
+	case "distance":
+		return fmt.Sprintf("%dyd", ls.Reps)
 	default:
 		return fmt.Sprintf("%d", ls.Reps)
 	}

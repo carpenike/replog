@@ -34,6 +34,20 @@
             </a>
             {{ end }}
         </nav>
+        {{ if or $.User.IsCoach $.User.IsAdmin }}
+        <form method="POST" action="/programs/{{ .Program.ID }}/copy-week" class="copy-week-form">
+            <input type="hidden" name="source_week" value="{{ .CurrentWeek }}">
+            <div class="inline-flex">
+                <span>Copy Week {{ .CurrentWeek }} →</span>
+                <select name="target_week" required>
+                    {{ range .WeekTabs }}{{ if not .Active }}
+                    <option value="{{ .Week }}">Week {{ .Week }}</option>
+                    {{ end }}{{ end }}
+                </select>
+                <button type="submit" class="outline secondary" hx-confirm="Copy all sets from Week {{ .CurrentWeek }} to the selected week? Existing sets in the target week will be kept.">Copy</button>
+            </div>
+        </form>
+        {{ end }}
         {{ end }}
 
         <!-- Days for Current Week -->
@@ -104,6 +118,7 @@
                             <option value="reps">Reps</option>
                             <option value="each_side">Each Side</option>
                             <option value="seconds">Seconds</option>
+                            <option value="distance">Distance (yd)</option>
                         </select>
                     </label>
                     <label for="pct_d{{ .Day }}">% TM

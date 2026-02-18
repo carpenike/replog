@@ -26,6 +26,7 @@ type AthleteProgram struct {
 	TemplateName string
 	NumWeeks     int
 	NumDays      int
+	IsLoop       bool
 }
 
 // AssignProgram assigns a program template to an athlete. Only one active program per athlete.
@@ -59,13 +60,13 @@ func GetAthleteProgramByID(db *sql.DB, id int64) (*AthleteProgram, error) {
 	ap := &AthleteProgram{}
 	err := db.QueryRow(
 		`SELECT ap.id, ap.athlete_id, ap.template_id, ap.start_date, ap.active, ap.notes, ap.goal,
-		        ap.created_at, ap.updated_at, pt.name, pt.num_weeks, pt.num_days
+		        ap.created_at, ap.updated_at, pt.name, pt.num_weeks, pt.num_days, pt.is_loop
 		 FROM athlete_programs ap
 		 JOIN program_templates pt ON pt.id = ap.template_id
 		 WHERE ap.id = ?`,
 		id,
 	).Scan(&ap.ID, &ap.AthleteID, &ap.TemplateID, &ap.StartDate, &ap.Active, &ap.Notes, &ap.Goal,
-		&ap.CreatedAt, &ap.UpdatedAt, &ap.TemplateName, &ap.NumWeeks, &ap.NumDays)
+		&ap.CreatedAt, &ap.UpdatedAt, &ap.TemplateName, &ap.NumWeeks, &ap.NumDays, &ap.IsLoop)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("models: athlete program %d not found", id)
@@ -80,13 +81,13 @@ func GetActiveProgram(db *sql.DB, athleteID int64) (*AthleteProgram, error) {
 	ap := &AthleteProgram{}
 	err := db.QueryRow(
 		`SELECT ap.id, ap.athlete_id, ap.template_id, ap.start_date, ap.active, ap.notes, ap.goal,
-		        ap.created_at, ap.updated_at, pt.name, pt.num_weeks, pt.num_days
+		        ap.created_at, ap.updated_at, pt.name, pt.num_weeks, pt.num_days, pt.is_loop
 		 FROM athlete_programs ap
 		 JOIN program_templates pt ON pt.id = ap.template_id
 		 WHERE ap.athlete_id = ? AND ap.active = 1`,
 		athleteID,
 	).Scan(&ap.ID, &ap.AthleteID, &ap.TemplateID, &ap.StartDate, &ap.Active, &ap.Notes, &ap.Goal,
-		&ap.CreatedAt, &ap.UpdatedAt, &ap.TemplateName, &ap.NumWeeks, &ap.NumDays)
+		&ap.CreatedAt, &ap.UpdatedAt, &ap.TemplateName, &ap.NumWeeks, &ap.NumDays, &ap.IsLoop)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil // No active program is not an error.

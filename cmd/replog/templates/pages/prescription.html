@@ -16,6 +16,22 @@
             {{ if .Prescription.HasWorkout }} — <mark>Workout logged today</mark>{{ end }}</p>
         </hgroup>
 
+        {{ if .Prescription.CycleComplete }}
+        <article>
+            <header><strong>Cycle {{ subtract .Prescription.CycleNumber 1 }} Complete!</strong></header>
+            <p>{{ .Athlete.Name }} has completed all {{ .Prescription.TotalInCycle }} workouts in this cycle.</p>
+            {{ if or .User.IsCoach .User.IsAdmin }}
+            <p>Review results and update training maxes before starting the next cycle.</p>
+            <div class="grid">
+                <a href="/athletes/{{ .Athlete.ID }}/cycle-review" role="button">Review Cycle &amp; Update TMs</a>
+                <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button" class="outline secondary">Continue to Next Cycle</a>
+            </div>
+            {{ else }}
+            <p>Check in with your coach before continuing to the next cycle.</p>
+            {{ end }}
+        </article>
+        {{ end }}
+
         {{ if .Prescription.Lines }}
         <table class="striped">
             <thead>

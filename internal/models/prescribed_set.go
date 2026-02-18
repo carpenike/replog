@@ -17,7 +17,7 @@ type PrescribedSet struct {
 	Percentage     sql.NullFloat64 // of training max, NULL for bodyweight/accessories
 	AbsoluteWeight sql.NullFloat64 // fixed weight (lbs/kg), NULL when using percentage
 	SortOrder      int             // display order within a day (lower = first)
-	RepType        string          // "reps", "each_side", or "seconds"
+	RepType        string          // "reps", "each_side", "seconds", or "distance"
 	Notes          sql.NullString
 
 	// Joined fields.
@@ -64,7 +64,7 @@ func (ps *PrescribedSet) PercentageLabel() string {
 	return fmt.Sprintf("%.1f%%", pct)
 }
 
-// RepsLabel returns a display string for reps (e.g. "5", "5/ea", "30s", or "AMRAP").
+// RepsLabel returns a display string for reps (e.g. "5", "5/ea", "30s", "30yd", or "AMRAP").
 func (ps *PrescribedSet) RepsLabel() string {
 	if !ps.Reps.Valid {
 		return "AMRAP"
@@ -74,6 +74,8 @@ func (ps *PrescribedSet) RepsLabel() string {
 		return fmt.Sprintf("%d/ea", ps.Reps.Int64)
 	case "seconds":
 		return fmt.Sprintf("%ds", ps.Reps.Int64)
+	case "distance":
+		return fmt.Sprintf("%dyd", ps.Reps.Int64)
 	default:
 		return fmt.Sprintf("%d", ps.Reps.Int64)
 	}
@@ -246,4 +248,78 @@ func UpdatePrescribedSet(db *sql.DB, id int64, exerciseID int64, setNumber int, 
 	}
 
 	return GetPrescribedSetByID(db, id)
+}
+
+// CopyWeek duplicates all prescribed sets from sourceWeek to targetWeek
+// within the same program template. Existing sets in the target week that
+// would conflict (same day_number, exercise_id, set_number) are skipped.
+// Returns the number of sets actually inserted.
+func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("models: copy week begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.Query(
+		`SELECT day_number, exercise_id, set_number, reps, percentage,
+		        absolute_weight, sort_order, rep_type, notes
+		   FROM prescribed_sets
+		  WHERE template_id = ? AND week_number = ?
+		  ORDER BY day_number, sort_order`,
+		templateID, sourceWeek,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("models: copy week query source: %w", err)
+	}
+	defer rows.Close()
+
+	type setRow struct {
+		dayNumber      int
+		exerciseID     int64
+		setNumber      int
+		reps           sql.NullInt64
+		percentage     sql.NullFloat64
+		absoluteWeight sql.NullFloat64
+		sortOrder      int
+		repType        string
+		notes          sql.NullString
+	}
+	var sets []setRow
+	for rows.Next() {
+		var s setRow
+		if err := rows.Scan(&s.dayNumber, &s.exerciseID, &s.setNumber,
+			&s.reps, &s.percentage, &s.absoluteWeight,
+			&s.sortOrder, &s.repType, &s.notes); err != nil {
+			return 0, fmt.Errorf("models: copy week scan: %w", err)
+		}
+		sets = append(sets, s)
+	}
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("models: copy week rows: %w", err)
+	}
+
+	inserted := 0
+	for _, s := range sets {
+		_, err := tx.Exec(
+			`INSERT INTO prescribed_sets
+			   (template_id, week_number, day_number, exercise_id, set_number,
+			    reps, percentage, absolute_weight, sort_order, rep_type, notes)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			templateID, targetWeek, s.dayNumber, s.exerciseID, s.setNumber,
+			s.reps, s.percentage, s.absoluteWeight, s.sortOrder, s.repType, s.notes,
+		)
+		if err != nil {
+			if isUniqueViolation(err) {
+				continue // skip duplicates
+			}
+			return 0, fmt.Errorf("models: copy week insert: %w", err)
+		}
+		inserted++
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("models: copy week commit: %w", err)
+	}
+	return inserted, nil
 }

@@ -395,6 +395,7 @@ func main() {
 		r.Post("/programs/{id}/delete", programs.Delete)
 		r.Post("/programs/{id}/sets", programs.AddSet)
 		r.Post("/programs/{id}/sets/{setID}/delete", programs.DeleteSet)
+		r.Post("/programs/{id}/copy-week", programs.CopyWeek)
 
 		// Progression Rules (coach-only).
 		r.Post("/programs/{id}/progression", programs.AddProgressionRule)

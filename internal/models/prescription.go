@@ -80,6 +80,10 @@ type Prescription struct {
 	CompletedInCycle int     // workouts completed in the current cycle
 	TotalInCycle     int     // total workouts in a full cycle (weeks × days)
 	ProgressPercent  float64 // 0-100
+
+	// CycleComplete is true when a non-loop program has finished all workouts
+	// in its cycle and is awaiting coach review before advancing.
+	CycleComplete bool
 }
 
 // GetPrescription calculates today's training prescription for an athlete.
@@ -127,6 +131,16 @@ func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescriptio
 
 	position := completedWorkouts % cycleLength
 	cycleNumber := (completedWorkouts / cycleLength) + 1
+
+	// For non-loop programs, detect when a full cycle is complete.
+	// The athlete has finished the cycle when completedWorkouts is an exact
+	// multiple of cycleLength (and > 0). In that case, show a "Cycle Complete"
+	// prompt instead of auto-advancing into the next cycle.
+	cycleComplete := false
+	if !program.IsLoop && completedWorkouts > 0 && position == 0 {
+		cycleComplete = true
+	}
+
 	currentWeek := (position / program.NumDays) + 1
 	currentDay := (position % program.NumDays) + 1
 
@@ -214,6 +228,7 @@ func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescriptio
 		CompletedInCycle: completedInCycle,
 		TotalInCycle:     cycleLength,
 		ProgressPercent:  progressPct,
+		CycleComplete:    cycleComplete,
 	}, nil
 }
 

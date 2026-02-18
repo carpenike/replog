@@ -935,3 +935,51 @@ func (h *Programs) ApplyTMBumps(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handlers: applied %d TM bumps for athlete %d", applied, athleteID)
 	http.Redirect(w, r, fmt.Sprintf("/athletes/%d", athleteID), http.StatusSeeOther)
 }
+
+// CopyWeek duplicates all prescribed sets from one week to another within the
+// same program template. Coach only.
+func (h *Programs) CopyWeek(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	templateID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid program ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	sourceWeek, err := strconv.Atoi(r.FormValue("source_week"))
+	if err != nil || sourceWeek < 1 {
+		http.Error(w, "Invalid source week", http.StatusBadRequest)
+		return
+	}
+
+	targetWeek, err := strconv.Atoi(r.FormValue("target_week"))
+	if err != nil || targetWeek < 1 {
+		http.Error(w, "Invalid target week", http.StatusBadRequest)
+		return
+	}
+
+	if sourceWeek == targetWeek {
+		http.Error(w, "Source and target week must be different", http.StatusBadRequest)
+		return
+	}
+
+	inserted, err := models.CopyWeek(h.DB, templateID, sourceWeek, targetWeek)
+	if err != nil {
+		log.Printf("handlers: copy week %d→%d for template %d: %v", sourceWeek, targetWeek, templateID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("handlers: copied %d sets from week %d to week %d (template %d)", inserted, sourceWeek, targetWeek, templateID)
+	http.Redirect(w, r, fmt.Sprintf("/programs/%d?week=%d", templateID, targetWeek), http.StatusSeeOther)
+}

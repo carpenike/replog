@@ -32,7 +32,7 @@ These were resolved interactively before schema design:
 
 13. **Two-level goals: long-term and per-cycle.** The `goal` column on `athletes` holds a long-term training objective ("build overall strength"). The `goal` column on `athlete_programs` holds a short-term cycle-specific goal ("increase squat TM by 10 lbs"). Both are nullable free-text fields. This separation gives future LLM-based plan generation the right context at each level.
 
-14. **Rep type tracks per-side and timed sets.** The `rep_type` column on `prescribed_sets` and `workout_sets` uses an enum (`reps`, `each_side`, `seconds`). This avoids encoding modifiers in notes fields — "5/ea" or "30s" are first-class data. The `reps` column continues to hold the numeric value; `rep_type` determines how to display it.
+14. **Rep type tracks per-side, timed, and distance sets.** The `rep_type` column on `prescribed_sets` and `workout_sets` uses an enum (`reps`, `each_side`, `seconds`, `distance`). This avoids encoding modifiers in notes fields — "5/ea", "30s", or "20yd" are first-class data. The `reps` column continues to hold the numeric value; `rep_type` determines how to display it.
 
 15. **Progression rules are suggestions, not automation.** The `progression_rules` table stores per-exercise TM increment amounts for each program template (e.g. +5 lbs for upper body, +10 lbs for lower body in 5/3/1). At cycle boundaries, the app surfaces suggested TM bumps alongside AMRAP results from the completed cycle. The coach decides whether to apply, edit, or skip each suggestion. The app never auto-applies TM changes — this preserves the "logbook, not coach" principle while removing the friction of manually remembering increment rules.
 
@@ -125,7 +125,7 @@ erDiagram
         INTEGER exercise_id FK
         INTEGER set_number
         INTEGER reps
-        TEXT rep_type "reps, each_side, or seconds"
+        TEXT rep_type "reps, each_side, seconds, or distance"
         REAL weight "nullable"
         REAL rpe "nullable, CHECK 1-10"
         TEXT notes "nullable"
@@ -252,7 +252,7 @@ erDiagram
         INTEGER day
         INTEGER set_number
         INTEGER reps "nullable, NULL = AMRAP"
-        TEXT rep_type "reps, each_side, or seconds"
+        TEXT rep_type "reps, each_side, seconds, or distance"
         REAL percentage "nullable"
         REAL absolute_weight "nullable, fixed weight"
         INTEGER sort_order "display order within day"
@@ -422,7 +422,7 @@ erDiagram
 | `set_number`| INTEGER      | NOT NULL                             |
 | `reps`      | INTEGER      | NOT NULL                             |
 | `weight`    | REAL         | NULL                                 |
-| `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds')) |
+| `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds', 'distance')) |
 | `rpe`       | REAL         | NULL, CHECK(rpe >= 1 AND rpe <= 10)  |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -430,7 +430,7 @@ erDiagram
 
 - One row = one set.
 - `weight` is nullable — bodyweight exercises (push-ups, bear crawls) don't need it.
-- `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s".
+- `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s", `distance` → "20yd".
 - `rpe` is rate of perceived exertion (1–10 scale, half-steps allowed). Nullable — only logged when the athlete reports it.
 - `set_number` preserves ordering within exercise within workout.
 - `notes` holds per-set observations ("form broke down on rep 18").
@@ -497,7 +497,7 @@ erDiagram
 | `day`       | INTEGER      | NOT NULL                             |
 | `set_number`| INTEGER      | NOT NULL                             |
 | `reps`      | INTEGER      | NULL (NULL = AMRAP)                  |
-| `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds')) |
+| `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds', 'distance')) |
 | `percentage`| REAL         | NULL (% of training max)             |
 | `absolute_weight`| REAL    | NULL (fixed weight in lbs/kg)        |
 | `sort_order`| INTEGER      | NOT NULL DEFAULT 0                   |
@@ -505,7 +505,7 @@ erDiagram
 
 - Each row is one prescribed set within a template's week/day.
 - `reps = NULL` indicates an AMRAP (as many reps as possible) set.
-- `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s".
+- `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s", `distance` → "20yd".
 - `percentage` is a decimal (e.g. 65.0 for 65%) used to calculate target weight from the athlete's training max.
 - `absolute_weight` is a fixed weight for programs that don't use percentage-of-TM (e.g. Yessis foundational, accessories). When both `percentage` and `absolute_weight` are set, percentage takes priority.
 - `sort_order` controls exercise display order within a day. All sets for the same exercise share the same sort_order. Lower values appear first. Critical for methodologies where exercise sequence matters.
@@ -698,7 +698,7 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE RESTRICT,
     set_number  INTEGER NOT NULL,
     reps        INTEGER NOT NULL,
-    rep_type    TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds')),
+    rep_type    TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds', 'distance')),
     weight      REAL,
     rpe         REAL    CHECK(rpe >= 1 AND rpe <= 10),
     notes       TEXT,
@@ -825,7 +825,7 @@ CREATE TABLE IF NOT EXISTS prescribed_sets (
     day             INTEGER NOT NULL,
     set_number      INTEGER NOT NULL,
     reps            INTEGER,
-    rep_type        TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds')),
+    rep_type        TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds', 'distance')),
     percentage      REAL,
     absolute_weight REAL,
     sort_order      INTEGER NOT NULL DEFAULT 0,
