@@ -211,6 +211,16 @@ func main() {
 	// Global middleware — applied to every request.
 	r.Use(middleware.RequestLogger)
 
+	// Custom error pages for unmatched routes. Wrapped with session loading so
+	// logged-in users still see the sidebar navigation on error pages.
+	r.NotFound(sessionManager.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tc.NotFound(w, r)
+	})).ServeHTTP)
+	r.MethodNotAllowed(sessionManager.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tc.RenderErrorPage(w, r, http.StatusMethodNotAllowed, "Method Not Allowed",
+			"The requested method is not supported for this URL.")
+	})).ServeHTTP)
+
 	// Error page renderer for middleware — uses the template cache to render
 	// styled error pages instead of plain text responses.
 	renderError := middleware.ErrorRenderer(tc.RenderErrorPage)
