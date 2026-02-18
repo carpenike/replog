@@ -196,3 +196,46 @@ func ListProgramExerciseTMs(db *sql.DB, templateID, athleteID int64) ([]*Program
 	}
 	return results, nil
 }
+
+// MissingProgramTM identifies a program exercise that uses percentage-based
+// sets but has no training max defined for the athlete.
+type MissingProgramTM struct {
+	ExerciseID   int64
+	ExerciseName string
+}
+
+// ListMissingProgramTMs returns exercises in a program template that have at
+// least one percentage-based prescribed set but the athlete has no current
+// training max for them. Only percentage-based sets need a TM; exercises
+// with only absolute_weight sets are excluded.
+func ListMissingProgramTMs(db *sql.DB, templateID, athleteID int64) ([]*MissingProgramTM, error) {
+	rows, err := db.Query(`
+		SELECT DISTINCT e.id, e.name
+		FROM prescribed_sets ps
+		JOIN exercises e ON e.id = ps.exercise_id
+		WHERE ps.template_id = ?
+		  AND ps.percentage IS NOT NULL
+		  AND NOT EXISTS (
+		      SELECT 1 FROM training_maxes tm
+		      WHERE tm.athlete_id = ? AND tm.exercise_id = e.id
+		  )
+		ORDER BY e.name COLLATE NOCASE`,
+		templateID, athleteID)
+	if err != nil {
+		return nil, fmt.Errorf("models: list missing program TMs (template=%d, athlete=%d): %w", templateID, athleteID, err)
+	}
+	defer rows.Close()
+
+	var missing []*MissingProgramTM
+	for rows.Next() {
+		m := &MissingProgramTM{}
+		if err := rows.Scan(&m.ExerciseID, &m.ExerciseName); err != nil {
+			return nil, fmt.Errorf("models: scan missing program TM: %w", err)
+		}
+		missing = append(missing, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate missing program TMs: %w", err)
+	}
+	return missing, nil
+}

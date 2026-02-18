@@ -36,6 +36,22 @@
         <p><strong>Goal:</strong> {{ .Athlete.Goal.String }}</p>
         {{ end }}
 
+        {{ if .MissingTMs }}
+        <div class="alert alert-warning">
+            ⚠ <strong>Missing Training Maxes</strong> — {{ .ActiveProgram.TemplateName }} has percentage-based exercises without a TM set:
+            {{ range $i, $m := .MissingTMs }}{{ if $i }}, {{ end }}<strong>{{ $m.ExerciseName }}</strong>{{ end }}.
+            <a href="/athletes/{{ .Athlete.ID }}/training-maxes">Set training maxes →</a>
+        </div>
+        {{ end }}
+
+        {{ if .MissingEquip }}
+        <div class="alert alert-warning">
+            ⚠ <strong>Missing Equipment</strong> — {{ .ActiveProgram.TemplateName }} uses equipment {{ .Athlete.Name }} doesn't have:
+            {{ range $i, $ex := .MissingEquip }}{{ if $i }}, {{ end }}<strong>{{ $ex.ExerciseName }}</strong> ({{ range $j, $eq := $ex.Missing }}{{ if $j }}, {{ end }}{{ $eq.EquipmentName }}{{ end }}){{ end }}.
+            <a href="/athletes/{{ .Athlete.ID }}/equipment">Update equipment →</a>
+        </div>
+        {{ end }}
+
         <!-- Hub Cards -->
         <div class="dashboard-grid">
             <a href="/athletes/{{ .Athlete.ID }}/workouts/new" class="card-link">

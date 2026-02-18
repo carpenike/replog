@@ -234,6 +234,26 @@ func (h *Athletes) loadAthleteShowData(user *models.User, athlete *models.Athlet
 		}
 	}
 
+	// Check for missing TMs and equipment gaps in the active program.
+	var missingTMs []*models.MissingProgramTM
+	var missingEquip []models.EquipmentCompatibility
+	if activeProgram != nil && middleware.CanManageAthlete(user, athlete) {
+		missingTMs, err = models.ListMissingProgramTMs(h.DB, activeProgram.TemplateID, id)
+		if err != nil {
+			log.Printf("handlers: missing program TMs for athlete %d: %v", id, err)
+		}
+		equipCompat, err := models.CheckProgramCompatibility(h.DB, id, activeProgram.TemplateID)
+		if err != nil {
+			log.Printf("handlers: program equipment compat for athlete %d: %v", id, err)
+		} else if equipCompat != nil && !equipCompat.Ready {
+			for _, ex := range equipCompat.Exercises {
+				if !ex.HasRequired {
+					missingEquip = append(missingEquip, ex)
+				}
+			}
+		}
+	}
+
 	// Load available program templates for assignment (coach/admin only for managed athletes).
 	var programTemplates []*models.ProgramTemplate
 	if middleware.CanManageAthlete(user, athlete) {
@@ -263,6 +283,8 @@ func (h *Athletes) loadAthleteShowData(user *models.User, athlete *models.Athlet
 		"Prescription":     prescription,
 		"ProgramTemplates": programTemplates,
 		"FeaturedLifts":    featuredLifts,
+		"MissingTMs":       missingTMs,
+		"MissingEquip":     missingEquip,
 		"CanManage":        middleware.CanManageAthlete(user, athlete),
 		"TodayDate":        time.Now().Format("2006-01-02"),
 	}, nil
