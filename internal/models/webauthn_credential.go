@@ -183,13 +183,13 @@ func GetWebAuthnCredentialsByUser(db *sql.DB, userID int64) ([]webauthn.Credenti
 func GetUserByCredentialID(db *sql.DB, credentialID []byte) (*User, error) {
 	var user User
 	err := db.QueryRow(`
-		SELECT u.id, u.username, u.email, u.password_hash, u.athlete_id, u.is_coach,
-		       u.created_at, u.updated_at
+		SELECT u.id, u.username, u.name, u.email, COALESCE(u.password_hash, ''), u.athlete_id, u.is_coach,
+		       u.is_admin, u.avatar_path, u.created_at, u.updated_at
 		FROM users u
 		INNER JOIN webauthn_credentials wc ON wc.user_id = u.id
 		WHERE wc.credential_id = ?`, credentialID,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash,
-		&user.AthleteID, &user.IsCoach, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.PasswordHash,
+		&user.AthleteID, &user.IsCoach, &user.IsAdmin, &user.AvatarPath, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("models: get user by credential id: %w", err)
 	}

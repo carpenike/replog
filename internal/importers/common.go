@@ -54,6 +54,7 @@ type ParsedExercise struct {
 	FormNotes   *string                   `json:"form_notes"`
 	DemoURL     *string                   `json:"demo_url"`
 	RestSeconds *int                      `json:"rest_seconds"`
+	Featured    bool                      `json:"featured"`
 	Equipment   []ParsedExerciseEquipment `json:"equipment"`
 }
 

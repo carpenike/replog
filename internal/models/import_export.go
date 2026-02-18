@@ -51,6 +51,7 @@ type ExportExercise struct {
 	FormNotes   *string                   `json:"form_notes"`
 	DemoURL     *string                   `json:"demo_url"`
 	RestSeconds *int                      `json:"rest_seconds"`
+	Featured    bool                      `json:"featured"`
 	Equipment   []ExportExerciseEquipment `json:"equipment"`
 }
 
@@ -475,6 +476,7 @@ func exportExercises(db *sql.DB, athleteID int64, equipmentMap map[int64]ExportE
 			Tier:      nullStringPtr(ex.Tier),
 			FormNotes: nullStringPtr(ex.FormNotes),
 			DemoURL:   nullStringPtr(ex.DemoURL),
+			Featured:  ex.Featured,
 		}
 		if ex.RestSeconds.Valid {
 			rs := int(ex.RestSeconds.Int64)
@@ -736,6 +738,7 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 			Tier:      nullStringPtr(ex.Tier),
 			FormNotes: nullStringPtr(ex.FormNotes),
 			DemoURL:   nullStringPtr(ex.DemoURL),
+			Featured:  ex.Featured,
 		}
 		if ex.RestSeconds.Valid {
 			rs := int(ex.RestSeconds.Int64)

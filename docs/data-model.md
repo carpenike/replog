@@ -43,11 +43,13 @@ erDiagram
     users {
         INTEGER id PK
         TEXT username UK "COLLATE NOCASE"
+        TEXT name "nullable"
         TEXT email UK "COLLATE NOCASE, nullable"
-        TEXT password_hash
+        TEXT password_hash "nullable"
         INTEGER athlete_id FK "nullable"
         INTEGER is_coach "0 or 1"
         INTEGER is_admin "0 or 1"
+        TEXT avatar_path "nullable"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -81,6 +83,7 @@ erDiagram
         TEXT form_notes "nullable"
         TEXT demo_url "nullable"
         INTEGER rest_seconds "nullable"
+        INTEGER featured "0 or 1, default 0"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -156,10 +159,46 @@ erDiagram
     program_templates ||--o{ athlete_programs : "assigned via"
     program_templates ||--o{ progression_rules : "has rules"
     exercises ||--o{ progression_rules : "incremented by"
+    users ||--o{ login_tokens : "has"
+    users ||--o{ webauthn_credentials : "has"
     equipment ||--o{ exercise_equipment : "required by"
     exercises ||--o{ exercise_equipment : "requires"
     equipment ||--o{ athlete_equipment : "owned by"
     athletes ||--o{ athlete_equipment : "has"
+
+    login_tokens {
+        INTEGER id PK
+        INTEGER user_id FK
+        TEXT token UK
+        TEXT label "nullable"
+        DATETIME expires_at "nullable"
+        DATETIME created_at
+    }
+
+    webauthn_credentials {
+        INTEGER id PK
+        INTEGER user_id FK
+        BLOB credential_id UK
+        BLOB public_key
+        TEXT attestation_type
+        TEXT transport "nullable"
+        INTEGER sign_count
+        INTEGER clone_warning "0 or 1"
+        TEXT attachment
+        BLOB aaguid "nullable"
+        INTEGER flags_user_present "0 or 1"
+        INTEGER flags_user_verified "0 or 1"
+        INTEGER flags_backup_eligible "0 or 1"
+        INTEGER flags_backup_state "0 or 1"
+        TEXT label "nullable"
+        DATETIME created_at
+    }
+
+    sessions {
+        TEXT token PK
+        BLOB data
+        REAL expiry
+    }
 
     equipment {
         INTEGER id PK
@@ -249,6 +288,7 @@ erDiagram
 | `athlete_id`   | INTEGER      | NULL, FK → athletes(id)              |
 | `is_coach`     | INTEGER      | NOT NULL DEFAULT 0, CHECK(is_coach IN (0, 1)) |
 | `is_admin`     | INTEGER      | NOT NULL DEFAULT 0, CHECK(is_admin IN (0, 1)) |
+| `avatar_path`  | TEXT         | NULL                                 |
 | `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
@@ -256,6 +296,7 @@ erDiagram
 - `email` for password reset or notifications in the future. Required for coaches, optional for kids.
 - `athlete_id` links the user to "their" athlete profile. NULL for coach-only accounts without a personal training profile.
 - `is_coach = 1` → full access to all athletes. `is_coach = 0` → can only view/log/edit workouts for their linked athlete.
+- `avatar_path` stores the relative path to the user's uploaded avatar image. NULL if no avatar has been uploaded.
 - `COLLATE NOCASE` prevents "Admin" and "admin" or duplicate emails.
 - Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL` env vars with `is_coach = 1`.
 
@@ -307,6 +348,7 @@ erDiagram
 | `form_notes`| TEXT         | NULL                                 |
 | `demo_url`  | TEXT         | NULL                                 |
 | `rest_seconds`| INTEGER    | NULL                                 |
+| `featured`  | INTEGER      | NOT NULL DEFAULT 0, CHECK(featured IN (0, 1)) |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
@@ -314,6 +356,7 @@ erDiagram
 - `form_notes` holds static coaching cues ("keep elbows tucked").
 - `rest_seconds` is the recommended rest between sets in seconds. NULL means use the app default (90s). Passed to the client-side rest timer after logging a set.
 - `demo_url` links to a video demonstrating proper form.
+- `featured` marks exercises that appear on the featured lifts dashboard. Defaults to not featured.
 
 ### `athlete_exercises`
 
@@ -455,7 +498,7 @@ erDiagram
 - `reps = NULL` indicates an AMRAP (as many reps as possible) set.
 - `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s".
 - `percentage` is a decimal (e.g. 65.0 for 65%) used to calculate target weight from the athlete's training max.
-- `UNIQUE(template_id, exercise_id, week, day, set_number)` prevents duplicate sets.
+- `UNIQUE(template_id, week, day, exercise_id, set_number)` prevents duplicate sets.
 
 ### `athlete_programs`
 
@@ -493,6 +536,65 @@ erDiagram
 - Cascades on delete from both template and exercise sides.
 - Used by the cycle review screen to suggest TM updates — the coach still decides whether to apply, edit, or skip.
 
+### `login_tokens`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `user_id`   | INTEGER      | NOT NULL, FK → users(id) ON DELETE CASCADE |
+| `token`     | TEXT         | NOT NULL UNIQUE                      |
+| `label`     | TEXT         | NULL                                 |
+| `expires_at`| DATETIME     | NULL                                 |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Passwordless login tokens — generated by coaches/admins and given to athletes for first-time device enrollment.
+- `token` is a unique random string used as the login credential.
+- `label` is an optional human-readable name for the token (e.g. "Caydan's iPad").
+- `expires_at` is optional — NULL means the token never expires.
+- Deleting a user cascades to their login tokens.
+
+### `webauthn_credentials`
+
+| Column                | Type         | Constraints                          |
+|----------------------|-------------|--------------------------------------|
+| `id`                 | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `user_id`            | INTEGER      | NOT NULL, FK → users(id) ON DELETE CASCADE |
+| `credential_id`      | BLOB         | NOT NULL UNIQUE                      |
+| `public_key`         | BLOB         | NOT NULL                             |
+| `attestation_type`   | TEXT         | NOT NULL DEFAULT ''                  |
+| `transport`          | TEXT         | NULL                                 |
+| `sign_count`         | INTEGER      | NOT NULL DEFAULT 0                   |
+| `clone_warning`      | INTEGER      | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
+| `attachment`         | TEXT         | NOT NULL DEFAULT ''                  |
+| `aaguid`             | BLOB         | NULL                                 |
+| `flags_user_present` | INTEGER      | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
+| `flags_user_verified`| INTEGER      | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
+| `flags_backup_eligible`| INTEGER    | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
+| `flags_backup_state` | INTEGER      | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
+| `label`              | TEXT         | NULL                                 |
+| `created_at`         | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- WebAuthn/passkey credentials for passwordless authentication.
+- Each user can register multiple passkeys (one per device).
+- `credential_id` and `public_key` are the core WebAuthn credential data.
+- `sign_count` tracks authentication counter for clone detection.
+- `flags_*` columns store the WebAuthn authenticator flags.
+- `label` is an optional human-readable name for the passkey (e.g. "iPhone", "YubiKey").
+- Deleting a user cascades to their credentials.
+
+### `sessions`
+
+| Column  | Type  | Constraints     |
+|---------|-------|-----------------|
+| `token` | TEXT  | PRIMARY KEY     |
+| `data`  | BLOB  | NOT NULL        |
+| `expiry`| REAL  | NOT NULL        |
+
+- Session store for `alexedwards/scs` session manager.
+- Managed entirely by the scs library — not accessed directly by application code.
+- `token` is the session ID sent to the client as a cookie.
+- `expiry` is a Unix timestamp used by scs for automatic cleanup.
+
 ## SQLite DDL
 
 ```sql
@@ -521,6 +623,7 @@ CREATE TABLE IF NOT EXISTS users (
     athlete_id      INTEGER REFERENCES athletes(id) ON DELETE SET NULL,
     is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
     is_admin        INTEGER NOT NULL DEFAULT 0 CHECK(is_admin IN (0, 1)),
+    avatar_path     TEXT,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -542,6 +645,7 @@ CREATE TABLE IF NOT EXISTS exercises (
     form_notes   TEXT,
     demo_url     TEXT,
     rest_seconds INTEGER,
+    featured     INTEGER NOT NULL DEFAULT 0 CHECK(featured IN (0, 1)),
     created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -598,6 +702,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_exercises_unique_active
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_unique_athlete_id
     ON users(athlete_id) WHERE athlete_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id
+    ON user_preferences(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_athletes_coach_id
     ON athletes(coach_id);
@@ -692,8 +799,8 @@ CREATE TABLE IF NOT EXISTS program_templates (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
     description TEXT,
-    num_weeks   INTEGER NOT NULL,
-    num_days    INTEGER NOT NULL,
+    num_weeks   INTEGER NOT NULL DEFAULT 1,
+    num_days    INTEGER NOT NULL DEFAULT 1,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -701,7 +808,7 @@ CREATE TABLE IF NOT EXISTS program_templates (
 CREATE TABLE IF NOT EXISTS prescribed_sets (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     template_id  INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE CASCADE,
-    exercise_id  INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    exercise_id  INTEGER NOT NULL REFERENCES exercises(id) ON DELETE RESTRICT,
     week         INTEGER NOT NULL,
     day          INTEGER NOT NULL,
     set_number   INTEGER NOT NULL,
@@ -709,11 +816,11 @@ CREATE TABLE IF NOT EXISTS prescribed_sets (
     rep_type     TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds')),
     percentage   REAL,
     notes        TEXT,
-    UNIQUE(template_id, exercise_id, week, day, set_number)
+    UNIQUE(template_id, week, day, exercise_id, set_number)
 );
 
 CREATE INDEX IF NOT EXISTS idx_prescribed_sets_template
-    ON prescribed_sets(template_id);
+    ON prescribed_sets(template_id, week, day);
 
 CREATE TABLE IF NOT EXISTS athlete_programs (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -829,6 +936,15 @@ CREATE INDEX IF NOT EXISTS idx_athlete_equipment_athlete
 
 CREATE INDEX IF NOT EXISTS idx_athlete_equipment_equipment
     ON athlete_equipment(equipment_id);
+
+-- Session store for alexedwards/scs
+CREATE TABLE IF NOT EXISTS sessions (
+    token  TEXT PRIMARY KEY,
+    data   BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expiry);
 ```
 
 ## Seed Data (Development)

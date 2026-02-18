@@ -126,6 +126,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			formNotes := ""
 			demoURL := ""
 			restSeconds := 0
+			featured := false
 			if pe != nil {
 				if pe.Tier != nil {
 					tier = *pe.Tier
@@ -139,8 +140,9 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 				if pe.RestSeconds != nil {
 					restSeconds = *pe.RestSeconds
 				}
+				featured = pe.Featured
 			}
-			id, err := insertExercise(tx, m.ImportName, tier, formNotes, demoURL, restSeconds)
+			id, err := insertExercise(tx, m.ImportName, tier, formNotes, demoURL, restSeconds, featured)
 			if err != nil {
 				return nil, fmt.Errorf("models: import create exercise %q: %w", m.ImportName, err)
 			}
@@ -382,7 +384,7 @@ func insertEquipment(tx *sql.Tx, name, description string) (int64, error) {
 	return result.LastInsertId()
 }
 
-func insertExercise(tx *sql.Tx, name, tier, formNotes, demoURL string, restSeconds int) (int64, error) {
+func insertExercise(tx *sql.Tx, name, tier, formNotes, demoURL string, restSeconds int, featured bool) (int64, error) {
 	var tierVal, notesVal, demoVal sql.NullString
 	var restVal sql.NullInt64
 	if tier != "" {
@@ -397,9 +399,13 @@ func insertExercise(tx *sql.Tx, name, tier, formNotes, demoURL string, restSecon
 	if restSeconds > 0 {
 		restVal = sql.NullInt64{Int64: int64(restSeconds), Valid: true}
 	}
+	featuredInt := 0
+	if featured {
+		featuredInt = 1
+	}
 	result, err := tx.Exec(
-		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds) VALUES (?, ?, ?, ?, ?)`,
-		name, tierVal, notesVal, demoVal, restVal,
+		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds, featured) VALUES (?, ?, ?, ?, ?, ?)`,
+		name, tierVal, notesVal, demoVal, restVal, featuredInt,
 	)
 	if err != nil {
 		return 0, err
@@ -713,7 +719,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState) (*CatalogImpor
 			restSeconds = *pe.RestSeconds
 		}
 
-		id, err := insertExercise(tx, pe.Name, tier, formNotes, demoURL, restSeconds)
+		id, err := insertExercise(tx, pe.Name, tier, formNotes, demoURL, restSeconds, pe.Featured)
 		if err != nil {
 			if isUniqueViolation(err) {
 				continue
