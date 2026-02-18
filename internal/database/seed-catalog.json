@@ -1,0 +1,4567 @@
+{
+  "version": "1.0",
+  "exported_at": "2026-02-18T00:00:00Z",
+  "type": "catalog",
+  "equipment": [
+    {
+      "name": "Barbell",
+      "description": "Standard Olympic barbell, 45 lbs"
+    },
+    {
+      "name": "Dumbbells",
+      "description": "Adjustable or fixed weight set"
+    },
+    {
+      "name": "Power Rack",
+      "description": "Full power rack with safety pins"
+    },
+    {
+      "name": "Flat Bench",
+      "description": "Standard flat weight bench"
+    },
+    {
+      "name": "Adjustable Bench",
+      "description": "Incline/decline capable bench"
+    },
+    {
+      "name": "Pull-up Bar",
+      "description": "Fixed or doorway-mounted"
+    },
+    {
+      "name": "Cable Machine",
+      "description": "Adjustable pulley system"
+    },
+    {
+      "name": "EZ-Curl Bar",
+      "description": "Angled grip barbell for curls and tricep work"
+    },
+    {
+      "name": "Dip Station",
+      "description": "Parallel bars for dips"
+    },
+    {
+      "name": "Leg Press Machine",
+      "description": "Plate-loaded or selectorized leg press"
+    }
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "tier": null,
+      "form_notes": "Brace core, break at hips and knees together, drive through whole foot",
+      "demo_url": null,
+      "rest_seconds": 180,
+      "featured": true,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        },
+        {
+          "name": "Power Rack",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Bench Press",
+      "tier": null,
+      "form_notes": "Retract shoulder blades, arch upper back, drive feet into floor",
+      "demo_url": null,
+      "rest_seconds": 180,
+      "featured": true,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        },
+        {
+          "name": "Flat Bench",
+          "optional": false
+        },
+        {
+          "name": "Power Rack",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Deadlift",
+      "tier": null,
+      "form_notes": "Brace core, push the floor away, lock hips and knees together",
+      "demo_url": null,
+      "rest_seconds": 180,
+      "featured": true,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Overhead Press",
+      "tier": null,
+      "form_notes": "Squeeze glutes, brace core, press straight up, move head through at lockout",
+      "demo_url": null,
+      "rest_seconds": 180,
+      "featured": true,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Barbell Row",
+      "tier": null,
+      "form_notes": "Hinge at hips, pull to lower chest, squeeze shoulder blades together",
+      "demo_url": null,
+      "rest_seconds": 120,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Front Squat",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": 180,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        },
+        {
+          "name": "Power Rack",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Romanian Deadlift",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": 120,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Incline Bench Press",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": 120,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        },
+        {
+          "name": "Adjustable Bench",
+          "optional": false
+        },
+        {
+          "name": "Power Rack",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Close-Grip Bench Press",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": 120,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        },
+        {
+          "name": "Flat Bench",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Barbell Curl",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Barbell",
+          "optional": false
+        },
+        {
+          "name": "EZ-Curl Bar",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Dumbbell Bench Press",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        },
+        {
+          "name": "Flat Bench",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Dumbbell Row",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        },
+        {
+          "name": "Flat Bench",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Dumbbell Overhead Press",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Dumbbell Curl",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Dumbbell Lateral Raise",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Pull-up",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": 120,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Pull-up Bar",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Chin-up",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": 120,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Pull-up Bar",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Dip",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dip Station",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Push-up",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Plank",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Lat Pulldown",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Cable Row",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Face Pull",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Tricep Pushdown",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Leg Press",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": 120,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Leg Press Machine",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Leg Curl",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Leg Extension",
+      "tier": null,
+      "form_notes": null,
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "programs": [
+    {
+      "name": "5/3/1 for Beginners",
+      "description": "Wendler's 5/3/1 adapted for beginners (thefitness.wiki). Two main lifts per day with First Set Last (FSL) 5x5 supplemental. 3-week cycles. Accessories: 50-100 reps each of push, pull, and single-leg/core after main work.",
+      "num_weeks": 3,
+      "num_days": 3,
+      "is_loop": true,
+      "prescribed_sets": [
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 2,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 2,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 2,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 2,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 2,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 2,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 2,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 1,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 1,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 1,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 1,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 2,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 2,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 2,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 2,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 2,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 2,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 3,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 3,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 3,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 3,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 3,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 3,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 3,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 3,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 3,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 3,
+          "set_number": 6,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 3,
+          "set_number": 7,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 3,
+          "set_number": 8,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "FSL"
+        }
+      ],
+      "progression_rules": [
+        {
+          "exercise": "Squat",
+          "increment": 10.0
+        },
+        {
+          "exercise": "Bench Press",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Deadlift",
+          "increment": 10.0
+        },
+        {
+          "exercise": "Overhead Press",
+          "increment": 5.0
+        }
+      ]
+    },
+    {
+      "name": "5/3/1 BBB",
+      "description": "Wendler's 5/3/1 Boring But Big. One main lift per day with 5x10 supplemental at 50% TM for hypertrophy. 3-week cycles. Accessories: 25-50 reps each of push, pull, and single-leg/core after main + BBB work.",
+      "num_weeks": 3,
+      "num_days": 4,
+      "is_loop": true,
+      "prescribed_sets": [
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 65.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 3,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 3,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 3,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 3,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 3,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 3,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 3,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 4,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 4,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 4,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 4,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 4,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 4,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 4,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 4,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Squat",
+          "week": 3,
+          "day": 1,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 3,
+          "day": 2,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 3,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 3,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 3,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 3,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 3,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 3,
+          "day": 3,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 4,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 75.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 4,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 85.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 4,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 95.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 4,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 4,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 4,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 4,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 3,
+          "day": 4,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "BBB supplemental"
+        }
+      ],
+      "progression_rules": [
+        {
+          "exercise": "Squat",
+          "increment": 10.0
+        },
+        {
+          "exercise": "Bench Press",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Deadlift",
+          "increment": 10.0
+        },
+        {
+          "exercise": "Overhead Press",
+          "increment": 5.0
+        }
+      ]
+    },
+    {
+      "name": "Phrak's Greyskull LP",
+      "description": "Phrak's variant of Greyskull LP (r/Fitness recommended). Alternating A/B workouts, 3 days per week. All lifts use 3x5+ (AMRAP last set) except Deadlift which is 1x5+. Progression is per session. Deload 10% on failure.",
+      "num_weeks": 2,
+      "num_days": 3,
+      "is_loop": true,
+      "prescribed_sets": [
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 2,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 2,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 2,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 1,
+          "set_number": 1,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 2,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 2,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 2,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 2,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 2,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 2,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 2,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 2,
+          "day": 3,
+          "set_number": 1,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        }
+      ],
+      "progression_rules": [
+        {
+          "exercise": "Squat",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Bench Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Overhead Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Deadlift",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Barbell Row",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Chin-up",
+          "increment": 0.0
+        }
+      ]
+    },
+    {
+      "name": "GZCLP",
+      "description": "Cody Lefever's GZCLP linear progression. Three tiers per day: T1 heavy 5x3+ (AMRAP last set), T2 volume 3x10, T3 pump 3x15+ (AMRAP last set). Progression is per session. Failure protocols: T1 5x3 -> 6x2 -> 10x1 -> reset; T2 3x10 -> 3x8 -> 3x6 -> add weight restart; T3 add weight when AMRAP hits 25 reps.",
+      "num_weeks": 1,
+      "num_days": 4,
+      "is_loop": true,
+      "prescribed_sets": [
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Lat Pulldown",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Lat Pulldown",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Lat Pulldown",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 4,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 5,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 4,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 5,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Lat Pulldown",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Lat Pulldown",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Lat Pulldown",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 4,
+          "set_number": 4,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 4,
+          "set_number": 5,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        }
+      ],
+      "progression_rules": [
+        {
+          "exercise": "Squat",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Bench Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Overhead Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Deadlift",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Lat Pulldown",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "increment": 5.0
+        }
+      ]
+    }
+  ]
+}
