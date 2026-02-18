@@ -586,3 +586,211 @@ func findParsedExercise(exercises []importers.ParsedExercise, name string) *impo
 	}
 	return nil
 }
+
+// --- Catalog Import (global — no athlete) ---
+
+// CatalogImportPreview summarizes what a catalog import will do.
+type CatalogImportPreview struct {
+	ExercisesNew    int
+	ExercisesMapped int
+	EquipmentNew    int
+	EquipmentMapped int
+	ProgramsNew     int
+	ProgramsMapped  int
+}
+
+// CatalogImportResult summarizes what was imported.
+type CatalogImportResult struct {
+	ExercisesCreated    int
+	EquipmentCreated    int
+	ProgramsCreated     int
+	PrescribedSets      int
+	ProgressionRules    int
+	ExerciseEquipLinks  int
+}
+
+// BuildCatalogImportPreview generates a preview of a catalog import.
+func BuildCatalogImportPreview(ms *importers.MappingState) *CatalogImportPreview {
+	p := &CatalogImportPreview{}
+
+	for _, m := range ms.Exercises {
+		if m.Create {
+			p.ExercisesNew++
+		} else {
+			p.ExercisesMapped++
+		}
+	}
+	for _, m := range ms.Equipment {
+		if m.Create {
+			p.EquipmentNew++
+		} else {
+			p.EquipmentMapped++
+		}
+	}
+	for _, m := range ms.Programs {
+		if m.Create {
+			p.ProgramsNew++
+		} else {
+			p.ProgramsMapped++
+		}
+	}
+
+	return p
+}
+
+// ExecuteCatalogImport creates equipment, exercises, and program templates
+// from a parsed catalog file. No athlete-specific data is touched.
+func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState) (*CatalogImportResult, error) {
+	pf := ms.Parsed
+	result := &CatalogImportResult{}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("models: begin catalog import tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Phase 1: Equipment.
+	equipmentIDMap := make(map[string]int64)
+	for _, m := range ms.Equipment {
+		if m.MappedID > 0 {
+			equipmentIDMap[strings.ToLower(m.ImportName)] = m.MappedID
+			continue
+		}
+		if !m.Create {
+			continue
+		}
+		desc := ""
+		for _, pe := range pf.Equipment {
+			if strings.EqualFold(pe.Name, m.ImportName) {
+				if pe.Description != nil {
+					desc = *pe.Description
+				}
+				break
+			}
+		}
+		id, err := insertEquipment(tx, m.ImportName, desc)
+		if err != nil {
+			if isUniqueViolation(err) {
+				continue
+			}
+			return nil, fmt.Errorf("models: catalog import equipment %q: %w", m.ImportName, err)
+		}
+		equipmentIDMap[strings.ToLower(m.ImportName)] = id
+		result.EquipmentCreated++
+	}
+
+	// Phase 2: Exercises + equipment dependencies.
+	exerciseIDMap := make(map[string]int64)
+	for _, m := range ms.Exercises {
+		if m.MappedID > 0 {
+			exerciseIDMap[strings.ToLower(m.ImportName)] = m.MappedID
+			continue
+		}
+		if !m.Create {
+			continue
+		}
+
+		pe := findParsedExercise(pf.Exercises, m.ImportName)
+		if pe == nil {
+			continue
+		}
+
+		tier := ""
+		formNotes := ""
+		demoURL := ""
+		restSeconds := 0
+		if pe.Tier != nil {
+			tier = *pe.Tier
+		}
+		if pe.FormNotes != nil {
+			formNotes = *pe.FormNotes
+		}
+		if pe.DemoURL != nil {
+			demoURL = *pe.DemoURL
+		}
+		if pe.RestSeconds != nil {
+			restSeconds = *pe.RestSeconds
+		}
+
+		id, err := insertExercise(tx, pe.Name, tier, formNotes, demoURL, restSeconds)
+		if err != nil {
+			if isUniqueViolation(err) {
+				continue
+			}
+			return nil, fmt.Errorf("models: catalog import exercise %q: %w", pe.Name, err)
+		}
+		exerciseIDMap[strings.ToLower(pe.Name)] = id
+		result.ExercisesCreated++
+
+		// Wire equipment dependencies.
+		for _, eq := range pe.Equipment {
+			eqID, ok := equipmentIDMap[strings.ToLower(eq.Name)]
+			if !ok {
+				continue
+			}
+			if err := insertExerciseEquipment(tx, id, eqID, eq.Optional); err != nil {
+				return nil, fmt.Errorf("models: catalog import exercise-equipment link: %w", err)
+			}
+			result.ExerciseEquipLinks++
+		}
+	}
+
+	// Phase 3: Program templates + prescribed sets + progression rules.
+	for _, m := range ms.Programs {
+		if m.MappedID > 0 || !m.Create {
+			continue
+		}
+
+		// Find parsed program template.
+		var pt *importers.ParsedProgramTemplate
+		for _, prog := range pf.Programs {
+			if strings.EqualFold(prog.Template.Name, m.ImportName) {
+				pt = &prog.Template
+				break
+			}
+		}
+		if pt == nil {
+			continue
+		}
+
+		templateID, err := insertProgramTemplate(tx, *pt)
+		if err != nil {
+			if isUniqueViolation(err) {
+				continue
+			}
+			return nil, fmt.Errorf("models: catalog import program template %q: %w", pt.Name, err)
+		}
+		result.ProgramsCreated++
+
+		// Prescribed sets.
+		for _, ps := range pt.PrescribedSets {
+			exID, ok := exerciseIDMap[strings.ToLower(ps.Exercise)]
+			if !ok {
+				continue
+			}
+			if err := insertPrescribedSet(tx, templateID, exID, ps); err != nil {
+				return nil, fmt.Errorf("models: catalog import prescribed set: %w", err)
+			}
+			result.PrescribedSets++
+		}
+
+		// Progression rules.
+		for _, pr := range pt.ProgressionRules {
+			exID, ok := exerciseIDMap[strings.ToLower(pr.Exercise)]
+			if !ok {
+				continue
+			}
+			if err := insertProgressionRule(tx, templateID, exID, pr.Increment); err != nil {
+				return nil, fmt.Errorf("models: catalog import progression rule: %w", err)
+			}
+			result.ProgressionRules++
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("models: commit catalog import: %w", err)
+	}
+
+	return result, nil
+}

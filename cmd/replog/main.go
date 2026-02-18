@@ -312,6 +312,8 @@ func main() {
 		r.Get("/athletes/{id}/export/json", importExport.ExportJSON)
 		r.Get("/athletes/{id}/export/csv", importExport.ExportCSV)
 
+
+
 		// Passkey registration (requires auth, not coach/admin).
 		if passkeys != nil {
 			r.Get("/passkeys/register/begin", passkeys.BeginRegistration)
@@ -408,6 +410,8 @@ func main() {
 		r.Get("/athletes/{id}/import/map", importExport.MapPage)
 		r.Post("/athletes/{id}/import/preview", importExport.Preview)
 		r.Post("/athletes/{id}/import/execute", importExport.Execute)
+
+
 	})
 
 	// --- Admin-only routes — RequireAuth + CSRF + RequireAdmin ---
@@ -427,6 +431,15 @@ func main() {
 		// Login Token management.
 		r.Post("/users/{id}/tokens", loginTokens.GenerateToken)
 		r.Post("/users/{id}/tokens/{tokenID}/delete", loginTokens.DeleteToken)
+
+		// Catalog import/export — admin-only.
+		r.Get("/catalog", importExport.CatalogExportPage)
+		r.Get("/catalog/export/json", importExport.CatalogExportJSON)
+		r.Get("/catalog/import", importExport.CatalogImportPage)
+		r.Post("/catalog/import/upload", importExport.CatalogUpload)
+		r.Get("/catalog/import/map", importExport.CatalogMapPage)
+		r.Post("/catalog/import/preview", importExport.CatalogPreview)
+		r.Post("/catalog/import/execute", importExport.CatalogExecute)
 	})
 
 	// Start server.

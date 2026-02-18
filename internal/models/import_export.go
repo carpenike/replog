@@ -692,6 +692,130 @@ func nullStringPtr(ns sql.NullString) *string {
 	return nil
 }
 
+// --- Catalog Export ---
+
+// CatalogJSON is the top-level structure for a global catalog export
+// (exercises, equipment, and program templates — no athlete-specific data).
+type CatalogJSON struct {
+	Version    string                 `json:"version"`
+	ExportedAt string                 `json:"exported_at"`
+	Type       string                 `json:"type"` // "catalog"
+	Equipment  []ExportEquipment      `json:"equipment"`
+	Exercises  []ExportExercise       `json:"exercises"`
+	Programs   []ExportProgramTemplate `json:"programs"`
+}
+
+// BuildCatalogExportJSON gathers all exercises, equipment, and program templates.
+func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
+	catalog := &CatalogJSON{
+		Version:    "1.0",
+		ExportedAt: time.Now().UTC().Format(time.RFC3339),
+		Type:       "catalog",
+	}
+
+	// Equipment — all.
+	allEquipment, err := ListEquipment(db)
+	if err != nil {
+		return nil, fmt.Errorf("models: catalog export equipment: %w", err)
+	}
+	for _, eq := range allEquipment {
+		catalog.Equipment = append(catalog.Equipment, ExportEquipment{
+			Name:        eq.Name,
+			Description: nullStringPtr(eq.Description),
+		})
+	}
+
+	// Exercises — all, with equipment dependencies.
+	allExercises, err := ListExercises(db, "")
+	if err != nil {
+		return nil, fmt.Errorf("models: catalog export exercises: %w", err)
+	}
+	for _, ex := range allExercises {
+		ee := ExportExercise{
+			Name:      ex.Name,
+			Tier:      nullStringPtr(ex.Tier),
+			FormNotes: nullStringPtr(ex.FormNotes),
+			DemoURL:   nullStringPtr(ex.DemoURL),
+		}
+		if ex.RestSeconds.Valid {
+			rs := int(ex.RestSeconds.Int64)
+			ee.RestSeconds = &rs
+		}
+
+		eqLinks, err := ListExerciseEquipment(db, ex.ID)
+		if err != nil {
+			return nil, fmt.Errorf("models: catalog export exercise equipment for %d: %w", ex.ID, err)
+		}
+		for _, link := range eqLinks {
+			ee.Equipment = append(ee.Equipment, ExportExerciseEquipment{
+				Name:     link.EquipmentName,
+				Optional: link.Optional,
+			})
+		}
+		catalog.Exercises = append(catalog.Exercises, ee)
+	}
+
+	// Program templates — all, with prescribed sets and progression rules.
+	allTemplates, err := ListProgramTemplates(db)
+	if err != nil {
+		return nil, fmt.Errorf("models: catalog export program templates: %w", err)
+	}
+	for _, pt := range allTemplates {
+		ept := ExportProgramTemplate{
+			Name:        pt.Name,
+			Description: nullStringPtr(pt.Description),
+			NumWeeks:    pt.NumWeeks,
+			NumDays:     pt.NumDays,
+		}
+
+		pSets, err := ListPrescribedSets(db, pt.ID)
+		if err != nil {
+			return nil, fmt.Errorf("models: catalog export prescribed sets for template %d: %w", pt.ID, err)
+		}
+		for _, ps := range pSets {
+			eps := ExportPrescribedSet{
+				Exercise:  ps.ExerciseName,
+				Week:      ps.Week,
+				Day:       ps.Day,
+				SetNumber: ps.SetNumber,
+				RepType:   ps.RepType,
+			}
+			if ps.Reps.Valid {
+				r := int(ps.Reps.Int64)
+				eps.Reps = &r
+			}
+			if ps.Percentage.Valid {
+				p := ps.Percentage.Float64
+				eps.Percentage = &p
+			}
+			eps.Notes = nullStringPtr(ps.Notes)
+			ept.PrescribedSets = append(ept.PrescribedSets, eps)
+		}
+
+		rules, err := ListProgressionRules(db, pt.ID)
+		if err != nil {
+			return nil, fmt.Errorf("models: catalog export progression rules for template %d: %w", pt.ID, err)
+		}
+		for _, r := range rules {
+			ept.ProgressionRules = append(ept.ProgressionRules, ExportProgressionRule{
+				Exercise:  r.ExerciseName,
+				Increment: r.Increment,
+			})
+		}
+
+		catalog.Programs = append(catalog.Programs, ept)
+	}
+
+	return catalog, nil
+}
+
+// WriteCatalogJSON serializes the catalog export to JSON and writes it.
+func WriteCatalogJSON(w io.Writer, catalog *CatalogJSON) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(catalog)
+}
+
 // --- Import Types ---
 
 // ImportMapping holds resolved entity ID mappings for import execution.

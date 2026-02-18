@@ -6,9 +6,10 @@ package importers
 type Format string
 
 const (
-	FormatRepLogJSON Format = "replog_json"
-	FormatStrongCSV  Format = "strong_csv"
-	FormatHevyCSV    Format = "hevy_csv"
+	FormatRepLogJSON   Format = "replog_json"
+	FormatCatalogJSON  Format = "catalog_json"
+	FormatStrongCSV    Format = "strong_csv"
+	FormatHevyCSV      Format = "hevy_csv"
 )
 
 // ParsedFile is the unified output from any parser. It contains all entities
@@ -163,6 +164,10 @@ func DetectFormat(data []byte) Format {
 	}
 
 	if len(trimmed) > 0 && trimmed[0] == '{' {
+		// Peek at the JSON to distinguish catalog from athlete export.
+		if containsAll(string(trimmed[:min(len(trimmed), 200)]), `"type"`, `"catalog"`) {
+			return FormatCatalogJSON
+		}
 		return FormatRepLogJSON
 	}
 

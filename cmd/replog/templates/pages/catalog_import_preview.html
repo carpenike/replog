@@ -1,0 +1,58 @@
+{{ define "title" }}RepLog — Catalog Import Preview{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/catalog">Catalog</a> &rsaquo; <a href="/catalog/import">Import</a> &rsaquo; Preview
+        </div>
+
+        <div class="page-header">
+            <h1>Catalog Import Preview</h1>
+        </div>
+
+        <article>
+            <header>
+                <h3>Summary</h3>
+            </header>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Entity</th>
+                        <th>New</th>
+                        <th>Mapped to Existing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ if or .Preview.EquipmentNew .Preview.EquipmentMapped }}
+                    <tr>
+                        <td>Equipment</td>
+                        <td>{{ .Preview.EquipmentNew }}</td>
+                        <td>{{ .Preview.EquipmentMapped }}</td>
+                    </tr>
+                    {{ end }}
+                    {{ if or .Preview.ExercisesNew .Preview.ExercisesMapped }}
+                    <tr>
+                        <td>Exercises</td>
+                        <td>{{ .Preview.ExercisesNew }}</td>
+                        <td>{{ .Preview.ExercisesMapped }}</td>
+                    </tr>
+                    {{ end }}
+                    {{ if or .Preview.ProgramsNew .Preview.ProgramsMapped }}
+                    <tr>
+                        <td>Programs</td>
+                        <td>{{ .Preview.ProgramsNew }}</td>
+                        <td>{{ .Preview.ProgramsMapped }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </article>
+
+        <div class="page-actions">
+            <a href="/catalog/import/map" role="button" class="outline secondary">Back to Mapping</a>
+            <form method="POST" action="/catalog/import/execute" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+                <button type="submit" hx-confirm="This will import the catalog data. Continue?">Confirm Import</button>
+            </form>
+        </div>
+{{ end }}

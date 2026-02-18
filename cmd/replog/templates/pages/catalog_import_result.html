@@ -1,0 +1,57 @@
+{{ define "title" }}RepLog — Catalog Import Complete{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/catalog">Catalog</a> &rsaquo; Import Complete
+        </div>
+
+        <div class="page-header">
+            <h1>Catalog Import Complete</h1>
+        </div>
+
+        <article>
+            <header>
+                <h3>Results</h3>
+            </header>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Entity</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Equipment</td>
+                        <td>{{ .Result.EquipmentCreated }}</td>
+                    </tr>
+                    <tr>
+                        <td>Exercises</td>
+                        <td>{{ .Result.ExercisesCreated }}</td>
+                    </tr>
+                    <tr>
+                        <td>Exercise-Equipment Links</td>
+                        <td>{{ .Result.ExerciseEquipLinks }}</td>
+                    </tr>
+                    <tr>
+                        <td>Program Templates</td>
+                        <td>{{ .Result.ProgramsCreated }}</td>
+                    </tr>
+                    <tr>
+                        <td>Prescribed Sets</td>
+                        <td>{{ .Result.PrescribedSets }}</td>
+                    </tr>
+                    <tr>
+                        <td>Progression Rules</td>
+                        <td>{{ .Result.ProgressionRules }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </article>
+
+        <div class="page-actions">
+            <a href="/exercises" role="button">View Exercises</a>
+            <a href="/programs" role="button" class="outline">View Programs</a>
+        </div>
+{{ end }}

@@ -1,0 +1,115 @@
+{{ define "title" }}RepLog — Map Catalog Import{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/catalog">Catalog</a> &rsaquo; <a href="/catalog/import">Import</a> &rsaquo; Map
+        </div>
+
+        <div class="page-header">
+            <h1>Map Catalog Data</h1>
+        </div>
+
+        <p>Match each imported name to an existing RepLog entity, or choose <strong>Create New</strong> to add it during import.</p>
+
+        <form method="POST" action="/catalog/import/preview">
+            <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+
+            {{ if .MappingState.Equipment }}
+            <article>
+                <header>
+                    <h3>Equipment ({{ len .MappingState.Equipment }})</h3>
+                </header>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Imported Name</th>
+                            <th>Map To</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range $i, $m := .MappingState.Equipment }}
+                        <tr>
+                            <td>{{ $m.ImportName }}</td>
+                            <td>
+                                <select name="equipment_{{ $i }}">
+                                    <option value="create" {{ if $m.Create }}selected{{ end }}>— Create New —</option>
+                                    {{ range $.ExistingEquipment }}
+                                    <option value="{{ .ID }}" {{ if and (not $m.Create) (eq .ID $m.MappedID) }}selected{{ end }}>{{ .Name }}</option>
+                                    {{ end }}
+                                </select>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </article>
+            {{ end }}
+
+            {{ if .MappingState.Exercises }}
+            <article>
+                <header>
+                    <h3>Exercises ({{ len .MappingState.Exercises }})</h3>
+                </header>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Imported Name</th>
+                            <th>Map To</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range $i, $m := .MappingState.Exercises }}
+                        <tr>
+                            <td>{{ $m.ImportName }}</td>
+                            <td>
+                                <select name="exercise_{{ $i }}">
+                                    <option value="create" {{ if $m.Create }}selected{{ end }}>— Create New —</option>
+                                    {{ range $.ExistingExercises }}
+                                    <option value="{{ .ID }}" {{ if and (not $m.Create) (eq .ID $m.MappedID) }}selected{{ end }}>{{ .Name }}</option>
+                                    {{ end }}
+                                </select>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </article>
+            {{ end }}
+
+            {{ if .MappingState.Programs }}
+            <article>
+                <header>
+                    <h3>Programs ({{ len .MappingState.Programs }})</h3>
+                </header>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Imported Name</th>
+                            <th>Map To</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range $i, $m := .MappingState.Programs }}
+                        <tr>
+                            <td>{{ $m.ImportName }}</td>
+                            <td>
+                                <select name="program_{{ $i }}">
+                                    <option value="create" {{ if $m.Create }}selected{{ end }}>— Create New —</option>
+                                    {{ range $.ExistingPrograms }}
+                                    <option value="{{ .ID }}" {{ if and (not $m.Create) (eq .ID $m.MappedID) }}selected{{ end }}>{{ .Name }}</option>
+                                    {{ end }}
+                                </select>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </article>
+            {{ end }}
+
+            <div class="page-actions">
+                <a href="/catalog/import" role="button" class="outline secondary">Cancel</a>
+                <button type="submit">Preview Import</button>
+            </div>
+        </form>
+{{ end }}

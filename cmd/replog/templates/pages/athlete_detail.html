@@ -87,6 +87,20 @@
                     <p>Manage available gear</p>
                 </article>
             </a>
+            <a href="/athletes/{{ .Athlete.ID }}/export" class="card-link">
+                <article>
+                    <h2>Export</h2>
+                    <p>Download data (JSON/CSV)</p>
+                </article>
+            </a>
+            {{ if .CanManage }}
+            <a href="/athletes/{{ .Athlete.ID }}/import" class="card-link">
+                <article>
+                    <h2>Import</h2>
+                    <p>Upload workout data</p>
+                </article>
+            </a>
+            {{ end }}
         </div>
 
         <!-- Weekly Completion Streaks -->
