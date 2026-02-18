@@ -86,6 +86,17 @@
     --tier-foundational: #34d399;
     --tier-intermediate: #38bdf8;
     --tier-sport-performance: #c084fc;
+
+    /* Pico component variable overrides */
+    --pico-h1-color: var(--text-primary);
+    --pico-h2-color: var(--text-primary);
+    --pico-h3-color: var(--text-primary);
+    --pico-h4-color: var(--text-primary);
+    --pico-card-border-color: var(--border-subtle);
+    --pico-card-box-shadow: var(--shadow-xs);
+    --pico-form-element-border-color: var(--border-default);
+    --pico-form-element-active-border-color: var(--pico-primary);
+    --pico-form-element-focus-color: var(--pico-primary-focus);
 }
 
 /* ---- Light theme palette ---- */
@@ -133,6 +144,17 @@
     --tier-foundational: #059669;
     --tier-intermediate: #0284c7;
     --tier-sport-performance: #9333ea;
+
+    /* Pico component variable overrides */
+    --pico-h1-color: var(--text-primary);
+    --pico-h2-color: var(--text-primary);
+    --pico-h3-color: var(--text-primary);
+    --pico-h4-color: var(--text-primary);
+    --pico-card-border-color: var(--border-subtle);
+    --pico-card-box-shadow: var(--shadow-xs);
+    --pico-form-element-border-color: var(--border-default);
+    --pico-form-element-active-border-color: var(--pico-primary);
+    --pico-form-element-focus-color: var(--pico-primary-focus);
 }
 
 /* =========================================================
@@ -143,18 +165,15 @@
 h1 {
     font-weight: 700;
     letter-spacing: -0.025em;
-    color: var(--text-primary);
 }
 
 h2 {
     font-weight: 600;
     letter-spacing: -0.015em;
-    color: var(--text-primary);
 }
 
 h3, h4 {
     font-weight: 600;
-    color: var(--text-primary);
 }
 
 small, .text-muted {
@@ -169,8 +188,6 @@ a, button, [role="button"], input, select, textarea {
 /* ---- Articles / Cards ---- */
 article {
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-xs);
     transition: box-shadow var(--duration-fast) var(--ease-default),
                 border-color var(--duration-fast) var(--ease-default);
 }
@@ -207,15 +224,10 @@ button:active:not(:disabled),
     transform: scale(0.98);
 }
 
-/* Form action button groups — separate buttons instead of merged bar */
-form > div[role="group"] {
+/* Form action button groups */
+.form-actions {
+    display: flex;
     gap: var(--space-sm);
-}
-
-form > div[role="group"] > *,
-form > div[role="group"] > :first-child,
-form > div[role="group"] > :last-child {
-    border-radius: var(--radius-sm);
 }
 
 /* Compact action buttons */
@@ -241,19 +253,11 @@ form > div[role="group"] > :last-child {
     margin-bottom: 0;
 }
 
-/* ---- Inputs ---- */
+/* ---- Inputs — tighter radius than global ---- */
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
     border-radius: var(--radius-sm);
-    border-color: var(--border-default);
-}
-
-input:not([type="checkbox"]):not([type="radio"]):focus,
-select:focus,
-textarea:focus {
-    border-color: var(--pico-primary);
-    box-shadow: 0 0 0 3px var(--pico-primary-focus);
 }
 
 /* ---- Tables ---- */
@@ -682,28 +686,28 @@ table a:hover {
     line-height: 1.4;
 }
 
-/* Override Pico button defaults inside dropdown */
-button.user-menu-item {
-    background: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0.5rem 0.625rem !important;
-    color: var(--text-primary) !important;
+/* Override Pico button defaults inside dropdown (high specificity avoids !important) */
+.user-menu-dropdown button.user-menu-item {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0.5rem 0.625rem;
+    color: var(--text-primary);
     font-weight: normal;
 }
 
-button.user-menu-item:hover {
-    background: var(--primary-alpha-subtle) !important;
-    color: var(--text-primary) !important;
+.user-menu-dropdown button.user-menu-item:hover {
+    background: var(--primary-alpha-subtle);
+    color: var(--text-primary);
 }
 
-button.user-menu-item.user-menu-item--danger {
-    color: var(--color-danger) !important;
+.user-menu-dropdown button.user-menu-item.user-menu-item--danger {
+    color: var(--color-danger);
 }
 
-button.user-menu-item.user-menu-item--danger:hover {
-    background: rgba(248, 113, 113, 0.12) !important;
-    color: var(--color-danger) !important;
+.user-menu-dropdown button.user-menu-item.user-menu-item--danger:hover {
+    background: rgba(248, 113, 113, 0.12);
+    color: var(--color-danger);
 }
 
 .user-menu-item:hover {

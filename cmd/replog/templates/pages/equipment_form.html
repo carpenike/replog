@@ -23,7 +23,7 @@
                 <textarea id="description" name="description" rows="2" placeholder="Optional description">{{ if .Equipment }}{{ if .Equipment.Description.Valid }}{{ .Equipment.Description.String }}{{ end }}{{ end }}</textarea>
             </label>
 
-            <div role="group">
+            <div class="form-actions">
                 <button type="submit">{{ if .Equipment }}Save Changes{{ else }}Create Equipment{{ end }}</button>
                 <a href="/equipment" role="button" class="secondary">Cancel</a>
             </div>
