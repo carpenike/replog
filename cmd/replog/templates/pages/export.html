@@ -1,0 +1,35 @@
+{{ define "title" }}RepLog — Export {{ .Athlete.Name }}{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Export
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Athlete.Name }} — Export Data</h1>
+        </div>
+
+        <div class="grid">
+            <article>
+                <header>
+                    <h3>RepLog JSON</h3>
+                </header>
+                <p>Full backup of all data including workouts, exercises, equipment, assignments, training maxes, body weights, programs, and reviews.</p>
+                <p><small>Best for backing up or transferring data between RepLog instances.</small></p>
+                <footer>
+                    <a href="/athletes/{{ .Athlete.ID }}/export/json" role="button" download>Download JSON</a>
+                </footer>
+            </article>
+
+            <article>
+                <header>
+                    <h3>Strong CSV</h3>
+                </header>
+                <p>Workout history in Strong app format. Includes exercise names, sets, reps, weight, and notes.</p>
+                <p><small>Compatible with Strong, Hevy, and other fitness apps.</small></p>
+                <footer>
+                    <a href="/athletes/{{ .Athlete.ID }}/export/csv" role="button" class="outline" download>Download CSV</a>
+                </footer>
+            </article>
+        </div>
+{{ end }}

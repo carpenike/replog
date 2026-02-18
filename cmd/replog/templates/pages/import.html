@@ -1,0 +1,56 @@
+{{ define "title" }}RepLog — Import for {{ .Athlete.Name }}{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Import
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Athlete.Name }} — Import Data</h1>
+        </div>
+
+        {{ if .Error }}
+        <article class="error-message" aria-label="Error">
+            <p>{{ .Error }}</p>
+        </article>
+        {{ end }}
+
+        <article>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/import/upload" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+
+                <label for="file">Select File</label>
+                <input type="file" id="file" name="file" accept=".json,.csv" required>
+                <small>Supported formats: RepLog JSON, Strong CSV, Hevy CSV (max 10 MB)</small>
+
+                <fieldset>
+                    <legend>Format (auto-detected if left blank)</legend>
+                    <label>
+                        <input type="radio" name="format" value="">
+                        Auto-detect
+                    </label>
+                    <label>
+                        <input type="radio" name="format" value="replog_json">
+                        RepLog JSON
+                    </label>
+                    <label>
+                        <input type="radio" name="format" value="strong_csv">
+                        Strong CSV
+                    </label>
+                    <label>
+                        <input type="radio" name="format" value="hevy_csv">
+                        Hevy CSV
+                    </label>
+                </fieldset>
+
+                <label for="weight_unit">Weight Unit</label>
+                <select id="weight_unit" name="weight_unit">
+                    <option value="lbs">Pounds (lbs)</option>
+                    <option value="kg">Kilograms (kg)</option>
+                </select>
+                <small>Used for CSV imports where the unit isn't specified in the file.</small>
+
+                <button type="submit">Upload &amp; Continue</button>
+            </form>
+        </article>
+{{ end }}

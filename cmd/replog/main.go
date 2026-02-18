@@ -165,6 +165,11 @@ func main() {
 		Templates: tc,
 		AvatarDir: avatarDir,
 	}
+	importExport := &handlers.ImportExport{
+		DB:        db,
+		Sessions:  sessionManager,
+		Templates: tc,
+	}
 
 	// Configure WebAuthn for passkey support.
 	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
@@ -302,6 +307,11 @@ func main() {
 		r.Get("/athletes/{id}/prescription", programs.Prescription)
 		r.Get("/athletes/{id}/report", programs.CycleReport)
 
+		// Export — self-service for own athlete data.
+		r.Get("/athletes/{id}/export", importExport.ExportPage)
+		r.Get("/athletes/{id}/export/json", importExport.ExportJSON)
+		r.Get("/athletes/{id}/export/csv", importExport.ExportCSV)
+
 		// Passkey registration (requires auth, not coach/admin).
 		if passkeys != nil {
 			r.Get("/passkeys/register/begin", passkeys.BeginRegistration)
@@ -391,6 +401,13 @@ func main() {
 		// Cycle Review — TM bump suggestions (coach-only).
 		r.Get("/athletes/{id}/cycle-review", programs.CycleReview)
 		r.Post("/athletes/{id}/cycle-review", programs.ApplyTMBumps)
+
+		// Import — coach-only.
+		r.Get("/athletes/{id}/import", importExport.ImportPage)
+		r.Post("/athletes/{id}/import/upload", importExport.Upload)
+		r.Get("/athletes/{id}/import/map", importExport.MapPage)
+		r.Post("/athletes/{id}/import/preview", importExport.Preview)
+		r.Post("/athletes/{id}/import/execute", importExport.Execute)
 	})
 
 	// --- Admin-only routes — RequireAuth + CSRF + RequireAdmin ---
