@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/gob"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -554,20 +553,6 @@ func sanitizeFilename(name string) string {
 		}
 	}
 	return string(clean)
-}
-
-// marshalMappingState serializes mapping state to JSON for session storage.
-func marshalMappingState(ms *importers.MappingState) ([]byte, error) {
-	return json.Marshal(ms)
-}
-
-// unmarshalMappingState deserializes mapping state from JSON.
-func unmarshalMappingState(data []byte) (*importers.MappingState, error) {
-	var ms importers.MappingState
-	if err := json.Unmarshal(data, &ms); err != nil {
-		return nil, err
-	}
-	return &ms, nil
 }
 
 // --- Catalog Export/Import Handlers (global — no athlete) ---

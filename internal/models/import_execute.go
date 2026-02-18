@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/carpenike/replog/internal/importers"
 )
@@ -79,7 +80,93 @@ func BuildImportPreview(db *sql.DB, athleteID int64, ms *importers.MappingState)
 	p.TrainingMaxCount = len(pf.TrainingMaxes)
 	p.BodyWeightCount = len(pf.BodyWeights)
 
+	// Computed aggregate counts for template display.
+	p.ExerciseCount = p.ExercisesNew + p.ExercisesMapped
+	p.EquipmentCount = p.EquipmentNew + p.EquipmentMapped
+	p.ProgramCount = p.ProgramsNew + p.ProgramsMapped
+
+	// Validate data quality.
+	p.Warnings = validateImportData(pf)
+
 	return p, nil
+}
+
+// validRepTypes are the allowed values for rep_type.
+var validRepTypes = map[string]bool{
+	"reps":      true,
+	"seconds":   true,
+	"each_side": true,
+}
+
+// validateImportData checks parsed data for quality issues and returns warnings.
+// Warnings do not prevent import but are shown in the preview for user review.
+func validateImportData(pf *importers.ParsedFile) []ValidationWarning {
+	var warnings []ValidationWarning
+	today := time.Now().Format("2006-01-02")
+
+	for _, w := range pf.Workouts {
+		date := normalizeDate(w.Date)
+		if date > today {
+			warnings = append(warnings, ValidationWarning{
+				Entity:  "workout",
+				Field:   "date",
+				Message: fmt.Sprintf("Workout on %s is in the future", date),
+			})
+		}
+
+		for _, s := range w.Sets {
+			if s.Weight != nil && *s.Weight < 0 {
+				warnings = append(warnings, ValidationWarning{
+					Entity:  "set",
+					Field:   "weight",
+					Message: fmt.Sprintf("Negative weight (%.1f) for %s on %s", *s.Weight, s.Exercise, date),
+				})
+			}
+			if s.Reps < 0 {
+				warnings = append(warnings, ValidationWarning{
+					Entity:  "set",
+					Field:   "reps",
+					Message: fmt.Sprintf("Negative reps (%d) for %s on %s", s.Reps, s.Exercise, date),
+				})
+			}
+			if s.RPE != nil && (*s.RPE < 0 || *s.RPE > 10) {
+				warnings = append(warnings, ValidationWarning{
+					Entity:  "set",
+					Field:   "rpe",
+					Message: fmt.Sprintf("RPE %.1f out of range (0-10) for %s on %s", *s.RPE, s.Exercise, date),
+				})
+			}
+			if s.RepType != "" && !validRepTypes[s.RepType] {
+				warnings = append(warnings, ValidationWarning{
+					Entity:  "set",
+					Field:   "rep_type",
+					Message: fmt.Sprintf("Unknown rep type %q for %s on %s", s.RepType, s.Exercise, date),
+				})
+			}
+		}
+	}
+
+	for _, tm := range pf.TrainingMaxes {
+		if tm.Weight < 0 {
+			warnings = append(warnings, ValidationWarning{
+				Entity:  "training_max",
+				Field:   "weight",
+				Message: fmt.Sprintf("Negative training max (%.1f) for %s", tm.Weight, tm.Exercise),
+			})
+		}
+	}
+
+	for _, bw := range pf.BodyWeights {
+		if bw.Weight <= 0 {
+			warnings = append(warnings, ValidationWarning{
+				Entity:  "body_weight",
+				Field:   "weight",
+				Message: fmt.Sprintf("Invalid body weight (%.1f) on %s", bw.Weight, bw.Date),
+			})
+		}
+	}
+
+	return warnings
 }
 
 // ExecuteImport performs the import in a single transaction. It creates new
@@ -189,6 +276,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			if !isUniqueViolation(err) {
 				return nil, fmt.Errorf("models: import assignment for %q: %w", a.Exercise, err)
 			}
+			result.AssignmentsSkipped++
 			continue
 		}
 		result.AssignmentsCreated++
@@ -210,6 +298,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			if !isUniqueViolation(err) {
 				return nil, fmt.Errorf("models: import training max: %w", err)
 			}
+			result.TrainingMaxesSkipped++
 			continue
 		}
 		result.TrainingMaxesCreated++
@@ -226,6 +315,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			if !isUniqueViolation(err) {
 				return nil, fmt.Errorf("models: import body weight: %w", err)
 			}
+			result.BodyWeightsSkipped++
 			continue
 		}
 		result.BodyWeightsCreated++
@@ -361,8 +451,9 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			if !isUniqueViolation(err) {
 				return nil, fmt.Errorf("models: import athlete program: %w", err)
 			}
+			result.ProgramsSkipped++
 		} else {
-			result.ProgramsAssigned++
+			result.ProgramsCreated++
 		}
 	}
 

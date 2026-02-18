@@ -38,31 +38,35 @@
                         <td>{{ .Result.SetsCreated }}</td>
                         <td>0</td>
                     </tr>
-                    {{ if .Result.EquipmentCreated }}
+                    {{ if or .Result.EquipmentCreated .Result.EquipmentSkipped }}
                     <tr>
                         <td>Equipment</td>
                         <td>{{ .Result.EquipmentCreated }}</td>
                         <td>{{ .Result.EquipmentSkipped }}</td>
                     </tr>
                     {{ end }}
-                    {{ if .Result.AssignmentsCreated }}
+                    {{ if or .Result.AssignmentsCreated .Result.AssignmentsSkipped }}
                     <tr>
                         <td>Assignments</td>
                         <td>{{ .Result.AssignmentsCreated }}</td>
                         <td>{{ .Result.AssignmentsSkipped }}</td>
                     </tr>
                     {{ end }}
+                    {{ if or .Result.TrainingMaxesCreated .Result.TrainingMaxesSkipped }}
                     <tr>
                         <td>Training Maxes</td>
                         <td>{{ .Result.TrainingMaxesCreated }}</td>
                         <td>{{ .Result.TrainingMaxesSkipped }}</td>
                     </tr>
+                    {{ end }}
+                    {{ if or .Result.BodyWeightsCreated .Result.BodyWeightsSkipped }}
                     <tr>
                         <td>Body Weights</td>
                         <td>{{ .Result.BodyWeightsCreated }}</td>
                         <td>{{ .Result.BodyWeightsSkipped }}</td>
                     </tr>
-                    {{ if .Result.ProgramsCreated }}
+                    {{ end }}
+                    {{ if or .Result.ProgramsCreated .Result.ProgramsSkipped }}
                     <tr>
                         <td>Programs</td>
                         <td>{{ .Result.ProgramsCreated }}</td>

@@ -217,15 +217,8 @@ func BuildExportJSON(db *sql.DB, athleteID int64) (*ExportJSON, error) {
 		export.Assignments = append(export.Assignments, assignmentToExport(a, false))
 	}
 
-	// Training maxes for all assigned exercises.
-	tmExerciseIDs := make(map[int64]bool)
-	for _, a := range activeAssign {
-		tmExerciseIDs[a.ExerciseID] = true
-	}
-	for _, a := range deactAssign {
-		tmExerciseIDs[a.ExerciseID] = true
-	}
-	for exID := range tmExerciseIDs {
+	// Training maxes for all exported exercises (assigned + used in workouts).
+	for exID := range exerciseMap {
 		tms, err := ListTrainingMaxHistory(db, athleteID, exID)
 		if err != nil {
 			return nil, fmt.Errorf("models: export training maxes for exercise %d: %w", exID, err)
@@ -394,12 +387,17 @@ func exportEquipment(db *sql.DB, athleteID int64) (map[int64]ExportEquipment, er
 		}
 	}
 
-	// Also include equipment linked to assigned exercises.
+	// Also include equipment linked to assigned exercises (active + deactivated).
 	active, err := ListActiveAssignments(db, athleteID)
 	if err != nil {
-		return nil, fmt.Errorf("models: export equipment (assignments): %w", err)
+		return nil, fmt.Errorf("models: export equipment (active assignments): %w", err)
 	}
-	for _, a := range active {
+	deact, err := ListDeactivatedAssignments(db, athleteID)
+	if err != nil {
+		return nil, fmt.Errorf("models: export equipment (deactivated assignments): %w", err)
+	}
+	allAssignments := append(active, deact...)
+	for _, a := range allAssignments {
 		eeList, err := ListExerciseEquipment(db, a.ExerciseID)
 		if err != nil {
 			return nil, fmt.Errorf("models: export equipment for exercise %d: %w", a.ExerciseID, err)
@@ -414,6 +412,41 @@ func exportEquipment(db *sql.DB, athleteID int64) (map[int64]ExportEquipment, er
 				}
 			}
 		}
+	}
+
+	// Also include equipment linked to exercises used in workouts.
+	rows, err := db.Query(`
+		SELECT DISTINCT ws.exercise_id
+		FROM workout_sets ws
+		JOIN workouts w ON w.id = ws.workout_id
+		WHERE w.athlete_id = ?`, athleteID)
+	if err != nil {
+		return nil, fmt.Errorf("models: export equipment (workout exercises): %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var exID int64
+		if err := rows.Scan(&exID); err != nil {
+			return nil, err
+		}
+		eeList, err := ListExerciseEquipment(db, exID)
+		if err != nil {
+			return nil, fmt.Errorf("models: export equipment for workout exercise %d: %w", exID, err)
+		}
+		for _, ee := range eeList {
+			if _, exists := result[ee.EquipmentID]; !exists {
+				if eq, ok := eqByID[ee.EquipmentID]; ok {
+					result[eq.ID] = ExportEquipment{
+						Name:        eq.Name,
+						Description: nullStringPtr(eq.Description),
+					}
+				}
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return result, nil
@@ -851,33 +884,51 @@ type ImportMapping struct {
 }
 
 // ImportPreview summarizes what an import will do before execution.
+// ValidationWarning represents a non-blocking data quality issue found during
+// import preview. Warnings are shown to the user but do not prevent import.
+type ValidationWarning struct {
+	Entity  string // "workout", "set", "training_max", "body_weight"
+	Field   string // "weight", "reps", "rpe", "date", "rep_type"
+	Message string
+}
+
 type ImportPreview struct {
 	WorkoutCount     int
 	SetCount         int
 	ExercisesNew     int
 	ExercisesMapped  int
+	ExerciseCount    int      // ExercisesNew + ExercisesMapped (for template)
 	EquipmentNew     int
 	EquipmentMapped  int
+	EquipmentCount   int      // EquipmentNew + EquipmentMapped (for template)
 	ProgramsNew      int
 	ProgramsMapped   int
+	ProgramCount     int      // ProgramsNew + ProgramsMapped (for template)
 	ConflictDates    []string // dates that already have workouts
 	AssignmentCount  int
 	TrainingMaxCount int
 	BodyWeightCount  int
 	ReviewCount      int
 	DateRange        string // "YYYY-MM-DD to YYYY-MM-DD"
+	Warnings         []ValidationWarning
 }
 
 // ImportResult summarizes what was imported after execution.
 type ImportResult struct {
-	WorkoutsCreated     int
-	SetsCreated         int
-	ExercisesCreated    int
-	EquipmentCreated    int
-	AssignmentsCreated  int
+	WorkoutsCreated      int
+	SetsCreated          int
+	ExercisesCreated     int
+	ExercisesSkipped     int
+	EquipmentCreated     int
+	EquipmentSkipped     int
+	AssignmentsCreated   int
+	AssignmentsSkipped   int
 	TrainingMaxesCreated int
-	BodyWeightsCreated  int
-	ReviewsCreated      int
-	ProgramsAssigned    int
-	WorkoutsSkipped     int // existing date conflicts
+	TrainingMaxesSkipped int
+	BodyWeightsCreated   int
+	BodyWeightsSkipped   int
+	ReviewsCreated       int
+	ProgramsCreated      int
+	ProgramsSkipped      int
+	WorkoutsSkipped      int // existing date conflicts
 }

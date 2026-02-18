@@ -18,16 +18,16 @@
                 <tbody>
                     <tr>
                         <td>Exercises</td>
-                        <td>{{ .Preview.ExerciseCount }}</td>
+                        <td>{{ .Preview.ExerciseCount }} ({{ .Preview.ExercisesNew }} new, {{ .Preview.ExercisesMapped }} mapped)</td>
                     </tr>
                     <tr>
                         <td>Workouts</td>
-                        <td>{{ .Preview.WorkoutCount }}</td>
+                        <td>{{ .Preview.WorkoutCount }} ({{ .Preview.SetCount }} sets)</td>
                     </tr>
                     {{ if .IsRepLogJSON }}
                     <tr>
                         <td>Equipment</td>
-                        <td>{{ .Preview.EquipmentCount }}</td>
+                        <td>{{ .Preview.EquipmentCount }} ({{ .Preview.EquipmentNew }} new, {{ .Preview.EquipmentMapped }} mapped)</td>
                     </tr>
                     <tr>
                         <td>Assignments</td>
@@ -35,17 +35,27 @@
                     </tr>
                     <tr>
                         <td>Programs</td>
-                        <td>{{ .Preview.ProgramCount }}</td>
+                        <td>{{ .Preview.ProgramCount }} ({{ .Preview.ProgramsNew }} new, {{ .Preview.ProgramsMapped }} mapped)</td>
                     </tr>
                     {{ end }}
+                    {{ if .Preview.TrainingMaxCount }}
                     <tr>
                         <td>Training Maxes</td>
                         <td>{{ .Preview.TrainingMaxCount }}</td>
                     </tr>
+                    {{ end }}
+                    {{ if .Preview.BodyWeightCount }}
                     <tr>
                         <td>Body Weights</td>
                         <td>{{ .Preview.BodyWeightCount }}</td>
                     </tr>
+                    {{ end }}
+                    {{ if .Preview.ReviewCount }}
+                    <tr>
+                        <td>Reviews</td>
+                        <td>{{ .Preview.ReviewCount }}</td>
+                    </tr>
+                    {{ end }}
                 </tbody>
             </table>
 
@@ -64,6 +74,20 @@
             </details>
             {{ end }}
         </article>
+
+        {{ if .Preview.Warnings }}
+        <article aria-label="Data quality warnings">
+            <header>
+                <h3>&#9888; Data Quality Warnings</h3>
+            </header>
+            <p>The following issues were found in the import data. You may proceed, but review these before confirming.</p>
+            <ul>
+                {{ range .Preview.Warnings }}
+                <li>{{ .Message }}</li>
+                {{ end }}
+            </ul>
+        </article>
+        {{ end }}
 
         <div class="page-actions">
             <a href="/athletes/{{ .Athlete.ID }}/import/map" role="button" class="outline secondary">Back to Mapping</a>
