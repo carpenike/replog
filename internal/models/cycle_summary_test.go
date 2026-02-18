@@ -24,7 +24,7 @@ func TestGetCycleSummary_NoCycleCompletedReturnsNil(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{}, true)
-	tmpl, _ := CreateProgramTemplate(db, "531", "", 3, 4)
+	tmpl, _ := CreateProgramTemplate(db, "531", "", 3, 4, false)
 	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
 
 	// No workouts logged — still in cycle 1.
@@ -45,16 +45,16 @@ func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 
 	// Create a 3-week × 2-day program (6 workouts per cycle).
-	tmpl, _ := CreateProgramTemplate(db, "531", "", 3, 2)
+	tmpl, _ := CreateProgramTemplate(db, "531", "", 3, 2, false)
 	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
 
 	// Add AMRAP prescribed sets (reps=NULL) on week 3 day 1.
-	CreatePrescribedSet(db, tmpl.ID, squat.ID, 3, 1, 1, nil, ptrFloat(95), "", "")
-	CreatePrescribedSet(db, tmpl.ID, bench.ID, 3, 1, 2, nil, ptrFloat(95), "", "")
+	CreatePrescribedSet(db, tmpl.ID, squat.ID, 3, 1, 1, nil, ptrFloat(95), nil, 0, "", "")
+	CreatePrescribedSet(db, tmpl.ID, bench.ID, 3, 1, 2, nil, ptrFloat(95), nil, 0, "", "")
 
 	// Add some non-AMRAP sets.
 	five := 5
-	CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, 1, &five, ptrFloat(65), "", "")
+	CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, 1, &five, ptrFloat(65), nil, 0, "", "")
 
 	// Add progression rules.
 	SetProgressionRule(db, tmpl.ID, squat.ID, 10.0)
@@ -137,7 +137,7 @@ func TestGetCycleSummary_NoTMSkipsExercise(t *testing.T) {
 	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{}, true)
 	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
 
-	tmpl, _ := CreateProgramTemplate(db, "531", "", 1, 2)
+	tmpl, _ := CreateProgramTemplate(db, "531", "", 1, 2, false)
 	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
 
 	// Progression rule but no TM set.

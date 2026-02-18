@@ -9,7 +9,7 @@ func TestCreateProgramTemplate(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("basic create", func(t *testing.T) {
-		tmpl, err := CreateProgramTemplate(db, "5/3/1 BBB", "Boring But Big", 4, 4)
+		tmpl, err := CreateProgramTemplate(db, "5/3/1 BBB", "Boring But Big", 4, 4, false)
 		if err != nil {
 			t.Fatalf("create program template: %v", err)
 		}
@@ -28,7 +28,7 @@ func TestCreateProgramTemplate(t *testing.T) {
 	})
 
 	t.Run("duplicate name", func(t *testing.T) {
-		_, err := CreateProgramTemplate(db, "5/3/1 BBB", "", 1, 1)
+		_, err := CreateProgramTemplate(db, "5/3/1 BBB", "", 1, 1, false)
 		if err == nil {
 			t.Error("expected error for duplicate name")
 		}
@@ -38,8 +38,8 @@ func TestCreateProgramTemplate(t *testing.T) {
 func TestListProgramTemplates(t *testing.T) {
 	db := testDB(t)
 
-	CreateProgramTemplate(db, "Program A", "", 4, 4)
-	CreateProgramTemplate(db, "Program B", "", 3, 3)
+	CreateProgramTemplate(db, "Program A", "", 4, 4, false)
+	CreateProgramTemplate(db, "Program B", "", 3, 3, false)
 
 	templates, err := ListProgramTemplates(db)
 	if err != nil {
@@ -53,9 +53,9 @@ func TestListProgramTemplates(t *testing.T) {
 func TestUpdateProgramTemplate(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, "Old Name", "", 4, 4)
+	tmpl, _ := CreateProgramTemplate(db, "Old Name", "", 4, 4, false)
 
-	updated, err := UpdateProgramTemplate(db, tmpl.ID, "New Name", "Updated description", 3, 3)
+	updated, err := UpdateProgramTemplate(db, tmpl.ID, "New Name", "Updated description", 3, 3, false)
 	if err != nil {
 		t.Fatalf("update: %v", err)
 	}
@@ -71,14 +71,14 @@ func TestDeleteProgramTemplate(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("delete unused", func(t *testing.T) {
-		tmpl, _ := CreateProgramTemplate(db, "To Delete", "", 1, 1)
+		tmpl, _ := CreateProgramTemplate(db, "To Delete", "", 1, 1, false)
 		if err := DeleteProgramTemplate(db, tmpl.ID); err != nil {
 			t.Fatalf("delete: %v", err)
 		}
 	})
 
 	t.Run("delete in use", func(t *testing.T) {
-		tmpl, _ := CreateProgramTemplate(db, "In Use", "", 1, 1)
+		tmpl, _ := CreateProgramTemplate(db, "In Use", "", 1, 1, false)
 		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 		if err != nil {
@@ -95,13 +95,13 @@ func TestDeleteProgramTemplate(t *testing.T) {
 func TestPrescribedSets(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 4)
+	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 4, false)
 	e, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 
 	t.Run("create prescribed set", func(t *testing.T) {
 		reps := 5
 		pct := 75.0
-		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 1, &reps, &pct, "", "heavy")
+		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 1, &reps, &pct, nil, 0, "", "heavy")
 		if err != nil {
 			t.Fatalf("create prescribed set: %v", err)
 		}
@@ -118,7 +118,7 @@ func TestPrescribedSets(t *testing.T) {
 
 	t.Run("create AMRAP set (nil reps)", func(t *testing.T) {
 		pct := 85.0
-		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 2, nil, &pct, "", "")
+		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 2, nil, &pct, nil, 0, "", "")
 		if err != nil {
 			t.Fatalf("create AMRAP set: %v", err)
 		}
@@ -152,7 +152,7 @@ func TestPrescribedSets(t *testing.T) {
 
 	t.Run("delete", func(t *testing.T) {
 		reps := 10
-		ps, _ := CreatePrescribedSet(db, tmpl.ID, e.ID, 2, 1, 1, &reps, nil, "", "")
+		ps, _ := CreatePrescribedSet(db, tmpl.ID, e.ID, 2, 1, 1, &reps, nil, nil, 0, "", "")
 		if err := DeletePrescribedSet(db, ps.ID); err != nil {
 			t.Fatalf("delete: %v", err)
 		}
@@ -162,7 +162,7 @@ func TestPrescribedSets(t *testing.T) {
 func TestAthleteProgram(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, "5/3/1", "", 4, 4)
+	tmpl, _ := CreateProgramTemplate(db, "5/3/1", "", 4, 4, false)
 	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("assign program", func(t *testing.T) {
@@ -221,7 +221,7 @@ func TestGetPrescription(t *testing.T) {
 	db := testDB(t)
 
 	// Set up template: 4 weeks × 4 days, with exercises on W1D1.
-	tmpl, _ := CreateProgramTemplate(db, "Test 531", "", 4, 4)
+	tmpl, _ := CreateProgramTemplate(db, "Test 531", "", 4, 4, false)
 	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 	squat, _ := CreateExercise(db, "Back Squat", "", "", "", 0)
 
@@ -229,15 +229,15 @@ func TestGetPrescription(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		reps := 5
 		pct := 65.0
-		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, i, &reps, &pct, "", "")
-		CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, i, &reps, &pct, "", "")
+		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, i, &reps, &pct, nil, 0, "", "")
+		CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, i, &reps, &pct, nil, 0, "", "")
 	}
 
 	// W1D2: Bench 3×3 @ 75%
 	for i := 1; i <= 3; i++ {
 		reps := 3
 		pct := 75.0
-		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 2, i, &reps, &pct, "", "")
+		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 2, i, &reps, &pct, nil, 0, "", "")
 	}
 
 	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)

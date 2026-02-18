@@ -35,6 +35,13 @@
                 </label>
             </div>
 
+            <label>
+                <input type="checkbox" id="is_loop" name="is_loop" value="1"
+                       {{ if .Program }}{{ if .Program.IsLoop }}checked{{ end }}{{ end }}>
+                Continuous Loop
+                <small class="text-muted">Program repeats indefinitely until manually deactivated</small>
+            </label>
+
             <div class="form-actions">
                 <button type="submit">{{ if .Program }}Save Changes{{ else }}Create Program{{ end }}</button>
                 <a href="/programs" role="button" class="secondary">Cancel</a>

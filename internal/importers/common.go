@@ -128,20 +128,23 @@ type ParsedProgramTemplate struct {
 	Description      *string                 `json:"description"`
 	NumWeeks         int                     `json:"num_weeks"`
 	NumDays          int                     `json:"num_days"`
+	IsLoop           bool                    `json:"is_loop"`
 	PrescribedSets   []ParsedPrescribedSet   `json:"prescribed_sets"`
 	ProgressionRules []ParsedProgressionRule `json:"progression_rules"`
 }
 
 // ParsedPrescribedSet is a prescribed set within a program template.
 type ParsedPrescribedSet struct {
-	Exercise   string   `json:"exercise"`
-	Week       int      `json:"week"`
-	Day        int      `json:"day"`
-	SetNumber  int      `json:"set_number"`
-	Reps       *int     `json:"reps"` // nil = AMRAP
-	RepType    string   `json:"rep_type"`
-	Percentage *float64 `json:"percentage"`
-	Notes      *string  `json:"notes"`
+	Exercise       string   `json:"exercise"`
+	Week           int      `json:"week"`
+	Day            int      `json:"day"`
+	SetNumber      int      `json:"set_number"`
+	Reps           *int     `json:"reps"` // nil = AMRAP
+	RepType        string   `json:"rep_type"`
+	Percentage     *float64 `json:"percentage"`
+	AbsoluteWeight *float64 `json:"absolute_weight"`
+	SortOrder      int      `json:"sort_order"`
+	Notes          *string  `json:"notes"`
 }
 
 // ParsedProgressionRule is a TM increment rule for a program template.

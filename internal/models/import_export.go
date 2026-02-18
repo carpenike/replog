@@ -125,20 +125,23 @@ type ExportProgramTemplate struct {
 	Description      *string                  `json:"description"`
 	NumWeeks         int                      `json:"num_weeks"`
 	NumDays          int                      `json:"num_days"`
+	IsLoop           bool                     `json:"is_loop"`
 	PrescribedSets   []ExportPrescribedSet    `json:"prescribed_sets"`
 	ProgressionRules []ExportProgressionRule  `json:"progression_rules"`
 }
 
 // ExportPrescribedSet is a prescribed set in a JSON export.
 type ExportPrescribedSet struct {
-	Exercise   string   `json:"exercise"`
-	Week       int      `json:"week"`
-	Day        int      `json:"day"`
-	SetNumber  int      `json:"set_number"`
-	Reps       *int     `json:"reps"`
-	RepType    string   `json:"rep_type"`
-	Percentage *float64 `json:"percentage"`
-	Notes      *string  `json:"notes"`
+	Exercise       string   `json:"exercise"`
+	Week           int      `json:"week"`
+	Day            int      `json:"day"`
+	SetNumber      int      `json:"set_number"`
+	Reps           *int     `json:"reps"`
+	RepType        string   `json:"rep_type"`
+	Percentage     *float64 `json:"percentage"`
+	AbsoluteWeight *float64 `json:"absolute_weight"`
+	SortOrder      int      `json:"sort_order"`
+	Notes          *string  `json:"notes"`
 }
 
 // ExportProgressionRule is a progression rule in a JSON export.
@@ -589,7 +592,7 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 	// Get athlete programs (active + inactive).
 	rows, err := db.Query(`
 		SELECT ap.id, ap.template_id, ap.start_date, ap.active, ap.notes, ap.goal,
-		       pt.name, pt.description, pt.num_weeks, pt.num_days
+		       pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop
 		FROM athlete_programs ap
 		JOIN program_templates pt ON pt.id = ap.template_id
 		WHERE ap.athlete_id = ?
@@ -609,8 +612,9 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 			notes, goal, desc            sql.NullString
 			name                         string
 			numWeeks, numDays            int
+			isLoop                       bool
 		)
-		if err := rows.Scan(&apID, &templateID, &startDate, &active, &notes, &goal, &name, &desc, &numWeeks, &numDays); err != nil {
+		if err := rows.Scan(&apID, &templateID, &startDate, &active, &notes, &goal, &name, &desc, &numWeeks, &numDays, &isLoop); err != nil {
 			return nil, fmt.Errorf("models: scan export program: %w", err)
 		}
 
@@ -624,6 +628,7 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 				Description: nullStringPtr(desc),
 				NumWeeks:    numWeeks,
 				NumDays:     numDays,
+				IsLoop:      isLoop,
 			},
 		}
 
@@ -639,6 +644,7 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 				Day:       ps.Day,
 				SetNumber: ps.SetNumber,
 				RepType:   ps.RepType,
+				SortOrder: ps.SortOrder,
 			}
 			if ps.Reps.Valid {
 				r := int(ps.Reps.Int64)
@@ -647,6 +653,10 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 			if ps.Percentage.Valid {
 				p := ps.Percentage.Float64
 				eps.Percentage = &p
+			}
+			if ps.AbsoluteWeight.Valid {
+				w := ps.AbsoluteWeight.Float64
+				eps.AbsoluteWeight = &w
 			}
 			eps.Notes = nullStringPtr(ps.Notes)
 			ep.Template.PrescribedSets = append(ep.Template.PrescribedSets, eps)
@@ -772,6 +782,7 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 			Description: nullStringPtr(pt.Description),
 			NumWeeks:    pt.NumWeeks,
 			NumDays:     pt.NumDays,
+			IsLoop:      pt.IsLoop,
 		}
 
 		pSets, err := ListPrescribedSets(db, pt.ID)
@@ -785,6 +796,7 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 				Day:       ps.Day,
 				SetNumber: ps.SetNumber,
 				RepType:   ps.RepType,
+				SortOrder: ps.SortOrder,
 			}
 			if ps.Reps.Valid {
 				r := int(ps.Reps.Int64)
@@ -793,6 +805,10 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 			if ps.Percentage.Valid {
 				p := ps.Percentage.Float64
 				eps.Percentage = &p
+			}
+			if ps.AbsoluteWeight.Valid {
+				w := ps.AbsoluteWeight.Float64
+				eps.AbsoluteWeight = &w
 			}
 			eps.Notes = nullStringPtr(ps.Notes)
 			ept.PrescribedSets = append(ept.PrescribedSets, eps)

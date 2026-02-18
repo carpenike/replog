@@ -7,22 +7,24 @@ import (
 
 // PrescribedSet represents one prescribed set within a program template.
 type PrescribedSet struct {
-	ID         int64
-	TemplateID int64
-	ExerciseID int64
-	Week       int
-	Day        int
-	SetNumber  int
-	Reps       sql.NullInt64   // NULL = AMRAP
-	Percentage sql.NullFloat64 // of training max, NULL for bodyweight/accessories
-	RepType    string          // "reps", "each_side", or "seconds"
-	Notes      sql.NullString
+	ID             int64
+	TemplateID     int64
+	ExerciseID     int64
+	Week           int
+	Day            int
+	SetNumber      int
+	Reps           sql.NullInt64   // NULL = AMRAP
+	Percentage     sql.NullFloat64 // of training max, NULL for bodyweight/accessories
+	AbsoluteWeight sql.NullFloat64 // fixed weight (lbs/kg), NULL when using percentage
+	SortOrder      int             // display order within a day (lower = first)
+	RepType        string          // "reps", "each_side", or "seconds"
+	Notes          sql.NullString
 
 	// Joined fields.
 	ExerciseName string
 
-	// TargetWeight is the per-set target weight computed from percentage × training max.
-	// Populated by GetPrescription; not stored in the database.
+	// TargetWeight is the per-set target weight computed from percentage × training max
+	// or from absolute_weight. Populated by GetPrescription; not stored in the database.
 	TargetWeight *float64
 }
 
@@ -32,6 +34,18 @@ func (ps *PrescribedSet) TargetWeightLabel() string {
 		return ""
 	}
 	w := *ps.TargetWeight
+	if w == float64(int(w)) {
+		return fmt.Sprintf("%.0f", w)
+	}
+	return fmt.Sprintf("%.1f", w)
+}
+
+// AbsoluteWeightLabel returns the formatted absolute weight for this set, or "" if none.
+func (ps *PrescribedSet) AbsoluteWeightLabel() string {
+	if !ps.AbsoluteWeight.Valid {
+		return ""
+	}
+	w := ps.AbsoluteWeight.Float64
 	if w == float64(int(w)) {
 		return fmt.Sprintf("%.0f", w)
 	}
@@ -66,7 +80,7 @@ func (ps *PrescribedSet) RepsLabel() string {
 }
 
 // CreatePrescribedSet inserts a new prescribed set into a program template.
-func CreatePrescribedSet(db *sql.DB, templateID, exerciseID int64, week, day, setNumber int, reps *int, percentage *float64, repType, notes string) (*PrescribedSet, error) {
+func CreatePrescribedSet(db *sql.DB, templateID, exerciseID int64, week, day, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, sortOrder int, repType, notes string) (*PrescribedSet, error) {
 	var repsVal sql.NullInt64
 	if reps != nil {
 		repsVal = sql.NullInt64{Int64: int64(*reps), Valid: true}
@@ -74,6 +88,10 @@ func CreatePrescribedSet(db *sql.DB, templateID, exerciseID int64, week, day, se
 	var pctVal sql.NullFloat64
 	if percentage != nil {
 		pctVal = sql.NullFloat64{Float64: *percentage, Valid: true}
+	}
+	var absWeightVal sql.NullFloat64
+	if absoluteWeight != nil {
+		absWeightVal = sql.NullFloat64{Float64: *absoluteWeight, Valid: true}
 	}
 	var notesVal sql.NullString
 	if notes != "" {
@@ -85,9 +103,9 @@ func CreatePrescribedSet(db *sql.DB, templateID, exerciseID int64, week, day, se
 
 	var id int64
 	err := db.QueryRow(
-		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, rep_type, notes)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-		templateID, exerciseID, week, day, setNumber, repsVal, pctVal, repType, notesVal,
+		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, sort_order, rep_type, notes)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		templateID, exerciseID, week, day, setNumber, repsVal, pctVal, absWeightVal, sortOrder, repType, notesVal,
 	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -104,28 +122,28 @@ func GetPrescribedSetByID(db *sql.DB, id int64) (*PrescribedSet, error) {
 	ps := &PrescribedSet{}
 	err := db.QueryRow(
 		`SELECT ps.id, ps.template_id, ps.exercise_id, ps.week, ps.day, ps.set_number,
-		        ps.reps, ps.percentage, ps.rep_type, ps.notes, e.name
+		        ps.reps, ps.percentage, ps.absolute_weight, ps.sort_order, ps.rep_type, ps.notes, e.name
 		 FROM prescribed_sets ps
 		 JOIN exercises e ON e.id = ps.exercise_id
 		 WHERE ps.id = ?`,
 		id,
 	).Scan(&ps.ID, &ps.TemplateID, &ps.ExerciseID, &ps.Week, &ps.Day, &ps.SetNumber,
-		&ps.Reps, &ps.Percentage, &ps.RepType, &ps.Notes, &ps.ExerciseName)
+		&ps.Reps, &ps.Percentage, &ps.AbsoluteWeight, &ps.SortOrder, &ps.RepType, &ps.Notes, &ps.ExerciseName)
 	if err != nil {
 		return nil, fmt.Errorf("models: get prescribed set %d: %w", id, err)
 	}
 	return ps, nil
 }
 
-// ListPrescribedSets returns all prescribed sets for a template, ordered by week, day, exercise, set_number.
+// ListPrescribedSets returns all prescribed sets for a template, ordered by week, day, sort_order, set_number.
 func ListPrescribedSets(db *sql.DB, templateID int64) ([]*PrescribedSet, error) {
 	rows, err := db.Query(
 		`SELECT ps.id, ps.template_id, ps.exercise_id, ps.week, ps.day, ps.set_number,
-		        ps.reps, ps.percentage, ps.rep_type, ps.notes, e.name
+		        ps.reps, ps.percentage, ps.absolute_weight, ps.sort_order, ps.rep_type, ps.notes, e.name
 		 FROM prescribed_sets ps
 		 JOIN exercises e ON e.id = ps.exercise_id
 		 WHERE ps.template_id = ?
-		 ORDER BY ps.week, ps.day, e.name COLLATE NOCASE, ps.set_number`,
+		 ORDER BY ps.week, ps.day, ps.sort_order, e.name COLLATE NOCASE, ps.set_number`,
 		templateID,
 	)
 	if err != nil {
@@ -137,7 +155,7 @@ func ListPrescribedSets(db *sql.DB, templateID int64) ([]*PrescribedSet, error) 
 	for rows.Next() {
 		ps := &PrescribedSet{}
 		if err := rows.Scan(&ps.ID, &ps.TemplateID, &ps.ExerciseID, &ps.Week, &ps.Day, &ps.SetNumber,
-			&ps.Reps, &ps.Percentage, &ps.RepType, &ps.Notes, &ps.ExerciseName); err != nil {
+			&ps.Reps, &ps.Percentage, &ps.AbsoluteWeight, &ps.SortOrder, &ps.RepType, &ps.Notes, &ps.ExerciseName); err != nil {
 			return nil, fmt.Errorf("models: scan prescribed set: %w", err)
 		}
 		sets = append(sets, ps)
@@ -152,11 +170,11 @@ func ListPrescribedSets(db *sql.DB, templateID int64) ([]*PrescribedSet, error) 
 func ListPrescribedSetsForDay(db *sql.DB, templateID int64, week, day int) ([]*PrescribedSet, error) {
 	rows, err := db.Query(
 		`SELECT ps.id, ps.template_id, ps.exercise_id, ps.week, ps.day, ps.set_number,
-		        ps.reps, ps.percentage, ps.rep_type, ps.notes, e.name
+		        ps.reps, ps.percentage, ps.absolute_weight, ps.sort_order, ps.rep_type, ps.notes, e.name
 		 FROM prescribed_sets ps
 		 JOIN exercises e ON e.id = ps.exercise_id
 		 WHERE ps.template_id = ? AND ps.week = ? AND ps.day = ?
-		 ORDER BY e.name COLLATE NOCASE, ps.set_number`,
+		 ORDER BY ps.sort_order, e.name COLLATE NOCASE, ps.set_number`,
 		templateID, week, day,
 	)
 	if err != nil {
@@ -168,7 +186,7 @@ func ListPrescribedSetsForDay(db *sql.DB, templateID int64, week, day int) ([]*P
 	for rows.Next() {
 		ps := &PrescribedSet{}
 		if err := rows.Scan(&ps.ID, &ps.TemplateID, &ps.ExerciseID, &ps.Week, &ps.Day, &ps.SetNumber,
-			&ps.Reps, &ps.Percentage, &ps.RepType, &ps.Notes, &ps.ExerciseName); err != nil {
+			&ps.Reps, &ps.Percentage, &ps.AbsoluteWeight, &ps.SortOrder, &ps.RepType, &ps.Notes, &ps.ExerciseName); err != nil {
 			return nil, fmt.Errorf("models: scan prescribed set: %w", err)
 		}
 		sets = append(sets, ps)
@@ -190,4 +208,42 @@ func DeletePrescribedSet(db *sql.DB, id int64) error {
 		return fmt.Errorf("models: prescribed set %d not found", id)
 	}
 	return nil
+}
+
+// UpdatePrescribedSet updates an existing prescribed set's fields.
+func UpdatePrescribedSet(db *sql.DB, id int64, exerciseID int64, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, sortOrder int, repType, notes string) (*PrescribedSet, error) {
+	var repsVal sql.NullInt64
+	if reps != nil {
+		repsVal = sql.NullInt64{Int64: int64(*reps), Valid: true}
+	}
+	var pctVal sql.NullFloat64
+	if percentage != nil {
+		pctVal = sql.NullFloat64{Float64: *percentage, Valid: true}
+	}
+	var absWeightVal sql.NullFloat64
+	if absoluteWeight != nil {
+		absWeightVal = sql.NullFloat64{Float64: *absoluteWeight, Valid: true}
+	}
+	var notesVal sql.NullString
+	if notes != "" {
+		notesVal = sql.NullString{String: notes, Valid: true}
+	}
+	if repType == "" {
+		repType = "reps"
+	}
+
+	_, err := db.Exec(
+		`UPDATE prescribed_sets
+		 SET exercise_id = ?, set_number = ?, reps = ?, percentage = ?, absolute_weight = ?, sort_order = ?, rep_type = ?, notes = ?
+		 WHERE id = ?`,
+		exerciseID, setNumber, repsVal, pctVal, absWeightVal, sortOrder, repType, notesVal, id,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, fmt.Errorf("models: prescribed set conflicts with existing set")
+		}
+		return nil, fmt.Errorf("models: update prescribed set %d: %w", id, err)
+	}
+
+	return GetPrescribedSetByID(db, id)
 }

@@ -169,7 +169,7 @@ func TestGetPrescription_CycleWraparound(t *testing.T) {
 	db := testDB(t)
 
 	// 2 weeks × 2 days = 4 total positions.
-	tmpl, _ := CreateProgramTemplate(db, "Short Cycle", "", 2, 2)
+	tmpl, _ := CreateProgramTemplate(db, "Short Cycle", "", 2, 2, false)
 	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
 
 	// Add sets for each day.
@@ -177,7 +177,7 @@ func TestGetPrescription_CycleWraparound(t *testing.T) {
 		for d := 1; d <= 2; d++ {
 			reps := 5
 			pct := 65.0
-			CreatePrescribedSet(db, tmpl.ID, bench.ID, w, d, 1, &reps, &pct, "", "")
+			CreatePrescribedSet(db, tmpl.ID, bench.ID, w, d, 1, &reps, &pct, nil, 0, "", "")
 		}
 	}
 
@@ -211,12 +211,12 @@ func TestGetPrescription_CycleWraparound(t *testing.T) {
 func TestGetPrescription_NoTrainingMax(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, "No TM Test", "", 1, 1)
+	tmpl, _ := CreateProgramTemplate(db, "No TM Test", "", 1, 1, false)
 	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
 
 	reps := 5
 	pct := 75.0
-	CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, 1, &reps, &pct, "", "")
+	CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, 1, &reps, &pct, nil, 0, "", "")
 
 	a, _ := CreateAthlete(db, "No TM Athlete", "", "", "", sql.NullInt64{}, true)
 	// Deliberately do NOT set a training max.
@@ -250,10 +250,10 @@ func TestGetPrescription_NoTrainingMax(t *testing.T) {
 func TestGetPrescription_HasWorkoutToday(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, "Today Test", "", 1, 1)
+	tmpl, _ := CreateProgramTemplate(db, "Today Test", "", 1, 1, false)
 	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
 	reps := 5
-	CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, 1, &reps, nil, "", "")
+	CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, 1, &reps, nil, nil, 0, "", "")
 
 	a, _ := CreateAthlete(db, "Today Athlete", "", "", "", sql.NullInt64{}, true)
 	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")

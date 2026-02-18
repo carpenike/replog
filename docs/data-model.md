@@ -36,6 +36,8 @@ These were resolved interactively before schema design:
 
 15. **Progression rules are suggestions, not automation.** The `progression_rules` table stores per-exercise TM increment amounts for each program template (e.g. +5 lbs for upper body, +10 lbs for lower body in 5/3/1). At cycle boundaries, the app surfaces suggested TM bumps alongside AMRAP results from the completed cycle. The coach decides whether to apply, edit, or skip each suggestion. The app never auto-applies TM changes — this preserves the "logbook, not coach" principle while removing the friction of manually remembering increment rules.
 
+16. **Prescribed sets support both percentage-based and fixed-weight programs.** Percentage-based programs (5/3/1, GZCL) use `percentage` to derive target weight from training maxes. Fixed-weight programs (Yessis 1×20, accessories) use `absolute_weight` to prescribe a specific load in pounds/kg. When both are set, percentage takes priority. Coach-controlled `sort_order` determines exercise display order within a day — critical for Yessis methodology where exercise sequence matters (compound → isolation → specialized). The `is_loop` flag on templates marks indefinite cycling programs (Yessis foundational phases) that repeat until the coach decides to advance the athlete.
+
 ## Entity Relationship Diagram
 
 ```mermaid
@@ -237,6 +239,7 @@ erDiagram
         TEXT description "nullable"
         INTEGER num_weeks
         INTEGER num_days
+        INTEGER is_loop "0 or 1, default 0"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -251,6 +254,8 @@ erDiagram
         INTEGER reps "nullable, NULL = AMRAP"
         TEXT rep_type "reps, each_side, or seconds"
         REAL percentage "nullable"
+        REAL absolute_weight "nullable, fixed weight"
+        INTEGER sort_order "display order within day"
         TEXT notes "nullable"
     }
 
@@ -472,11 +477,13 @@ erDiagram
 | `description`| TEXT        | NULL                                 |
 | `num_weeks` | INTEGER      | NOT NULL                             |
 | `num_days`  | INTEGER      | NOT NULL                             |
+| `is_loop`   | INTEGER      | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - Defines a reusable training program structure (e.g. "5/3/1 BBB", "GZCL T1/T2/T3").
 - `num_weeks` and `num_days` define the cycle length — e.g. 4 weeks × 4 days for 5/3/1.
+- `is_loop = 1` marks indefinite cycling programs (e.g. Yessis 1×20 foundational) that repeat until the coach advances the athlete. `is_loop = 0` (default) for standard programs that still cycle but show completion progress.
 - Templates are shared across athletes; assignment is tracked via `athlete_programs`.
 
 ### `prescribed_sets`
@@ -492,12 +499,16 @@ erDiagram
 | `reps`      | INTEGER      | NULL (NULL = AMRAP)                  |
 | `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds')) |
 | `percentage`| REAL         | NULL (% of training max)             |
+| `absolute_weight`| REAL    | NULL (fixed weight in lbs/kg)        |
+| `sort_order`| INTEGER      | NOT NULL DEFAULT 0                   |
 | `notes`     | TEXT         | NULL                                 |
 
 - Each row is one prescribed set within a template's week/day.
 - `reps = NULL` indicates an AMRAP (as many reps as possible) set.
 - `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s".
 - `percentage` is a decimal (e.g. 65.0 for 65%) used to calculate target weight from the athlete's training max.
+- `absolute_weight` is a fixed weight for programs that don't use percentage-of-TM (e.g. Yessis foundational, accessories). When both `percentage` and `absolute_weight` are set, percentage takes priority.
+- `sort_order` controls exercise display order within a day. All sets for the same exercise share the same sort_order. Lower values appear first. Critical for methodologies where exercise sequence matters.
 - `UNIQUE(template_id, week, day, exercise_id, set_number)` prevents duplicate sets.
 
 ### `athlete_programs`
@@ -801,21 +812,24 @@ CREATE TABLE IF NOT EXISTS program_templates (
     description TEXT,
     num_weeks   INTEGER NOT NULL DEFAULT 1,
     num_days    INTEGER NOT NULL DEFAULT 1,
+    is_loop     INTEGER NOT NULL DEFAULT 0 CHECK(is_loop IN (0, 1)),
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS prescribed_sets (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    template_id  INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE CASCADE,
-    exercise_id  INTEGER NOT NULL REFERENCES exercises(id) ON DELETE RESTRICT,
-    week         INTEGER NOT NULL,
-    day          INTEGER NOT NULL,
-    set_number   INTEGER NOT NULL,
-    reps         INTEGER,
-    rep_type     TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds')),
-    percentage   REAL,
-    notes        TEXT,
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id     INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE CASCADE,
+    exercise_id     INTEGER NOT NULL REFERENCES exercises(id) ON DELETE RESTRICT,
+    week            INTEGER NOT NULL,
+    day             INTEGER NOT NULL,
+    set_number      INTEGER NOT NULL,
+    reps            INTEGER,
+    rep_type        TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds')),
+    percentage      REAL,
+    absolute_weight REAL,
+    sort_order      INTEGER NOT NULL DEFAULT 0,
+    notes           TEXT,
     UNIQUE(template_id, week, day, exercise_id, set_number)
 );
 

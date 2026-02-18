@@ -20,7 +20,7 @@
         </div>
 
         <p class="text-muted">{{ .Program.NumWeeks }} week{{ if ne .Program.NumWeeks 1 }}s{{ end }} per cycle · {{ .Program.NumDays }} day{{ if ne .Program.NumDays 1 }}s{{ end }}/week
-            · {{ .Program.AthleteCount }} athlete{{ if ne .Program.AthleteCount 1 }}s{{ end }} assigned</p>
+            · {{ .Program.AthleteCount }} athlete{{ if ne .Program.AthleteCount 1 }}s{{ end }} assigned{{ if .Program.IsLoop }} · <mark>Continuous loop</mark>{{ end }}</p>
 
         <!-- Week Tabs -->
         {{ if gt .Program.NumWeeks 1 }}
@@ -49,9 +49,10 @@
                 <thead>
                     <tr>
                         <th scope="col">Exercise</th>
+                        <th scope="col">Order</th>
                         <th scope="col">Set</th>
                         <th scope="col">Reps</th>
-                        <th scope="col">% TM</th>
+                        <th scope="col">Intensity</th>
                         <th scope="col">Notes</th>
                         <th scope="col"></th>
                     </tr>
@@ -60,9 +61,10 @@
                     {{ range .Sets }}
                     <tr>
                         <td>{{ .ExerciseName }}</td>
+                        <td>{{ .SortOrder }}</td>
                         <td>{{ .SetNumber }}</td>
                         <td>{{ .RepsLabel }}</td>
-                        <td>{{ if .Percentage.Valid }}{{ printf "%.0f" .Percentage.Float64 }}%{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td>{{ if .Percentage.Valid }}{{ printf "%.0f" .Percentage.Float64 }}%{{ else }}{{ .AbsoluteWeightLabel }}{{ end }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         <td>
                             <form method="POST" action="/programs/{{ $.Program.ID }}/sets/{{ .ID }}/delete?week={{ $.CurrentWeek }}" class="inline">
@@ -106,6 +108,12 @@
                     </label>
                     <label for="pct_d{{ .Day }}">% TM
                         <input type="number" id="pct_d{{ .Day }}" name="percentage" min="0" max="200" step="0.5" placeholder="e.g. 75">
+                    </label>
+                    <label for="abs_wt_d{{ .Day }}">Fixed Weight
+                        <input type="number" id="abs_wt_d{{ .Day }}" name="absolute_weight" min="0" step="0.5" placeholder="e.g. 25">
+                    </label>
+                    <label for="sort_d{{ .Day }}">Order
+                        <input type="number" id="sort_d{{ .Day }}" name="sort_order" min="0" value="0" placeholder="0">
                     </label>
                     <label for="notes_d{{ .Day }}">Notes
                         <input type="text" id="notes_d{{ .Day }}" name="notes" placeholder="Optional">

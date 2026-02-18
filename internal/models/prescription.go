@@ -152,12 +152,16 @@ func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescriptio
 	lineMap := make(map[int64]*PrescriptionLine)
 	var lineOrder []int64
 	for _, s := range sets {
-		// Compute per-set target weight from percentage × training max.
+		// Compute per-set target weight from percentage × training max,
+		// or use absolute_weight for fixed-weight prescriptions.
 		if s.Percentage.Valid {
 			if tm, ok := tmMap[s.ExerciseID]; ok {
 				target := roundToNearest(s.Percentage.Float64/100*tm, 2.5)
 				s.TargetWeight = &target
 			}
+		} else if s.AbsoluteWeight.Valid {
+			w := s.AbsoluteWeight.Float64
+			s.TargetWeight = &w
 		}
 
 		line, exists := lineMap[s.ExerciseID]
@@ -180,6 +184,9 @@ func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescriptio
 				target := roundToNearest(pct/100*tm, 2.5)
 				line.TargetWeight = &target
 			}
+		} else if s.AbsoluteWeight.Valid && line.TargetWeight == nil {
+			w := s.AbsoluteWeight.Float64
+			line.TargetWeight = &w
 		}
 	}
 
@@ -285,6 +292,9 @@ func GetCycleReport(db *sql.DB, athleteID int64, today time.Time) (*CycleReport,
 						target := roundToNearest(s.Percentage.Float64/100*tm, 2.5)
 						s.TargetWeight = &target
 					}
+				} else if s.AbsoluteWeight.Valid {
+					w := s.AbsoluteWeight.Float64
+					s.TargetWeight = &w
 				}
 
 				line, exists := lineMap[s.ExerciseID]
@@ -306,6 +316,9 @@ func GetCycleReport(db *sql.DB, athleteID int64, today time.Time) (*CycleReport,
 						target := roundToNearest(pct/100*tm, 2.5)
 						line.TargetWeight = &target
 					}
+				} else if s.AbsoluteWeight.Valid && line.TargetWeight == nil {
+					w := s.AbsoluteWeight.Float64
+					line.TargetWeight = &w
 				}
 			}
 

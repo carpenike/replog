@@ -81,7 +81,9 @@ func (h *Programs) Create(w http.ResponseWriter, r *http.Request) {
 		numDays = 1
 	}
 
-	tmpl, err := models.CreateProgramTemplate(h.DB, name, description, numWeeks, numDays)
+	isLoop := r.FormValue("is_loop") == "1"
+
+	tmpl, err := models.CreateProgramTemplate(h.DB, name, description, numWeeks, numDays, isLoop)
 	if err != nil {
 		log.Printf("handlers: create program template: %v", err)
 		http.Error(w, "Failed to create program template", http.StatusInternalServerError)
@@ -256,7 +258,9 @@ func (h *Programs) Update(w http.ResponseWriter, r *http.Request) {
 		numDays = 1
 	}
 
-	_, err = models.UpdateProgramTemplate(h.DB, id, name, description, numWeeks, numDays)
+	isLoop := r.FormValue("is_loop") == "1"
+
+	_, err = models.UpdateProgramTemplate(h.DB, id, name, description, numWeeks, numDays, isLoop)
 	if err != nil {
 		log.Printf("handlers: update program template %d: %v", id, err)
 		http.Error(w, "Failed to update program template", http.StatusInternalServerError)
@@ -353,10 +357,20 @@ func (h *Programs) AddSet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var absoluteWeight *float64
+	if awStr := r.FormValue("absolute_weight"); awStr != "" {
+		v, err := strconv.ParseFloat(awStr, 64)
+		if err == nil {
+			absoluteWeight = &v
+		}
+	}
+
+	sortOrder, _ := strconv.Atoi(r.FormValue("sort_order"))
+
 	notes := r.FormValue("notes")
 	repType := r.FormValue("rep_type")
 
-	_, err = models.CreatePrescribedSet(h.DB, templateID, exerciseID, week, day, setNumber, reps, percentage, repType, notes)
+	_, err = models.CreatePrescribedSet(h.DB, templateID, exerciseID, week, day, setNumber, reps, percentage, absoluteWeight, sortOrder, repType, notes)
 	if err != nil {
 		log.Printf("handlers: add prescribed set to template %d: %v", templateID, err)
 		http.Error(w, "Failed to add prescribed set", http.StatusInternalServerError)

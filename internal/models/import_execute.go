@@ -532,10 +532,14 @@ func insertProgramTemplate(tx *sql.Tx, pt importers.ParsedProgramTemplate) (int6
 	if pt.Description != nil && *pt.Description != "" {
 		descVal = sql.NullString{String: *pt.Description, Valid: true}
 	}
+	isLoopInt := 0
+	if pt.IsLoop {
+		isLoopInt = 1
+	}
 	var id int64
 	err := tx.QueryRow(
-		`INSERT INTO program_templates (name, description, num_weeks, num_days) VALUES (?, ?, ?, ?) RETURNING id`,
-		pt.Name, descVal, pt.NumWeeks, pt.NumDays,
+		`INSERT INTO program_templates (name, description, num_weeks, num_days, is_loop) VALUES (?, ?, ?, ?, ?) RETURNING id`,
+		pt.Name, descVal, pt.NumWeeks, pt.NumDays, isLoopInt,
 	).Scan(&id)
 	if err != nil {
 		return 0, err
@@ -552,6 +556,10 @@ func insertPrescribedSet(tx *sql.Tx, templateID, exerciseID int64, ps importers.
 	if ps.Percentage != nil {
 		pctVal = sql.NullFloat64{Float64: *ps.Percentage, Valid: true}
 	}
+	var absWeightVal sql.NullFloat64
+	if ps.AbsoluteWeight != nil {
+		absWeightVal = sql.NullFloat64{Float64: *ps.AbsoluteWeight, Valid: true}
+	}
 	var notesVal sql.NullString
 	if ps.Notes != nil && *ps.Notes != "" {
 		notesVal = sql.NullString{String: *ps.Notes, Valid: true}
@@ -561,8 +569,8 @@ func insertPrescribedSet(tx *sql.Tx, templateID, exerciseID int64, ps importers.
 		repType = "reps"
 	}
 	_, err := tx.Exec(
-		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		templateID, exerciseID, ps.Week, ps.Day, ps.SetNumber, repsVal, pctVal, repType, notesVal,
+		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, sort_order, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		templateID, exerciseID, ps.Week, ps.Day, ps.SetNumber, repsVal, pctVal, absWeightVal, ps.SortOrder, repType, notesVal,
 	)
 	return err
 }

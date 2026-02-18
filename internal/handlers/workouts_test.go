@@ -782,13 +782,13 @@ func TestWorkouts_Show_WithPrescription(t *testing.T) {
 	ex := seedExercise(t, db, "Bench Press", "")
 
 	// Set up a program template with a prescribed set.
-	tmpl, err := models.CreateProgramTemplate(db, "5/3/1 BBB", "Boring But Big", 4, 4)
+	tmpl, err := models.CreateProgramTemplate(db, "5/3/1 BBB", "Boring But Big", 4, 4, false)
 	if err != nil {
 		t.Fatalf("create program template: %v", err)
 	}
 	reps := 5
 	pct := 75.0
-	_, err = models.CreatePrescribedSet(db, tmpl.ID, ex.ID, 1, 1, 1, &reps, &pct, "", "")
+	_, err = models.CreatePrescribedSet(db, tmpl.ID, ex.ID, 1, 1, 1, &reps, &pct, nil, 0, "", "")
 	if err != nil {
 		t.Fatalf("create prescribed set: %v", err)
 	}

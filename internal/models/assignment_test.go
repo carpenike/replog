@@ -170,13 +170,13 @@ func TestAssignProgramExercises(t *testing.T) {
 	ex2, _ := CreateExercise(db, "Bench", "", "", "", 0)
 	ex3, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
 
-	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 3)
+	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 3, false)
 	reps5 := 5
 	pct75 := 75.0
-	CreatePrescribedSet(db, tmpl.ID, ex1.ID, 1, 1, 1, &reps5, &pct75, "reps", "")
-	CreatePrescribedSet(db, tmpl.ID, ex1.ID, 1, 1, 2, &reps5, &pct75, "reps", "") // duplicate exercise
-	CreatePrescribedSet(db, tmpl.ID, ex2.ID, 1, 2, 1, &reps5, &pct75, "reps", "")
-	CreatePrescribedSet(db, tmpl.ID, ex3.ID, 1, 3, 1, &reps5, &pct75, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, ex1.ID, 1, 1, 1, &reps5, &pct75, nil, 0, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, ex1.ID, 1, 1, 2, &reps5, &pct75, nil, 0, "reps", "") // duplicate exercise
+	CreatePrescribedSet(db, tmpl.ID, ex2.ID, 1, 2, 1, &reps5, &pct75, nil, 0, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, ex3.ID, 1, 3, 1, &reps5, &pct75, nil, 0, "reps", "")
 
 	t.Run("assigns all program exercises", func(t *testing.T) {
 		n, err := AssignProgramExercises(db, athlete.ID, tmpl.ID)
@@ -222,7 +222,7 @@ func TestAssignProgramExercises(t *testing.T) {
 	})
 
 	t.Run("empty program template", func(t *testing.T) {
-		emptyTmpl, _ := CreateProgramTemplate(db, "Empty Program", "", 1, 1)
+		emptyTmpl, _ := CreateProgramTemplate(db, "Empty Program", "", 1, 1, false)
 		n, err := AssignProgramExercises(db, athlete.ID, emptyTmpl.ID)
 		if err != nil {
 			t.Fatalf("auto-assign empty: %v", err)

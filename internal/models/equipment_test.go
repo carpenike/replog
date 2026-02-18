@@ -457,12 +457,12 @@ func TestCheckProgramCompatibility(t *testing.T) {
 
 	pushUps, _ := CreateExercise(db, "Push-ups", "", "", "", 0)
 
-	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 3)
+	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 3, false)
 	reps := 5
 	pct := 80.0
-	CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, 1, &reps, &pct, "reps", "")
-	CreatePrescribedSet(db, tmpl.ID, benchPress.ID, 1, 2, 1, &reps, &pct, "reps", "")
-	CreatePrescribedSet(db, tmpl.ID, pushUps.ID, 1, 3, 1, &reps, nil, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, 1, &reps, &pct, nil, 0, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, benchPress.ID, 1, 2, 1, &reps, &pct, nil, 0, "reps", "")
+	CreatePrescribedSet(db, tmpl.ID, pushUps.ID, 1, 3, 1, &reps, nil, nil, 0, "reps", "")
 
 	t.Run("no equipment — partial readiness", func(t *testing.T) {
 		result, err := CheckProgramCompatibility(db, athlete.ID, tmpl.ID)
@@ -514,7 +514,7 @@ func TestCheckProgramCompatibility(t *testing.T) {
 	})
 
 	t.Run("empty program — ready by default", func(t *testing.T) {
-		emptyTmpl, _ := CreateProgramTemplate(db, "Empty", "", 1, 1)
+		emptyTmpl, _ := CreateProgramTemplate(db, "Empty", "", 1, 1, false)
 		result, err := CheckProgramCompatibility(db, athlete.ID, emptyTmpl.ID)
 		if err != nil {
 			t.Fatalf("check: %v", err)
