@@ -48,6 +48,32 @@ func TestTrainingMaxCRUD(t *testing.T) {
 		}
 	})
 
+	t.Run("upsert same date updates weight", func(t *testing.T) {
+		// Set TM to 120 on the same date as the existing 110 entry.
+		tm, err := SetTrainingMax(db, a.ID, e.ID, 120.0, "2024-02-01", "updated")
+		if err != nil {
+			t.Fatalf("upsert TM: %v", err)
+		}
+		if tm.Weight != 120.0 {
+			t.Errorf("weight = %f, want 120", tm.Weight)
+		}
+
+		// History count should NOT increase — same row was updated.
+		history, err := ListTrainingMaxHistory(db, a.ID, e.ID)
+		if err != nil {
+			t.Fatalf("list history: %v", err)
+		}
+		if len(history) != 2 {
+			t.Errorf("count = %d, want 2 (upsert should not create new row)", len(history))
+		}
+
+		// Current TM should reflect the update.
+		cur, _ := CurrentTrainingMax(db, a.ID, e.ID)
+		if cur.Weight != 120.0 {
+			t.Errorf("current weight = %f, want 120", cur.Weight)
+		}
+	})
+
 	t.Run("history returns all entries", func(t *testing.T) {
 		history, err := ListTrainingMaxHistory(db, a.ID, e.ID)
 		if err != nil {
@@ -56,9 +82,9 @@ func TestTrainingMaxCRUD(t *testing.T) {
 		if len(history) != 2 {
 			t.Errorf("count = %d, want 2", len(history))
 		}
-		// Most recent first.
-		if history[0].Weight != 110.0 {
-			t.Errorf("first entry weight = %f, want 110", history[0].Weight)
+		// Most recent first (upserted from 110 → 120).
+		if history[0].Weight != 120.0 {
+			t.Errorf("first entry weight = %f, want 120", history[0].Weight)
 		}
 	})
 }

@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-// ErrDuplicateTrainingMax is returned when a training max already exists for
-// the given athlete+exercise+date combination.
-var ErrDuplicateTrainingMax = errors.New("training max already exists for this date")
-
 // TrainingMax represents a training max record for an athlete+exercise.
 type TrainingMax struct {
 	ID            int64
@@ -25,8 +21,10 @@ type TrainingMax struct {
 	ExerciseName string
 }
 
-// SetTrainingMax inserts a new training max row. Each row is a historical record;
-// the current TM is the one with the latest effective_date.
+// SetTrainingMax inserts or updates a training max row. Each row is a historical
+// record; the current TM is the one with the latest effective_date. If a record
+// already exists for the same athlete+exercise+date, its weight and notes are
+// updated in place (upsert).
 func SetTrainingMax(db *sql.DB, athleteID, exerciseID int64, weight float64, effectiveDate, notes string) (*TrainingMax, error) {
 	var notesVal sql.NullString
 	if notes != "" {
@@ -35,13 +33,14 @@ func SetTrainingMax(db *sql.DB, athleteID, exerciseID int64, weight float64, eff
 
 	var id int64
 	err := db.QueryRow(
-		`INSERT INTO training_maxes (athlete_id, exercise_id, weight, effective_date, notes) VALUES (?, ?, ?, ?, ?) RETURNING id`,
+		`INSERT INTO training_maxes (athlete_id, exercise_id, weight, effective_date, notes)
+		 VALUES (?, ?, ?, ?, ?)
+		 ON CONFLICT (athlete_id, exercise_id, effective_date)
+		 DO UPDATE SET weight = excluded.weight, notes = excluded.notes
+		 RETURNING id`,
 		athleteID, exerciseID, weight, effectiveDate, notesVal,
 	).Scan(&id)
 	if err != nil {
-		if isUniqueViolation(err) {
-			return nil, ErrDuplicateTrainingMax
-		}
 		return nil, fmt.Errorf("models: set training max: %w", err)
 	}
 
