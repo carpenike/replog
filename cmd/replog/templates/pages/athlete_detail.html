@@ -101,7 +101,7 @@
             <a href="/athletes/{{ .Athlete.ID }}/training-maxes/setup" class="card-link">
                 <article>
                     <h2>Training Maxes</h2>
-                    <p>{{ len .TMByExercise }} set{{ if ne (len .TMByExercise) 1 }}s{{ end }}{{ if .MissingTMs }} · {{ len .MissingTMs }} missing{{ end }}</p>
+                    <p>{{ len .TMByExercise }} configured{{ if .MissingTMs }} · {{ len .MissingTMs }} missing{{ end }}</p>
                 </article>
             </a>
             {{ end }}
