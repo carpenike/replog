@@ -40,7 +40,7 @@
         <div class="alert alert-warning">
             ⚠ <strong>Missing Training Maxes</strong> — {{ .ActiveProgram.TemplateName }} has percentage-based exercises without a TM set:
             {{ range $i, $m := .MissingTMs }}{{ if $i }}, {{ end }}<strong>{{ $m.ExerciseName }}</strong>{{ end }}.
-            <a href="/athletes/{{ .Athlete.ID }}/training-maxes">Set training maxes →</a>
+            <a href="/athletes/{{ .Athlete.ID }}/training-maxes/setup">Set training maxes →</a>
         </div>
         {{ end }}
 
