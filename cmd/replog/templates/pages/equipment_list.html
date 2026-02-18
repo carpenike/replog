@@ -24,7 +24,7 @@
                     <td>{{ if .Description.Valid }}{{ .Description.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     {{ if or $.User.IsCoach $.User.IsAdmin }}
                     <td>
-                        <div role="group">
+                        <div class="page-actions">
                             <a href="/equipment/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
                             <form method="POST" action="/equipment/{{ .ID }}/delete" class="inline"
                                   hx-confirm="Delete {{ .Name }}? This will remove it from all exercises and athletes.">
