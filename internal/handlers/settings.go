@@ -67,7 +67,11 @@ func (h *Settings) Update(w http.ResponseWriter, r *http.Request) {
 		if newValue != oldValue && newValue != "" {
 			if err := models.SetSetting(h.DB, def.Key, newValue); err != nil {
 				log.Printf("handlers: set setting %q: %v", def.Key, err)
-				errors = append(errors, "Failed to save "+def.Label)
+				if def.Sensitive {
+					errors = append(errors, "Failed to save "+def.Label+" — is REPLOG_SECRET_KEY set?")
+				} else {
+					errors = append(errors, "Failed to save "+def.Label)
+				}
 			} else {
 				updated++
 			}
