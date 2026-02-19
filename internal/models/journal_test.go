@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"strings"
 	"testing"
 )
 
@@ -11,8 +12,13 @@ func TestListJournalEntries(t *testing.T) {
 	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "Build strength", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
 
 	// Seed some data across multiple tables.
-	CreateWorkout(db, a.ID, "2026-02-10", "")
-	CreateBodyWeight(db, a.ID, "2026-02-11", 185.0, "")
+	w, _ := CreateWorkout(db, a.ID, "2026-02-10", "Felt strong today")
+	e, _ := CreateExercise(db, "Squat", "", "", "", 0)
+	e2, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
+	AddSet(db, w.ID, e.ID, 5, 225, 0, "reps", "")
+	AddSet(db, w.ID, e.ID, 5, 225, 0, "reps", "")
+	AddSet(db, w.ID, e2.ID, 8, 135, 0, "reps", "")
+	CreateBodyWeight(db, a.ID, "2026-02-11", 185.0, "morning weight")
 	RecordGoalChange(db, a.ID, "Build strength", "", coach.ID, "2026-02-01", "")
 	RecordTierChange(db, a.ID, "foundational", "", coach.ID, "2026-01-15", "")
 	CreateAthleteNote(db, a.ID, coach.ID, "2026-02-12", "Good progress", false, false)
@@ -91,6 +97,57 @@ func TestListJournalEntries(t *testing.T) {
 		}
 		if len(entries) != 0 {
 			t.Errorf("len = %d, want 0", len(entries))
+		}
+	})
+
+	t.Run("workout summary includes exercise names", func(t *testing.T) {
+		entries, err := ListJournalEntries(db, a.ID, true, 100)
+		if err != nil {
+			t.Fatalf("list journal entries: %v", err)
+		}
+		for _, entry := range entries {
+			if entry.Type == "workout" {
+				if !strings.Contains(entry.Summary, "Squat") {
+					t.Errorf("workout summary should contain 'Squat', got %q", entry.Summary)
+				}
+				if !strings.Contains(entry.Summary, "Bench Press") {
+					t.Errorf("workout summary should contain 'Bench Press', got %q", entry.Summary)
+				}
+				if !strings.Contains(entry.Summary, "3 sets") {
+					t.Errorf("workout summary should contain '3 sets', got %q", entry.Summary)
+				}
+				break
+			}
+		}
+	})
+
+	t.Run("workout detail contains notes", func(t *testing.T) {
+		entries, err := ListJournalEntries(db, a.ID, true, 100)
+		if err != nil {
+			t.Fatalf("list journal entries: %v", err)
+		}
+		for _, entry := range entries {
+			if entry.Type == "workout" {
+				if entry.Detail != "Felt strong today" {
+					t.Errorf("workout detail = %q, want %q", entry.Detail, "Felt strong today")
+				}
+				break
+			}
+		}
+	})
+
+	t.Run("body weight detail contains notes", func(t *testing.T) {
+		entries, err := ListJournalEntries(db, a.ID, true, 100)
+		if err != nil {
+			t.Fatalf("list journal entries: %v", err)
+		}
+		for _, entry := range entries {
+			if entry.Type == "body_weight" {
+				if entry.Detail != "morning weight" {
+					t.Errorf("body_weight detail = %q, want %q", entry.Detail, "morning weight")
+				}
+				break
+			}
 		}
 	})
 }

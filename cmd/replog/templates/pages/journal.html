@@ -55,34 +55,43 @@
                     <div class="journal-entry-content">
                         {{ if eq .Type "workout" }}
                             <span class="journal-icon" title="Workout">🏋️</span>
-                            <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Summary }}</a>
+                            <div class="journal-entry-text">
+                                <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Summary }}</a>
+                                {{ if .Detail }}<div class="journal-detail">{{ .Detail }}</div>{{ end }}
+                            </div>
                         {{ else if eq .Type "body_weight" }}
                             <span class="journal-icon" title="Body Weight">⚖️</span>
-                            <span>{{ .Summary }}</span>
+                            <div class="journal-entry-text">
+                                <span>{{ .Summary }}</span>
+                                {{ if .Detail }}<div class="journal-detail">{{ .Detail }}</div>{{ end }}
+                            </div>
                         {{ else if eq .Type "training_max" }}
                             <span class="journal-icon" title="Training Max">📊</span>
                             <span>{{ .Summary }}</span>
                         {{ else if eq .Type "goal_change" }}
                             <span class="journal-icon" title="Goal Change">🎯</span>
-                            <span>{{ .Summary }}</span>
-                            {{ if .Author }}<span class="text-muted"> — {{ .Author }}</span>{{ end }}
+                            <div class="journal-entry-text">
+                                <span>{{ .Summary }}{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}</span>
+                                {{ if .Detail }}<div class="journal-detail">{{ .Detail }}</div>{{ end }}
+                            </div>
                         {{ else if eq .Type "tier_change" }}
                             <span class="journal-icon" title="Tier Change">⬆️</span>
-                            <span>{{ .Summary }}</span>
-                            {{ if .Author }}<span class="text-muted"> — {{ .Author }}</span>{{ end }}
+                            <div class="journal-entry-text">
+                                <span>{{ .Summary }}{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}</span>
+                                {{ if .Detail }}<div class="journal-detail">{{ .Detail }}</div>{{ end }}
+                            </div>
                         {{ else if eq .Type "program_start" }}
                             <span class="journal-icon" title="Program">📋</span>
-                            <span>{{ .Summary }}</span>
+                            <div class="journal-entry-text">
+                                <span>{{ .Summary }}</span>
+                                {{ if .Detail }}<div class="journal-detail">{{ .Detail }}</div>{{ end }}
+                            </div>
                         {{ else if eq .Type "review" }}
                             <span class="journal-icon" title="Review">✅</span>
-                            <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .SecondID }}">{{ .Summary }}</a>
-                            {{ if .Author }}<span class="text-muted"> — {{ .Author }}</span>{{ end }}
+                            <span><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .SecondID }}">{{ .Summary }}</a>{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}</span>
                         {{ else if eq .Type "note" }}
                             <span class="journal-icon" title="Note">📝</span>
-                            <span>{{ .Summary }}</span>
-                            {{ if .Author }}<span class="text-muted"> — {{ .Author }}</span>{{ end }}
-                            {{ if .IsPrivate }}<span class="badge-private" title="Private — only visible to coaches">🔒</span>{{ end }}
-                            {{ if .Pinned }}<span class="badge-pinned" title="Pinned">📌</span>{{ end }}
+                            <span>{{ .Summary }}{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}{{ if .IsPrivate }} <span class="badge-private" title="Private — only visible to coaches">🔒</span>{{ end }}{{ if .Pinned }} <span class="badge-pinned" title="Pinned">📌</span>{{ end }}</span>
                         {{ else }}
                             <span>{{ .Summary }}</span>
                         {{ end }}

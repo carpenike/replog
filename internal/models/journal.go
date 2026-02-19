@@ -15,6 +15,7 @@ type JournalEntry struct {
 	ID      int64  // Source row ID (for linking)
 
 	// Optional detail fields (populated per type).
+	Detail    string // Secondary text (e.g., workout notes, exercise list)
 	IsPrivate bool   // Only relevant for "note" type
 	Pinned    bool   // Only relevant for "note" type
 	SecondID  int64  // Secondary ID (e.g., workout_id for reviews)
@@ -34,14 +35,24 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 		privateFilter = " AND n.is_private = 0"
 	}
 
-	// Each UNION branch selects: date, type, summary, id, is_private, pinned, second_id, author
+	// Each UNION branch selects: date, type, summary, id, detail, is_private, pinned, second_id, author
 	query := fmt.Sprintf(`
-		SELECT date, type, summary, id, is_private, pinned, second_id, author FROM (
+		SELECT date, type, summary, id, detail, is_private, pinned, second_id, author FROM (
 			-- Workouts
 			SELECT w.date AS date,
 			       'workout' AS type,
-			       'Logged a workout' || COALESCE(' (' || (SELECT COUNT(*) FROM workout_sets WHERE workout_id = w.id) || ' sets)', '') AS summary,
+			       COALESCE(
+			           (SELECT GROUP_CONCAT(ename, ', ') FROM (
+			               SELECT DISTINCT e.name AS ename
+			               FROM workout_sets ws
+			               JOIN exercises e ON e.id = ws.exercise_id
+			               WHERE ws.workout_id = w.id
+			               ORDER BY e.name
+			           )),
+			           'Workout'
+			       ) || ' (' || (SELECT COUNT(*) FROM workout_sets WHERE workout_id = w.id) || ' sets)' AS summary,
 			       w.id AS id,
+			       COALESCE(w.notes, '') AS detail,
 			       0 AS is_private,
 			       0 AS pinned,
 			       0 AS second_id,
@@ -56,6 +67,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       'body_weight' AS type,
 			       'Recorded body weight: ' || CAST(bw.weight AS TEXT) AS summary,
 			       bw.id AS id,
+			       COALESCE(bw.notes, '') AS detail,
 			       0 AS is_private,
 			       0 AS pinned,
 			       0 AS second_id,
@@ -70,6 +82,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       'training_max' AS type,
 			       e.name || ' TM set to ' || CAST(tm.weight AS TEXT) AS summary,
 			       tm.id AS id,
+			       '' AS detail,
 			       0 AS is_private,
 			       0 AS pinned,
 			       tm.exercise_id AS second_id,
@@ -85,6 +98,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       'goal_change' AS type,
 			       'Goal changed to: ' || gh.goal AS summary,
 			       gh.id AS id,
+			       COALESCE(gh.notes, '') AS detail,
 			       0 AS is_private,
 			       0 AS pinned,
 			       0 AS second_id,
@@ -103,6 +117,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			                THEN ' (from ' || th.previous_tier || ')'
 			                ELSE '' END AS summary,
 			       th.id AS id,
+			       COALESCE(th.notes, '') AS detail,
 			       0 AS is_private,
 			       0 AS pinned,
 			       0 AS second_id,
@@ -118,6 +133,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       'program_start' AS type,
 			       'Started program: ' || pt.name AS summary,
 			       ap.id AS id,
+			       COALESCE(ap.goal, '') AS detail,
 			       0 AS is_private,
 			       0 AS pinned,
 			       ap.template_id AS second_id,
@@ -133,6 +149,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       'review' AS type,
 			       wr.status || ' — ' || COALESCE(wr.notes, 'No comment') AS summary,
 			       wr.id AS id,
+			       '' AS detail,
 			       0 AS is_private,
 			       0 AS pinned,
 			       wr.workout_id AS second_id,
@@ -149,6 +166,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       'note' AS type,
 			       n.content AS summary,
 			       n.id AS id,
+			       '' AS detail,
 			       n.is_private AS is_private,
 			       n.pinned AS pinned,
 			       0 AS second_id,
@@ -177,7 +195,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 		e := &JournalEntry{}
 		var privInt, pinnedInt int
 		if err := rows.Scan(&e.Date, &e.Type, &e.Summary, &e.ID,
-			&privInt, &pinnedInt, &e.SecondID, &e.Author); err != nil {
+			&e.Detail, &privInt, &pinnedInt, &e.SecondID, &e.Author); err != nil {
 			return nil, fmt.Errorf("models: scan journal entry: %w", err)
 		}
 		e.IsPrivate = privInt == 1
