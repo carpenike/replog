@@ -18,14 +18,12 @@
         <details>
             <summary role="button" class="outline secondary">Add Note</summary>
             <form method="POST" action="/athletes/{{ .Athlete.ID }}/notes">
-                <div class="log-set-grid">
-                    <label for="note_date">Date
-                        <input type="date" id="note_date" name="date" value="{{ .Today }}" required>
-                    </label>
-                    <label for="note_content">Note
-                        <textarea id="note_content" name="content" rows="3" required placeholder="Add a note..."></textarea>
-                    </label>
-                </div>
+                <label for="note_date">Date
+                    <input type="date" id="note_date" name="date" value="{{ .Today }}" required style="max-width: 12rem;">
+                </label>
+                <label for="note_content">Note
+                    <textarea id="note_content" name="content" rows="3" required placeholder="Add a note..."></textarea>
+                </label>
                 {{ if .CanManage }}
                 <fieldset>
                     <label>
