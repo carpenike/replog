@@ -148,6 +148,14 @@
                 </article>
             </a>
             {{ if .CanManage }}
+            {{ if .AICoachConfigured }}
+            <a href="/athletes/{{ .Athlete.ID }}/programs/generate" class="card-link">
+                <article>
+                    <h2>AI Coach</h2>
+                    <p>Generate a program</p>
+                </article>
+            </a>
+            {{ end }}
             <a href="/athletes/{{ .Athlete.ID }}/import" class="card-link">
                 <article>
                     <h2>Import</h2>

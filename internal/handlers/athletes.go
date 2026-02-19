@@ -284,24 +284,28 @@ func (h *Athletes) loadAthleteShowData(user *models.User, athlete *models.Athlet
 		// Non-fatal — continue without featured data.
 	}
 
+	// Check whether AI Coach is available (LLM provider configured).
+	aiCoachConfigured := models.IsAICoachConfigured(h.DB)
+
 	return map[string]any{
-		"Athlete":          athlete,
-		"Assignments":      assignments,
-		"TMByExercise":     tmByExercise,
-		"RecentWorkouts":   recentWorkouts,
-		"Deactivated":      deactivated,
-		"LatestWeight":     latestWeight,
-		"Streaks":          streaks,
-		"Heatmap":          heatmap,
-		"ActiveProgram":    activeProgram,
-		"Prescription":     prescription,
-		"ProgramTemplates": programTemplates,
-		"FeaturedLifts":    featuredLifts,
-		"MissingTMs":       missingTMs,
-		"MissingEquip":     missingEquip,
-		"CanManage":        middleware.CanManageAthlete(user, athlete),
-		"IsOwnProfile":     user.AthleteID.Valid && user.AthleteID.Int64 == athlete.ID,
-		"TodayDate":        time.Now().Format("2006-01-02"),
+		"Athlete":            athlete,
+		"Assignments":        assignments,
+		"TMByExercise":       tmByExercise,
+		"RecentWorkouts":     recentWorkouts,
+		"Deactivated":        deactivated,
+		"LatestWeight":       latestWeight,
+		"Streaks":            streaks,
+		"Heatmap":            heatmap,
+		"ActiveProgram":      activeProgram,
+		"Prescription":       prescription,
+		"ProgramTemplates":   programTemplates,
+		"FeaturedLifts":      featuredLifts,
+		"MissingTMs":         missingTMs,
+		"MissingEquip":       missingEquip,
+		"AICoachConfigured":  aiCoachConfigured,
+		"CanManage":          middleware.CanManageAthlete(user, athlete),
+		"IsOwnProfile":      user.AthleteID.Valid && user.AthleteID.Int64 == athlete.ID,
+		"TodayDate":          time.Now().Format("2006-01-02"),
 	}, nil
 }
 

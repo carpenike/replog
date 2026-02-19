@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -284,6 +285,30 @@ func (h *Generate) renderFormError(w http.ResponseWriter, r *http.Request, athle
 	if err := h.Templates.Render(w, r, "generate_form.html", data); err != nil {
 		log.Printf("handlers: render generate form with error: %v", err)
 		h.Templates.ServerError(w, r)
+	}
+}
+
+// ContextJSON returns the full athlete context as JSON. This lets coaches
+// copy the context for use with external LLMs or for debugging.
+// GET /athletes/{id}/context.json
+func (h *Generate) ContextJSON(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	ctx, err := llm.BuildAthleteContext(h.DB, id, time.Now())
+	if err != nil {
+		log.Printf("handlers: build athlete context for %d: %v", id, err)
+		http.Error(w, "Failed to build context", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="athlete-%d-context.json"`, id))
+	if err := json.NewEncoder(w).Encode(ctx); err != nil {
+		log.Printf("handlers: encode athlete context JSON for %d: %v", id, err)
 	}
 }
 
