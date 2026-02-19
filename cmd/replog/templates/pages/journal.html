@@ -1,0 +1,106 @@
+{{ define "title" }}RepLog — {{ .Athlete.Name }} — Journal{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Journal
+        </div>
+
+        <div class="page-header">
+            <h1>Journal — {{ .Athlete.Name }}</h1>
+        </div>
+
+        {{ if .Error }}
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        {{ end }}
+
+        <!-- Add Note Form (coach/admin only) -->
+        {{ if .CanManage }}
+        <details>
+            <summary role="button" class="outline secondary">Add Note</summary>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/notes">
+                <div class="log-set-grid">
+                    <label for="note_date">Date
+                        <input type="date" id="note_date" name="date" value="{{ .Today }}" required>
+                    </label>
+                    <label for="note_content">Note
+                        <textarea id="note_content" name="content" rows="3" required placeholder="Add a coach note..."></textarea>
+                    </label>
+                </div>
+                <fieldset>
+                    <label>
+                        <input type="checkbox" name="is_private" value="1">
+                        Private (only visible to coaches)
+                    </label>
+                    <label>
+                        <input type="checkbox" name="pinned" value="1">
+                        Pinned (stays at top)
+                    </label>
+                </fieldset>
+                <button type="submit">Save Note</button>
+            </form>
+        </details>
+        {{ end }}
+
+        <!-- Timeline -->
+        {{ if .Entries }}
+        <div class="journal-timeline">
+            {{ $prevDate := "" }}
+            {{ range .Entries }}
+                {{ if ne .Date $prevDate }}
+                    {{ $prevDate = .Date }}
+                    <h3 class="journal-date-header">{{ formatDateStr $.Prefs .Date }}</h3>
+                {{ end }}
+
+                <article class="journal-entry journal-type-{{ .Type }}{{ if .Pinned }} journal-pinned{{ end }}{{ if .IsPrivate }} journal-private{{ end }}">
+                    <div class="journal-entry-content">
+                        {{ if eq .Type "workout" }}
+                            <span class="journal-icon" title="Workout">🏋️</span>
+                            <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .ID }}">{{ .Summary }}</a>
+                        {{ else if eq .Type "body_weight" }}
+                            <span class="journal-icon" title="Body Weight">⚖️</span>
+                            <span>{{ .Summary }}</span>
+                        {{ else if eq .Type "training_max" }}
+                            <span class="journal-icon" title="Training Max">📊</span>
+                            <span>{{ .Summary }}</span>
+                        {{ else if eq .Type "goal_change" }}
+                            <span class="journal-icon" title="Goal Change">🎯</span>
+                            <span>{{ .Summary }}</span>
+                            {{ if .Author }}<span class="text-muted"> — {{ .Author }}</span>{{ end }}
+                        {{ else if eq .Type "tier_change" }}
+                            <span class="journal-icon" title="Tier Change">⬆️</span>
+                            <span>{{ .Summary }}</span>
+                            {{ if .Author }}<span class="text-muted"> — {{ .Author }}</span>{{ end }}
+                        {{ else if eq .Type "program_start" }}
+                            <span class="journal-icon" title="Program">📋</span>
+                            <span>{{ .Summary }}</span>
+                        {{ else if eq .Type "review" }}
+                            <span class="journal-icon" title="Review">✅</span>
+                            <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .SecondID }}">{{ .Summary }}</a>
+                            {{ if .Author }}<span class="text-muted"> — {{ .Author }}</span>{{ end }}
+                        {{ else if eq .Type "note" }}
+                            <span class="journal-icon" title="Note">📝</span>
+                            <span>{{ .Summary }}</span>
+                            {{ if .Author }}<span class="text-muted"> — {{ .Author }}</span>{{ end }}
+                            {{ if .IsPrivate }}<span class="badge-private" title="Private — only visible to coaches">🔒</span>{{ end }}
+                            {{ if .Pinned }}<span class="badge-pinned" title="Pinned">📌</span>{{ end }}
+                        {{ else }}
+                            <span>{{ .Summary }}</span>
+                        {{ end }}
+                    </div>
+                    {{ if and $.CanManage (eq .Type "note") }}
+                    <div class="journal-entry-actions">
+                        <form method="POST" action="/athletes/{{ $.Athlete.ID }}/notes/{{ .ID }}/delete" class="inline"
+                              hx-confirm="Delete this note?">
+                            <button type="submit" class="outline contrast">✕</button>
+                        </form>
+                    </div>
+                    {{ end }}
+                </article>
+            {{ end }}
+        </div>
+        {{ else }}
+        <article class="empty-state">
+            <p>No journal entries yet. Workouts, body weights, training max changes, and coach notes will appear here.</p>
+        </article>
+        {{ end }}
+{{ end }}

@@ -99,6 +99,20 @@ func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Record initial goal in history if one was provided.
+	if goal := r.FormValue("goal"); goal != "" {
+		if _, err := models.RecordGoalChange(h.DB, athlete.ID, goal, "", user.ID, "", ""); err != nil {
+			log.Printf("handlers: record initial goal for athlete %d: %v", athlete.ID, err)
+		}
+	}
+
+	// Record initial tier in history if one was provided.
+	if tier := r.FormValue("tier"); tier != "" {
+		if _, err := models.RecordTierChange(h.DB, athlete.ID, tier, "", user.ID, "", ""); err != nil {
+			log.Printf("handlers: record initial tier for athlete %d: %v", athlete.ID, err)
+		}
+	}
+
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athlete.ID, 10), http.StatusSeeOther)
 }
 
@@ -374,7 +388,19 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.UpdateAthlete(h.DB, id, name, r.FormValue("tier"), r.FormValue("notes"), r.FormValue("goal"), athlete.CoachID, r.FormValue("track_body_weight") == "1")
+	newGoal := r.FormValue("goal")
+	oldGoal := ""
+	if athlete.Goal.Valid {
+		oldGoal = athlete.Goal.String
+	}
+
+	newTier := r.FormValue("tier")
+	oldTier := ""
+	if athlete.Tier.Valid {
+		oldTier = athlete.Tier.String
+	}
+
+	_, err = models.UpdateAthlete(h.DB, id, name, newTier, r.FormValue("notes"), newGoal, athlete.CoachID, r.FormValue("track_body_weight") == "1")
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Athlete not found", http.StatusNotFound)
 		return
@@ -383,6 +409,24 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: update athlete %d: %v", id, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// Record goal change in history if the goal actually changed.
+	if newGoal != oldGoal {
+		if newGoal != "" {
+			if _, err := models.RecordGoalChange(h.DB, id, newGoal, oldGoal, user.ID, "", ""); err != nil {
+				log.Printf("handlers: record goal change for athlete %d: %v", id, err)
+			}
+		}
+	}
+
+	// Record tier change in history if the tier actually changed.
+	if newTier != oldTier {
+		if newTier != "" {
+			if _, err := models.RecordTierChange(h.DB, id, newTier, oldTier, user.ID, "", ""); err != nil {
+				log.Printf("handlers: record tier change for athlete %d: %v", id, err)
+			}
+		}
 	}
 
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
@@ -454,7 +498,12 @@ func (h *Athletes) Promote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = models.PromoteAthlete(h.DB, id)
+	oldTier := ""
+	if athlete.Tier.Valid {
+		oldTier = athlete.Tier.String
+	}
+
+	promoted, err := models.PromoteAthlete(h.DB, id)
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Athlete not found", http.StatusNotFound)
 		return
@@ -468,6 +517,13 @@ func (h *Athletes) Promote(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: promote athlete %d: %v", id, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// Record the tier promotion in history.
+	if promoted.Tier.Valid {
+		if _, err := models.RecordTierChange(h.DB, id, promoted.Tier.String, oldTier, user.ID, "", "Promoted"); err != nil {
+			log.Printf("handlers: record tier promotion for athlete %d: %v", id, err)
+		}
 	}
 
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)

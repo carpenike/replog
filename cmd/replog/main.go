@@ -163,6 +163,10 @@ func main() {
 		DB:        db,
 		Templates: tc,
 	}
+	journal := &handlers.Journal{
+		DB:        db,
+		Templates: tc,
+	}
 	equipmentH := &handlers.Equipment{
 		DB:        db,
 		Templates: tc,
@@ -324,6 +328,9 @@ func main() {
 		r.Get("/athletes/{id}/prescription", programs.Prescription)
 		r.Get("/athletes/{id}/report", programs.CycleReport)
 
+		// Journal — unified athlete timeline.
+		r.Get("/athletes/{id}/journal", journal.Timeline)
+
 		// Export — self-service for own athlete data.
 		r.Get("/athletes/{id}/export", importExport.ExportPage)
 		r.Get("/athletes/{id}/export/json", importExport.ExportJSON)
@@ -391,6 +398,10 @@ func main() {
 		r.Get("/reviews/pending", reviews.PendingReviews)
 		r.Post("/athletes/{id}/workouts/{workoutID}/review", reviews.SubmitReview)
 		r.Post("/athletes/{id}/workouts/{workoutID}/review/delete", reviews.DeleteReview)
+
+		// Athlete Notes (coach-only).
+		r.Post("/athletes/{id}/notes", journal.CreateNote)
+		r.Post("/athletes/{id}/notes/{noteID}/delete", journal.DeleteNote)
 
 		// Program Templates (coach-only for management).
 		r.Get("/programs", programs.List)

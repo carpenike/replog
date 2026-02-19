@@ -38,6 +38,10 @@ These were resolved interactively before schema design:
 
 16. **Prescribed sets support both percentage-based and fixed-weight programs.** Percentage-based programs (5/3/1, GZCL) use `percentage` to derive target weight from training maxes. Fixed-weight programs (Yessis 1×20, accessories) use `absolute_weight` to prescribe a specific load in pounds/kg. When both are set, percentage takes priority. Coach-controlled `sort_order` determines exercise display order within a day — critical for Yessis methodology where exercise sequence matters (compound → isolation → specialized). The `is_loop` flag on templates marks indefinite cycling programs (Yessis foundational phases) that repeat until the coach decides to advance the athlete.
 
+17. **Journal is a read-only timeline, not a separate data store.** The journal view (`/athletes/{id}/journal`) aggregates dated events from existing tables — workouts, body weights, training max changes, goal changes, tier changes, program starts, and reviews — into a unified chronological feed via `UNION ALL`. The only new write paths are `athlete_notes` (coach free-text notes) and `tier_history` (automatic tier change recording). No denormalized journal table exists.
+
+18. **Coach notes have public/private visibility.** The `is_private` flag on `athlete_notes` controls whether non-coach athletes can see a note. Private notes (`is_private = 1`) are coach-only; public notes (`is_private = 0`) appear on the athlete's journal view. This lets coaches keep internal observations (e.g., "watch for overtraining signs") separate from athlete-facing notes (e.g., "great progress on squat form").
+
 ## Entity Relationship Diagram
 
 ```mermaid
@@ -153,6 +157,12 @@ erDiagram
     workouts ||--o{ workout_sets : "contains"
     exercises ||--o{ workout_sets : "performed"
     athletes ||--o{ body_weights : "tracks"
+    athletes ||--o{ goal_history : "goal changes"
+    users ||--o{ goal_history : "set by"
+    athletes ||--o{ tier_history : "tier changes"
+    users ||--o{ tier_history : "set by"
+    athletes ||--o{ athlete_notes : "notes"
+    users ||--o{ athlete_notes : "authored by"
     workouts ||--o| workout_reviews : "reviewed via"
     users ||--o{ workout_reviews : "reviews"
     program_templates ||--o{ prescribed_sets : "defines"
@@ -194,6 +204,40 @@ erDiagram
         INTEGER flags_backup_state "0 or 1"
         TEXT label "nullable"
         DATETIME created_at
+    }
+
+    goal_history {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        TEXT goal
+        TEXT previous_goal "nullable"
+        INTEGER set_by FK "nullable"
+        DATE effective_date
+        TEXT notes "nullable"
+        DATETIME created_at
+    }
+
+    tier_history {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        TEXT tier
+        TEXT previous_tier "nullable"
+        INTEGER set_by FK "nullable"
+        DATE effective_date
+        TEXT notes "nullable"
+        DATETIME created_at
+    }
+
+    athlete_notes {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        INTEGER author_id FK "nullable"
+        DATE date
+        TEXT content
+        INTEGER is_private "0 or 1, default 0"
+        INTEGER pinned "0 or 1, default 0"
+        DATETIME created_at
+        DATETIME updated_at
     }
 
     sessions {
@@ -449,6 +493,68 @@ erDiagram
 - One weigh-in per athlete per day (`UNIQUE(athlete_id, date)`).
 - `weight` stored in the athlete's preferred unit (lb or kg) — unit convention is per-deployment, not per-row.
 - Deleting an athlete cascades to their body weight history.
+
+### `goal_history`
+
+| Column          | Type         | Constraints                          |
+|----------------|-------------|--------------------------------------|
+| `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`   | INTEGER      | NOT NULL, FK → athletes(id) ON DELETE CASCADE |
+| `goal`         | TEXT         | NOT NULL                             |
+| `previous_goal`| TEXT         | NULL                                 |
+| `set_by`       | INTEGER      | NULL, FK → users(id) ON DELETE SET NULL |
+| `effective_date`| DATE        | NOT NULL DEFAULT (date('now'))       |
+| `notes`        | TEXT         | NULL                                 |
+| `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Append-only history of **athlete-level** goal changes (the long-term objective on `athletes.goal`).
+- Per-cycle goals live on `athlete_programs.goal` and are inherently historized — each cycle is a separate row, so no additional history table is needed. See design note 13 above for the two-level goal distinction.
+- `goal` is the new goal text. `previous_goal` is the prior goal (NULL if this is the first goal set).
+- `set_by` records which user (coach/admin) made the change. SET NULL on user deletion preserves the history entry.
+- `effective_date` defaults to today. Allows backdating if needed.
+- `notes` holds optional context for the change ("Shifting focus after knee recovery").
+- Current goal is still read from `athletes.goal` for quick access — this table provides the historical timeline.
+- Deleting an athlete cascades to their goal history.
+
+### `tier_history`
+
+| Column          | Type         | Constraints                          |
+|----------------|-------------|--------------------------------------|
+| `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`   | INTEGER      | NOT NULL, FK → athletes(id) ON DELETE CASCADE |
+| `tier`         | TEXT         | NOT NULL, CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')) |
+| `previous_tier`| TEXT         | NULL, CHECK(previous_tier IN ('foundational', 'intermediate', 'sport_performance')) |
+| `set_by`       | INTEGER      | NULL, FK → users(id) ON DELETE SET NULL |
+| `effective_date`| DATE        | NOT NULL DEFAULT (date('now'))       |
+| `notes`        | TEXT         | NULL                                 |
+| `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Append-only history of tier transitions (e.g., foundational → intermediate).
+- Same pattern as `goal_history` — the current tier is still read from `athletes.tier` for quick access.
+- `previous_tier` is NULL when the tier is first set on a new athlete.
+- Automatically recorded when a coach edits or promotes an athlete's tier.
+- Deleting an athlete cascades to their tier history.
+
+### `athlete_notes`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`| INTEGER      | NOT NULL, FK → athletes(id) ON DELETE CASCADE |
+| `author_id` | INTEGER      | NULL, FK → users(id) ON DELETE SET NULL |
+| `date`      | DATE         | NOT NULL DEFAULT (date('now'))       |
+| `content`   | TEXT         | NOT NULL                             |
+| `is_private`| INTEGER      | NOT NULL DEFAULT 0, CHECK(is_private IN (0, 1)) |
+| `pinned`    | INTEGER      | NOT NULL DEFAULT 0, CHECK(pinned IN (0, 1)) |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Free-form coach notes attached to an athlete, shown on the journal timeline.
+- `is_private = 1` means only coaches/admins can see the note; `is_private = 0` means the athlete can see it too.
+- `pinned` notes appear at the top of the journal regardless of date.
+- `author_id` records who wrote the note. SET NULL on user deletion preserves the note.
+- `date` defaults to today but can be set to any date (e.g., backdating a note from a conversation).
+- Deleting an athlete cascades to their notes.
 
 ### `workout_reviews`
 
@@ -738,6 +844,20 @@ CREATE TABLE IF NOT EXISTS body_weights (
 
 CREATE INDEX IF NOT EXISTS idx_body_weights_athlete_date
     ON body_weights(athlete_id, date DESC);
+
+CREATE TABLE IF NOT EXISTS goal_history (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id      INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    goal            TEXT    NOT NULL,
+    previous_goal   TEXT,
+    set_by          INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    effective_date  DATE    NOT NULL DEFAULT (date('now')),
+    notes           TEXT,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_goal_history_athlete_date
+    ON goal_history(athlete_id, effective_date DESC, created_at DESC);
 
 -- Triggers for updated_at timestamps
 -- WHEN guard prevents infinite recursion (trigger fires UPDATE, which would fire trigger again)

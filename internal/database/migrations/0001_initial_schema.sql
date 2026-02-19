@@ -126,6 +126,49 @@ CREATE TABLE IF NOT EXISTS body_weights (
 CREATE INDEX IF NOT EXISTS idx_body_weights_athlete_date
     ON body_weights(athlete_id, date DESC);
 
+CREATE TABLE IF NOT EXISTS goal_history (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id      INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    goal            TEXT    NOT NULL,
+    previous_goal   TEXT,
+    set_by          INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    effective_date  DATE    NOT NULL DEFAULT (date('now')),
+    notes           TEXT,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_goal_history_athlete_date
+    ON goal_history(athlete_id, effective_date DESC, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS tier_history (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id      INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    tier            TEXT    NOT NULL CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
+    previous_tier   TEXT    CHECK(previous_tier IN ('foundational', 'intermediate', 'sport_performance')),
+    set_by          INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    effective_date  DATE    NOT NULL DEFAULT (date('now')),
+    notes           TEXT,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_tier_history_athlete_date
+    ON tier_history(athlete_id, effective_date DESC, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS athlete_notes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id  INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    author_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    date        DATE    NOT NULL DEFAULT (date('now')),
+    content     TEXT    NOT NULL,
+    is_private  INTEGER NOT NULL DEFAULT 0 CHECK(is_private IN (0, 1)),
+    pinned      INTEGER NOT NULL DEFAULT 0 CHECK(pinned IN (0, 1)),
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_athlete_notes_athlete_date
+    ON athlete_notes(athlete_id, date DESC, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS workout_reviews (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     workout_id  INTEGER NOT NULL UNIQUE REFERENCES workouts(id) ON DELETE CASCADE,
@@ -372,6 +415,15 @@ BEGIN
 END;
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE TRIGGER IF NOT EXISTS trigger_athlete_notes_updated_at
+AFTER UPDATE ON athlete_notes FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE athlete_notes SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+-- +goose StatementEnd
+
 -- +goose Down
 
 DROP TRIGGER IF EXISTS trigger_equipment_updated_at;
@@ -400,6 +452,11 @@ DROP INDEX IF EXISTS idx_user_preferences_user_id;
 DROP INDEX IF EXISTS idx_progression_rules_template;
 DROP INDEX IF EXISTS idx_athlete_programs_active;
 DROP INDEX IF EXISTS idx_prescribed_sets_template;
+DROP TRIGGER IF EXISTS trigger_athlete_notes_updated_at;
+
+DROP INDEX IF EXISTS idx_athlete_notes_athlete_date;
+DROP INDEX IF EXISTS idx_tier_history_athlete_date;
+DROP INDEX IF EXISTS idx_goal_history_athlete_date;
 DROP INDEX IF EXISTS idx_body_weights_athlete_date;
 DROP INDEX IF EXISTS idx_workout_sets_workout;
 DROP INDEX IF EXISTS idx_athlete_exercises_athlete_id;
@@ -417,6 +474,9 @@ DROP TABLE IF EXISTS progression_rules;
 DROP TABLE IF EXISTS athlete_programs;
 DROP TABLE IF EXISTS prescribed_sets;
 DROP TABLE IF EXISTS program_templates;
+DROP TABLE IF EXISTS athlete_notes;
+DROP TABLE IF EXISTS tier_history;
+DROP TABLE IF EXISTS goal_history;
 DROP TABLE IF EXISTS body_weights;
 DROP TABLE IF EXISTS workout_sets;
 DROP TABLE IF EXISTS workouts;

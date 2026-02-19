@@ -66,6 +66,12 @@
                     <p>{{ if .RecentWorkouts }}{{ len .RecentWorkouts }} recent{{ else }}No workouts yet{{ end }}</p>
                 </article>
             </a>
+            <a href="/athletes/{{ .Athlete.ID }}/journal" class="card-link">
+                <article>
+                    <h2>Journal</h2>
+                    <p>Timeline of activity</p>
+                </article>
+            </a>
             {{ if .Athlete.TrackBodyWeight }}
             <a href="/athletes/{{ .Athlete.ID }}/body-weights" class="card-link">
                 <article>
