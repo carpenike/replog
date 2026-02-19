@@ -143,9 +143,20 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 
 	// Parse CatalogJSON into import structures.
 	if len(result.CatalogJSON) == 0 {
-		log.Printf("handlers: empty CatalogJSON from LLM for athlete %d", athleteID)
-		h.renderFormError(w, r, athlete, req,
-			"The AI Coach did not return valid program data. Please try again with different directions.")
+		log.Printf("handlers: empty CatalogJSON from LLM for athlete %d, raw response length=%d", athleteID, len(result.RawResponse))
+		if len(result.RawResponse) > 0 {
+			// Log a truncated preview to help debug extraction failures.
+			preview := result.RawResponse
+			if len(preview) > 2000 {
+				preview = preview[:2000] + "... [truncated]"
+			}
+			log.Printf("handlers: raw LLM response preview: %s", preview)
+		}
+		errMsg := "The AI Coach did not return valid program data. Please try again with different directions."
+		if result.Reasoning != "" {
+			errMsg = fmt.Sprintf("The AI Coach provided reasoning but no valid program JSON. Its reasoning: %s", result.Reasoning)
+		}
+		h.renderFormError(w, r, athlete, req, errMsg)
 		return
 	}
 

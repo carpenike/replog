@@ -33,7 +33,7 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 	// Step 3: Call the LLM.
 	opts := Options{
 		Temperature: TemperatureFromSettings(db),
-		MaxTokens:   8192,
+		MaxTokens:   16384,
 	}
 	resp, err := provider.Generate(ctx, systemPrompt, userPrompt, opts)
 	if err != nil {
