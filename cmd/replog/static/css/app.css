@@ -2287,3 +2287,32 @@ article.error-page [role="button"] {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
 }
+
+/* Goal section — inline editable */
+.goal-section {
+    margin-bottom: var(--space-md);
+}
+.goal-section span {
+    margin-right: var(--space-sm);
+}
+.goal-section .inline-edit-btn {
+    font-size: 0.8rem;
+    padding: 0.15rem 0.5rem;
+    margin: 0;
+    vertical-align: middle;
+}
+.goal-edit-form {
+    margin-top: var(--space-sm);
+}
+.goal-edit-form textarea {
+    margin-bottom: var(--space-sm);
+}
+.inline-form-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+.inline-form-actions button {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.75rem;
+    margin: 0;
+}

@@ -331,6 +331,9 @@ func main() {
 		// Journal — unified athlete timeline.
 		r.Get("/athletes/{id}/journal", journal.Timeline)
 
+		// Goal — self-service editing.
+		r.Post("/athletes/{id}/goal", athletes.UpdateGoal)
+
 		// Export — self-service for own athlete data.
 		r.Get("/athletes/{id}/export", importExport.ExportPage)
 		r.Get("/athletes/{id}/export/json", importExport.ExportJSON)

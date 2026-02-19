@@ -106,6 +106,47 @@ func TestUpdateAthlete(t *testing.T) {
 	})
 }
 
+func TestUpdateAthleteGoal(t *testing.T) {
+	db := testDB(t)
+
+	a, err := CreateAthlete(db, "Fiona", "", "", "", sql.NullInt64{}, true)
+	if err != nil {
+		t.Fatalf("create athlete: %v", err)
+	}
+
+	t.Run("set goal", func(t *testing.T) {
+		if err := UpdateAthleteGoal(db, a.ID, "Get stronger"); err != nil {
+			t.Fatalf("update goal: %v", err)
+		}
+		got, err := GetAthleteByID(db, a.ID)
+		if err != nil {
+			t.Fatalf("get athlete: %v", err)
+		}
+		if !got.Goal.Valid || got.Goal.String != "Get stronger" {
+			t.Errorf("goal = %v, want 'Get stronger'", got.Goal)
+		}
+	})
+
+	t.Run("clear goal", func(t *testing.T) {
+		if err := UpdateAthleteGoal(db, a.ID, ""); err != nil {
+			t.Fatalf("update goal: %v", err)
+		}
+		got, err := GetAthleteByID(db, a.ID)
+		if err != nil {
+			t.Fatalf("get athlete: %v", err)
+		}
+		if got.Goal.Valid {
+			t.Errorf("goal should be null, got %q", got.Goal.String)
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		if err := UpdateAthleteGoal(db, 99999, "test"); err != ErrNotFound {
+			t.Errorf("err = %v, want ErrNotFound", err)
+		}
+	})
+}
+
 func TestDeleteAthlete(t *testing.T) {
 	db := testDB(t)
 

@@ -118,6 +118,25 @@ func UpdateAthlete(db *sql.DB, id int64, name, tier, notes, goal string, coachID
 	return GetAthleteByID(db, id)
 }
 
+// UpdateAthleteGoal updates only the goal field for an athlete. This is used
+// for self-service goal editing by the athlete themselves.
+func UpdateAthleteGoal(db *sql.DB, id int64, goal string) error {
+	var goalVal sql.NullString
+	if goal != "" {
+		goalVal = sql.NullString{String: goal, Valid: true}
+	}
+
+	result, err := db.Exec(`UPDATE athletes SET goal = ? WHERE id = ?`, goalVal, id)
+	if err != nil {
+		return fmt.Errorf("models: update athlete %d goal: %w", id, err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // DeleteAthlete removes an athlete by ID. CASCADE deletes their workouts,
 // assignments, and training maxes.
 func DeleteAthlete(db *sql.DB, id int64) error {

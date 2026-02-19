@@ -424,3 +424,103 @@ func TestAthletes_Update_EmptyName(t *testing.T) {
 		t.Errorf("expected 422, got %d", rr.Code)
 	}
 }
+
+func TestAthletes_UpdateGoal_OwnProfile(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "foundational")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+
+	h := &Athletes{DB: db, Templates: tc}
+	form := url.Values{"goal": {"Run a 5k"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/goal", form, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateGoal(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	updated, err := models.GetAthleteByID(db, athlete.ID)
+	if err != nil {
+		t.Fatalf("get athlete: %v", err)
+	}
+	if !updated.Goal.Valid || updated.Goal.String != "Run a 5k" {
+		t.Errorf("goal = %v, want 'Run a 5k'", updated.Goal)
+	}
+}
+
+func TestAthletes_UpdateGoal_CoachCanUpdate(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	athlete := seedAthlete(t, db, "Alice", "")
+
+	h := &Athletes{DB: db, Templates: tc}
+	form := url.Values{"goal": {"Build strength"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/goal", form, coach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateGoal(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	updated, err := models.GetAthleteByID(db, athlete.ID)
+	if err != nil {
+		t.Fatalf("get athlete: %v", err)
+	}
+	if !updated.Goal.Valid || updated.Goal.String != "Build strength" {
+		t.Errorf("goal = %v, want 'Build strength'", updated.Goal)
+	}
+}
+
+func TestAthletes_UpdateGoal_OtherAthleteForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete1 := seedAthlete(t, db, "Alice", "")
+	athlete2 := seedAthlete(t, db, "Bob", "")
+	nonCoach := seedNonCoach(t, db, athlete1.ID)
+
+	h := &Athletes{DB: db, Templates: tc}
+	form := url.Values{"goal": {"Hack someone else"}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete2.ID)+"/goal", form, nonCoach)
+	req.SetPathValue("id", itoa(athlete2.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateGoal(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestAthletes_UpdateGoal_ClearGoal(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
+
+	// Set initial goal.
+	models.UpdateAthleteGoal(db, athlete.ID, "Original goal")
+
+	h := &Athletes{DB: db, Templates: tc}
+	form := url.Values{"goal": {""}}
+	req := requestWithUser("POST", "/athletes/"+itoa(athlete.ID)+"/goal", form, nonCoach)
+	req.SetPathValue("id", itoa(athlete.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateGoal(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	updated, err := models.GetAthleteByID(db, athlete.ID)
+	if err != nil {
+		t.Fatalf("get athlete: %v", err)
+	}
+	if updated.Goal.Valid {
+		t.Errorf("goal should be null after clearing, got %q", updated.Goal.String)
+	}
+}

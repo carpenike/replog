@@ -32,7 +32,24 @@
         <blockquote>{{ .Athlete.Notes.String }}</blockquote>
         {{ end }}
 
-        {{ if .Athlete.Goal.Valid }}
+        {{ if or .CanManage .IsOwnProfile }}
+        <div class="goal-section" id="athlete-goal">
+            <strong>Goal:</strong>
+            {{ if .Athlete.Goal.Valid }}
+            <span>{{ .Athlete.Goal.String }}</span>
+            {{ else }}
+            <span class="text-muted">No goal set</span>
+            {{ end }}
+            <button class="outline secondary inline-edit-btn" onclick="this.closest('.goal-section').querySelector('.goal-edit-form').hidden = false; this.hidden = true;">Edit</button>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/goal" class="goal-edit-form" hidden>
+                <textarea name="goal" rows="2" placeholder="Long-term training goal">{{ if .Athlete.Goal.Valid }}{{ .Athlete.Goal.String }}{{ end }}</textarea>
+                <div class="inline-form-actions">
+                    <button type="submit" class="outline">Save</button>
+                    <button type="button" class="outline secondary" onclick="this.closest('.goal-edit-form').hidden = true; this.closest('.goal-section').querySelector('.inline-edit-btn').hidden = false;">Cancel</button>
+                </div>
+            </form>
+        </div>
+        {{ else if .Athlete.Goal.Valid }}
         <p><strong>Goal:</strong> {{ .Athlete.Goal.String }}</p>
         {{ end }}
 

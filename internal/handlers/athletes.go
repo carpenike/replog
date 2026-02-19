@@ -300,6 +300,7 @@ func (h *Athletes) loadAthleteShowData(user *models.User, athlete *models.Athlet
 		"MissingTMs":       missingTMs,
 		"MissingEquip":     missingEquip,
 		"CanManage":        middleware.CanManageAthlete(user, athlete),
+		"IsOwnProfile":     user.AthleteID.Valid && user.AthleteID.Int64 == athlete.ID,
 		"TodayDate":        time.Now().Format("2006-01-02"),
 	}, nil
 }
@@ -523,6 +524,60 @@ func (h *Athletes) Promote(w http.ResponseWriter, r *http.Request) {
 	if promoted.Tier.Valid {
 		if _, err := models.RecordTierChange(h.DB, id, promoted.Tier.String, oldTier, user.ID, "", "Promoted"); err != nil {
 			log.Printf("handlers: record tier promotion for athlete %d: %v", id, err)
+		}
+	}
+
+	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+// UpdateGoal handles self-service goal editing. Athletes can update their own
+// goal; coaches/admins can update goals for athletes they manage.
+func (h *Athletes) UpdateGoal(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	if !middleware.CanAccessAthlete(h.DB, user, id) {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, id)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get athlete %d for goal update: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	newGoal := r.FormValue("goal")
+	oldGoal := ""
+	if athlete.Goal.Valid {
+		oldGoal = athlete.Goal.String
+	}
+
+	if err := models.UpdateAthleteGoal(h.DB, id, newGoal); err != nil {
+		log.Printf("handlers: update goal for athlete %d: %v", id, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Record goal change in history if the goal actually changed.
+	if newGoal != oldGoal && newGoal != "" {
+		if _, err := models.RecordGoalChange(h.DB, id, newGoal, oldGoal, user.ID, "", ""); err != nil {
+			log.Printf("handlers: record goal change for athlete %d: %v", id, err)
 		}
 	}
 
