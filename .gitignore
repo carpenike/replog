@@ -16,3 +16,6 @@ docs/references
 
 # Ignore avatars
 avatars/*
+
+# ignore env
+.env
