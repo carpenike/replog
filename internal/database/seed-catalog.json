@@ -42,6 +42,30 @@
     {
       "name": "Leg Press Machine",
       "description": "Plate-loaded or selectorized leg press"
+    },
+    {
+      "name": "Kettlebell",
+      "description": "Cast iron weight with handle, various sizes"
+    },
+    {
+      "name": "TRX/Suspension Trainer",
+      "description": "Suspension straps for bodyweight exercises"
+    },
+    {
+      "name": "Resistance Band",
+      "description": "Elastic band for assistance and accessory work"
+    },
+    {
+      "name": "Medicine Ball",
+      "description": "Weighted ball for throws and core work"
+    },
+    {
+      "name": "Trap Bar",
+      "description": "Hexagonal barbell for deadlifts and shrugs"
+    },
+    {
+      "name": "Stability Ball",
+      "description": "Large inflatable ball for core and stability work"
     }
   ],
   "exercises": [
@@ -78,17 +102,13 @@
         {
           "name": "Flat Bench",
           "optional": false
-        },
-        {
-          "name": "Power Rack",
-          "optional": true
         }
       ]
     },
     {
       "name": "Deadlift",
       "tier": null,
-      "form_notes": "Brace core, push the floor away, lock hips and knees together",
+      "form_notes": "Brace hard, push floor away, lock hips and knees together at top",
       "demo_url": null,
       "rest_seconds": 180,
       "featured": true,
@@ -102,7 +122,7 @@
     {
       "name": "Overhead Press",
       "tier": null,
-      "form_notes": "Squeeze glutes, brace core, press straight up, move head through at lockout",
+      "form_notes": "Squeeze glutes, press straight up, move head through at lockout",
       "demo_url": null,
       "rest_seconds": 180,
       "featured": true,
@@ -116,10 +136,10 @@
     {
       "name": "Barbell Row",
       "tier": null,
-      "form_notes": "Hinge at hips, pull to lower chest, squeeze shoulder blades together",
+      "form_notes": "Hinge at hips ~45 degrees, pull to lower chest, control descent",
       "demo_url": null,
       "rest_seconds": 120,
-      "featured": false,
+      "featured": true,
       "equipment": [
         {
           "name": "Barbell",
@@ -130,9 +150,9 @@
     {
       "name": "Front Squat",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Elbows high, upright torso, brace core throughout",
       "demo_url": null,
-      "rest_seconds": 180,
+      "rest_seconds": 150,
       "featured": false,
       "equipment": [
         {
@@ -148,7 +168,7 @@
     {
       "name": "Romanian Deadlift",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Slight knee bend, hinge at hips, feel stretch in hamstrings",
       "demo_url": null,
       "rest_seconds": 120,
       "featured": false,
@@ -162,9 +182,9 @@
     {
       "name": "Incline Bench Press",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Set bench to 30-45 degrees, same cues as flat bench",
       "demo_url": null,
-      "rest_seconds": 120,
+      "rest_seconds": 150,
       "featured": false,
       "equipment": [
         {
@@ -174,17 +194,13 @@
         {
           "name": "Adjustable Bench",
           "optional": false
-        },
-        {
-          "name": "Power Rack",
-          "optional": true
         }
       ]
     },
     {
       "name": "Close-Grip Bench Press",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Hands shoulder-width, tuck elbows, emphasize tricep lockout",
       "demo_url": null,
       "rest_seconds": 120,
       "featured": false,
@@ -202,27 +218,23 @@
     {
       "name": "Barbell Curl",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Keep elbows pinned at sides, full range of motion, no swinging",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 90,
       "featured": false,
       "equipment": [
         {
           "name": "Barbell",
           "optional": false
-        },
-        {
-          "name": "EZ-Curl Bar",
-          "optional": true
         }
       ]
     },
     {
       "name": "Dumbbell Bench Press",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Retract shoulder blades, press evenly, control the descent",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 120,
       "featured": false,
       "equipment": [
         {
@@ -238,9 +250,9 @@
     {
       "name": "Dumbbell Row",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "One hand on bench, pull to hip, squeeze shoulder blade",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 90,
       "featured": false,
       "equipment": [
         {
@@ -256,9 +268,9 @@
     {
       "name": "Dumbbell Overhead Press",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Press straight up from shoulders, full lockout overhead",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 120,
       "featured": false,
       "equipment": [
         {
@@ -270,9 +282,9 @@
     {
       "name": "Dumbbell Curl",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Alternate or together, full extension to full contraction",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 90,
       "featured": false,
       "equipment": [
         {
@@ -284,9 +296,9 @@
     {
       "name": "Dumbbell Lateral Raise",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Slight bend in elbows, raise to shoulder height, control descent",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 60,
       "featured": false,
       "equipment": [
         {
@@ -298,10 +310,10 @@
     {
       "name": "Pull-up",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Overhand grip, full dead hang to chin over bar, no kipping",
       "demo_url": null,
       "rest_seconds": 120,
-      "featured": false,
+      "featured": true,
       "equipment": [
         {
           "name": "Pull-up Bar",
@@ -312,7 +324,7 @@
     {
       "name": "Chin-up",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Underhand grip, full dead hang to chin over bar",
       "demo_url": null,
       "rest_seconds": 120,
       "featured": false,
@@ -326,9 +338,9 @@
     {
       "name": "Dip",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Lean slightly forward, lower until upper arms parallel, press up",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 120,
       "featured": false,
       "equipment": [
         {
@@ -340,7 +352,7 @@
     {
       "name": "Push-up",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Body straight, lower chest to floor, full lockout at top",
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
@@ -349,18 +361,18 @@
     {
       "name": "Plank",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Forearms on floor, body straight, squeeze glutes and brace core",
       "demo_url": null,
-      "rest_seconds": 60,
+      "rest_seconds": 30,
       "featured": false,
       "equipment": []
     },
     {
       "name": "Lat Pulldown",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Wide grip, pull to upper chest, squeeze lats at bottom",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 90,
       "featured": false,
       "equipment": [
         {
@@ -372,9 +384,9 @@
     {
       "name": "Cable Row",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Sit upright, pull to lower chest, squeeze shoulder blades",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 90,
       "featured": false,
       "equipment": [
         {
@@ -386,9 +398,9 @@
     {
       "name": "Face Pull",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "High cable, pull rope to face, externally rotate at end",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 60,
       "featured": false,
       "equipment": [
         {
@@ -400,9 +412,9 @@
     {
       "name": "Tricep Pushdown",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Pin elbows at sides, extend fully, squeeze triceps at bottom",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 60,
       "featured": false,
       "equipment": [
         {
@@ -414,7 +426,7 @@
     {
       "name": "Leg Press",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Feet shoulder-width, lower until 90 degrees, press through whole foot",
       "demo_url": null,
       "rest_seconds": 120,
       "featured": false,
@@ -428,9 +440,9 @@
     {
       "name": "Leg Curl",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Control the movement, full range of motion, squeeze hamstrings",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 90,
       "featured": false,
       "equipment": [
         {
@@ -442,9 +454,9 @@
     {
       "name": "Leg Extension",
       "tier": null,
-      "form_notes": null,
+      "form_notes": "Full extension at top, controlled descent, don't lock knees violently",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 90,
       "featured": false,
       "equipment": [
         {
@@ -452,6 +464,524 @@
           "optional": false
         }
       ]
+    },
+    {
+      "name": "Goblet Squat",
+      "tier": "foundational",
+      "form_notes": "Hold weight at chest, elbows between knees at bottom, upright torso",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": true,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        },
+        {
+          "name": "Kettlebell",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Split Squat",
+      "tier": "foundational",
+      "form_notes": "Staggered stance, lower back knee toward floor, front knee over ankle",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Cossack Squat",
+      "tier": "foundational",
+      "form_notes": "Wide stance, shift weight to one side, keep heel down, straight opposite leg",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Split Squat Isometric",
+      "tier": "foundational",
+      "form_notes": "Hold bottom position of split squat, back knee just off floor, maintain upright torso",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Wall Sit",
+      "tier": "foundational",
+      "form_notes": "Back flat against wall, thighs parallel to floor, hold for time",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Side Lunge",
+      "tier": "foundational",
+      "form_notes": "Step laterally, sit hips back, keep trailing leg straight, push back to start",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Reverse Lunge",
+      "tier": "foundational",
+      "form_notes": "Step back, lower back knee toward floor, drive through front foot to return",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Walking Lunge",
+      "tier": "foundational",
+      "form_notes": "Alternate legs stepping forward, back knee toward floor, upright torso",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Step-Up",
+      "tier": "foundational",
+      "form_notes": "Drive through top foot, stand tall at top, control descent",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Lateral Step-Up",
+      "tier": "foundational",
+      "form_notes": "Step up sideways onto box, drive through top foot, control descent",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Step-Up with Knee Drive",
+      "tier": "foundational",
+      "form_notes": "Drive through top foot, lift opposite knee high at top, control descent",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Goblet Lateral Step-Up",
+      "tier": "foundational",
+      "form_notes": "Hold dumbbell at chest, step up sideways, drive through top foot",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        },
+        {
+          "name": "Kettlebell",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Trap Bar Deadlift",
+      "tier": "foundational",
+      "form_notes": "Stand inside bar, grip handles, push floor away, lock hips at top",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": true,
+      "equipment": [
+        {
+          "name": "Trap Bar",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Kettlebell RDL",
+      "tier": "foundational",
+      "form_notes": "Slight knee bend, hinge at hips, kettlebell slides down shins, squeeze glutes at top",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Kettlebell",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Kettlebell Staggered RDL",
+      "tier": "foundational",
+      "form_notes": "Staggered stance with back foot for balance, hinge at hips, return to standing",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Kettlebell",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Reaching Single-Leg Deadlift",
+      "tier": "foundational",
+      "form_notes": "Hinge on one leg, reach hands toward floor, back leg extends behind, return to standing",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Single-Leg Deadlift",
+      "tier": "foundational",
+      "form_notes": "Hinge on one leg with weight, back leg extends behind for balance, squeeze glute at top",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        },
+        {
+          "name": "Kettlebell",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Lying Hip Extension",
+      "tier": "foundational",
+      "form_notes": "Lie face down, squeeze glutes to lift legs, hold briefly at top",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Single-Leg Hip Extension",
+      "tier": "foundational",
+      "form_notes": "Lie face down, lift one leg at a time, squeeze glute at top",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Slideboard Hamstring Curl",
+      "tier": "foundational",
+      "form_notes": "Lie on back, feet on sliders, bridge up and curl heels toward glutes",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Hamstring March",
+      "tier": "foundational",
+      "form_notes": "Bridge position, alternate extending one leg at a time while maintaining hip height",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "TRX Hamstring March",
+      "tier": "foundational",
+      "form_notes": "Heels in TRX straps, bridge up, alternate extending one leg while maintaining hip height",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "TRX/Suspension Trainer",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Weighted Push-up",
+      "tier": "foundational",
+      "form_notes": "Weight plate on upper back, body straight, lower chest to floor, full lockout",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Inverted Row",
+      "tier": "foundational",
+      "form_notes": "Hang under bar or TRX, body straight, pull chest to bar, squeeze shoulder blades",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Pull-up Bar",
+          "optional": false
+        },
+        {
+          "name": "TRX/Suspension Trainer",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Half-Kneeling Cable Row",
+      "tier": "foundational",
+      "form_notes": "One knee down, pull cable to hip, keep torso upright and resist rotation",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "TRX Row",
+      "tier": "foundational",
+      "form_notes": "Lean back holding straps, body straight, pull chest to handles, squeeze shoulder blades",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "TRX/Suspension Trainer",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Renegade Row",
+      "tier": "foundational",
+      "form_notes": "Push-up position on dumbbells, row one arm while bracing core, alternate sides",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Assisted Chin-up",
+      "tier": "foundational",
+      "form_notes": "Use band for assistance, underhand grip, full dead hang to chin over bar",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Pull-up Bar",
+          "optional": false
+        },
+        {
+          "name": "Resistance Band",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Band Pull-Apart",
+      "tier": "foundational",
+      "form_notes": "Hold band at shoulder height, pull apart by squeezing shoulder blades, control return",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Resistance Band",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Deadbug",
+      "tier": "foundational",
+      "form_notes": "Back flat on floor, extend opposite arm and leg while maintaining core brace",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Medicine Ball Deadbug",
+      "tier": "foundational",
+      "form_notes": "Hold medicine ball between hands and knees, extend opposite arm and leg while pressing ball",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Medicine Ball",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Palloff Rotation",
+      "tier": "foundational",
+      "form_notes": "Stand sideways to cable, press arms out and rotate away, resist pull back to center",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        },
+        {
+          "name": "Resistance Band",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Palloff Hold",
+      "tier": "foundational",
+      "form_notes": "Stand sideways to cable, press arms out and hold, resist rotation for time",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        },
+        {
+          "name": "Resistance Band",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Hanging Knee Raise",
+      "tier": "foundational",
+      "form_notes": "Hang from bar, raise knees to chest, lower with control, no swinging",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Pull-up Bar",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Straight Leg Raise",
+      "tier": "foundational",
+      "form_notes": "Lie on back, keep legs straight, raise to 90 degrees, lower with control",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Standing Leg Raise Isometric",
+      "tier": "foundational",
+      "form_notes": "Stand on one leg, raise other leg to hip height, hold position for time",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "TRX Mountain Climber",
+      "tier": "foundational",
+      "form_notes": "Feet in TRX straps, plank position, alternate driving knees to chest",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "TRX/Suspension Trainer",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Stability Ball Mountain Climber",
+      "tier": "foundational",
+      "form_notes": "Hands on stability ball, plank position, alternate driving knees to chest",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Stability Ball",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Bear Crawl",
+      "tier": "foundational",
+      "form_notes": "Hands and feet on floor, knees just off ground, crawl forward alternating opposite hand/foot",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Crab Walk",
+      "tier": "foundational",
+      "form_notes": "Sit, hands behind, lift hips, walk forward/backward using opposite hand/foot",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
     }
   ],
   "programs": [
@@ -469,7 +999,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -481,9 +1011,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -493,9 +1023,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -505,9 +1035,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": "FSL"
         },
         {
@@ -517,9 +1047,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 5,
           "notes": "FSL"
         },
         {
@@ -529,9 +1059,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 6,
           "notes": "FSL"
         },
         {
@@ -541,9 +1071,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 7,
           "notes": "FSL"
         },
         {
@@ -553,9 +1083,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 8,
           "notes": "FSL"
         },
         {
@@ -565,9 +1095,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 9,
           "notes": null
         },
         {
@@ -577,9 +1107,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -589,9 +1119,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 11,
           "notes": "AMRAP"
         },
         {
@@ -601,9 +1131,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 12,
           "notes": "FSL"
         },
         {
@@ -613,9 +1143,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 13,
           "notes": "FSL"
         },
         {
@@ -625,9 +1155,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 14,
           "notes": "FSL"
         },
         {
@@ -637,9 +1167,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 15,
           "notes": "FSL"
         },
         {
@@ -649,9 +1179,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 16,
           "notes": "FSL"
         },
         {
@@ -661,7 +1191,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -673,9 +1203,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -685,9 +1215,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -697,9 +1227,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": "FSL"
         },
         {
@@ -709,9 +1239,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 5,
           "notes": "FSL"
         },
         {
@@ -721,9 +1251,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 6,
           "notes": "FSL"
         },
         {
@@ -733,9 +1263,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 7,
           "notes": "FSL"
         },
         {
@@ -745,9 +1275,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 8,
           "notes": "FSL"
         },
         {
@@ -757,9 +1287,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 9,
           "notes": null
         },
         {
@@ -769,9 +1299,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -781,9 +1311,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 11,
           "notes": "AMRAP"
         },
         {
@@ -793,9 +1323,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 12,
           "notes": "FSL"
         },
         {
@@ -805,9 +1335,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 13,
           "notes": "FSL"
         },
         {
@@ -817,9 +1347,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 14,
           "notes": "FSL"
         },
         {
@@ -829,9 +1359,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 15,
           "notes": "FSL"
         },
         {
@@ -841,9 +1371,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 16,
           "notes": "FSL"
         },
         {
@@ -853,7 +1383,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -865,9 +1395,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -877,9 +1407,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -889,9 +1419,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": "FSL"
         },
         {
@@ -901,9 +1431,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 5,
           "notes": "FSL"
         },
         {
@@ -913,9 +1443,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 6,
           "notes": "FSL"
         },
         {
@@ -925,9 +1455,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 7,
           "notes": "FSL"
         },
         {
@@ -937,9 +1467,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 8,
           "notes": "FSL"
         },
         {
@@ -949,9 +1479,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 9,
           "notes": null
         },
         {
@@ -961,9 +1491,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -973,9 +1503,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 11,
           "notes": "AMRAP"
         },
         {
@@ -985,9 +1515,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 12,
           "notes": "FSL"
         },
         {
@@ -997,9 +1527,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 13,
           "notes": "FSL"
         },
         {
@@ -1009,9 +1539,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 14,
           "notes": "FSL"
         },
         {
@@ -1021,9 +1551,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 15,
           "notes": "FSL"
         },
         {
@@ -1033,9 +1563,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 16,
           "notes": "FSL"
         },
         {
@@ -1045,7 +1575,7 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -1057,9 +1587,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 80.0,
+          "percentage": 80,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -1069,9 +1599,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 90.0,
+          "percentage": 90,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -1081,9 +1611,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": "FSL"
         },
         {
@@ -1093,9 +1623,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 5,
           "notes": "FSL"
         },
         {
@@ -1105,9 +1635,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 6,
           "notes": "FSL"
         },
         {
@@ -1117,9 +1647,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 7,
           "notes": "FSL"
         },
         {
@@ -1129,9 +1659,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 8,
           "notes": "FSL"
         },
         {
@@ -1141,9 +1671,9 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 9,
           "notes": null
         },
         {
@@ -1153,9 +1683,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 80.0,
+          "percentage": 80,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -1165,9 +1695,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 90.0,
+          "percentage": 90,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 11,
           "notes": "AMRAP"
         },
         {
@@ -1177,9 +1707,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 12,
           "notes": "FSL"
         },
         {
@@ -1189,9 +1719,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 13,
           "notes": "FSL"
         },
         {
@@ -1201,9 +1731,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 14,
           "notes": "FSL"
         },
         {
@@ -1213,9 +1743,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 15,
           "notes": "FSL"
         },
         {
@@ -1225,9 +1755,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 16,
           "notes": "FSL"
         },
         {
@@ -1237,7 +1767,7 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -1249,9 +1779,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 80.0,
+          "percentage": 80,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -1261,9 +1791,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 90.0,
+          "percentage": 90,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -1273,9 +1803,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": "FSL"
         },
         {
@@ -1285,9 +1815,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 5,
           "notes": "FSL"
         },
         {
@@ -1297,9 +1827,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 6,
           "notes": "FSL"
         },
         {
@@ -1309,9 +1839,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 7,
           "notes": "FSL"
         },
         {
@@ -1321,9 +1851,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 8,
           "notes": "FSL"
         },
         {
@@ -1333,9 +1863,9 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 9,
           "notes": null
         },
         {
@@ -1345,9 +1875,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 80.0,
+          "percentage": 80,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -1357,9 +1887,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 90.0,
+          "percentage": 90,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 11,
           "notes": "AMRAP"
         },
         {
@@ -1369,9 +1899,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 12,
           "notes": "FSL"
         },
         {
@@ -1381,9 +1911,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 13,
           "notes": "FSL"
         },
         {
@@ -1393,9 +1923,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 14,
           "notes": "FSL"
         },
         {
@@ -1405,9 +1935,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 15,
           "notes": "FSL"
         },
         {
@@ -1417,9 +1947,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 16,
           "notes": "FSL"
         },
         {
@@ -1429,7 +1959,7 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -1441,9 +1971,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 80.0,
+          "percentage": 80,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -1453,9 +1983,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 90.0,
+          "percentage": 90,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -1465,9 +1995,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": "FSL"
         },
         {
@@ -1477,9 +2007,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 5,
           "notes": "FSL"
         },
         {
@@ -1489,9 +2019,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 6,
           "notes": "FSL"
         },
         {
@@ -1501,9 +2031,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 7,
           "notes": "FSL"
         },
         {
@@ -1513,9 +2043,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 8,
           "notes": "FSL"
         },
         {
@@ -1525,9 +2055,9 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 9,
           "notes": null
         },
         {
@@ -1537,9 +2067,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 80.0,
+          "percentage": 80,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -1549,9 +2079,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 90.0,
+          "percentage": 90,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 11,
           "notes": "AMRAP"
         },
         {
@@ -1561,9 +2091,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 12,
           "notes": "FSL"
         },
         {
@@ -1573,9 +2103,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 13,
           "notes": "FSL"
         },
         {
@@ -1585,9 +2115,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 14,
           "notes": "FSL"
         },
         {
@@ -1597,9 +2127,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 15,
           "notes": "FSL"
         },
         {
@@ -1609,9 +2139,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 16,
           "notes": "FSL"
         },
         {
@@ -1621,7 +2151,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -1633,9 +2163,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -1645,9 +2175,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -1657,9 +2187,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": "FSL"
         },
         {
@@ -1669,9 +2199,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 5,
           "notes": "FSL"
         },
         {
@@ -1681,9 +2211,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 6,
           "notes": "FSL"
         },
         {
@@ -1693,9 +2223,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 7,
           "notes": "FSL"
         },
         {
@@ -1705,9 +2235,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 8,
           "notes": "FSL"
         },
         {
@@ -1717,9 +2247,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 9,
           "notes": null
         },
         {
@@ -1729,9 +2259,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -1741,9 +2271,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 11,
           "notes": "AMRAP"
         },
         {
@@ -1753,9 +2283,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 12,
           "notes": "FSL"
         },
         {
@@ -1765,9 +2295,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 13,
           "notes": "FSL"
         },
         {
@@ -1777,9 +2307,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 14,
           "notes": "FSL"
         },
         {
@@ -1789,9 +2319,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 15,
           "notes": "FSL"
         },
         {
@@ -1801,9 +2331,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 16,
           "notes": "FSL"
         },
         {
@@ -1813,7 +2343,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -1825,9 +2355,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -1837,9 +2367,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -1849,9 +2379,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": "FSL"
         },
         {
@@ -1861,9 +2391,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 5,
           "notes": "FSL"
         },
         {
@@ -1873,9 +2403,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 6,
           "notes": "FSL"
         },
         {
@@ -1885,9 +2415,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 7,
           "notes": "FSL"
         },
         {
@@ -1897,9 +2427,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 8,
           "notes": "FSL"
         },
         {
@@ -1909,9 +2439,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 9,
           "notes": null
         },
         {
@@ -1921,9 +2451,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -1933,9 +2463,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 11,
           "notes": "AMRAP"
         },
         {
@@ -1945,9 +2475,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 12,
           "notes": "FSL"
         },
         {
@@ -1957,9 +2487,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 13,
           "notes": "FSL"
         },
         {
@@ -1969,9 +2499,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 14,
           "notes": "FSL"
         },
         {
@@ -1981,9 +2511,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 15,
           "notes": "FSL"
         },
         {
@@ -1993,9 +2523,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 16,
           "notes": "FSL"
         },
         {
@@ -2005,7 +2535,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -2017,9 +2547,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -2029,9 +2559,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -2041,9 +2571,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": "FSL"
         },
         {
@@ -2053,9 +2583,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 5,
           "notes": "FSL"
         },
         {
@@ -2065,9 +2595,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 6,
           "notes": "FSL"
         },
         {
@@ -2077,9 +2607,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 7,
           "notes": "FSL"
         },
         {
@@ -2089,9 +2619,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 8,
           "notes": "FSL"
         },
         {
@@ -2101,9 +2631,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 9,
           "notes": null
         },
         {
@@ -2113,9 +2643,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -2125,9 +2655,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 11,
           "notes": "AMRAP"
         },
         {
@@ -2137,9 +2667,9 @@
           "set_number": 4,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 12,
           "notes": "FSL"
         },
         {
@@ -2149,9 +2679,9 @@
           "set_number": 5,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 13,
           "notes": "FSL"
         },
         {
@@ -2161,9 +2691,9 @@
           "set_number": 6,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 14,
           "notes": "FSL"
         },
         {
@@ -2173,9 +2703,9 @@
           "set_number": 7,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 15,
           "notes": "FSL"
         },
         {
@@ -2185,9 +2715,9 @@
           "set_number": 8,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 16,
           "notes": "FSL"
         }
       ],
@@ -2212,49 +2742,49 @@
     },
     {
       "name": "5/3/1 BBB",
-      "description": "Wendler's 5/3/1 Boring But Big. One main lift per day with 5x10 supplemental at 50% TM for hypertrophy. 3-week cycles. Accessories: 25-50 reps each of push, pull, and single-leg/core after main + BBB work.",
+      "description": "Wendler's 5/3/1 Boring But Big. Main lift followed by 5x10 supplemental at 50% training max. 3-week cycles. Accessories: 25-50 reps each of push, pull, and single-leg/core.",
       "num_weeks": 3,
       "num_days": 4,
       "is_loop": true,
       "prescribed_sets": [
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 1,
           "day": 1,
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 1,
           "day": 1,
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 1,
           "day": 1,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 1,
           "day": 1,
           "set_number": 4,
@@ -2262,11 +2792,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 1,
           "day": 1,
           "set_number": 5,
@@ -2274,11 +2804,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 1,
           "day": 1,
           "set_number": 6,
@@ -2286,11 +2816,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 1,
           "day": 1,
           "set_number": 7,
@@ -2298,11 +2828,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 1,
           "day": 1,
           "set_number": 8,
@@ -2310,47 +2840,47 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 1,
           "day": 2,
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 1,
           "day": 2,
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 1,
           "day": 2,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 1,
           "day": 2,
           "set_number": 4,
@@ -2358,11 +2888,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 1,
           "day": 2,
           "set_number": 5,
@@ -2370,11 +2900,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 1,
           "day": 2,
           "set_number": 6,
@@ -2382,11 +2912,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 1,
           "day": 2,
           "set_number": 7,
@@ -2394,11 +2924,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 1,
           "day": 2,
           "set_number": 8,
@@ -2406,47 +2936,47 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 1,
           "day": 3,
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 1,
           "day": 3,
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 1,
           "day": 3,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 1,
           "day": 3,
           "set_number": 4,
@@ -2454,11 +2984,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 1,
           "day": 3,
           "set_number": 5,
@@ -2466,11 +2996,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 1,
           "day": 3,
           "set_number": 6,
@@ -2478,11 +3008,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 1,
           "day": 3,
           "set_number": 7,
@@ -2490,11 +3020,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 1,
           "day": 3,
           "set_number": 8,
@@ -2502,47 +3032,47 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 1,
           "day": 4,
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 65.0,
+          "percentage": 65,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 1,
           "day": 4,
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 1,
           "day": 4,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 1,
           "day": 4,
           "set_number": 4,
@@ -2550,11 +3080,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 1,
           "day": 4,
           "set_number": 5,
@@ -2562,11 +3092,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 1,
           "day": 4,
           "set_number": 6,
@@ -2574,11 +3104,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 1,
           "day": 4,
           "set_number": 7,
@@ -2586,11 +3116,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 1,
           "day": 4,
           "set_number": 8,
@@ -2598,47 +3128,47 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 2,
           "day": 1,
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 2,
           "day": 1,
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 80.0,
+          "percentage": 80,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 2,
           "day": 1,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 90.0,
+          "percentage": 90,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 2,
           "day": 1,
           "set_number": 4,
@@ -2646,11 +3176,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 2,
           "day": 1,
           "set_number": 5,
@@ -2658,11 +3188,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 2,
           "day": 1,
           "set_number": 6,
@@ -2670,11 +3200,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 2,
           "day": 1,
           "set_number": 7,
@@ -2682,11 +3212,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 2,
           "day": 1,
           "set_number": 8,
@@ -2694,47 +3224,47 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 2,
           "day": 2,
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 2,
           "day": 2,
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 80.0,
+          "percentage": 80,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 2,
           "day": 2,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 90.0,
+          "percentage": 90,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 2,
           "day": 2,
           "set_number": 4,
@@ -2742,11 +3272,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 2,
           "day": 2,
           "set_number": 5,
@@ -2754,11 +3284,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 2,
           "day": 2,
           "set_number": 6,
@@ -2766,11 +3296,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 2,
           "day": 2,
           "set_number": 7,
@@ -2778,11 +3308,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 2,
           "day": 2,
           "set_number": 8,
@@ -2790,47 +3320,47 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 2,
           "day": 3,
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 70.0,
+          "percentage": 70,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 2,
           "day": 3,
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 80.0,
+          "percentage": 80,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 2,
           "day": 3,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 90.0,
+          "percentage": 90,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 2,
           "day": 3,
           "set_number": 4,
@@ -2838,11 +3368,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 2,
           "day": 3,
           "set_number": 5,
@@ -2850,11 +3380,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 2,
           "day": 3,
           "set_number": 6,
@@ -2862,11 +3392,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 2,
           "day": 3,
           "set_number": 7,
@@ -2874,11 +3404,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 2,
           "day": 3,
           "set_number": 8,
@@ -2886,143 +3416,143 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 4,
-          "set_number": 1,
-          "reps": 3,
-          "rep_type": "reps",
-          "percentage": 70.0,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": null
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 4,
-          "set_number": 2,
-          "reps": 3,
-          "rep_type": "reps",
-          "percentage": 80.0,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": null
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 4,
-          "set_number": 3,
-          "reps": null,
-          "rep_type": "reps",
-          "percentage": 90.0,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "AMRAP"
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 4,
-          "set_number": 4,
-          "reps": 10,
-          "rep_type": "reps",
-          "percentage": 50.0,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 4,
-          "set_number": 5,
-          "reps": 10,
-          "rep_type": "reps",
-          "percentage": 50.0,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 4,
-          "set_number": 6,
-          "reps": 10,
-          "rep_type": "reps",
-          "percentage": 50.0,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 4,
-          "set_number": 7,
-          "reps": 10,
-          "rep_type": "reps",
-          "percentage": 50.0,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 4,
-          "set_number": 8,
-          "reps": 10,
-          "rep_type": "reps",
-          "percentage": 50.0,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
           "exercise": "Squat",
+          "week": 2,
+          "day": 4,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 70,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 4,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": 80,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 4,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 90,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 4,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": "BBB"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 4,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": "BBB"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 4,
+          "set_number": 6,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "BBB"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 4,
+          "set_number": 7,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": "BBB"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 4,
+          "set_number": 8,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": 50.0,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": "BBB"
+        },
+        {
+          "exercise": "Overhead Press",
           "week": 3,
           "day": 1,
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 3,
           "day": 1,
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 3,
           "day": 1,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 3,
           "day": 1,
           "set_number": 4,
@@ -3030,11 +3560,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 3,
           "day": 1,
           "set_number": 5,
@@ -3042,11 +3572,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 3,
           "day": 1,
           "set_number": 6,
@@ -3054,11 +3584,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 3,
           "day": 1,
           "set_number": 7,
@@ -3066,11 +3596,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Squat",
+          "exercise": "Overhead Press",
           "week": 3,
           "day": 1,
           "set_number": 8,
@@ -3078,47 +3608,47 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 3,
           "day": 2,
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 3,
           "day": 2,
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 3,
           "day": 2,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 3,
           "day": 2,
           "set_number": 4,
@@ -3126,11 +3656,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 3,
           "day": 2,
           "set_number": 5,
@@ -3138,11 +3668,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 3,
           "day": 2,
           "set_number": 6,
@@ -3150,11 +3680,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 3,
           "day": 2,
           "set_number": 7,
@@ -3162,11 +3692,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Bench Press",
+          "exercise": "Deadlift",
           "week": 3,
           "day": 2,
           "set_number": 8,
@@ -3174,47 +3704,47 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 3,
           "day": 3,
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 3,
           "day": 3,
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 3,
           "day": 3,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 3,
           "day": 3,
           "set_number": 4,
@@ -3222,11 +3752,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 3,
           "day": 3,
           "set_number": 5,
@@ -3234,11 +3764,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 3,
           "day": 3,
           "set_number": 6,
@@ -3246,11 +3776,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 3,
           "day": 3,
           "set_number": 7,
@@ -3258,11 +3788,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Bench Press",
           "week": 3,
           "day": 3,
           "set_number": 8,
@@ -3270,47 +3800,47 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 3,
           "day": 4,
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": 75.0,
+          "percentage": 75,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 3,
           "day": 4,
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": 85.0,
+          "percentage": 85,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 3,
           "day": 4,
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": 95.0,
+          "percentage": 95,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 3,
           "day": 4,
           "set_number": 4,
@@ -3318,11 +3848,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 4,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 3,
           "day": 4,
           "set_number": 5,
@@ -3330,11 +3860,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 5,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 3,
           "day": 4,
           "set_number": 6,
@@ -3342,11 +3872,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 6,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 3,
           "day": 4,
           "set_number": 7,
@@ -3354,11 +3884,11 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 7,
+          "notes": "BBB"
         },
         {
-          "exercise": "Overhead Press",
+          "exercise": "Squat",
           "week": 3,
           "day": 4,
           "set_number": 8,
@@ -3366,8 +3896,8 @@
           "rep_type": "reps",
           "percentage": 50.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "BBB supplemental"
+          "sort_order": 8,
+          "notes": "BBB"
         }
       ],
       "progression_rules": [
@@ -3391,7 +3921,7 @@
     },
     {
       "name": "Phrak's Greyskull LP",
-      "description": "Phrak's variant of Greyskull LP (r/Fitness recommended). Alternating A/B workouts, 3 days per week. All lifts use 3x5+ (AMRAP last set) except Deadlift which is 1x5+. Progression is per session. Deload 10% on failure.",
+      "description": "Phrak's variant of Greyskull LP (thefitness.wiki). 3 days/week, alternating A/B workouts on a 2-week cycle. Last set is always AMRAP. Chin-ups every session.",
       "num_weeks": 2,
       "num_days": 3,
       "is_loop": true,
@@ -3403,7 +3933,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -3415,9 +3945,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -3427,9 +3957,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -3439,9 +3969,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 4,
           "notes": null
         },
         {
@@ -3451,9 +3981,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 5,
           "notes": null
         },
         {
@@ -3463,9 +3993,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 6,
           "notes": "AMRAP"
         },
         {
@@ -3475,9 +4005,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 7,
           "notes": null
         },
         {
@@ -3487,9 +4017,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 8,
           "notes": null
         },
         {
@@ -3499,9 +4029,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 9,
           "notes": "AMRAP"
         },
         {
@@ -3511,7 +4041,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -3523,9 +4053,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -3535,9 +4065,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -3547,9 +4077,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 4,
           "notes": null
         },
         {
@@ -3559,9 +4089,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 5,
           "notes": null
         },
         {
@@ -3571,9 +4101,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 6,
           "notes": "AMRAP"
         },
         {
@@ -3583,9 +4113,9 @@
           "set_number": 1,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 7,
           "notes": "AMRAP"
         },
         {
@@ -3595,7 +4125,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -3607,9 +4137,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -3619,9 +4149,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -3631,9 +4161,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 4,
           "notes": null
         },
         {
@@ -3643,9 +4173,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 5,
           "notes": null
         },
         {
@@ -3655,9 +4185,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 6,
           "notes": "AMRAP"
         },
         {
@@ -3667,9 +4197,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 7,
           "notes": null
         },
         {
@@ -3679,9 +4209,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 8,
           "notes": null
         },
         {
@@ -3691,9 +4221,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 9,
           "notes": "AMRAP"
         },
         {
@@ -3703,7 +4233,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -3715,9 +4245,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -3727,9 +4257,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -3739,9 +4269,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 4,
           "notes": null
         },
         {
@@ -3751,9 +4281,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 5,
           "notes": null
         },
         {
@@ -3763,129 +4293,129 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 1,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 100.0,
           "absolute_weight": null,
           "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Overhead Press",
+          "week": 2,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": "AMRAP"
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 2,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 2,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 2,
+          "day": 2,
+          "set_number": 3,
+          "reps": null,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 6,
           "notes": "AMRAP"
         },
         {
           "exercise": "Deadlift",
           "week": 2,
-          "day": 1,
+          "day": 2,
           "set_number": 1,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 3,
-          "notes": "AMRAP"
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 2,
-          "set_number": 1,
-          "reps": 5,
-          "rep_type": "reps",
-          "percentage": null,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": null
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 2,
-          "set_number": 2,
-          "reps": 5,
-          "rep_type": "reps",
-          "percentage": null,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": null
-        },
-        {
-          "exercise": "Overhead Press",
-          "week": 2,
-          "day": 2,
-          "set_number": 3,
-          "reps": null,
-          "rep_type": "reps",
-          "percentage": null,
-          "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "AMRAP"
-        },
-        {
-          "exercise": "Chin-up",
-          "week": 2,
-          "day": 2,
-          "set_number": 1,
-          "reps": 5,
-          "rep_type": "reps",
-          "percentage": null,
-          "absolute_weight": null,
-          "sort_order": 2,
-          "notes": null
-        },
-        {
-          "exercise": "Chin-up",
-          "week": 2,
-          "day": 2,
-          "set_number": 2,
-          "reps": 5,
-          "rep_type": "reps",
-          "percentage": null,
-          "absolute_weight": null,
-          "sort_order": 2,
-          "notes": null
-        },
-        {
-          "exercise": "Chin-up",
-          "week": 2,
-          "day": 2,
-          "set_number": 3,
-          "reps": null,
-          "rep_type": "reps",
-          "percentage": null,
-          "absolute_weight": null,
-          "sort_order": 2,
-          "notes": "AMRAP"
-        },
-        {
-          "exercise": "Squat",
-          "week": 2,
-          "day": 2,
-          "set_number": 1,
-          "reps": 5,
-          "rep_type": "reps",
-          "percentage": null,
-          "absolute_weight": null,
-          "sort_order": 3,
-          "notes": null
-        },
-        {
-          "exercise": "Squat",
-          "week": 2,
-          "day": 2,
-          "set_number": 2,
-          "reps": 5,
-          "rep_type": "reps",
-          "percentage": null,
-          "absolute_weight": null,
-          "sort_order": 3,
-          "notes": null
-        },
-        {
-          "exercise": "Squat",
-          "week": 2,
-          "day": 2,
-          "set_number": 3,
-          "reps": null,
-          "rep_type": "reps",
-          "percentage": null,
-          "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 7,
           "notes": "AMRAP"
         },
         {
@@ -3895,7 +4425,7 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
           "sort_order": 1,
           "notes": null
@@ -3907,9 +4437,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -3919,9 +4449,9 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": "AMRAP"
         },
         {
@@ -3931,9 +4461,9 @@
           "set_number": 1,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 4,
           "notes": null
         },
         {
@@ -3943,9 +4473,9 @@
           "set_number": 2,
           "reps": 5,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 5,
           "notes": null
         },
         {
@@ -3955,21 +4485,45 @@
           "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 6,
           "notes": "AMRAP"
         },
         {
-          "exercise": "Deadlift",
+          "exercise": "Squat",
           "week": 2,
           "day": 3,
           "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": 100.0,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 2,
+          "day": 3,
+          "set_number": 3,
           "reps": null,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 100.0,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 9,
           "notes": "AMRAP"
         }
       ],
@@ -4002,7 +4556,7 @@
     },
     {
       "name": "GZCLP",
-      "description": "Cody Lefever's GZCLP linear progression. Three tiers per day: T1 heavy 5x3+ (AMRAP last set), T2 volume 3x10, T3 pump 3x15+ (AMRAP last set). Progression is per session. Failure protocols: T1 5x3 -> 6x2 -> 10x1 -> reset; T2 3x10 -> 3x8 -> 3x6 -> add weight restart; T3 add weight when AMRAP hits 25 reps.",
+      "description": "GZCLP (Cody Lefever). 4 days/week linear progression. T1 heavy compound 5x3, T2 moderate compound 3x10, T3 light isolation 3x15. Built-in rep scheme failure protocol.",
       "num_weeks": 1,
       "num_days": 4,
       "is_loop": true,
@@ -4014,10 +4568,10 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
           "sort_order": 1,
-          "notes": null
+          "notes": "T1"
         },
         {
           "exercise": "Squat",
@@ -4026,9 +4580,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -4038,9 +4592,9 @@
           "set_number": 3,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": null
         },
         {
@@ -4050,9 +4604,9 @@
           "set_number": 4,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": null
         },
         {
@@ -4060,12 +4614,12 @@
           "week": 1,
           "day": 1,
           "set_number": 5,
-          "reps": null,
+          "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "AMRAP"
+          "sort_order": 5,
+          "notes": null
         },
         {
           "exercise": "Bench Press",
@@ -4074,10 +4628,10 @@
           "set_number": 1,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
-          "notes": null
+          "sort_order": 6,
+          "notes": "T2"
         },
         {
           "exercise": "Bench Press",
@@ -4086,9 +4640,9 @@
           "set_number": 2,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 7,
           "notes": null
         },
         {
@@ -4098,9 +4652,9 @@
           "set_number": 3,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 8,
           "notes": null
         },
         {
@@ -4112,8 +4666,8 @@
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
-          "notes": null
+          "sort_order": 9,
+          "notes": "T3"
         },
         {
           "exercise": "Lat Pulldown",
@@ -4124,7 +4678,7 @@
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -4132,12 +4686,12 @@
           "week": 1,
           "day": 1,
           "set_number": 3,
-          "reps": null,
+          "reps": 15,
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
-          "notes": "AMRAP"
+          "sort_order": 11,
+          "notes": null
         },
         {
           "exercise": "Overhead Press",
@@ -4146,10 +4700,10 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
           "sort_order": 1,
-          "notes": null
+          "notes": "T1"
         },
         {
           "exercise": "Overhead Press",
@@ -4158,9 +4712,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -4170,9 +4724,9 @@
           "set_number": 3,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": null
         },
         {
@@ -4182,9 +4736,9 @@
           "set_number": 4,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": null
         },
         {
@@ -4192,12 +4746,12 @@
           "week": 1,
           "day": 2,
           "set_number": 5,
-          "reps": null,
+          "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "AMRAP"
+          "sort_order": 5,
+          "notes": null
         },
         {
           "exercise": "Deadlift",
@@ -4206,10 +4760,10 @@
           "set_number": 1,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
-          "notes": null
+          "sort_order": 6,
+          "notes": "T2"
         },
         {
           "exercise": "Deadlift",
@@ -4218,9 +4772,9 @@
           "set_number": 2,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 7,
           "notes": null
         },
         {
@@ -4230,9 +4784,9 @@
           "set_number": 3,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 8,
           "notes": null
         },
         {
@@ -4244,8 +4798,8 @@
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
-          "notes": null
+          "sort_order": 9,
+          "notes": "T3"
         },
         {
           "exercise": "Dumbbell Row",
@@ -4256,7 +4810,7 @@
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -4264,12 +4818,12 @@
           "week": 1,
           "day": 2,
           "set_number": 3,
-          "reps": null,
+          "reps": 15,
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
-          "notes": "AMRAP"
+          "sort_order": 11,
+          "notes": null
         },
         {
           "exercise": "Bench Press",
@@ -4278,10 +4832,10 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
           "sort_order": 1,
-          "notes": null
+          "notes": "T1"
         },
         {
           "exercise": "Bench Press",
@@ -4290,9 +4844,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -4302,9 +4856,9 @@
           "set_number": 3,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": null
         },
         {
@@ -4314,9 +4868,9 @@
           "set_number": 4,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": null
         },
         {
@@ -4324,12 +4878,12 @@
           "week": 1,
           "day": 3,
           "set_number": 5,
-          "reps": null,
+          "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "AMRAP"
+          "sort_order": 5,
+          "notes": null
         },
         {
           "exercise": "Squat",
@@ -4338,10 +4892,10 @@
           "set_number": 1,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
-          "notes": null
+          "sort_order": 6,
+          "notes": "T2"
         },
         {
           "exercise": "Squat",
@@ -4350,9 +4904,9 @@
           "set_number": 2,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 7,
           "notes": null
         },
         {
@@ -4362,9 +4916,9 @@
           "set_number": 3,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 8,
           "notes": null
         },
         {
@@ -4376,8 +4930,8 @@
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
-          "notes": null
+          "sort_order": 9,
+          "notes": "T3"
         },
         {
           "exercise": "Lat Pulldown",
@@ -4388,7 +4942,7 @@
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -4396,12 +4950,12 @@
           "week": 1,
           "day": 3,
           "set_number": 3,
-          "reps": null,
+          "reps": 15,
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
-          "notes": "AMRAP"
+          "sort_order": 11,
+          "notes": null
         },
         {
           "exercise": "Deadlift",
@@ -4410,10 +4964,10 @@
           "set_number": 1,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
           "sort_order": 1,
-          "notes": null
+          "notes": "T1"
         },
         {
           "exercise": "Deadlift",
@@ -4422,9 +4976,9 @@
           "set_number": 2,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 2,
           "notes": null
         },
         {
@@ -4434,9 +4988,9 @@
           "set_number": 3,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 3,
           "notes": null
         },
         {
@@ -4446,9 +5000,9 @@
           "set_number": 4,
           "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
+          "sort_order": 4,
           "notes": null
         },
         {
@@ -4456,12 +5010,12 @@
           "week": 1,
           "day": 4,
           "set_number": 5,
-          "reps": null,
+          "reps": 3,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 85.0,
           "absolute_weight": null,
-          "sort_order": 1,
-          "notes": "AMRAP"
+          "sort_order": 5,
+          "notes": null
         },
         {
           "exercise": "Overhead Press",
@@ -4470,10 +5024,10 @@
           "set_number": 1,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
-          "notes": null
+          "sort_order": 6,
+          "notes": "T2"
         },
         {
           "exercise": "Overhead Press",
@@ -4482,9 +5036,9 @@
           "set_number": 2,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 7,
           "notes": null
         },
         {
@@ -4494,9 +5048,9 @@
           "set_number": 3,
           "reps": 10,
           "rep_type": "reps",
-          "percentage": null,
+          "percentage": 65.0,
           "absolute_weight": null,
-          "sort_order": 2,
+          "sort_order": 8,
           "notes": null
         },
         {
@@ -4508,8 +5062,8 @@
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
-          "notes": null
+          "sort_order": 9,
+          "notes": "T3"
         },
         {
           "exercise": "Dumbbell Row",
@@ -4520,7 +5074,7 @@
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
+          "sort_order": 10,
           "notes": null
         },
         {
@@ -4528,12 +5082,12 @@
           "week": 1,
           "day": 4,
           "set_number": 3,
-          "reps": null,
+          "reps": 15,
           "rep_type": "reps",
           "percentage": null,
           "absolute_weight": null,
-          "sort_order": 3,
-          "notes": "AMRAP"
+          "sort_order": 11,
+          "notes": null
         }
       ],
       "progression_rules": [
@@ -4559,7 +5113,849 @@
         },
         {
           "exercise": "Dumbbell Row",
+          "increment": 2.5
+        }
+      ]
+    },
+    {
+      "name": "Foundations 1\u00d720",
+      "description": "Dr. Michael Yessis foundational program. 1 set of 20 reps per exercise, 2 days/week. Develops general strength, movement quality, and joint health through comprehensive full-body training. Appropriate for youth athletes and beginners. Progress by adding small weight increments when all 20 reps are completed with good form for 2+ consecutive sessions.",
+      "num_weeks": 1,
+      "num_days": 2,
+      "is_loop": true,
+      "prescribed_sets": [
+        {
+          "exercise": "Goblet Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Push-up",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Kettlebell RDL",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Inverted Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Bear Crawl",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": null
+        },
+        {
+          "exercise": "Cossack Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Overhead Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Step-Up",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Half-Kneeling Cable Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Lying Hip Extension",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Band Pull-Apart",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Slideboard Hamstring Curl",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Deadbug",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat Isometric",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Reaching Single-Leg Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Lunge",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Crab Walk",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": null
+        },
+        {
+          "exercise": "Lateral Step-Up",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Assisted Chin-up",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Walking Lunge",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Renegade Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Hamstring March",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Palloff Rotation",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "TRX Mountain Climber",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Hanging Knee Raise",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Wall Sit",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        }
+      ],
+      "progression_rules": [
+        {
+          "exercise": "Goblet Squat",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Kettlebell RDL",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Overhead Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Step-Up",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
           "increment": 5.0
+        },
+        {
+          "exercise": "Dumbbell Bench Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Reverse Lunge",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Lateral Step-Up",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Walking Lunge",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Renegade Row",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Half-Kneeling Cable Row",
+          "increment": 2.5
+        }
+      ]
+    },
+    {
+      "name": "Foundations 1\u00d715",
+      "description": "Dr. Michael Yessis foundational program, second phase. 1 set of 15 reps per exercise, 2 days/week. Slightly more advanced exercise variations than 1\u00d720 with increased loading potential. Athletes should complete the 1\u00d720 phase before progressing to this program. Progress by adding small weight increments when all 15 reps are completed with good form for 2+ consecutive sessions.",
+      "num_weeks": 1,
+      "num_days": 2,
+      "is_loop": true,
+      "prescribed_sets": [
+        {
+          "exercise": "Front Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Weighted Push-up",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Kettlebell Staggered RDL",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "TRX Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Bear Crawl",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": null
+        },
+        {
+          "exercise": "Side Lunge",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Overhead Press",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Step-Up with Knee Drive",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Half-Kneeling Cable Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Hip Extension",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Band Pull-Apart",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Slideboard Hamstring Curl",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Medicine Ball Deadbug",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat Isometric",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Barbell Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Lunge",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Crab Walk",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": null
+        },
+        {
+          "exercise": "Goblet Lateral Step-Up",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Assisted Chin-up",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Walking Lunge",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Renegade Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "TRX Hamstring March",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Palloff Hold",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Stability Ball Mountain Climber",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Straight Leg Raise",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Standing Leg Raise Isometric",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        }
+      ],
+      "progression_rules": [
+        {
+          "exercise": "Front Squat",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Kettlebell Staggered RDL",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Overhead Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Step-Up with Knee Drive",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Bench Press",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Barbell Row",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Reverse Lunge",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Goblet Lateral Step-Up",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Walking Lunge",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Renegade Row",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Half-Kneeling Cable Row",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Single-Leg Deadlift",
+          "increment": 2.5
         }
       ]
     }
