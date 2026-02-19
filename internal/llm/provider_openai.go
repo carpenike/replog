@@ -83,7 +83,27 @@ func (p *OpenAIProvider) Generate(ctx context.Context, systemPrompt, userPrompt 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("llm/openai: HTTP %d: %s", resp.StatusCode, string(respBody))
+		apiErr := &APIError{
+			Provider:   "OpenAI",
+			StatusCode: resp.StatusCode,
+		}
+		var errResp struct {
+			Error struct {
+				Type    string `json:"type"`
+				Message string `json:"message"`
+				Code    string `json:"code"`
+			} `json:"error"`
+		}
+		if json.Unmarshal(respBody, &errResp) == nil && errResp.Error.Message != "" {
+			apiErr.Code = errResp.Error.Code
+			if apiErr.Code == "" {
+				apiErr.Code = errResp.Error.Type
+			}
+			apiErr.Message = errResp.Error.Message
+		} else {
+			apiErr.Message = string(respBody)
+		}
+		return nil, apiErr
 	}
 
 	var result struct {

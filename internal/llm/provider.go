@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/carpenike/replog/internal/models"
@@ -11,6 +12,54 @@ import (
 
 // ErrNotConfigured is returned when no AI Coach provider is configured.
 var ErrNotConfigured = fmt.Errorf("llm: AI Coach provider not configured")
+
+// APIError represents a structured error from an LLM provider's API.
+// It carries both a user-friendly message and the raw status/details for logging.
+type APIError struct {
+	Provider   string // e.g. "Anthropic", "OpenAI"
+	StatusCode int    // HTTP status code
+	Code       string // provider error code, e.g. "invalid_request_error"
+	Message    string // human-readable message from the API
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("%s API error (HTTP %d): %s", e.Provider, e.StatusCode, e.Message)
+}
+
+// UserMessage returns a coach-friendly error description.
+func (e *APIError) UserMessage() string {
+	switch {
+	case e.StatusCode == 401:
+		return fmt.Sprintf("%s: Invalid API key. Please check the API key in Settings.", e.Provider)
+	case e.StatusCode == 403:
+		return fmt.Sprintf("%s: Access denied. Your API key may not have permission for this model.", e.Provider)
+	case e.StatusCode == 429:
+		return fmt.Sprintf("%s: Rate limit exceeded. Please wait a moment and try again.", e.Provider)
+	case e.StatusCode == 400 && containsAny(e.Message, "credit", "balance", "billing", "payment"):
+		return fmt.Sprintf("%s: Insufficient credits. Please check your billing at the provider's website.", e.Provider)
+	case e.StatusCode == 400 && containsAny(e.Message, "model", "not found", "does not exist"):
+		return fmt.Sprintf("%s: Model not found. Please check the model name in Settings.", e.Provider)
+	case e.StatusCode == 400:
+		return fmt.Sprintf("%s: Bad request — %s", e.Provider, e.Message)
+	case e.StatusCode == 404:
+		return fmt.Sprintf("%s: Endpoint not found. Please check the Base URL in Settings.", e.Provider)
+	case e.StatusCode == 500, e.StatusCode == 502, e.StatusCode == 503:
+		return fmt.Sprintf("%s: The service is temporarily unavailable. Please try again later.", e.Provider)
+	default:
+		return fmt.Sprintf("%s: Unexpected error (HTTP %d). Please try again or check Settings.", e.Provider, e.StatusCode)
+	}
+}
+
+// containsAny returns true if s contains any of the substrings (case-insensitive).
+func containsAny(s string, subs ...string) bool {
+	lower := strings.ToLower(s)
+	for _, sub := range subs {
+		if strings.Contains(lower, strings.ToLower(sub)) {
+			return true
+		}
+	}
+	return false
+}
 
 // Provider is the interface for LLM backends.
 type Provider interface {

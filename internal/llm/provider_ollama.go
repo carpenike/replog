@@ -90,7 +90,19 @@ func (p *OllamaProvider) Generate(ctx context.Context, systemPrompt, userPrompt 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("llm/ollama: HTTP %d: %s", resp.StatusCode, string(respBody))
+		apiErr := &APIError{
+			Provider:   "Ollama",
+			StatusCode: resp.StatusCode,
+		}
+		var errResp struct {
+			Error string `json:"error"`
+		}
+		if json.Unmarshal(respBody, &errResp) == nil && errResp.Error != "" {
+			apiErr.Message = errResp.Error
+		} else {
+			apiErr.Message = string(respBody)
+		}
+		return nil, apiErr
 	}
 
 	var result struct {

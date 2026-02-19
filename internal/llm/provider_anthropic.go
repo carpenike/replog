@@ -79,7 +79,23 @@ func (p *AnthropicProvider) Generate(ctx context.Context, systemPrompt, userProm
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("llm/anthropic: HTTP %d: %s", resp.StatusCode, string(respBody))
+		apiErr := &APIError{
+			Provider:   "Anthropic",
+			StatusCode: resp.StatusCode,
+		}
+		var errResp struct {
+			Error struct {
+				Type    string `json:"type"`
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if json.Unmarshal(respBody, &errResp) == nil && errResp.Error.Message != "" {
+			apiErr.Code = errResp.Error.Type
+			apiErr.Message = errResp.Error.Message
+		} else {
+			apiErr.Message = string(respBody)
+		}
+		return nil, apiErr
 	}
 
 	var result struct {

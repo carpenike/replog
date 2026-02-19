@@ -131,8 +131,13 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 	result, err := llm.Generate(ctx, h.DB, provider, req)
 	if err != nil {
 		log.Printf("handlers: generate program for athlete %d: %v", athleteID, err)
-		h.renderFormError(w, r, athlete, req,
-			fmt.Sprintf("Generation failed: %v", err))
+		var apiErr *llm.APIError
+		if errors.As(err, &apiErr) {
+			h.renderFormError(w, r, athlete, req, apiErr.UserMessage())
+		} else {
+			h.renderFormError(w, r, athlete, req,
+				"Generation failed. Please try again or check your AI Coach settings.")
+		}
 		return
 	}
 
