@@ -132,11 +132,18 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("handlers: generate program for athlete %d: %v", athleteID, err)
 		var apiErr *llm.APIError
-		if errors.As(err, &apiErr) {
+		switch {
+		case errors.As(err, &apiErr):
 			h.renderFormError(w, r, athlete, req, apiErr.UserMessage())
-		} else {
+		case errors.Is(err, context.DeadlineExceeded):
 			h.renderFormError(w, r, athlete, req,
-				"Generation failed. Please try again or check your AI Coach settings.")
+				"Generation timed out. The AI provider took too long to respond. Please try again or simplify your directions.")
+		case errors.Is(err, context.Canceled):
+			h.renderFormError(w, r, athlete, req,
+				"Generation was canceled. Please try again.")
+		default:
+			h.renderFormError(w, r, athlete, req,
+				fmt.Sprintf("Generation failed: %v", err))
 		}
 		return
 	}

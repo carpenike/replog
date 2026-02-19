@@ -29,7 +29,7 @@ func NewOllamaProvider(baseURL, model string) *OllamaProvider {
 	return &OllamaProvider{
 		baseURL: baseURL,
 		model:   model,
-		client:  &http.Client{Timeout: 300 * time.Second}, // Ollama can be slow
+		client:  &http.Client{},
 	}
 }
 

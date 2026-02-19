@@ -22,8 +22,7 @@
         </article>
         {{ else }}
         <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate"
-              hx-post="/athletes/{{ .Athlete.ID }}/programs/generate"
-              hx-indicator="#generate-indicator">
+              onsubmit="document.getElementById('generate-btn').setAttribute('aria-busy','true'); document.getElementById('generate-btn').textContent='Generating\u2026'; document.getElementById('generate-indicator').style.display='block';">
             <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
 
             <label for="program_name">Program Name</label>
@@ -69,12 +68,11 @@
 
             <div class="page-actions">
                 <a href="/athletes/{{ .Athlete.ID }}" role="button" class="outline secondary">Cancel</a>
-                <button type="submit" aria-busy="false" id="generate-btn"
-                        onclick="this.setAttribute('aria-busy','true'); this.textContent='Generating\u2026'">
+                <button type="submit" id="generate-btn">
                     Generate Program
                 </button>
             </div>
-            <span id="generate-indicator" class="htmx-indicator">Generating program&hellip; This may take 10&ndash;30 seconds.</span>
+            <span id="generate-indicator" style="display:none;">Generating program&hellip; This may take 10&ndash;30 seconds.</span>
         </form>
         {{ end }}
 {{ end }}
