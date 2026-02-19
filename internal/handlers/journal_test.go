@@ -263,7 +263,7 @@ func TestJournal_CreateNote_DefaultDate(t *testing.T) {
 	}
 }
 
-func TestJournal_CreateNote_NonCoachForbidden(t *testing.T) {
+func TestJournal_CreateNote_OwnAthlete(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	a := seedAthlete(t, db, "Kid", "")
@@ -273,15 +273,77 @@ func TestJournal_CreateNote_NonCoachForbidden(t *testing.T) {
 
 	form := url.Values{
 		"date":    {"2026-03-01"},
-		"content": {"I shouldn't be able to post this"},
+		"content": {"My own journal note"},
 	}
 	req := requestWithUser("POST", "/athletes/"+itoa(a.ID)+"/notes", form, nonCoach)
 	req.SetPathValue("id", itoa(a.ID))
 	rr := httptest.NewRecorder()
 	h.CreateNote(rr, req)
 
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+}
+
+func TestJournal_CreateNote_OtherAthleteForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	a1 := seedAthlete(t, db, "Kid1", "")
+	a2 := seedAthlete(t, db, "Kid2", "")
+	nonCoach := seedNonCoach(t, db, a1.ID)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"date":    {"2026-03-01"},
+		"content": {"Trying to post on someone else's journal"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(a2.ID)+"/notes", form, nonCoach)
+	req.SetPathValue("id", itoa(a2.ID))
+	rr := httptest.NewRecorder()
+	h.CreateNote(rr, req)
+
 	if rr.Code != http.StatusForbidden {
 		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestJournal_CreateNote_NonCoachPrivatePinnedIgnored(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	a := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, a.ID)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"date":       {"2026-03-01"},
+		"content":    {"My note"},
+		"is_private": {"1"},
+		"pinned":     {"1"},
+	}
+	req := requestWithUser("POST", "/athletes/"+itoa(a.ID)+"/notes", form, nonCoach)
+	req.SetPathValue("id", itoa(a.ID))
+	rr := httptest.NewRecorder()
+	h.CreateNote(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected 303, got %d", rr.Code)
+	}
+
+	// Verify the note was created without private/pinned flags.
+	notes, err := models.ListAthleteNotes(db, a.ID, true)
+	if err != nil {
+		t.Fatalf("list notes: %v", err)
+	}
+	if len(notes) == 0 {
+		t.Fatal("expected at least one note")
+	}
+	if notes[0].IsPrivate {
+		t.Error("non-coach note should not be private")
+	}
+	if notes[0].Pinned {
+		t.Error("non-coach note should not be pinned")
 	}
 }
 

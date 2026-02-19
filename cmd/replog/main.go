@@ -334,6 +334,9 @@ func main() {
 		// Goal — self-service editing.
 		r.Post("/athletes/{id}/goal", athletes.UpdateGoal)
 
+		// Journal Notes — self-service (athletes can add their own notes).
+		r.Post("/athletes/{id}/notes", journal.CreateNote)
+
 		// Export — self-service for own athlete data.
 		r.Get("/athletes/{id}/export", importExport.ExportPage)
 		r.Get("/athletes/{id}/export/json", importExport.ExportJSON)
@@ -402,8 +405,7 @@ func main() {
 		r.Post("/athletes/{id}/workouts/{workoutID}/review", reviews.SubmitReview)
 		r.Post("/athletes/{id}/workouts/{workoutID}/review/delete", reviews.DeleteReview)
 
-		// Athlete Notes (coach-only).
-		r.Post("/athletes/{id}/notes", journal.CreateNote)
+		// Athlete Notes — delete is coach-only.
 		r.Post("/athletes/{id}/notes/{noteID}/delete", journal.DeleteNote)
 
 		// Program Templates (coach-only for management).

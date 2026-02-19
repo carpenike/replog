@@ -13,8 +13,8 @@
         <div class="alert alert-error" role="alert">{{ .Error }}</div>
         {{ end }}
 
-        <!-- Add Note Form (coach/admin only) -->
-        {{ if .CanManage }}
+        <!-- Add Note Form -->
+        {{ if or .CanManage .IsOwnProfile }}
         <details>
             <summary role="button" class="outline secondary">Add Note</summary>
             <form method="POST" action="/athletes/{{ .Athlete.ID }}/notes">
@@ -23,9 +23,10 @@
                         <input type="date" id="note_date" name="date" value="{{ .Today }}" required>
                     </label>
                     <label for="note_content">Note
-                        <textarea id="note_content" name="content" rows="3" required placeholder="Add a coach note..."></textarea>
+                        <textarea id="note_content" name="content" rows="3" required placeholder="Add a note..."></textarea>
                     </label>
                 </div>
+                {{ if .CanManage }}
                 <fieldset>
                     <label>
                         <input type="checkbox" name="is_private" value="1">
@@ -36,6 +37,7 @@
                         Pinned (stays at top)
                     </label>
                 </fieldset>
+                {{ end }}
                 <button type="submit">Save Note</button>
             </form>
         </details>

@@ -53,11 +53,14 @@ func (h *Journal) Timeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isOwnProfile := user.AthleteID.Valid && user.AthleteID.Int64 == athleteID
+
 	data := map[string]any{
-		"Athlete":    athlete,
-		"Entries":    entries,
-		"CanManage":  canManage,
-		"Today":      time.Now().Format("2006-01-02"),
+		"Athlete":      athlete,
+		"Entries":      entries,
+		"CanManage":    canManage,
+		"IsOwnProfile": isOwnProfile,
+		"Today":        time.Now().Format("2006-01-02"),
 	}
 
 	if err := h.Templates.Render(w, r, "journal.html", data); err != nil {
@@ -66,7 +69,8 @@ func (h *Journal) Timeline(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// CreateNote handles new athlete note submission (coach/admin only).
+// CreateNote handles new athlete note submission. Athletes can add their own
+// notes; coaches/admins can also set private and pinned flags.
 func (h *Journal) CreateNote(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
@@ -87,7 +91,7 @@ func (h *Journal) CreateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !middleware.CanManageAthlete(user, athlete) {
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
 		h.Templates.Forbidden(w, r)
 		return
 	}
@@ -108,8 +112,10 @@ func (h *Journal) CreateNote(w http.ResponseWriter, r *http.Request) {
 		date = time.Now().Format("2006-01-02")
 	}
 
-	isPrivate := r.FormValue("is_private") == "1"
-	pinned := r.FormValue("pinned") == "1"
+	// Only coaches/admins can set private and pinned flags.
+	canManage := middleware.CanManageAthlete(user, athlete)
+	isPrivate := canManage && r.FormValue("is_private") == "1"
+	pinned := canManage && r.FormValue("pinned") == "1"
 
 	_, err = models.CreateAthleteNote(h.DB, athleteID, user.ID, date, content, isPrivate, pinned)
 	if err != nil {
