@@ -118,18 +118,96 @@ func TestExtractJSON_InvalidJSON(t *testing.T) {
 }
 
 func TestBuildSystemPrompt(t *testing.T) {
-	prompt := buildSystemPrompt()
-	if !strings.Contains(prompt, "CatalogJSON") {
-		t.Error("system prompt should mention CatalogJSON")
-	}
-	if !strings.Contains(prompt, "prescribed_sets") {
-		t.Error("system prompt should mention prescribed_sets")
-	}
+	t.Run("adult (no tier)", func(t *testing.T) {
+		ctx := &AthleteContext{
+			Athlete: AthleteProfile{Name: "Adult"},
+		}
+		prompt := buildSystemPrompt(ctx)
+		if !strings.Contains(prompt, "CatalogJSON") {
+			t.Error("system prompt should mention CatalogJSON")
+		}
+		if !strings.Contains(prompt, "prescribed_sets") {
+			t.Error("system prompt should mention prescribed_sets")
+		}
+		if !strings.Contains(prompt, "ADULT ATHLETE PROGRAMMING RULES") {
+			t.Error("adult prompt should contain adult rules")
+		}
+		if strings.Contains(prompt, "YOUTH ATHLETE SAFETY RULES") {
+			t.Error("adult prompt should not contain youth rules")
+		}
+	})
+
+	t.Run("foundational tier", func(t *testing.T) {
+		tier := "foundational"
+		ctx := &AthleteContext{
+			Athlete: AthleteProfile{Name: "Youth", Tier: &tier},
+		}
+		prompt := buildSystemPrompt(ctx)
+		if !strings.Contains(prompt, "YOUTH ATHLETE SAFETY RULES") {
+			t.Error("youth prompt should contain youth safety rules")
+		}
+		if !strings.Contains(prompt, "FOUNDATIONAL TIER RULES") {
+			t.Error("foundational prompt should contain foundational rules")
+		}
+		if strings.Contains(prompt, "ADULT ATHLETE PROGRAMMING RULES") {
+			t.Error("youth prompt should not contain adult rules")
+		}
+		if !strings.Contains(prompt, "bodyweight exercises") {
+			t.Error("foundational prompt should mention bodyweight exercises")
+		}
+		if !strings.Contains(prompt, "Do NOT use barbell") {
+			t.Error("foundational prompt should prohibit barbells")
+		}
+		if !strings.Contains(prompt, "Yessis") {
+			t.Error("foundational prompt should reference Dr. Yessis methodology")
+		}
+		if !strings.Contains(prompt, "1 SET of 20 REPS") {
+			t.Error("foundational prompt should describe the 1×20 approach")
+		}
+		if !strings.Contains(prompt, "joint action") {
+			t.Error("foundational prompt should mention joint action coverage")
+		}
+	})
+
+	t.Run("intermediate tier", func(t *testing.T) {
+		tier := "intermediate"
+		ctx := &AthleteContext{
+			Athlete: AthleteProfile{Name: "Youth", Tier: &tier},
+		}
+		prompt := buildSystemPrompt(ctx)
+		if !strings.Contains(prompt, "INTERMEDIATE TIER RULES") {
+			t.Error("intermediate prompt should contain intermediate rules")
+		}
+		if !strings.Contains(prompt, "light barbell work") {
+			t.Error("intermediate prompt should mention barbell introduction")
+		}
+		if !strings.Contains(prompt, "14") {
+			t.Error("intermediate prompt should reference the 1×14 rep target")
+		}
+	})
+
+	t.Run("sport_performance tier", func(t *testing.T) {
+		tier := "sport_performance"
+		ctx := &AthleteContext{
+			Athlete: AthleteProfile{Name: "Youth", Tier: &tier},
+		}
+		prompt := buildSystemPrompt(ctx)
+		if !strings.Contains(prompt, "SPORT PERFORMANCE TIER RULES") {
+			t.Error("sport_performance prompt should contain sport performance rules")
+		}
+		if !strings.Contains(prompt, "percentage-based loading") {
+			t.Error("sport_performance prompt should mention percentage loading")
+		}
+	})
 }
 
 func TestBuildUserPrompt(t *testing.T) {
+	tier := "sport_performance"
 	athleteCtx := &AthleteContext{
-		Athlete: AthleteProfile{Name: "TestAthlete"},
+		Athlete: AthleteProfile{Name: "TestAthlete", Tier: &tier},
+		Performance: PerformanceData{
+			TrainingMaxes: []TMEntry{{Exercise: "Squat", Weight: 200}},
+		},
 	}
 	req := GenerationRequest{
 		ProgramName:     "Month 4",
@@ -155,6 +233,31 @@ func TestBuildUserPrompt(t *testing.T) {
 	}
 	if !strings.Contains(prompt, "power") {
 		t.Error("prompt should contain focus areas")
+	}
+	if !strings.Contains(prompt, "sport_performance tier") {
+		t.Error("prompt should mention the athlete's tier")
+	}
+	if !strings.Contains(prompt, "has training maxes") {
+		t.Error("prompt should note training max availability")
+	}
+}
+
+func TestBuildUserPrompt_NoTMs(t *testing.T) {
+	athleteCtx := &AthleteContext{
+		Athlete: AthleteProfile{Name: "Newbie"},
+	}
+	req := GenerationRequest{
+		ProgramName: "Starter",
+		NumWeeks:    4,
+		NumDays:     3,
+	}
+
+	prompt, err := buildUserPrompt(athleteCtx, req)
+	if err != nil {
+		t.Fatalf("buildUserPrompt: %v", err)
+	}
+	if !strings.Contains(prompt, "NO training maxes") {
+		t.Error("prompt should note absence of training maxes")
 	}
 }
 
