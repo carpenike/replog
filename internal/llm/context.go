@@ -377,12 +377,6 @@ func buildExerciseCatalog(db *sql.DB, athleteID int64) ([]ExerciseEntry, error) 
 		return nil, err
 	}
 
-	// Get athlete's equipment IDs for compatibility checks.
-	equipIDs, err := models.AthleteEquipmentIDs(db, athleteID)
-	if err != nil {
-		return nil, fmt.Errorf("athlete equipment IDs: %w", err)
-	}
-
 	entries := make([]ExerciseEntry, 0, len(exercises))
 	for _, ex := range exercises {
 		entry := ExerciseEntry{
@@ -403,12 +397,6 @@ func buildExerciseCatalog(db *sql.DB, athleteID int64) ([]ExerciseEntry, error) 
 			return nil, fmt.Errorf("check compatibility for exercise %d: %w", ex.ID, err)
 		}
 		entry.Compatible = compat.HasRequired
-
-		// If the athlete has no equipment configured at all, mark everything
-		// as compatible (no equipment constraints means no filtering).
-		if len(equipIDs) == 0 {
-			entry.Compatible = true
-		}
 
 		entries = append(entries, entry)
 	}

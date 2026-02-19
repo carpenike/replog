@@ -187,7 +187,45 @@ func TestBuildAthleteContext_ExerciseCatalog(t *testing.T) {
 	}
 	for _, ex := range ctx.ExerciseCatalog {
 		if !ex.Compatible {
-			t.Errorf("exercise %q should be compatible (no equipment constraints)", ex.Name)
+			t.Errorf("exercise %q should be compatible (no equipment requirements)", ex.Name)
+		}
+	}
+}
+
+func TestBuildAthleteContext_ExerciseCatalog_EquipmentFiltering(t *testing.T) {
+	db := testDB(t)
+	athleteID := seedAthlete(t, db, "Frank", "", "")
+
+	// Create a bodyweight exercise (no equipment) and a barbell exercise.
+	bwExID := seedExercise(t, db, "Squat Bodyweight", "foundational")
+	_ = bwExID
+	bbExID := seedExercise(t, db, "Barbell Squat", "sport_performance")
+
+	// Create equipment and link it as required for the barbell exercise.
+	barbell, err := models.CreateEquipment(db, "Barbell", "Standard barbell")
+	if err != nil {
+		t.Fatalf("create equipment: %v", err)
+	}
+	if err := models.AddExerciseEquipment(db, bbExID, barbell.ID, false); err != nil {
+		t.Fatalf("add exercise equipment: %v", err)
+	}
+
+	// Athlete has NO equipment configured.
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	if err != nil {
+		t.Fatalf("BuildAthleteContext: %v", err)
+	}
+
+	for _, ex := range ctx.ExerciseCatalog {
+		switch ex.Name {
+		case "Squat Bodyweight":
+			if !ex.Compatible {
+				t.Errorf("Squat Bodyweight should be compatible (no equipment needed)")
+			}
+		case "Barbell Squat":
+			if ex.Compatible {
+				t.Errorf("Barbell Squat should NOT be compatible (requires barbell, athlete has none)")
+			}
 		}
 	}
 }

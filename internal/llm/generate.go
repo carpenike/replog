@@ -88,8 +88,10 @@ GENERAL RULES (ALL ATHLETES)
 1. ONLY use exercises from the provided exercise catalog. Reference them by exact name
    in prescribed_sets. Only add entries to the "exercises" array for genuinely NEW
    exercises not already in the catalog.
-2. ONLY use equipment the athlete has available (listed in the context).
-   If no equipment is listed, use bodyweight exercises from the catalog.
+2. ONLY use exercises marked "compatible": true in the exercise catalog.
+   Exercises marked "compatible": false require equipment the athlete does not have.
+   If the athlete has no equipment, only bodyweight exercises will be compatible.
+   Never substitute or assume equipment availability — trust the compatibility flags.
 3. Respect rep_type values: "reps", "each_side", "seconds", "distance".
 4. Include sort_order for exercise sequencing within each day (lower = earlier).
    Structure each day: main compound lifts first, then accessories, then conditioning.
@@ -361,6 +363,11 @@ func buildUserPrompt(athleteCtx *AthleteContext, req GenerationRequest) (string,
 		b.WriteString("The athlete has training maxes set — you may use percentage-based loading where appropriate.\n")
 	} else {
 		b.WriteString("The athlete has NO training maxes — use absolute_weight for all loading.\n")
+	}
+
+	// Note equipment availability.
+	if len(athleteCtx.Equipment) == 0 {
+		b.WriteString("The athlete has NO equipment configured. Only use exercises marked compatible: true in the catalog (these require no equipment).\n")
 	}
 
 	b.WriteString("Consider their performance trends, coach observations, goals, and available equipment.\n\n")
