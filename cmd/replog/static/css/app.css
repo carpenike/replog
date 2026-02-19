@@ -2112,6 +2112,144 @@ article.error-page [role="button"] {
     white-space: nowrap;
 }
 
+/* ---- Journal Timeline ---- */
+.journal-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.journal-date-header {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: var(--space-lg) 0 var(--space-sm) 0;
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.journal-date-header:first-child {
+    margin-top: 0;
+}
+
+.journal-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin: 0;
+    border-radius: var(--radius-sm);
+    transition: background var(--duration-fast) var(--ease-default);
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+.journal-entry:hover {
+    background: var(--surface-hover);
+}
+
+.journal-entry-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex: 1;
+    min-width: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.journal-entry-content a {
+    color: var(--pico-primary);
+    text-decoration: none;
+}
+
+.journal-entry-content a:hover {
+    text-decoration: underline;
+}
+
+.journal-icon {
+    flex-shrink: 0;
+    font-size: 1rem;
+    width: 1.5rem;
+    text-align: center;
+}
+
+.journal-entry-actions {
+    flex-shrink: 0;
+}
+
+.journal-entry-actions button {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    margin: 0;
+}
+
+/* Pinned entries — subtle highlight */
+.journal-pinned {
+    background: var(--primary-alpha-subtle);
+    border-left: 3px solid var(--pico-primary);
+    padding-left: calc(var(--space-md) - 3px);
+}
+
+.journal-pinned:hover {
+    background: var(--primary-alpha-light);
+}
+
+/* Private entries — dimmed */
+.journal-private {
+    opacity: 0.75;
+}
+
+/* Type-specific left border accents */
+.journal-type-workout {
+    border-left: 3px solid var(--color-success);
+    padding-left: calc(var(--space-md) - 3px);
+}
+
+.journal-type-body_weight {
+    border-left: 3px solid var(--color-info);
+    padding-left: calc(var(--space-md) - 3px);
+}
+
+.journal-type-training_max {
+    border-left: 3px solid var(--color-warning);
+    padding-left: calc(var(--space-md) - 3px);
+}
+
+.journal-type-goal_change,
+.journal-type-tier_change {
+    border-left: 3px solid var(--tier-sport-performance);
+    padding-left: calc(var(--space-md) - 3px);
+}
+
+.journal-type-program_start {
+    border-left: 3px solid var(--pico-primary);
+    padding-left: calc(var(--space-md) - 3px);
+}
+
+.journal-type-review {
+    border-left: 3px solid var(--color-success);
+    padding-left: calc(var(--space-md) - 3px);
+}
+
+.journal-type-note {
+    border-left: 3px solid var(--text-tertiary);
+    padding-left: calc(var(--space-md) - 3px);
+}
+
+/* Badge pills for private / pinned */
+.badge-private,
+.badge-pinned {
+    font-size: 0.7rem;
+    margin-left: var(--space-xs);
+    vertical-align: middle;
+    cursor: default;
+}
+
 /* Equipment row in exercise form */
 .equipment-row {
     display: flex;
