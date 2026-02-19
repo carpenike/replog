@@ -18,17 +18,17 @@ When RepLog starts with an empty database, it seeds a baseline catalog of common
 
 | Category | Count | Notes |
 |----------|-------|-------|
-| Equipment | 19 | Common gym equipment, foundational training gear, and cardio machines |
-| Exercises | 72 | 27 adult strength (barbell, dumbbell, bodyweight, cable, machine) + 5 cardio + 40 foundational (Yessis method) |
-| Program Templates | 6 | 4 adult programs from r/Fitness wiki + 2 youth foundations (Yessis) |
-| Prescribed Sets | 394 | Full set/rep schemes for all programs |
-| Progression Rules | 45 | Per-exercise increment suggestions |
+| Equipment | 18 | Common gym equipment, foundational training gear, and sport performance gear |
+| Exercises | 110 | 27 adult strength + 40 foundational (Yessis) + 43 sport performance |
+| Program Templates | 9 | 4 adult programs + 2 youth foundations (Yessis) + 3 sport performance monthly templates |
+| Prescribed Sets | 718 | Full set/rep schemes for all programs |
+| Progression Rules | 72 | Per-exercise increment suggestions |
 
 ---
 
 ## Equipment
 
-19 items covering a typical home or commercial gym, foundational training gear, and cardio machines.
+18 items covering a typical home or commercial gym, foundational training gear, and sport performance equipment.
 
 ### Standard Gym Equipment
 
@@ -58,21 +58,20 @@ Additional equipment used in youth foundational programs (Yessis method).
 | 15 | Trap Bar | Hexagonal barbell for deadlifts and shrugs |
 | 16 | Stability Ball | Large inflatable ball for core and stability work |
 
-### Cardio Equipment
+### Sport Performance Equipment
 
-Machines for cardiovascular / endurance exercises.
+Additional equipment used in sport performance monthly programs.
 
 | # | Name | Description |
 |---|------|-------------|
-| 17 | Rowing Machine | Concept2 or similar indoor rower |
-| 18 | Stationary Bike | Peloton, spin bike, or upright stationary cycle |
-| 19 | Treadmill | Motorized or manual treadmill for indoor running |
+| 17 | Plyo Box | Sturdy box for box jumps and step-ups, various heights |
+| 18 | Furniture Sliders | Low-friction discs for hamstring curls and body saws on smooth floors |
 
 ---
 
 ## Exercises
 
-72 exercises: 27 adult strength (tier = null), 5 cardio (tier = null), and 40 foundational (tier = "foundational"). All exercises use `rep_type = "reps"` unless otherwise noted.
+110 exercises: 27 adult strength (tier = null), 40 foundational (tier = "foundational"), and 43 sport performance (tier = "sport_performance"). All exercises use `rep_type = "reps"` unless otherwise noted.
 
 ### Adult Exercises (tier = null)
 
@@ -236,6 +235,88 @@ Cardiovascular / endurance exercises. These have no default rest timer (`rest_se
 | Crab Walk | — | — | Hands behind, lift hips, walk forward/backward using opposite hand/foot |
 
 All foundational exercises use 60-second rest periods (30 seconds for isometrics and core work). Coaches can customize rest per exercise after seeding.
+
+### Sport Performance Exercises (tier = "sport_performance")
+
+43 exercises used in the monthly sport performance programs. These exercises bridge the gap between foundational work and competitive sport-specific training, emphasizing explosive power, unilateral strength, medicine ball throws, and loaded carries.
+
+#### Explosive / Olympic
+
+| Exercise | Equipment (req) | Rest | Form Notes |
+|----------|----------------|------|------------|
+| Power Clean | Barbell | 180s | Start from floor or hang, explosive hip extension, catch in front rack |
+| Dumbbell Snatch | Dumbbells | 120s | Single DB from floor, explosive hip drive, punch overhead in one motion |
+
+#### Plyometrics
+
+| Exercise | Equipment (req) | Rest | Form Notes |
+|----------|----------------|------|------------|
+| Box Jump | Plyo Box | 90s | Swing arms, jump onto box, land softly, step down |
+| Single-Leg Box Jump | Plyo Box | 90s | Stand on one leg, jump onto box, land softly on both feet |
+| Broad Jump | — | 90s | Jump forward for max distance, land softly, reset |
+| Jump Squat | — | 90s | Quarter squat then explode upward, land softly |
+| Medicine Ball Jump Squat | Medicine Ball | 90s | Hold ball at chest, squat and explode upward |
+
+#### Medicine Ball Throws
+
+| Exercise | Equipment (req) | Rest | Form Notes |
+|----------|----------------|------|------------|
+| Medicine Ball Chest Pass | Medicine Ball | 60s | Step forward and push-pass explosively to wall or partner |
+| Reverse Medicine Ball Throw | Medicine Ball | 90s | Face away from target, hinge and swing, explode hips to throw overhead |
+| Stepping Overhead Medicine Ball Throw | Medicine Ball | 90s | Step forward while throwing ball overhead |
+
+#### Lower Body
+
+| Exercise | Equipment (req) | Equipment (opt) | Rest | Form Notes |
+|----------|----------------|-----------------|------|------------|
+| Kettlebell Sumo Deadlift | Kettlebell | — | 90s | Wide stance, toes out, hold kettlebell between legs |
+| Dumbbell Reverse Lunge | Dumbbells | — | 90s | Hold dumbbells at sides, step back into lunge |
+| Dumbbell Rear-Foot-Elevated Split Squat | Dumbbells, Flat Bench | — | 90s | Rear foot on bench, lower until front thigh parallel |
+| Pistol Squat | — | — | 120s | Single-leg squat to full depth, opposite leg extended forward |
+| Single-Leg Glute Bridge | — | — | 60s | Drive hips up on one leg, other leg extended |
+| Single-Arm DB Romanian Deadlift | Dumbbells | — | 90s | Hold one DB, hinge on opposite leg |
+| Isometric Lunge Hold | — | — | 30s | Hold bottom of lunge position for time |
+
+#### Upper Body
+
+| Exercise | Equipment (req) | Equipment (opt) | Rest | Form Notes |
+|----------|----------------|-----------------|------|------------|
+| Incline Dumbbell Bench Press | Dumbbells, Adjustable Bench | — | 120s | Bench at 30-45 degrees, press dumbbells up |
+| Alternating Dumbbell Bench Press | Dumbbells, Flat Bench | — | 90s | Press one arm at a time, keep opposite arm extended |
+| Dumbbell Floor Press | Dumbbells | — | 90s | Lie on floor, lower until triceps touch floor |
+| Single-Arm Overhead Press | Dumbbells | — | 90s | Press one DB overhead, brace core |
+| Reverse Dumbbell Fly | Dumbbells | — | 60s | Hinge forward, raise dumbbells to sides |
+| Eccentric TRX Row | TRX/Suspension Trainer | — | 90s | Pull to top quickly, lower slowly on 3-5 count |
+| YTI Raise | — | Dumbbells | 60s | Raise arms in Y, T, and I positions |
+| Push-up Hold | — | — | 30s | Hold bottom of push-up position for time |
+| Hand-Release Push-up | — | — | 60s | Lower chest to floor, lift hands briefly, push up |
+
+#### Carries
+
+| Exercise | Equipment (req) | Equipment (opt) | Rest | Form Notes |
+|----------|----------------|-----------------|------|------------|
+| Suitcase Carry | Dumbbells | Kettlebell | 60s | Heavy weight in one hand, walk resisting lateral lean |
+
+#### Core
+
+| Exercise | Equipment (opt) | Rest | Form Notes |
+|----------|-----------------|------|------------|
+| Russian Twist | Medicine Ball | 30s | Seated, lean back, rotate torso side to side |
+| Bicycle Crunch | — | 30s | Alternating elbow to opposite knee |
+| Side Plank | — | 30s | Forearm on floor, body straight in side position |
+| Side Plank with Leg Lift | — | 30s | Side plank, lift top leg while maintaining form |
+| Mountain Climber | — | 30s | Plank position, alternate driving knees to chest |
+| Bird Dog | — | 30s | All fours, extend opposite arm and leg simultaneously |
+| Anti-Rotation Press | Cable Machine (opt: Resistance Band) | 60s | Stand sideways, press arms out, resist rotation |
+| Hollow Hold | — | 30s | Lie on back, arms overhead, lift shoulders and feet |
+| V-up | — | 30s | Simultaneously raise legs and torso to touch toes |
+| Weighted V-up | Dumbbells or Medicine Ball | 60s | Hold weight, simultaneously raise legs and torso |
+| Single-Leg Sit-up | — | 30s | One leg extended, one knee bent, perform sit-up |
+| Flutter Kick | — | 30s | Alternate small kicks with straight legs off floor |
+| Superman Plank | — | 30s | Plank, extend opposite arm and leg alternating |
+| Plank with Reach | — | 30s | Forearm plank, alternate reaching one arm forward |
+| Body Saw | Furniture Sliders | 60s | Forearm plank, feet on sliders, push body back and forward |
+| Weighted Side Bend | Dumbbells | 60s | Hold dumbbell in one hand, lean to that side |
 
 ---
 
@@ -455,8 +536,8 @@ Two programs based on Dr. Michael Yessis's 1×20 methodology for youth athlete d
 #### Tier Progression Path
 
 ```
-Foundations 1×20 → Foundations 1×15 → Monthly Programming → Sport-Specific
-(foundational)      (foundational)      (intermediate)       (sport_performance)
+Foundations 1×20 → Foundations 1×15 → Sport Performance Monthly → Sport-Specific
+(foundational)      (foundational)      (sport_performance)          (future)
 ```
 
 Athletes complete the 1×20 phase before advancing to 1×15. The coach decides when an athlete is ready based on consistent technique mastery and successful weight progressions across 2+ consecutive sessions.
@@ -607,6 +688,285 @@ The second foundational phase. More advanced exercise variations (barbell moveme
 | Renegade Row | +2.5 lbs |
 | Half-Kneeling Cable Row | +2.5 lbs |
 | Single-Leg Deadlift | +2.5 lbs |
+
+---
+
+### Sport Performance Monthly Programs
+
+Three monthly training templates designed for youth/intermediate athletes who have completed the foundational progression. Each month is a 1-week loop (`is_loop = true`) with 4 training days per week. The weekly template repeats identically — the coach adjusts loading for each athlete in real time. The three months provide a full quarter of programming that demonstrates exercise rotation and periodization patterns.
+
+These templates serve a dual purpose:
+1. **Immediate use** — assign any month to an athlete as a complete 4-week training block
+2. **LLM context** — a future LLM can analyze the exercise selection, rep scheme, and periodization patterns across all 3 months to generate new monthly plans that follow the same coaching philosophy
+
+#### Periodization Across Months
+
+```
+Month 1 (Strength)  →  Month 2 (Volume)  →  Month 3 (Strength Return)
+  5×5 / 5×3 heavy       3×8-10 moderate       5×5 heavy + eccentric
+  Plyo intro             Med ball power         Med ball + plyo advanced
+```
+
+#### Common Structure Per Day
+
+Each day follows the same general pattern across all three months:
+
+1. **Main Lift** — compound barbell movement (5×5, 5×3, or 3×8 depending on month)
+2. **Explosive/Isometric** — plyometric, medicine ball, or isometric hold
+3. **Accessory Pair 1** — strength-focused accessories
+4. **Accessory Pair 2** — unilateral or stability work
+5. **Accessory Pair 3** — upper body or loaded carry
+6. **Core Finisher** — anti-rotation, flexion, or bracing work
+
+#### Rep Types Used
+
+Sport performance programs use multiple rep types:
+- `reps` — standard repetitions
+- `each_side` — reps per side for unilateral exercises
+- `seconds` — timed holds (wall sits, planks, isometric lunges)
+
+---
+
+### Sport Performance — Month 1
+
+> Based on January 2025 athlete programming
+
+| Property | Value |
+|----------|-------|
+| Structure | 1 week × 4 days (loop) |
+| Audience | Youth/intermediate athletes post-foundations |
+| TM basis | None — coach-selected working weight |
+| Sets per week | 112 |
+
+Strength-focused month: 5×5 and 5×3 main lifts, plyometric intro, bodyweight core finishers.
+
+#### Day 1 — Clean + Posterior Chain
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Power Clean | 5 × 5 | Main lift |
+| 2 | Wall Sit | 5 × 30s | Isometric hold |
+| 3 | Single-Leg Box Jump | 3 × 5/ea | Explosive |
+| 4 | Dumbbell Lateral Raise | 3 × 10 | |
+| 5 | Bird Dog | 3 × 10/ea | |
+| 6 | Broad Jump | 3 × 6 | Explosive |
+| 7 | Tricep Pushdown | 3 × 10 | |
+| 8 | Russian Twist | 3 × 30 | Core finisher |
+
+#### Day 2 — Trap Bar Deadlift + Pull
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Trap Bar Deadlift | 5 × 3 | Main lift — progressive loading |
+| 2 | Plank | 5 × 45s | Hold |
+| 3 | Pull-up | 3 × 6 | |
+| 4 | Leg Curl | 3 × 10 | |
+| 5 | Anti-Rotation Press | 3 × 10/ea | |
+| 6 | Goblet Squat | 3 × 8 | |
+| 7 | TRX Row | 3 × 10 | |
+| 8 | Bicycle Crunch | 3 × 30 | Core finisher |
+
+#### Day 3 — Bench + Upper
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Bench Press | 5 × 3 | Main lift |
+| 2 | Isometric Lunge Hold | 5 × 30s/ea | Isometric |
+| 3 | Dumbbell Reverse Lunge | 3 × 10/ea | |
+| 4 | Chin-up | 3 × 8 | |
+| 5 | Single-Leg Sit-up | 3 × 10 | |
+| 6 | Incline Dumbbell Bench Press | 3 × 8 | |
+| 7 | Dumbbell Row | 3 × 8/ea | |
+| 8 | Suitcase Carry | 3 × 30s/ea | Loaded carry |
+
+#### Day 4 — Squat + Single-Leg
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Squat | 5 × 5 | Main lift |
+| 2 | Side Plank | 5 × 20s/ea | Each side |
+| 3 | Dumbbell Bench Press | 3 × 10 | |
+| 4 | Single-Arm DB Romanian Deadlift | 3 × 8/ea | |
+| 5 | Bear Crawl | 3 × 30s | Locomotion |
+| 6 | Split Squat | 3 × 6/ea | |
+| 7 | Push-up | 3 × 10 | |
+| 8 | Mountain Climber | 3 × 30 | Core finisher |
+
+#### Progression
+
+| Exercise | Increment per week |
+|----------|-------------------|
+| Power Clean | +5 lbs |
+| Trap Bar Deadlift | +5 lbs |
+| Bench Press | +5 lbs |
+| Squat | +5 lbs |
+| Goblet Squat | +2.5 lbs |
+| Dumbbell Bench Press | +2.5 lbs |
+| Incline Dumbbell Bench Press | +2.5 lbs |
+| Dumbbell Row | +2.5 lbs |
+| Dumbbell Reverse Lunge | +2.5 lbs |
+
+---
+
+### Sport Performance — Month 2
+
+> Based on February 2025 athlete programming
+
+| Property | Value |
+|----------|-------|
+| Structure | 1 week × 4 days (loop) |
+| Audience | Youth/intermediate athletes post-foundations |
+| TM basis | None — coach-selected working weight |
+| Sets per week | 100 |
+
+Volume-focused month: higher rep schemes (3×8-10) on main lifts, introduces kettlebell work, medicine ball power, and unilateral pressing.
+
+#### Day 1 — Clean + Kettlebell
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Power Clean | 5 × 8 | Main lift — volume phase |
+| 2 | Box Jump | 5 × 5 | Explosive |
+| 3 | Kettlebell Sumo Deadlift | 3 × 10 | |
+| 4 | Reverse Dumbbell Fly | 3 × 10 | |
+| 5 | Side Plank with Leg Lift | 3 × 10/ea | |
+| 6 | Dumbbell Snatch | 3 × 5/ea | Explosive |
+| 7 | Renegade Row | 3 × 10/ea | |
+| 8 | Weighted V-up | 3 × 15 | Core finisher |
+
+#### Day 2 — Trap Bar Deadlift + Hamstring
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Trap Bar Deadlift | 3 × 8 | Main lift — volume phase |
+| 2 | Push-up Hold | 3 × 20s | Isometric |
+| 3 | Slideboard Hamstring Curl | 3 × 10 | |
+| 4 | TRX Row | 3 × 12 | |
+| 5 | Russian Twist | 3 × 30 | |
+| 6 | Split Squat | 3 × 8/ea | |
+| 7 | Single-Arm Overhead Press | 3 × 10/ea | |
+| 8 | Half-Kneeling Cable Row | 3 × 15 | Core finisher |
+
+#### Day 3 — Bench + Upper Power
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Bench Press | 3 × 8 | Main lift — volume phase |
+| 2 | Medicine Ball Chest Pass | 3 × 5 | Upper body power |
+| 3 | Dip | 3 × 12 | |
+| 4 | Side Lunge | 3 × 8/ea | |
+| 5 | Plank with Reach | 3 × 10/ea | |
+| 6 | Alternating Dumbbell Bench Press | 3 × 8/ea | |
+| 7 | Kettlebell Staggered RDL | 3 × 8/ea | |
+| 8 | Hollow Hold | 3 × 25s | Core finisher |
+
+#### Day 4 — Front Squat + Single-Leg
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Front Squat | 3 × 8 | Main lift — volume phase |
+| 2 | Stepping Overhead Medicine Ball Throw | 3 × 5/ea | Rotational power |
+| 3 | Single-Leg Glute Bridge | 3 × 10/ea | |
+| 4 | Dumbbell Floor Press | 3 × 10 | |
+| 5 | Superman Plank | 3 × 30s | |
+| 6 | Pistol Squat | 3 × 5/ea | |
+| 7 | Dumbbell Row | 3 × 10/ea | |
+| 8 | Flutter Kick | 3 × 30 | Core finisher |
+
+#### Progression
+
+| Exercise | Increment per week |
+|----------|-------------------|
+| Power Clean | +5 lbs |
+| Trap Bar Deadlift | +5 lbs |
+| Bench Press | +5 lbs |
+| Front Squat | +5 lbs |
+| Kettlebell Sumo Deadlift | +2.5 lbs |
+| Dumbbell Floor Press | +2.5 lbs |
+| Alternating Dumbbell Bench Press | +2.5 lbs |
+| Dumbbell Row | +2.5 lbs |
+| Kettlebell Staggered RDL | +2.5 lbs |
+
+---
+
+### Sport Performance — Month 3
+
+> Based on March 2025 athlete programming
+
+| Property | Value |
+|----------|-------|
+| Structure | 1 week × 4 days (loop) |
+| Audience | Youth/intermediate athletes post-foundations |
+| TM basis | None — coach-selected working weight |
+| Sets per week | 112 |
+
+Strength-return month: back to 5×5 heavy loading with new explosive elements, eccentric emphasis (Eccentric TRX Rows), and medicine ball power work.
+
+#### Day 1 — Clean + Power
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Power Clean | 5 × 5 | Main lift — strength phase |
+| 2 | Reverse Medicine Ball Throw | 5 × 5 | Posterior power |
+| 3 | Goblet Squat | 3 × 10 | |
+| 4 | YTI Raise | 3 × 5 | Shoulder health |
+| 5 | Hollow Hold | 3 × 30s | |
+| 6 | Jump Squat | 3 × 8 | Explosive |
+| 7 | Eccentric TRX Row | 3 × 10 | Slow negative |
+| 8 | Bicycle Crunch | 3 × 30 | Core finisher |
+
+#### Day 2 — Deadlift + Pull
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Deadlift | 5 × 5 | Main lift — strength phase |
+| 2 | Medicine Ball Jump Squat | 5 × 5 | Lower body power |
+| 3 | Pull-up | 3 × 5 | |
+| 4 | Single-Leg Glute Bridge | 3 × 8/ea | |
+| 5 | Body Saw | 3 × 10 | |
+| 6 | Dumbbell Rear-Foot-Elevated Split Squat | 3 × 5/ea | |
+| 7 | Dumbbell Curl | 3 × 10 | |
+| 8 | Medicine Ball Deadbug | 3 × 10/ea | Core finisher |
+
+#### Day 3 — Bench + Upper Pull
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Bench Press | 5 × 5 | Main lift — strength phase |
+| 2 | Band Pull-Apart | 5 × 10 | Shoulder prehab |
+| 3 | Reverse Lunge | 3 × 8/ea | |
+| 4 | Chin-up | 3 × 5 | |
+| 5 | V-up | 3 × 15 | |
+| 6 | Incline Dumbbell Bench Press | 3 × 8 | |
+| 7 | Single-Arm DB Romanian Deadlift | 3 × 5/ea | |
+| 8 | Single-Leg Sit-up | 3 × 10 | Core finisher |
+
+#### Day 4 — Squat + Plyo
+
+| # | Exercise | Sets × Reps | Notes |
+|---|----------|-------------|-------|
+| 1 | Squat | 5 × 5 | Main lift — strength phase |
+| 2 | Broad Jump | 5 × 5 | Explosive |
+| 3 | Hand-Release Push-up | 3 × 10 | |
+| 4 | Slideboard Hamstring Curl | 3 × 10 | |
+| 5 | Weighted Side Bend | 3 × 10/ea | |
+| 6 | Box Jump | 3 × 8 | Plyo |
+| 7 | Dumbbell Row | 3 × 8/ea | |
+| 8 | Superman Plank | 3 × 45s | Core finisher |
+
+#### Progression
+
+| Exercise | Increment per week |
+|----------|-------------------|
+| Power Clean | +5 lbs |
+| Deadlift | +5 lbs |
+| Bench Press | +5 lbs |
+| Squat | +5 lbs |
+| Goblet Squat | +2.5 lbs |
+| Incline Dumbbell Bench Press | +2.5 lbs |
+| Dumbbell Row | +2.5 lbs |
+| Dumbbell Rear-Foot-Elevated Split Squat | +2.5 lbs |
+| Single-Arm DB Romanian Deadlift | +2.5 lbs |
 
 ---
 

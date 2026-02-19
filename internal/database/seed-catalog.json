@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "exported_at": "2026-02-18T00:00:00Z",
+  "exported_at": "2026-02-19T00:00:00Z",
   "type": "catalog",
   "equipment": [
     {
@@ -68,16 +68,12 @@
       "description": "Large inflatable ball for core and stability work"
     },
     {
-      "name": "Rowing Machine",
-      "description": "Concept2 or similar indoor rower"
+      "name": "Plyo Box",
+      "description": "Sturdy box for box jumps and step-ups, various heights"
     },
     {
-      "name": "Stationary Bike",
-      "description": "Peloton, spin bike, or upright stationary cycle"
-    },
-    {
-      "name": "Treadmill",
-      "description": "Motorized or manual treadmill for indoor running"
+      "name": "Furniture Sliders",
+      "description": "Low-friction discs for hamstring curls and body saws on smooth floors"
     }
   ],
   "exercises": [
@@ -732,7 +728,12 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [
+        {
+          "name": "Furniture Sliders",
+          "optional": true
+        }
+      ]
     },
     {
       "name": "Hamstring March",
@@ -996,66 +997,537 @@
       "equipment": []
     },
     {
-      "name": "Rowing",
-      "tier": null,
-      "form_notes": "Drive with legs first, then lean back and pull handle to lower chest. Reverse the sequence on recovery: arms, body, legs",
+      "name": "Power Clean",
+      "tier": "sport_performance",
+      "form_notes": "Start from floor or hang, explosive hip extension, catch in front rack position with elbows high",
       "demo_url": null,
-      "rest_seconds": null,
-      "featured": false,
+      "rest_seconds": 180,
+      "featured": true,
       "equipment": [
         {
-          "name": "Rowing Machine",
+          "name": "Barbell",
           "optional": false
         }
       ]
     },
     {
-      "name": "Stationary Bike",
-      "tier": null,
-      "form_notes": "Adjust seat height so knee has slight bend at bottom of pedal stroke. Keep cadence steady and core engaged",
+      "name": "Dumbbell Snatch",
+      "tier": "sport_performance",
+      "form_notes": "Single DB from floor, explosive hip drive, punch overhead in one motion, alternate arms",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 120,
       "featured": false,
       "equipment": [
         {
-          "name": "Stationary Bike",
+          "name": "Dumbbells",
           "optional": false
         }
       ]
     },
     {
-      "name": "Outdoor Run",
-      "tier": null,
-      "form_notes": "Land midfoot under hips, keep cadence around 170-180 spm, relaxed shoulders and arms at 90 degrees",
+      "name": "Box Jump",
+      "tier": "sport_performance",
+      "form_notes": "Athletic stance, swing arms, jump onto box, land softly with knees bent, step down",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Plyo Box",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Single-Leg Box Jump",
+      "tier": "sport_performance",
+      "form_notes": "Stand on one leg, jump onto box, land softly on both feet, step down",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Plyo Box",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Broad Jump",
+      "tier": "sport_performance",
+      "form_notes": "Athletic stance, swing arms, jump forward for max distance, land softly, reset",
+      "demo_url": null,
+      "rest_seconds": 90,
       "featured": false,
       "equipment": []
     },
     {
-      "name": "Treadmill Run",
-      "tier": null,
-      "form_notes": "Set incline to 1-2% to simulate outdoor conditions. Maintain upright posture, avoid holding handrails",
+      "name": "Jump Squat",
+      "tier": "sport_performance",
+      "form_notes": "Quarter squat then explode upward, land softly, reset between reps",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Medicine Ball Jump Squat",
+      "tier": "sport_performance",
+      "form_notes": "Hold medicine ball at chest, squat and explode upward, land softly",
+      "demo_url": null,
+      "rest_seconds": 90,
       "featured": false,
       "equipment": [
         {
-          "name": "Treadmill",
+          "name": "Medicine Ball",
           "optional": false
         }
       ]
     },
     {
-      "name": "Assault Bike",
-      "tier": null,
-      "form_notes": "Push and pull with arms while pedaling. Keep core braced and maintain steady breathing rhythm",
+      "name": "Medicine Ball Chest Pass",
+      "tier": "sport_performance",
+      "form_notes": "Hold ball at chest, step forward and push-pass explosively to wall or partner",
       "demo_url": null,
-      "rest_seconds": null,
+      "rest_seconds": 60,
       "featured": false,
       "equipment": [
         {
-          "name": "Stationary Bike",
+          "name": "Medicine Ball",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Reverse Medicine Ball Throw",
+      "tier": "sport_performance",
+      "form_notes": "Face away from target, hinge and swing ball between legs, explode hips to throw overhead behind",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Medicine Ball",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Stepping Overhead Medicine Ball Throw",
+      "tier": "sport_performance",
+      "form_notes": "Step forward with one foot while throwing ball overhead to wall or partner, alternate sides",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Medicine Ball",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Kettlebell Sumo Deadlift",
+      "tier": "sport_performance",
+      "form_notes": "Wide stance, toes out, hold kettlebell between legs, drive hips to stand",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Kettlebell",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Dumbbell Reverse Lunge",
+      "tier": "sport_performance",
+      "form_notes": "Hold dumbbells at sides, step back into lunge, drive through front foot to return",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Dumbbell Rear-Foot-Elevated Split Squat",
+      "tier": "sport_performance",
+      "form_notes": "Rear foot on bench, hold dumbbells, lower until front thigh is parallel, drive up",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        },
+        {
+          "name": "Flat Bench",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Pistol Squat",
+      "tier": "sport_performance",
+      "form_notes": "Single-leg squat to full depth, opposite leg extended forward, stand back up",
+      "demo_url": null,
+      "rest_seconds": 120,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Single-Leg Glute Bridge",
+      "tier": "sport_performance",
+      "form_notes": "Lie on back, one foot flat, drive hips up squeezing glutes, other leg extended",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Single-Arm Dumbbell Romanian Deadlift",
+      "tier": "sport_performance",
+      "form_notes": "Hold one DB, hinge on opposite leg, reach DB toward floor, return to standing",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Isometric Lunge Hold",
+      "tier": "sport_performance",
+      "form_notes": "Hold bottom of lunge position, back knee just off floor, maintain upright torso for time",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Incline Dumbbell Bench Press",
+      "tier": "sport_performance",
+      "form_notes": "Bench at 30-45 degrees, press dumbbells up evenly, control descent",
+      "demo_url": null,
+      "rest_seconds": 120,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        },
+        {
+          "name": "Adjustable Bench",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Alternating Dumbbell Bench Press",
+      "tier": "sport_performance",
+      "form_notes": "Lie on bench, press one arm at a time while keeping opposite arm extended, alternate",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        },
+        {
+          "name": "Flat Bench",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Dumbbell Floor Press",
+      "tier": "sport_performance",
+      "form_notes": "Lie on floor with knees bent, press dumbbells up, lower until triceps touch floor",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Single-Arm Overhead Press",
+      "tier": "sport_performance",
+      "form_notes": "Press one dumbbell overhead, brace core to resist lateral lean, alternate arms",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Reverse Dumbbell Fly",
+      "tier": "sport_performance",
+      "form_notes": "Hinge forward, arms hanging, raise dumbbells out to sides squeezing rear delts",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Eccentric TRX Row",
+      "tier": "sport_performance",
+      "form_notes": "Pull to top position quickly, lower slowly on 3-5 count, emphasize the negative",
+      "demo_url": null,
+      "rest_seconds": 90,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "TRX/Suspension Trainer",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "YTI Raise",
+      "tier": "sport_performance",
+      "form_notes": "Prone on bench or standing bent over, raise arms in Y, T, and I positions with light weights",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Push-up Hold",
+      "tier": "sport_performance",
+      "form_notes": "Lower to bottom of push-up, hold position with chest just off floor for time",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Hand-Release Push-up",
+      "tier": "sport_performance",
+      "form_notes": "Lower chest to floor, lift hands briefly, place hands back down and push up explosively",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Suitcase Carry",
+      "tier": "sport_performance",
+      "form_notes": "Hold heavy dumbbell/kettlebell in one hand at side, walk with upright posture resisting lateral lean",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": false
+        },
+        {
+          "name": "Kettlebell",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Russian Twist",
+      "tier": "sport_performance",
+      "form_notes": "Seated, lean back slightly, rotate torso side to side, optionally hold weight",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Medicine Ball",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Bicycle Crunch",
+      "tier": "sport_performance",
+      "form_notes": "Lie on back, alternating elbow to opposite knee while extending other leg",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Side Plank",
+      "tier": "sport_performance",
+      "form_notes": "Forearm on floor, body straight in side position, hold for time, hip off ground",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Side Plank with Leg Lift",
+      "tier": "sport_performance",
+      "form_notes": "Side plank position, lift top leg and hold while maintaining plank form",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Mountain Climber",
+      "tier": "sport_performance",
+      "form_notes": "Plank position on hands, alternating driving knees to chest rapidly",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Bird Dog",
+      "tier": "sport_performance",
+      "form_notes": "On all fours, extend opposite arm and leg simultaneously, hold briefly, alternate",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Anti-Rotation Press",
+      "tier": "sport_performance",
+      "form_notes": "Stand sideways to cable/band, press arms straight out and hold, resist rotation",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Cable Machine",
+          "optional": false
+        },
+        {
+          "name": "Resistance Band",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Hollow Hold",
+      "tier": "sport_performance",
+      "form_notes": "Lie on back, arms overhead, lift shoulders and feet off floor, hold",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "V-up",
+      "tier": "sport_performance",
+      "form_notes": "Lie on back, simultaneously raise legs and torso to touch toes at top",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Weighted V-up",
+      "tier": "sport_performance",
+      "form_notes": "Hold dumbbell or medicine ball, simultaneously raise legs and torso",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
+          "optional": true
+        },
+        {
+          "name": "Medicine Ball",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Single-Leg Sit-up",
+      "tier": "sport_performance",
+      "form_notes": "One leg extended, one knee bent, perform sit-up driving through bent leg",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Flutter Kick",
+      "tier": "sport_performance",
+      "form_notes": "Lie on back, hands under hips, alternate small kicks with straight legs off floor",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Superman Plank",
+      "tier": "sport_performance",
+      "form_notes": "Plank position, extend opposite arm and leg, hold briefly, alternate sides",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Plank with Reach",
+      "tier": "sport_performance",
+      "form_notes": "Forearm plank, alternate reaching one arm forward while maintaining stable hips",
+      "demo_url": null,
+      "rest_seconds": 30,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Body Saw",
+      "tier": "sport_performance",
+      "form_notes": "Forearm plank with feet on sliders, push body back and pull forward using core",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Furniture Sliders",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Weighted Side Bend",
+      "tier": "sport_performance",
+      "form_notes": "Hold dumbbell in one hand, lean to that side, return to upright using obliques",
+      "demo_url": null,
+      "rest_seconds": 60,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Dumbbells",
           "optional": false
         }
       ]
@@ -6032,6 +6504,4035 @@
         },
         {
           "exercise": "Single-Leg Deadlift",
+          "increment": 2.5
+        }
+      ]
+    },
+    {
+      "name": "Sport Performance \u2014 Month 1",
+      "description": "Youth/intermediate sport performance month 1 of 3. 4 days/week, weekly loop. Full-body mixed training: compound main lift, explosive/plyo movement, 3 accessory supersets, and core finisher. Day 1 = Clean + posterior chain, Day 2 = Trap Bar DL + pull, Day 3 = Bench + upper, Day 4 = Squat + single-leg. Coach adjusts loads per athlete. Use as a starting template and customize exercise selection monthly.",
+      "num_weeks": 1,
+      "num_days": 4,
+      "is_loop": true,
+      "prescribed_sets": [
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift"
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Wall Sit",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "Isometric hold"
+        },
+        {
+          "exercise": "Wall Sit",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Wall Sit",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Wall Sit",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Wall Sit",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Box Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": "Explosive"
+        },
+        {
+          "exercise": "Single-Leg Box Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Box Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Lateral Raise",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Lateral Raise",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Lateral Raise",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Bird Dog",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Bird Dog",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Bird Dog",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Broad Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 6,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": "Explosive"
+        },
+        {
+          "exercise": "Broad Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 6,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Broad Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 6,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": null
+        },
+        {
+          "exercise": "Tricep Pushdown",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Tricep Pushdown",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Tricep Pushdown",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 25,
+          "notes": null
+        },
+        {
+          "exercise": "Russian Twist",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 26,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Russian Twist",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 27,
+          "notes": null
+        },
+        {
+          "exercise": "Russian Twist",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 28,
+          "notes": null
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift \u2014 progressive loading"
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 4,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 5,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Plank",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 45,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "Hold"
+        },
+        {
+          "exercise": "Plank",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 45,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Plank",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 45,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Plank",
+          "week": 1,
+          "day": 2,
+          "set_number": 4,
+          "reps": 45,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Plank",
+          "week": 1,
+          "day": 2,
+          "set_number": 5,
+          "reps": 45,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Pull-up",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 6,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Pull-up",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 6,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Pull-up",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 6,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Leg Curl",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Leg Curl",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Leg Curl",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Anti-Rotation Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Anti-Rotation Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Anti-Rotation Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Goblet Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": null
+        },
+        {
+          "exercise": "Goblet Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Goblet Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": null
+        },
+        {
+          "exercise": "TRX Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "TRX Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "TRX Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 25,
+          "notes": null
+        },
+        {
+          "exercise": "Bicycle Crunch",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 26,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Bicycle Crunch",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 27,
+          "notes": null
+        },
+        {
+          "exercise": "Bicycle Crunch",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 28,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 4,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 5,
+          "reps": 3,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Isometric Lunge Hold",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "Isometric hold, each side"
+        },
+        {
+          "exercise": "Isometric Lunge Hold",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Isometric Lunge Hold",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Isometric Lunge Hold",
+          "week": 1,
+          "day": 3,
+          "set_number": 4,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Isometric Lunge Hold",
+          "week": 1,
+          "day": 3,
+          "set_number": 5,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Reverse Lunge",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Reverse Lunge",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Reverse Lunge",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Sit-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Sit-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Sit-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Incline Dumbbell Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": null
+        },
+        {
+          "exercise": "Incline Dumbbell Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Incline Dumbbell Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 25,
+          "notes": null
+        },
+        {
+          "exercise": "Suitcase Carry",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 26,
+          "notes": "Loaded carry, each side"
+        },
+        {
+          "exercise": "Suitcase Carry",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 27,
+          "notes": null
+        },
+        {
+          "exercise": "Suitcase Carry",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 28,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Side Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "Each side"
+        },
+        {
+          "exercise": "Side Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 20,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Side Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 20,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Side Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 4,
+          "reps": 20,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Side Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 5,
+          "reps": 20,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Bench Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Bench Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Bench Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Arm Dumbbell Romanian Deadlift",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Arm Dumbbell Romanian Deadlift",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Arm Dumbbell Romanian Deadlift",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Bear Crawl",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": "Locomotion"
+        },
+        {
+          "exercise": "Bear Crawl",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Bear Crawl",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 6,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 6,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 6,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": null
+        },
+        {
+          "exercise": "Push-up",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Push-up",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Push-up",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 25,
+          "notes": null
+        },
+        {
+          "exercise": "Mountain Climber",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 26,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Mountain Climber",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 27,
+          "notes": null
+        },
+        {
+          "exercise": "Mountain Climber",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 28,
+          "notes": null
+        }
+      ],
+      "progression_rules": [
+        {
+          "exercise": "Power Clean",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Bench Press",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Squat",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Goblet Squat",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Bench Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Incline Dumbbell Bench Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Reverse Lunge",
+          "increment": 2.5
+        }
+      ]
+    },
+    {
+      "name": "Sport Performance \u2014 Month 2",
+      "description": "Youth/intermediate sport performance month 2 of 3. 4 days/week, weekly loop. Higher volume rep schemes (3\u00d78-10) vs month 1's heavier loading. Introduces unilateral pressing, kettlebell work, and medicine ball power. Day 1 = Clean + KB, Day 2 = Trap Bar DL + hamstring, Day 3 = Bench + upper power, Day 4 = Front Squat + single-leg. Coach adjusts loads per athlete.",
+      "num_weeks": 1,
+      "num_days": 4,
+      "is_loop": true,
+      "prescribed_sets": [
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift \u2014 volume phase"
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Box Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "Explosive"
+        },
+        {
+          "exercise": "Box Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Box Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Box Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Box Jump",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Kettlebell Sumo Deadlift",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Kettlebell Sumo Deadlift",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Kettlebell Sumo Deadlift",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Dumbbell Fly",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Dumbbell Fly",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Dumbbell Fly",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Side Plank with Leg Lift",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Side Plank with Leg Lift",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Side Plank with Leg Lift",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Snatch",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": "Explosive"
+        },
+        {
+          "exercise": "Dumbbell Snatch",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Snatch",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": null
+        },
+        {
+          "exercise": "Renegade Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Renegade Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Renegade Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 25,
+          "notes": null
+        },
+        {
+          "exercise": "Weighted V-up",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 26,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Weighted V-up",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 27,
+          "notes": null
+        },
+        {
+          "exercise": "Weighted V-up",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 28,
+          "notes": null
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift \u2014 volume phase"
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Push-up Hold",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 20,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": "Isometric"
+        },
+        {
+          "exercise": "Push-up Hold",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 20,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Push-up Hold",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 20,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": null
+        },
+        {
+          "exercise": "Slideboard Hamstring Curl",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Slideboard Hamstring Curl",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Slideboard Hamstring Curl",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "TRX Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 12,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "TRX Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 12,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "TRX Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 12,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Russian Twist",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Russian Twist",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Russian Twist",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Split Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Arm Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Arm Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Arm Overhead Press",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Half-Kneeling Cable Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Half-Kneeling Cable Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Half-Kneeling Cable Row",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift \u2014 volume phase"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Medicine Ball Chest Pass",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": "Upper body power"
+        },
+        {
+          "exercise": "Medicine Ball Chest Pass",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Medicine Ball Chest Pass",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": null
+        },
+        {
+          "exercise": "Dip",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 12,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Dip",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 12,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Dip",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 12,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Side Lunge",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Side Lunge",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Side Lunge",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Plank with Reach",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Plank with Reach",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Plank with Reach",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Alternating Dumbbell Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Alternating Dumbbell Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Alternating Dumbbell Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Kettlebell Staggered RDL",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Kettlebell Staggered RDL",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": null
+        },
+        {
+          "exercise": "Kettlebell Staggered RDL",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Hollow Hold",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 25,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Hollow Hold",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 25,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Hollow Hold",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 25,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Front Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift \u2014 volume phase"
+        },
+        {
+          "exercise": "Front Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Front Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Stepping Overhead Medicine Ball Throw",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": "Rotational power"
+        },
+        {
+          "exercise": "Stepping Overhead Medicine Ball Throw",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Stepping Overhead Medicine Ball Throw",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Glute Bridge",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Glute Bridge",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Glute Bridge",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Floor Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Floor Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Floor Press",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Superman Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Superman Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Superman Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Pistol Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Pistol Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Pistol Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Flutter Kick",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Flutter Kick",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Flutter Kick",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        }
+      ],
+      "progression_rules": [
+        {
+          "exercise": "Power Clean",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Trap Bar Deadlift",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Bench Press",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Front Squat",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Kettlebell Sumo Deadlift",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Floor Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Alternating Dumbbell Bench Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Kettlebell Staggered RDL",
+          "increment": 2.5
+        }
+      ]
+    },
+    {
+      "name": "Sport Performance \u2014 Month 3",
+      "description": "Youth/intermediate sport performance month 3 of 3. 4 days/week, weekly loop. Returns to heavier loading (5\u00d75) with new explosive elements and eccentric emphasis. Introduces medicine ball power work and eccentric rows. Day 1 = Clean + power, Day 2 = Deadlift + pull, Day 3 = Bench + upper pull, Day 4 = Squat + plyo. Coach adjusts loads per athlete.",
+      "num_weeks": 1,
+      "num_days": 4,
+      "is_loop": true,
+      "prescribed_sets": [
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift \u2014 strength phase"
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Power Clean",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Medicine Ball Throw",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "Posterior power"
+        },
+        {
+          "exercise": "Reverse Medicine Ball Throw",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Medicine Ball Throw",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Medicine Ball Throw",
+          "week": 1,
+          "day": 1,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Medicine Ball Throw",
+          "week": 1,
+          "day": 1,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Goblet Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Goblet Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Goblet Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "YTI Raise",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": "Shoulder health"
+        },
+        {
+          "exercise": "YTI Raise",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "YTI Raise",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Hollow Hold",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Hollow Hold",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Hollow Hold",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Jump Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": "Explosive"
+        },
+        {
+          "exercise": "Jump Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Jump Squat",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": null
+        },
+        {
+          "exercise": "Eccentric TRX Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": "Slow negative"
+        },
+        {
+          "exercise": "Eccentric TRX Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Eccentric TRX Row",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 25,
+          "notes": null
+        },
+        {
+          "exercise": "Bicycle Crunch",
+          "week": 1,
+          "day": 1,
+          "set_number": 1,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 26,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Bicycle Crunch",
+          "week": 1,
+          "day": 1,
+          "set_number": 2,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 27,
+          "notes": null
+        },
+        {
+          "exercise": "Bicycle Crunch",
+          "week": 1,
+          "day": 1,
+          "set_number": 3,
+          "reps": 30,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 28,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift \u2014 strength phase"
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Deadlift",
+          "week": 1,
+          "day": 2,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Medicine Ball Jump Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "Lower body power"
+        },
+        {
+          "exercise": "Medicine Ball Jump Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Medicine Ball Jump Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Medicine Ball Jump Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Medicine Ball Jump Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Pull-up",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Pull-up",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Pull-up",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Glute Bridge",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Glute Bridge",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Glute Bridge",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Body Saw",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Body Saw",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Body Saw",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Rear-Foot-Elevated Split Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Rear-Foot-Elevated Split Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Rear-Foot-Elevated Split Squat",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Curl",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Curl",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Curl",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 25,
+          "notes": null
+        },
+        {
+          "exercise": "Medicine Ball Deadbug",
+          "week": 1,
+          "day": 2,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 26,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Medicine Ball Deadbug",
+          "week": 1,
+          "day": 2,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 27,
+          "notes": null
+        },
+        {
+          "exercise": "Medicine Ball Deadbug",
+          "week": 1,
+          "day": 2,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 28,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift \u2014 strength phase"
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Band Pull-Apart",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "Shoulder prehab"
+        },
+        {
+          "exercise": "Band Pull-Apart",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Band Pull-Apart",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Band Pull-Apart",
+          "week": 1,
+          "day": 3,
+          "set_number": 4,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Band Pull-Apart",
+          "week": 1,
+          "day": 3,
+          "set_number": 5,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Lunge",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Lunge",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Reverse Lunge",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Chin-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "V-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "V-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "V-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 15,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Incline Dumbbell Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": null
+        },
+        {
+          "exercise": "Incline Dumbbell Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Incline Dumbbell Bench Press",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Arm Dumbbell Romanian Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Arm Dumbbell Romanian Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Arm Dumbbell Romanian Deadlift",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 25,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Sit-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 26,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Single-Leg Sit-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 27,
+          "notes": null
+        },
+        {
+          "exercise": "Single-Leg Sit-up",
+          "week": 1,
+          "day": 3,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 28,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 1,
+          "notes": "Main lift \u2014 strength phase"
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 2,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 3,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 4,
+          "notes": null
+        },
+        {
+          "exercise": "Squat",
+          "week": 1,
+          "day": 4,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 5,
+          "notes": null
+        },
+        {
+          "exercise": "Broad Jump",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 6,
+          "notes": "Explosive"
+        },
+        {
+          "exercise": "Broad Jump",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 7,
+          "notes": null
+        },
+        {
+          "exercise": "Broad Jump",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 8,
+          "notes": null
+        },
+        {
+          "exercise": "Broad Jump",
+          "week": 1,
+          "day": 4,
+          "set_number": 4,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 9,
+          "notes": null
+        },
+        {
+          "exercise": "Broad Jump",
+          "week": 1,
+          "day": 4,
+          "set_number": 5,
+          "reps": 5,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 10,
+          "notes": null
+        },
+        {
+          "exercise": "Hand-Release Push-up",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 11,
+          "notes": null
+        },
+        {
+          "exercise": "Hand-Release Push-up",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 12,
+          "notes": null
+        },
+        {
+          "exercise": "Hand-Release Push-up",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 13,
+          "notes": null
+        },
+        {
+          "exercise": "Slideboard Hamstring Curl",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 14,
+          "notes": null
+        },
+        {
+          "exercise": "Slideboard Hamstring Curl",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 15,
+          "notes": null
+        },
+        {
+          "exercise": "Slideboard Hamstring Curl",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 16,
+          "notes": null
+        },
+        {
+          "exercise": "Weighted Side Bend",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 17,
+          "notes": null
+        },
+        {
+          "exercise": "Weighted Side Bend",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 18,
+          "notes": null
+        },
+        {
+          "exercise": "Weighted Side Bend",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 10,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 19,
+          "notes": null
+        },
+        {
+          "exercise": "Box Jump",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 20,
+          "notes": "Plyo"
+        },
+        {
+          "exercise": "Box Jump",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 21,
+          "notes": null
+        },
+        {
+          "exercise": "Box Jump",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "reps",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 22,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 23,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 24,
+          "notes": null
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 8,
+          "rep_type": "each_side",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 25,
+          "notes": null
+        },
+        {
+          "exercise": "Superman Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 1,
+          "reps": 45,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 26,
+          "notes": "Core finisher"
+        },
+        {
+          "exercise": "Superman Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 2,
+          "reps": 45,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 27,
+          "notes": null
+        },
+        {
+          "exercise": "Superman Plank",
+          "week": 1,
+          "day": 4,
+          "set_number": 3,
+          "reps": 45,
+          "rep_type": "seconds",
+          "percentage": null,
+          "absolute_weight": null,
+          "sort_order": 28,
+          "notes": null
+        }
+      ],
+      "progression_rules": [
+        {
+          "exercise": "Power Clean",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Deadlift",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Bench Press",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Squat",
+          "increment": 5.0
+        },
+        {
+          "exercise": "Goblet Squat",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Incline Dumbbell Bench Press",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Row",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Dumbbell Rear-Foot-Elevated Split Squat",
+          "increment": 2.5
+        },
+        {
+          "exercise": "Single-Arm Dumbbell Romanian Deadlift",
           "increment": 2.5
         }
       ]
