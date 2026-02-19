@@ -36,7 +36,7 @@ internal/
 static/                       # htmx script, CSS, static assets
 
 docs/
-  data-model.md               # Schema source of truth (20 tables, DDL, ERD)
+  data-model.md               # Schema source of truth (21 tables, DDL, ERD)
   requirements.md             # v1.0 user stories and acceptance criteria
   adr/                        # Architecture decision records
 
@@ -53,7 +53,7 @@ Read the ADRs before making changes that affect these areas:
 
 ## Database Schema
 
-20 tables: `athletes`, `users`, `user_preferences`, `exercises`, `athlete_exercises`, `training_maxes`, `workouts`, `workout_sets`, `body_weights`, `workout_reviews`, `program_templates`, `prescribed_sets`, `athlete_programs`, `progression_rules`, `login_tokens`, `webauthn_credentials`, `equipment`, `exercise_equipment`, `athlete_equipment`, `sessions`.
+21 tables: `athletes`, `users`, `user_preferences`, `exercises`, `athlete_exercises`, `training_maxes`, `workouts`, `workout_sets`, `body_weights`, `workout_reviews`, `program_templates`, `prescribed_sets`, `athlete_programs`, `progression_rules`, `login_tokens`, `webauthn_credentials`, `equipment`, `exercise_equipment`, `athlete_equipment`, `sessions`, `app_settings`.
 
 Full DDL, constraints, indexes, and triggers are in `docs/data-model.md` — that file is the source of truth.
 

@@ -1,0 +1,80 @@
+{{ define "title" }}RepLog &mdash; AI Coach{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; AI Coach
+        </div>
+
+        <div class="page-header">
+            <h1>Generate Program for {{ .Athlete.Name }}</h1>
+        </div>
+
+        {{ if .Error }}
+        <article class="error-banner" aria-label="Error">
+            <p>{{ .Error }}</p>
+        </article>
+        {{ end }}
+
+        {{ if not .Configured }}
+        <article class="warning-banner" aria-label="Warning">
+            <p>AI Coach is not configured. An administrator must configure the AI Coach provider in
+                <a href="/admin/settings">Settings</a> before generating programs.</p>
+        </article>
+        {{ else }}
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate"
+              hx-post="/athletes/{{ .Athlete.ID }}/programs/generate"
+              hx-indicator="#generate-indicator">
+            <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+
+            <label for="program_name">Program Name</label>
+            <input type="text" id="program_name" name="program_name"
+                   value="{{ .SuggestedName }}" required>
+
+            <div class="grid">
+                <div>
+                    <label for="num_days">Days per Week</label>
+                    <select id="num_days" name="num_days">
+                        {{ range $d := seq 1 7 }}
+                        <option value="{{ $d }}" {{ if eq $d $.NumDays }}selected{{ end }}>{{ $d }}</option>
+                        {{ end }}
+                    </select>
+                </div>
+                <div>
+                    <label for="num_weeks">Number of Weeks</label>
+                    <input type="number" id="num_weeks" name="num_weeks"
+                           value="{{ .NumWeeks }}" min="1" max="52">
+                </div>
+            </div>
+
+            <fieldset>
+                <label>
+                    <input type="checkbox" name="is_loop" value="1" {{ if .IsLoop }}checked{{ end }}>
+                    Looping program (repeats weekly)
+                </label>
+            </fieldset>
+
+            <label>Focus Areas</label>
+            <fieldset class="focus-areas">
+                <label><input type="checkbox" name="focus_areas" value="strength"> Strength</label>
+                <label><input type="checkbox" name="focus_areas" value="power"> Power</label>
+                <label><input type="checkbox" name="focus_areas" value="hypertrophy"> Hypertrophy</label>
+                <label><input type="checkbox" name="focus_areas" value="conditioning"> Conditioning</label>
+                <label><input type="checkbox" name="focus_areas" value="mobility"> Mobility</label>
+                <label><input type="checkbox" name="focus_areas" value="sport_specific"> Sport-Specific</label>
+            </fieldset>
+
+            <label for="coach_directions">Coach Directions</label>
+            <textarea id="coach_directions" name="coach_directions" rows="4"
+                      placeholder="e.g. Start introducing hang cleans, pull back on carries..."></textarea>
+
+            <div class="page-actions">
+                <a href="/athletes/{{ .Athlete.ID }}" role="button" class="outline secondary">Cancel</a>
+                <button type="submit" aria-busy="false" id="generate-btn"
+                        onclick="this.setAttribute('aria-busy','true'); this.textContent='Generating\u2026'">
+                    Generate Program
+                </button>
+            </div>
+            <span id="generate-indicator" class="htmx-indicator">Generating program&hellip; This may take 10&ndash;30 seconds.</span>
+        </form>
+        {{ end }}
+{{ end }}

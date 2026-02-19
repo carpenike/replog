@@ -1,0 +1,107 @@
+{{ define "title" }}RepLog &mdash; AI Coach Preview{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}/programs/generate">AI Coach</a> &rsaquo; Preview
+        </div>
+
+        <div class="page-header">
+            <h1>Generated Program Preview</h1>
+        </div>
+
+        {{ if .Result.Reasoning }}
+        <article>
+            <header>
+                <h3>AI Coach Reasoning</h3>
+            </header>
+            <div class="reasoning-text">
+                <p>{{ .Result.Reasoning }}</p>
+            </div>
+            <footer>
+                <small>Model: {{ .Result.Model }} &middot; {{ .Result.TokensUsed }} tokens &middot; {{ .Result.Duration }}</small>
+            </footer>
+        </article>
+        {{ end }}
+
+        <article>
+            <header>
+                <h3>Import Summary</h3>
+            </header>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Entity</th>
+                        <th>New</th>
+                        <th>Mapped to Existing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ if or .Preview.EquipmentNew .Preview.EquipmentMapped }}
+                    <tr>
+                        <td>Equipment</td>
+                        <td>{{ .Preview.EquipmentNew }}</td>
+                        <td>{{ .Preview.EquipmentMapped }}</td>
+                    </tr>
+                    {{ end }}
+                    {{ if or .Preview.ExercisesNew .Preview.ExercisesMapped }}
+                    <tr>
+                        <td>Exercises</td>
+                        <td>{{ .Preview.ExercisesNew }}</td>
+                        <td>{{ .Preview.ExercisesMapped }}</td>
+                    </tr>
+                    {{ end }}
+                    {{ if or .Preview.ProgramsNew .Preview.ProgramsMapped }}
+                    <tr>
+                        <td>Programs</td>
+                        <td>{{ .Preview.ProgramsNew }}</td>
+                        <td>{{ .Preview.ProgramsMapped }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </article>
+
+        {{ if .Mapping.Programs }}
+        <article>
+            <header>
+                <h3>Programs</h3>
+            </header>
+            {{ range .Mapping.Programs }}
+            <p>{{ if .Create }}<strong>New:</strong>{{ else }}<strong>Update:</strong>{{ end }} {{ .ImportName }}</p>
+            {{ end }}
+        </article>
+        {{ end }}
+
+        {{ if .Mapping.Exercises }}
+        <article>
+            <header>
+                <h3>Exercises</h3>
+            </header>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Mapping.Exercises }}
+                    <tr>
+                        <td>{{ .ImportName }}</td>
+                        <td>{{ if .Create }}Create new{{ else }}Map to: {{ .MappedName }}{{ end }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </article>
+        {{ end }}
+
+        <div class="page-actions">
+            <a href="/athletes/{{ .Athlete.ID }}/programs/generate" role="button" class="outline secondary">Back</a>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate/execute" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+                <button type="submit" hx-confirm="Import this program into the catalog?">Approve &amp; Import</button>
+            </form>
+        </div>
+{{ end }}

@@ -1,0 +1,59 @@
+{{ define "title" }}RepLog &mdash; AI Coach Result{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo;
+            <a href="/athletes/{{ .Athlete.ID }}/programs/generate">AI Coach</a> &rsaquo; Result
+        </div>
+
+        <div class="page-header">
+            <h1>Program Generated Successfully</h1>
+        </div>
+
+        <article>
+            <header>
+                <h3>Import Results</h3>
+            </header>
+            <table>
+                <tbody>
+                    {{ if .ImportResult.EquipmentCreated }}
+                    <tr><td>Equipment created</td><td>{{ .ImportResult.EquipmentCreated }}</td></tr>
+                    {{ end }}
+                    {{ if .ImportResult.ExercisesCreated }}
+                    <tr><td>Exercises created</td><td>{{ .ImportResult.ExercisesCreated }}</td></tr>
+                    {{ end }}
+                    {{ if .ImportResult.ProgramsCreated }}
+                    <tr><td>Programs created</td><td>{{ .ImportResult.ProgramsCreated }}</td></tr>
+                    {{ end }}
+                    {{ if .ImportResult.PrescribedSets }}
+                    <tr><td>Prescribed sets</td><td>{{ .ImportResult.PrescribedSets }}</td></tr>
+                    {{ end }}
+                    {{ if .ImportResult.ProgressionRules }}
+                    <tr><td>Progression rules</td><td>{{ .ImportResult.ProgressionRules }}</td></tr>
+                    {{ end }}
+                    {{ if .ImportResult.ExerciseEquipLinks }}
+                    <tr><td>Exercise-equipment links</td><td>{{ .ImportResult.ExerciseEquipLinks }}</td></tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </article>
+
+        {{ if and .GenResult .GenResult.Reasoning }}
+        <article>
+            <header>
+                <h3>AI Coach Reasoning</h3>
+            </header>
+            <div class="reasoning-text">
+                <p>{{ .GenResult.Reasoning }}</p>
+            </div>
+            <footer>
+                <small>Model: {{ .GenResult.Model }} &middot; {{ .GenResult.TokensUsed }} tokens &middot; {{ .GenResult.Duration }}</small>
+            </footer>
+        </article>
+        {{ end }}
+
+        <div class="page-actions">
+            <a href="/athletes/{{ .Athlete.ID }}" role="button" class="outline secondary">Back to Athlete</a>
+            <a href="/programs" role="button">View Programs</a>
+        </div>
+{{ end }}

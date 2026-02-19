@@ -181,6 +181,15 @@ func main() {
 		Sessions:  sessionManager,
 		Templates: tc,
 	}
+	settings := &handlers.Settings{
+		DB:        db,
+		Templates: tc,
+	}
+	generate := &handlers.Generate{
+		DB:        db,
+		Sessions:  sessionManager,
+		Templates: tc,
+	}
 
 	// Configure WebAuthn for passkey support.
 	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
@@ -344,8 +353,6 @@ func main() {
 		r.Get("/athletes/{id}/export/json", importExport.ExportJSON)
 		r.Get("/athletes/{id}/export/csv", importExport.ExportCSV)
 
-
-
 		// Passkey registration (requires auth, not coach/admin).
 		if passkeys != nil {
 			r.Get("/passkeys/register/begin", passkeys.BeginRegistration)
@@ -438,13 +445,18 @@ func main() {
 		r.Get("/athletes/{id}/cycle-review", programs.CycleReview)
 		r.Post("/athletes/{id}/cycle-review", programs.ApplyTMBumps)
 
+		// AI Coach — program generation (coach-only).
+		r.Get("/athletes/{id}/programs/generate", generate.Form)
+		r.Post("/athletes/{id}/programs/generate", generate.Submit)
+		r.Get("/athletes/{id}/programs/generate/preview", generate.Preview)
+		r.Post("/athletes/{id}/programs/generate/execute", generate.Execute)
+
 		// Import — coach-only.
 		r.Get("/athletes/{id}/import", importExport.ImportPage)
 		r.Post("/athletes/{id}/import/upload", importExport.Upload)
 		r.Get("/athletes/{id}/import/map", importExport.MapPage)
 		r.Post("/athletes/{id}/import/preview", importExport.Preview)
 		r.Post("/athletes/{id}/import/execute", importExport.Execute)
-
 
 	})
 
@@ -474,6 +486,10 @@ func main() {
 		r.Get("/catalog/import/map", importExport.CatalogMapPage)
 		r.Post("/catalog/import/preview", importExport.CatalogPreview)
 		r.Post("/catalog/import/execute", importExport.CatalogExecute)
+
+		// Application settings — admin-only.
+		r.Get("/admin/settings", settings.Show)
+		r.Post("/admin/settings", settings.Update)
 	})
 
 	// Start server.

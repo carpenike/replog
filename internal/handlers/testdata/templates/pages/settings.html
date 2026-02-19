@@ -1,0 +1,27 @@
+{{ define "title" }}RepLog — Settings{{ end }}
+
+{{ define "content" }}
+        <div class="page-header">
+            <h1>Settings</h1>
+        </div>
+
+        {{ if .Success }}
+        <p>{{ .Success }}</p>
+        {{ end }}
+
+        {{ if .Error }}
+        <p>{{ .Error }}</p>
+        {{ end }}
+
+        {{ if .SettingGroups }}
+        {{ range $category, $settings := .SettingGroups }}
+        <section>
+            <h2>{{ $category }}</h2>
+            {{ range $settings }}
+            <p>{{ .Key }}: {{ .Value }} ({{ .Source }})</p>
+            {{ end }}
+        </section>
+        {{ end }}
+        {{ end }}
+
+{{ end }}

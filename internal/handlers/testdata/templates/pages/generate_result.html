@@ -1,0 +1,6 @@
+{{ define "title" }}Result{{ end }}
+{{ define "content" }}
+<h1>Result</h1>
+{{ if .Athlete }}<p>{{ .Athlete.Name }}</p>{{ end }}
+{{ if .ImportResult }}<p>imported</p>{{ end }}
+{{ end }}

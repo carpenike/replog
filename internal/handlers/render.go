@@ -182,6 +182,46 @@ var templateFuncs = template.FuncMap{
 		}
 		return *p
 	},
+	// settingFieldType returns the HTML input type for a setting key.
+	"settingFieldType": func(key string) string {
+		def := models.GetSettingDefinition(key)
+		if def == nil {
+			return "text"
+		}
+		return def.FieldType
+	},
+	// settingDescription returns the description for a setting key.
+	"settingDescription": func(key string) string {
+		def := models.GetSettingDefinition(key)
+		if def == nil {
+			return ""
+		}
+		return def.Description
+	},
+	// settingIsSensitive returns true if the setting stores sensitive data.
+	"settingIsSensitive": func(key string) bool {
+		def := models.GetSettingDefinition(key)
+		if def == nil {
+			return false
+		}
+		return def.Sensitive
+	},
+	// settingOptions returns the valid options for a select-type setting.
+	"settingOptions": func(key string) []string {
+		def := models.GetSettingDefinition(key)
+		if def == nil {
+			return nil
+		}
+		return def.Options
+	},
+	// settingLabel returns the human-readable label for a setting key.
+	"settingLabel": func(key string) string {
+		def := models.GetSettingDefinition(key)
+		if def == nil {
+			return key
+		}
+		return def.Label
+	},
 }
 
 // TemplateCache maps page filenames to parsed template sets. Each set contains

@@ -424,7 +424,17 @@ BEGIN
 END;
 -- +goose StatementEnd
 
+-- Application settings — key-value store for runtime configuration.
+-- Supports the resolution chain: environment variable → app_settings row → built-in default.
+-- Sensitive values (API keys) are stored encrypted (prefixed with "enc:").
+CREATE TABLE IF NOT EXISTS app_settings (
+    key   TEXT PRIMARY KEY NOT NULL,
+    value TEXT NOT NULL
+);
+
 -- +goose Down
+
+DROP TABLE IF EXISTS app_settings;
 
 DROP TRIGGER IF EXISTS trigger_equipment_updated_at;
 DROP TRIGGER IF EXISTS trigger_workout_reviews_updated_at;

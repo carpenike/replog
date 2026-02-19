@@ -1,0 +1,64 @@
+{{ define "title" }}RepLog — Settings{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/">Home</a> &rsaquo; Settings
+        </div>
+
+        <div class="page-header">
+            <h1>Settings</h1>
+        </div>
+
+        {{ if .Success }}
+        <article style="border-left: 3px solid var(--pico-primary); padding-left: 1rem;">
+            <p><strong>{{ .Success }}</strong></p>
+        </article>
+        {{ end }}
+
+        {{ if .Error }}
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        {{ end }}
+
+        <form method="POST" action="/admin/settings">
+            {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
+
+            {{ range $category, $settings := .SettingGroups }}
+            <section>
+                <h2>{{ $category }}</h2>
+
+                {{ range $settings }}
+                <label for="setting_{{ .Key }}">
+                    {{ settingLabel .Key }}
+                    {{ if .ReadOnly }}<small>(set via environment variable — read-only)</small>{{ end }}
+                </label>
+
+                {{ if .ReadOnly }}
+                    <input type="text" id="setting_{{ .Key }}" value="{{ .Masked }}" disabled>
+                {{ else }}
+                    {{ if eq (settingFieldType .Key) "select" }}
+                    <select id="setting_{{ .Key }}" name="setting_{{ .Key }}">
+                        {{ $current := .Value }}
+                        {{ range settingOptions .Key }}
+                        <option value="{{ . }}" {{ if eq . $current }}selected{{ end }}>{{ if eq . "" }}(not set){{ else }}{{ . }}{{ end }}</option>
+                        {{ end }}
+                    </select>
+                    {{ else }}
+                    <input type="{{ settingFieldType .Key }}"
+                           id="setting_{{ .Key }}"
+                           name="setting_{{ .Key }}"
+                           value="{{ if settingIsSensitive .Key }}{{ .Masked }}{{ else }}{{ .Value }}{{ end }}"
+                           placeholder="{{ settingDescription .Key }}"
+                           {{ if eq (settingFieldType .Key) "number" }}step="0.1" min="0" max="2"{{ end }}>
+                    {{ end }}
+                {{ end }}
+
+                <small>{{ settingDescription .Key }}{{ if ne .Source "default" }} — <em>Source: {{ .Source }}</em>{{ end }}</small>
+                {{ end }}
+            </section>
+            {{ end }}
+
+            <div class="form-actions">
+                <button type="submit">Save Settings</button>
+            </div>
+        </form>
+{{ end }}

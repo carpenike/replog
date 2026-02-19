@@ -712,6 +712,18 @@ erDiagram
 - `token` is the session ID sent to the client as a cookie.
 - `expiry` is a Unix timestamp used by scs for automatic cleanup.
 
+### `app_settings`
+
+| Column  | Type | Constraints          |
+|---------|------|----------------------|
+| `key`   | TEXT | PRIMARY KEY NOT NULL |
+| `value` | TEXT | NOT NULL             |
+
+- Key-value store for runtime configuration (LLM provider, model, API key, etc.).
+- Resolution chain: environment variable → `app_settings` row → built-in default.
+- Sensitive values (API keys) are stored encrypted with AES-256-GCM, prefixed with `enc:`.
+- Managed via the admin Settings page.
+
 ## SQLite DDL
 
 ```sql
@@ -1079,6 +1091,12 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expiry);
+
+-- Application settings — key-value store for runtime configuration.
+CREATE TABLE IF NOT EXISTS app_settings (
+    key   TEXT PRIMARY KEY NOT NULL,
+    value TEXT NOT NULL
+);
 ```
 
 ## Seed Data (Development)

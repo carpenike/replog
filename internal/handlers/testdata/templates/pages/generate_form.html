@@ -1,0 +1,7 @@
+{{ define "title" }}Generate{{ end }}
+{{ define "content" }}
+<h1>Generate</h1>
+{{ if .Error }}<p class="error">{{ .Error }}</p>{{ end }}
+{{ if .Athlete }}<p>{{ .Athlete.Name }}</p>{{ end }}
+{{ if .Configured }}<p>configured</p>{{ end }}
+{{ end }}

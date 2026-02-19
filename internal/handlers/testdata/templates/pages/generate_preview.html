@@ -1,0 +1,7 @@
+{{ define "title" }}Preview{{ end }}
+{{ define "content" }}
+<h1>Preview</h1>
+{{ if .Athlete }}<p>{{ .Athlete.Name }}</p>{{ end }}
+{{ if .Result }}<p>{{ .Result.Reasoning }}</p>{{ end }}
+{{ if .Preview }}<p>preview</p>{{ end }}
+{{ end }}
