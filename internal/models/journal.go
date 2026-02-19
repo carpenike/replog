@@ -20,6 +20,7 @@ type JournalEntry struct {
 	Pinned    bool   // Only relevant for "note" type
 	SecondID  int64  // Secondary ID (e.g., workout_id for reviews)
 	Author    string // Author/coach name for notes, reviews
+	AuthorID  int64  // Author user ID (for edit permission checks on notes)
 }
 
 // ListJournalEntries returns a unified timeline of events for an athlete,
@@ -35,9 +36,9 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 		privateFilter = " AND n.is_private = 0"
 	}
 
-	// Each UNION branch selects: date, type, summary, id, detail, is_private, pinned, second_id, author
+	// Each UNION branch selects: date, type, summary, id, detail, is_private, pinned, second_id, author, author_id
 	query := fmt.Sprintf(`
-		SELECT date, type, summary, id, detail, is_private, pinned, second_id, author FROM (
+		SELECT date, type, summary, id, detail, is_private, pinned, second_id, author, author_id FROM (
 			-- Workouts
 			SELECT w.date AS date,
 			       'workout' AS type,
@@ -56,7 +57,8 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       0 AS is_private,
 			       0 AS pinned,
 			       0 AS second_id,
-			       '' AS author
+			       '' AS author,
+			       0 AS author_id
 			FROM workouts w
 			WHERE w.athlete_id = ?
 
@@ -71,7 +73,8 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       0 AS is_private,
 			       0 AS pinned,
 			       0 AS second_id,
-			       '' AS author
+			       '' AS author,
+			       0 AS author_id
 			FROM body_weights bw
 			WHERE bw.athlete_id = ?
 
@@ -86,7 +89,8 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       0 AS is_private,
 			       0 AS pinned,
 			       tm.exercise_id AS second_id,
-			       '' AS author
+			       '' AS author,
+			       0 AS author_id
 			FROM training_maxes tm
 			JOIN exercises e ON e.id = tm.exercise_id
 			WHERE tm.athlete_id = ?
@@ -102,7 +106,8 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       0 AS is_private,
 			       0 AS pinned,
 			       0 AS second_id,
-			       COALESCE(u.name, u.username, '') AS author
+			       COALESCE(u.name, u.username, '') AS author,
+			       COALESCE(gh.set_by, 0) AS author_id
 			FROM goal_history gh
 			LEFT JOIN users u ON u.id = gh.set_by
 			WHERE gh.athlete_id = ?
@@ -121,7 +126,8 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       0 AS is_private,
 			       0 AS pinned,
 			       0 AS second_id,
-			       COALESCE(u.name, u.username, '') AS author
+			       COALESCE(u.name, u.username, '') AS author,
+			       COALESCE(th.set_by, 0) AS author_id
 			FROM tier_history th
 			LEFT JOIN users u ON u.id = th.set_by
 			WHERE th.athlete_id = ?
@@ -137,7 +143,8 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       0 AS is_private,
 			       0 AS pinned,
 			       ap.template_id AS second_id,
-			       '' AS author
+			       '' AS author,
+			       0 AS author_id
 			FROM athlete_programs ap
 			JOIN program_templates pt ON pt.id = ap.template_id
 			WHERE ap.athlete_id = ?
@@ -153,7 +160,8 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       0 AS is_private,
 			       0 AS pinned,
 			       wr.workout_id AS second_id,
-			       COALESCE(u.name, u.username, '') AS author
+			       COALESCE(u.name, u.username, '') AS author,
+			       COALESCE(wr.coach_id, 0) AS author_id
 			FROM workout_reviews wr
 			LEFT JOIN users u ON u.id = wr.coach_id
 			JOIN workouts w ON w.id = wr.workout_id
@@ -170,7 +178,8 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       n.is_private AS is_private,
 			       n.pinned AS pinned,
 			       0 AS second_id,
-			       COALESCE(u.name, u.username, '') AS author
+			       COALESCE(u.name, u.username, '') AS author,
+			       COALESCE(n.author_id, 0) AS author_id
 			FROM athlete_notes n
 			LEFT JOIN users u ON u.id = n.author_id
 			WHERE n.athlete_id = ?%s
@@ -195,7 +204,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 		e := &JournalEntry{}
 		var privInt, pinnedInt int
 		if err := rows.Scan(&e.Date, &e.Type, &e.Summary, &e.ID,
-			&e.Detail, &privInt, &pinnedInt, &e.SecondID, &e.Author); err != nil {
+			&e.Detail, &privInt, &pinnedInt, &e.SecondID, &e.Author, &e.AuthorID); err != nil {
 			return nil, fmt.Errorf("models: scan journal entry: %w", err)
 		}
 		e.IsPrivate = privInt == 1

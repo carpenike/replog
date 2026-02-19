@@ -127,6 +127,87 @@ func (h *Journal) CreateNote(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10)+"/journal", http.StatusSeeOther)
 }
 
+// UpdateNote edits an existing athlete note. Only the note's author can edit
+// their own notes. Coaches can change private/pinned flags on notes they
+// authored. Non-authors cannot edit — coaches can delete instead.
+func (h *Journal) UpdateNote(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+		return
+	}
+
+	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Athlete not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get athlete %d for update note: %v", athleteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	noteID, err := strconv.ParseInt(r.PathValue("noteID"), 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		return
+	}
+
+	note, err := models.GetAthleteNoteByID(h.DB, noteID)
+	if errors.Is(err, models.ErrNotFound) {
+		http.Error(w, "Note not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handlers: get note %d: %v", noteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if note.AthleteID != athleteID {
+		http.Error(w, "Note does not belong to this athlete", http.StatusForbidden)
+		return
+	}
+
+	// Only the note's author can edit.
+	isAuthor := note.AuthorID.Valid && note.AuthorID.Int64 == user.ID
+	if !isAuthor {
+		h.Templates.Forbidden(w, r)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	content := r.FormValue("content")
+	if content == "" {
+		http.Error(w, "Note content is required", http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Only coaches/admins can change private and pinned flags.
+	canManage := middleware.CanManageAthlete(user, athlete)
+	isPrivate := note.IsPrivate
+	pinned := note.Pinned
+	if canManage {
+		isPrivate = r.FormValue("is_private") == "1"
+		pinned = r.FormValue("pinned") == "1"
+	}
+
+	_, err = models.UpdateAthleteNote(h.DB, noteID, content, isPrivate, pinned)
+	if err != nil {
+		log.Printf("handlers: update note %d: %v", noteID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10)+"/journal", http.StatusSeeOther)
+}
+
 // DeleteNote removes an athlete note (coach/admin only).
 func (h *Journal) DeleteNote(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())

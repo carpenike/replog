@@ -389,6 +389,296 @@ func TestJournal_CreateNote_InvalidAthleteID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// UpdateNote (POST)
+// ---------------------------------------------------------------------------
+
+func TestJournal_UpdateNote_AuthorSuccess(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	a := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, a.ID)
+
+	note, _ := models.CreateAthleteNote(db, a.ID, nonCoach.ID, "2026-03-01", "Original content", false, false)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"content": {"Updated content"},
+	}
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/notes/%d", a.ID, note.ID), form, nonCoach)
+	req.SetPathValue("id", itoa(a.ID))
+	req.SetPathValue("noteID", itoa(note.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	updated, err := models.GetAthleteNoteByID(db, note.ID)
+	if err != nil {
+		t.Fatalf("get note: %v", err)
+	}
+	if updated.Content != "Updated content" {
+		t.Errorf("content = %q, want %q", updated.Content, "Updated content")
+	}
+}
+
+func TestJournal_UpdateNote_CoachAuthorWithFlags(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "Kid", "")
+
+	note, _ := models.CreateAthleteNote(db, a.ID, coach.ID, "2026-03-01", "Coach note", false, false)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"content":    {"Updated coach note"},
+		"is_private": {"1"},
+		"pinned":     {"1"},
+	}
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/notes/%d", a.ID, note.ID), form, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	req.SetPathValue("noteID", itoa(note.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	updated, err := models.GetAthleteNoteByID(db, note.ID)
+	if err != nil {
+		t.Fatalf("get note: %v", err)
+	}
+	if updated.Content != "Updated coach note" {
+		t.Errorf("content = %q, want %q", updated.Content, "Updated coach note")
+	}
+	if !updated.IsPrivate {
+		t.Error("expected private flag to be set")
+	}
+	if !updated.Pinned {
+		t.Error("expected pinned flag to be set")
+	}
+}
+
+func TestJournal_UpdateNote_NonCoachFlagsPreserved(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	a := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, a.ID)
+
+	// Coach creates a private+pinned note, then transfer authorship to nonCoach
+	// for testing. Actually, let's just create the note as the nonCoach and have
+	// a coach set the flags first.
+	note, _ := models.CreateAthleteNote(db, a.ID, nonCoach.ID, "2026-03-01", "My note", true, true)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	// Non-coach sends private+pinned form values — these should be ignored.
+	form := url.Values{
+		"content":    {"Updated by me"},
+		"is_private": {"1"},
+		"pinned":     {"1"},
+	}
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/notes/%d", a.ID, note.ID), form, nonCoach)
+	req.SetPathValue("id", itoa(a.ID))
+	req.SetPathValue("noteID", itoa(note.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	updated, err := models.GetAthleteNoteByID(db, note.ID)
+	if err != nil {
+		t.Fatalf("get note: %v", err)
+	}
+	if updated.Content != "Updated by me" {
+		t.Errorf("content = %q, want %q", updated.Content, "Updated by me")
+	}
+	// Flags should be preserved from the original note, not changed by non-coach.
+	if !updated.IsPrivate {
+		t.Error("expected private flag preserved")
+	}
+	if !updated.Pinned {
+		t.Error("expected pinned flag preserved")
+	}
+}
+
+func TestJournal_UpdateNote_NonAuthorForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, a.ID)
+
+	// Coach authored the note.
+	note, _ := models.CreateAthleteNote(db, a.ID, coach.ID, "2026-03-01", "Coach's note", false, false)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"content": {"Trying to edit coach's note"},
+	}
+	// Non-coach (athlete) tries to edit coach's note — forbidden.
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/notes/%d", a.ID, note.ID), form, nonCoach)
+	req.SetPathValue("id", itoa(a.ID))
+	req.SetPathValue("noteID", itoa(note.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestJournal_UpdateNote_CoachNonAuthorForbidden(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, a.ID)
+
+	// Athlete authored the note.
+	note, _ := models.CreateAthleteNote(db, a.ID, nonCoach.ID, "2026-03-01", "Athlete note", false, false)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"content": {"Coach trying to edit athlete's note"},
+	}
+	// Coach tries to edit athlete's note — forbidden (author-only editing).
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/notes/%d", a.ID, note.ID), form, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	req.SetPathValue("noteID", itoa(note.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestJournal_UpdateNote_EmptyContent(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "Kid", "")
+
+	note, _ := models.CreateAthleteNote(db, a.ID, coach.ID, "2026-03-01", "Original", false, false)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"content": {""},
+	}
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/notes/%d", a.ID, note.ID), form, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	req.SetPathValue("noteID", itoa(note.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422, got %d", rr.Code)
+	}
+}
+
+func TestJournal_UpdateNote_NoteNotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "Kid", "")
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"content": {"test"},
+	}
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/notes/999", a.ID), form, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	req.SetPathValue("noteID", "999")
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestJournal_UpdateNote_WrongAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a1 := seedAthlete(t, db, "Kid 1", "")
+	a2 := seedAthlete(t, db, "Kid 2", "")
+
+	note, _ := models.CreateAthleteNote(db, a1.ID, coach.ID, "2026-03-01", "Belongs to a1", false, false)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"content": {"Updated"},
+	}
+	// Try to update a1's note via a2's URL.
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/notes/%d", a2.ID, note.ID), form, coach)
+	req.SetPathValue("id", itoa(a2.ID))
+	req.SetPathValue("noteID", itoa(note.ID))
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+}
+
+func TestJournal_UpdateNote_InvalidNoteID(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+	a := seedAthlete(t, db, "Kid", "")
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"content": {"test"},
+	}
+	req := requestWithUser("POST", fmt.Sprintf("/athletes/%d/notes/abc", a.ID), form, coach)
+	req.SetPathValue("id", itoa(a.ID))
+	req.SetPathValue("noteID", "abc")
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rr.Code)
+	}
+}
+
+func TestJournal_UpdateNote_AthleteNotFound(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	coach := seedCoach(t, db)
+
+	h := &Journal{DB: db, Templates: tc}
+
+	form := url.Values{
+		"content": {"test"},
+	}
+	req := requestWithUser("POST", "/athletes/999/notes/1", form, coach)
+	req.SetPathValue("id", "999")
+	req.SetPathValue("noteID", "1")
+	rr := httptest.NewRecorder()
+	h.UpdateNote(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", rr.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // DeleteNote (POST)
 // ---------------------------------------------------------------------------
 

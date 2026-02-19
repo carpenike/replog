@@ -91,17 +91,37 @@
                             <span><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .SecondID }}">{{ .Summary }}</a>{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}</span>
                         {{ else if eq .Type "note" }}
                             <span class="journal-icon" title="Note">📝</span>
-                            <span>{{ .Summary }}{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}{{ if .IsPrivate }} <span class="badge-private" title="Private — only visible to coaches">🔒</span>{{ end }}{{ if .Pinned }} <span class="badge-pinned" title="Pinned">📌</span>{{ end }}</span>
+                            <span class="journal-note-display">{{ .Summary }}{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}{{ if .IsPrivate }} <span class="badge-private" title="Private — only visible to coaches">🔒</span>{{ end }}{{ if .Pinned }} <span class="badge-pinned" title="Pinned">📌</span>{{ end }}</span>
+                            {{ if and (ne .AuthorID 0) (eq .AuthorID $.User.ID) }}
+                            <form class="journal-note-edit-form" hidden method="POST" action="/athletes/{{ $.Athlete.ID }}/notes/{{ .ID }}">
+                                <textarea name="content" rows="2" required>{{ .Summary }}</textarea>
+                                {{ if $.CanManage }}
+                                <fieldset class="journal-note-edit-flags">
+                                    <label><input type="checkbox" name="is_private" value="1"{{ if .IsPrivate }} checked{{ end }}> Private</label>
+                                    <label><input type="checkbox" name="pinned" value="1"{{ if .Pinned }} checked{{ end }}> Pinned</label>
+                                </fieldset>
+                                {{ end }}
+                                <div class="journal-note-edit-actions">
+                                    <button type="submit">Save</button>
+                                    <button type="button" class="outline secondary" onclick="var e=this.closest('.journal-entry');e.querySelector('.journal-note-display').hidden=false;e.querySelector('.journal-entry-actions').hidden=false;e.querySelector('.journal-note-edit-form').hidden=true;">Cancel</button>
+                                </div>
+                            </form>
+                            {{ end }}
                         {{ else }}
                             <span>{{ .Summary }}</span>
                         {{ end }}
                     </div>
-                    {{ if and $.CanManage (eq .Type "note") }}
+                    {{ if and (eq .Type "note") (or $.CanManage (and (ne .AuthorID 0) (eq .AuthorID $.User.ID))) }}
                     <div class="journal-entry-actions">
+                        {{ if and (ne .AuthorID 0) (eq .AuthorID $.User.ID) }}
+                        <button type="button" class="outline secondary" onclick="var e=this.closest('.journal-entry');e.querySelector('.journal-note-display').hidden=true;e.querySelector('.journal-entry-actions').hidden=true;var f=e.querySelector('.journal-note-edit-form');f.hidden=false;f.querySelector('textarea').focus();">✎</button>
+                        {{ end }}
+                        {{ if $.CanManage }}
                         <form method="POST" action="/athletes/{{ $.Athlete.ID }}/notes/{{ .ID }}/delete" class="inline"
                               hx-confirm="Delete this note?">
                             <button type="submit" class="outline contrast">✕</button>
                         </form>
+                        {{ end }}
                     </div>
                     {{ end }}
                 </article>

@@ -337,6 +337,7 @@ func main() {
 
 		// Journal Notes — self-service (athletes can add their own notes).
 		r.Post("/athletes/{id}/notes", journal.CreateNote)
+		r.Post("/athletes/{id}/notes/{noteID}", journal.UpdateNote)
 
 		// Export — self-service for own athlete data.
 		r.Get("/athletes/{id}/export", importExport.ExportPage)
