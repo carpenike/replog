@@ -124,10 +124,12 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Call the LLM \u2014 this may take 10\u201330 seconds.
-	ctx, cancel := context.WithTimeout(r.Context(), 120*time.Second)
+	// Call the LLM — large prompts with 16k max tokens can take 2–4 minutes.
+	ctx, cancel := context.WithTimeout(r.Context(), 300*time.Second)
 	defer cancel()
 
+	log.Printf("handlers: starting LLM generation for athlete %d (%s, %d days, %d weeks)",
+		athleteID, programName, numDays, numWeeks)
 	result, err := llm.Generate(ctx, h.DB, provider, req)
 	if err != nil {
 		log.Printf("handlers: generate program for athlete %d: %v", athleteID, err)
@@ -147,6 +149,9 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	log.Printf("handlers: LLM generation complete for athlete %d: model=%s tokens=%d duration=%s catalog_bytes=%d",
+		athleteID, result.Model, result.TokensUsed, result.Duration, len(result.CatalogJSON))
 
 	// Parse CatalogJSON into import structures.
 	if len(result.CatalogJSON) == 0 {
