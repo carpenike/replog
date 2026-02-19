@@ -97,6 +97,45 @@
         </article>
         {{ end }}
 
+        {{ if .ProgramDays }}
+        {{ with index .ProgramDays 0 }}
+        {{ if .Description }}
+        <article>
+            <header><h3>{{ .ProgramName }}</h3></header>
+            <p>{{ .Description }}</p>
+            <small>{{ .NumDays }} days/week{{ if .IsLoop }}, looping{{ else }}, {{ .NumWeeks }} weeks{{ end }}</small>
+        </article>
+        {{ end }}
+        {{ end }}
+        {{ range .ProgramDays }}
+        <article>
+            <header>
+                <h3>{{ if gt .NumWeeks 1 }}Week {{ .Week }} &mdash; {{ end }}Day {{ .Day }}</h3>
+            </header>
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th>Exercise</th>
+                        <th>Sets &times; Reps</th>
+                        <th>Load</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Exercises }}
+                    <tr>
+                        <td><strong>{{ .Name }}</strong></td>
+                        <td>{{ .SetsReps }}</td>
+                        <td>{{ .WeightStr }}</td>
+                        <td><small>{{ .FirstNotes }}</small></td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </article>
+        {{ end }}
+        {{ end }}
+
         <div class="page-actions">
             <a href="/athletes/{{ .Athlete.ID }}/programs/generate" role="button" class="outline secondary">Back</a>
             <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate/execute" class="inline">

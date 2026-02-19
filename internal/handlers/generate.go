@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -221,11 +222,20 @@ func (h *Generate) Preview(w http.ResponseWriter, r *http.Request) {
 
 	preview := models.BuildCatalogImportPreview(ms)
 
+	// Build structured program view for the detail display.
+	var programViews []programDayView
+	if ms.Parsed != nil {
+		for _, p := range ms.Parsed.Programs {
+			programViews = append(programViews, buildProgramDays(p.Template)...)
+		}
+	}
+
 	data := map[string]any{
-		"Athlete": athlete,
-		"Result":  result,
-		"Preview": preview,
-		"Mapping": ms,
+		"Athlete":     athlete,
+		"Result":      result,
+		"Preview":     preview,
+		"Mapping":     ms,
+		"ProgramDays": programViews,
 	}
 	if err := h.Templates.Render(w, r, "generate_preview.html", data); err != nil {
 		log.Printf("handlers: render generate preview: %v", err)
@@ -352,4 +362,191 @@ func suggestNextProgramName(current string) string {
 		}
 	}
 	return current + " 2"
+}
+
+// --- Program preview structures ---
+
+// programDayView groups exercises and sets for one training day in one program.
+type programDayView struct {
+	ProgramName string
+	Description string
+	NumWeeks    int
+	NumDays     int
+	IsLoop      bool
+	Week        int
+	Day         int
+	Exercises   []programExerciseView
+}
+
+// programExerciseView groups sets for one exercise within a day.
+type programExerciseView struct {
+	Name       string
+	SortOrder  int
+	Sets       []programSetView
+	SetsReps   string // e.g. "3×5", "2×5 + 1×AMRAP"
+	WeightStr  string // consolidated weight (from first set)
+	FirstNotes string // notes from first set
+}
+
+// programSetView is a single prescribed set for template display.
+type programSetView struct {
+	SetNumber int
+	RepsStr   string  // formatted reps string, e.g. "5", "AMRAP", "30s", "8 each"
+	WeightStr string  // formatted weight, e.g. "BW", "25 lbs", "75%"
+	Notes     string
+}
+
+// buildProgramDays converts a ParsedProgramTemplate into a slice of day views,
+// one per unique (week, day) combination, with exercises sorted by sort_order.
+func buildProgramDays(tmpl importers.ParsedProgramTemplate) []programDayView {
+	// Group sets by (week, day) → exercise name → sets.
+	type dayKey struct{ Week, Day int }
+	type exerciseGroup struct {
+		sortOrder int
+		sets      []programSetView
+		name      string
+	}
+
+	dayMap := make(map[dayKey]map[string]*exerciseGroup)
+
+	for _, s := range tmpl.PrescribedSets {
+		dk := dayKey{s.Week, s.Day}
+		if dayMap[dk] == nil {
+			dayMap[dk] = make(map[string]*exerciseGroup)
+		}
+		eg, ok := dayMap[dk][s.Exercise]
+		if !ok {
+			eg = &exerciseGroup{name: s.Exercise, sortOrder: s.SortOrder}
+			dayMap[dk][s.Exercise] = eg
+		}
+
+		sv := programSetView{
+			SetNumber: s.SetNumber,
+			RepsStr:   formatSetReps(s.Reps, s.RepType),
+			WeightStr: formatSetWeight(s.Percentage, s.AbsoluteWeight),
+		}
+		if s.Notes != nil {
+			sv.Notes = *s.Notes
+		}
+		eg.sets = append(eg.sets, sv)
+	}
+
+	// Collect and sort day keys.
+	var keys []dayKey
+	for k := range dayMap {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].Week != keys[j].Week {
+			return keys[i].Week < keys[j].Week
+		}
+		return keys[i].Day < keys[j].Day
+	})
+
+	var days []programDayView
+	for _, dk := range keys {
+		// Sort exercises by sort_order.
+		var exercises []programExerciseView
+		for _, eg := range dayMap[dk] {
+			ev := programExerciseView{
+				Name:      eg.name,
+				SortOrder: eg.sortOrder,
+				Sets:      eg.sets,
+				SetsReps:  summarizeSetsReps(eg.sets),
+			}
+			if len(eg.sets) > 0 {
+				ev.WeightStr = eg.sets[0].WeightStr
+				ev.FirstNotes = eg.sets[0].Notes
+			}
+			exercises = append(exercises, ev)
+		}
+		sort.Slice(exercises, func(i, j int) bool {
+			return exercises[i].SortOrder < exercises[j].SortOrder
+		})
+
+		desc := ""
+		if tmpl.Description != nil {
+			desc = *tmpl.Description
+		}
+
+		days = append(days, programDayView{
+			ProgramName: tmpl.Name,
+			Description: desc,
+			NumWeeks:    tmpl.NumWeeks,
+			NumDays:     tmpl.NumDays,
+			IsLoop:      tmpl.IsLoop,
+			Week:        dk.Week,
+			Day:         dk.Day,
+			Exercises:   exercises,
+		})
+	}
+	return days
+}
+
+// formatSetReps formats reps for display.
+func formatSetReps(reps *int, repType string) string {
+	if reps == nil {
+		return "AMRAP"
+	}
+	r := *reps
+	switch repType {
+	case "seconds":
+		return fmt.Sprintf("%ds", r)
+	case "each_side":
+		return fmt.Sprintf("%d each", r)
+	case "distance":
+		return fmt.Sprintf("%dm", r)
+	default:
+		return fmt.Sprintf("%d", r)
+	}
+}
+
+// summarizeSetsReps produces a compact string like "3×5" or "2×5 + 1×AMRAP".
+func summarizeSetsReps(sets []programSetView) string {
+	if len(sets) == 0 {
+		return ""
+	}
+
+	// Group consecutive sets by reps string.
+	type group struct {
+		reps  string
+		count int
+	}
+	var groups []group
+	for _, s := range sets {
+		if len(groups) > 0 && groups[len(groups)-1].reps == s.RepsStr {
+			groups[len(groups)-1].count++
+		} else {
+			groups = append(groups, group{reps: s.RepsStr, count: 1})
+		}
+	}
+
+	// If all sets are the same, just "3×5".
+	if len(groups) == 1 {
+		return fmt.Sprintf("%d×%s", groups[0].count, groups[0].reps)
+	}
+
+	// Otherwise "2×5 + 1×AMRAP".
+	var parts []string
+	for _, g := range groups {
+		parts = append(parts, fmt.Sprintf("%d×%s", g.count, g.reps))
+	}
+	return strings.Join(parts, " + ")
+}
+
+// formatSetWeight formats the weight/loading for display.
+func formatSetWeight(percentage *float64, absoluteWeight *float64) string {
+	if percentage != nil && *percentage > 0 {
+		return fmt.Sprintf("%.0f%%", *percentage*100)
+	}
+	if absoluteWeight != nil {
+		if *absoluteWeight == 0 {
+			return "BW"
+		}
+		if *absoluteWeight == float64(int(*absoluteWeight)) {
+			return fmt.Sprintf("%.0f lbs", *absoluteWeight)
+		}
+		return fmt.Sprintf("%.1f lbs", *absoluteWeight)
+	}
+	return "BW"
 }
