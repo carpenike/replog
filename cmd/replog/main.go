@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/carpenike/replog/internal/database"
 	"github.com/carpenike/replog/internal/handlers"
+	"github.com/carpenike/replog/internal/importers"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
@@ -65,6 +67,11 @@ func main() {
 	// Bootstrap admin user if no users exist.
 	if err := bootstrapAdmin(db); err != nil {
 		log.Fatalf("Failed to bootstrap admin: %v", err)
+	}
+
+	// Bootstrap seed catalog (equipment, exercises, programs) on first run.
+	if err := bootstrapCatalog(db); err != nil {
+		log.Fatalf("Failed to bootstrap seed catalog: %v", err)
 	}
 
 	// Parse templates once at startup.
@@ -486,6 +493,57 @@ func bootstrapAdmin(db *sql.DB) error {
 	}
 
 	log.Printf("Bootstrapped admin user: %s (id=%d)", user.Username, user.ID)
+	return nil
+}
+
+// bootstrapCatalog seeds the database with default equipment, exercises,
+// and program templates from the embedded seed catalog on first run.
+// If exercises already exist, seeding is skipped.
+// Set REPLOG_SEED_CATALOG to an absolute path to use a custom catalog file.
+func bootstrapCatalog(db *sql.DB) error {
+	exercises, err := models.ListExercises(db, "")
+	if err != nil {
+		return fmt.Errorf("check exercises: %w", err)
+	}
+	if len(exercises) > 0 {
+		return nil
+	}
+
+	// Load catalog data — env override or embedded default.
+	var data []byte
+	if path := os.Getenv("REPLOG_SEED_CATALOG"); path != "" {
+		data, err = os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read seed catalog %s: %w", path, err)
+		}
+		log.Printf("Using custom seed catalog: %s", path)
+	} else {
+		data = database.SeedCatalog()
+	}
+
+	parsed, err := importers.ParseCatalogJSON(bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("parse seed catalog: %w", err)
+	}
+
+	// Build mappings — DB is empty so all entities will be created.
+	ms := &importers.MappingState{
+		Format:    importers.FormatCatalogJSON,
+		Exercises: importers.BuildExerciseMappings(parsed.Exercises, nil),
+		Equipment: importers.BuildEquipmentMappings(parsed.Equipment, nil),
+		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
+		Parsed:    parsed,
+	}
+
+	result, err := models.ExecuteCatalogImport(db, ms)
+	if err != nil {
+		return fmt.Errorf("execute seed catalog import: %w", err)
+	}
+
+	log.Printf("Seeded catalog: %d equipment, %d exercises, %d programs (%d prescribed sets, %d progression rules)",
+		result.EquipmentCreated, result.ExercisesCreated, result.ProgramsCreated,
+		result.PrescribedSets, result.ProgressionRules)
+
 	return nil
 }
 
