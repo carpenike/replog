@@ -33,24 +33,31 @@
         {{ end }}
 
         {{ if or .CanManage .IsOwnProfile }}
-        <div class="goal-section" id="athlete-goal">
-            <strong>Goal:</strong>
-            {{ if .Athlete.Goal.Valid }}
-            <span>{{ .Athlete.Goal.String }}</span>
-            {{ else }}
-            <span class="text-muted">No goal set</span>
-            {{ end }}
-            <button class="outline secondary inline-edit-btn" onclick="this.closest('.goal-section').querySelector('.goal-edit-form').hidden = false; this.hidden = true;">Edit</button>
+        <article class="goal-section" id="athlete-goal">
+            <div class="goal-section-header">
+                <h3>🎯 Goal</h3>
+                <button class="outline secondary inline-edit-btn" onclick="this.closest('.goal-section').querySelector('.goal-edit-form').hidden = false; this.closest('.goal-section').querySelector('.goal-display').hidden = true; this.hidden = true;">Edit</button>
+            </div>
+            <div class="goal-display">
+                {{ if .Athlete.Goal.Valid }}
+                <p class="goal-text">{{ .Athlete.Goal.String }}</p>
+                {{ else }}
+                <p class="goal-text text-muted">No goal set — tap Edit to add one</p>
+                {{ end }}
+            </div>
             <form method="POST" action="/athletes/{{ .Athlete.ID }}/goal" class="goal-edit-form" hidden>
-                <textarea name="goal" rows="2" placeholder="Long-term training goal">{{ if .Athlete.Goal.Valid }}{{ .Athlete.Goal.String }}{{ end }}</textarea>
+                <textarea name="goal" rows="2" placeholder="What are you working toward?">{{ if .Athlete.Goal.Valid }}{{ .Athlete.Goal.String }}{{ end }}</textarea>
                 <div class="inline-form-actions">
                     <button type="submit" class="outline">Save</button>
-                    <button type="button" class="outline secondary" onclick="this.closest('.goal-edit-form').hidden = true; this.closest('.goal-section').querySelector('.inline-edit-btn').hidden = false;">Cancel</button>
+                    <button type="button" class="outline secondary" onclick="this.closest('.goal-edit-form').hidden = true; this.closest('.goal-section').querySelector('.goal-display').hidden = false; this.closest('.goal-section').querySelector('.inline-edit-btn').hidden = false;">Cancel</button>
                 </div>
             </form>
-        </div>
+        </article>
         {{ else if .Athlete.Goal.Valid }}
-        <p><strong>Goal:</strong> {{ .Athlete.Goal.String }}</p>
+        <article class="goal-section goal-section-readonly">
+            <h3>🎯 Goal</h3>
+            <p class="goal-text">{{ .Athlete.Goal.String }}</p>
+        </article>
         {{ end }}
 
         {{ if .MissingTMs }}

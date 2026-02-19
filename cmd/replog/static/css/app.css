@@ -2288,18 +2288,32 @@ article.error-page [role="button"] {
     font-size: 0.875rem;
 }
 
-/* Goal section — inline editable */
+/* Goal section — styled callout */
 .goal-section {
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
 }
-.goal-section span {
-    margin-right: var(--space-sm);
+.goal-section h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+.goal-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+}
+.goal-text {
+    font-size: 1.05rem;
+    line-height: 1.5;
+    margin: 0;
 }
 .goal-section .inline-edit-btn {
     font-size: 0.8rem;
-    padding: 0.15rem 0.5rem;
+    padding: 0.2rem 0.6rem;
     margin: 0;
-    vertical-align: middle;
 }
 .goal-edit-form {
     margin-top: var(--space-sm);
