@@ -1018,6 +1018,24 @@ main.container {
     gap: 0.5rem;
 }
 
+/* ---- Inline Exercise Reference (form notes, demo link) ---- */
+.exercise-ref {
+    margin: 0.35rem 0 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-left: 3px solid var(--pico-muted-border-color);
+    font-size: 0.85rem;
+}
+
+.exercise-form-notes {
+    margin: 0;
+    color: var(--pico-muted-color);
+    font-style: italic;
+}
+
+.exercise-demo-link {
+    font-size: 0.8rem;
+}
+
 /* ---- Prescription Scaffold (pre-populated workout logging) ---- */
 details.scaffold-exercise {
     border: 1px solid var(--pico-muted-border-color);

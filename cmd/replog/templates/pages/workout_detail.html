@@ -67,6 +67,14 @@
                     {{ $tm := index $.TMByExercise $line.ExerciseID }}{{ if $tm }}<span class="text-muted">TM: {{ formatWeight $tm.Weight }} {{ weightUnit $.Prefs }}</span>{{ end }}
                     <span class="scaffold-progress{{ if ge $loggedCount $totalSets }} complete{{ end }}">{{ $loggedCount }}/{{ $totalSets }} sets</span>
                 </summary>
+                {{ $ei := index $.ExerciseInfo $line.ExerciseID }}{{ if $ei }}
+                {{ if or $ei.FormNotes.Valid $ei.DemoURL.Valid }}
+                <div class="exercise-ref">
+                    {{ if $ei.FormNotes.Valid }}<p class="exercise-form-notes">{{ $ei.FormNotes.String }}</p>{{ end }}
+                    {{ if $ei.DemoURL.Valid }}<a href="{{ $ei.DemoURL.String }}" target="_blank" rel="noopener" class="exercise-demo-link">Watch Demo ↗</a>{{ end }}
+                </div>
+                {{ end }}
+                {{ end }}
                 {{ if ge $loggedCount $totalSets }}
                 <p class="scaffold-complete">&#10003; All sets complete</p>
                 {{ else }}
@@ -201,6 +209,14 @@
             {{ range .Groups }}
             <details open class="exercise-group">
                 <summary><strong>{{ .ExerciseName }}</strong> <span class="text-muted">({{ len .Sets }} sets)</span></summary>
+                {{ $ei := index $.ExerciseInfo .ExerciseID }}{{ if $ei }}
+                {{ if or $ei.FormNotes.Valid $ei.DemoURL.Valid }}
+                <div class="exercise-ref">
+                    {{ if $ei.FormNotes.Valid }}<p class="exercise-form-notes">{{ $ei.FormNotes.String }}</p>{{ end }}
+                    {{ if $ei.DemoURL.Valid }}<a href="{{ $ei.DemoURL.String }}" target="_blank" rel="noopener" class="exercise-demo-link">Watch Demo ↗</a>{{ end }}
+                </div>
+                {{ end }}
+                {{ end }}
                 {{ $prev := index $.LastSession .ExerciseID }}{{ if $prev }}
                 <details class="last-session">
                     <summary>Last time ({{ formatDateStr $.Prefs $prev.Date }})</summary>

@@ -264,6 +264,12 @@ func (h *Workouts) loadWorkoutShowData(user *models.User, athlete *models.Athlet
 		}
 	}
 
+	// Build exercise info map for inline display of form notes, demo URLs, rest times.
+	exerciseInfo := make(map[int64]*models.Exercise, len(allExercises))
+	for _, e := range allExercises {
+		exerciseInfo[e.ID] = e
+	}
+
 	// Load current training maxes for the athlete to display in the daily view.
 	currentTMs, err := models.ListCurrentTrainingMaxes(h.DB, athleteID)
 	if err != nil {
@@ -327,6 +333,7 @@ func (h *Workouts) loadWorkoutShowData(user *models.User, athlete *models.Athlet
 		"Groups":          groups,
 		"Assigned":        assigned,
 		"Unassigned":      unassigned,
+		"ExerciseInfo":    exerciseInfo,
 		"TMByExercise":    tmByExercise,
 		"Prescription":    prescription,
 		"LoggedSetCounts": loggedSetCounts,
