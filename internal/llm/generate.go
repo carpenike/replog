@@ -33,7 +33,7 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 	// Step 3: Call the LLM.
 	opts := Options{
 		Temperature: TemperatureFromSettings(db),
-		MaxTokens:   16384,
+		MaxTokens:   32768,
 	}
 	resp, err := provider.Generate(ctx, systemPrompt, userPrompt, opts)
 	if err != nil {
@@ -64,15 +64,22 @@ You generate programs in CatalogJSON format for a training logbook application.
 A human coach will review and approve every program before it reaches the athlete.
 
 ═══════════════════════════════════════════════════════════════
-OUTPUT FORMAT
+OUTPUT FORMAT — CRITICAL
 ═══════════════════════════════════════════════════════════════
 
-1. Provide your reasoning FIRST inside <reasoning>...</reasoning> tags.
-   - Explain the periodization approach and why it fits this athlete.
-   - Justify exercise selection based on the athlete's equipment, history, and goals.
-   - Note any safety considerations or modifications.
-2. Then output valid JSON in CatalogJSON format (schema below).
-3. Output NOTHING else — no markdown, no commentary after the JSON.
+The CatalogJSON is the PRIMARY deliverable. You MUST output valid JSON.
+
+1. Provide BRIEF reasoning inside <reasoning>...</reasoning> tags (MAX 300 words).
+   - State the periodization approach in 1–2 sentences.
+   - List exercise selection rationale concisely.
+   - Note any safety considerations.
+   - Do NOT plan the program in reasoning — go straight to the JSON.
+2. Then output the complete CatalogJSON object (schema below).
+3. Output NOTHING else — no markdown fences, no commentary after the JSON.
+
+TOKEN BUDGET: Keep reasoning under 300 words. The JSON is large (each set is one row).
+Prioritize complete, valid JSON over lengthy explanation. If you must choose between
+a thorough explanation and complete JSON, ALWAYS choose complete JSON.
 
 ═══════════════════════════════════════════════════════════════
 GENERAL RULES (ALL ATHLETES)
@@ -82,10 +89,12 @@ GENERAL RULES (ALL ATHLETES)
    in prescribed_sets. Only add entries to the "exercises" array for genuinely NEW
    exercises not already in the catalog.
 2. ONLY use equipment the athlete has available (listed in the context).
+   If no equipment is listed, use bodyweight exercises from the catalog.
 3. Respect rep_type values: "reps", "each_side", "seconds", "distance".
 4. Include sort_order for exercise sequencing within each day (lower = earlier).
    Structure each day: main compound lifts first, then accessories, then conditioning.
 5. Include progression_rules with appropriate increments for compound lifts.
+   For pure bodyweight programs, omit progression_rules or use increment: 0.
 6. Each set is ONE row — 3×5 means three prescribed_set entries (set_number 1, 2, 3).
 7. Every training day should include at minimum:
    - A hip-dominant movement (hinge or squat pattern)
@@ -354,15 +363,17 @@ func buildUserPrompt(athleteCtx *AthleteContext, req GenerationRequest) (string,
 		b.WriteString("The athlete has NO training maxes — use absolute_weight for all loading.\n")
 	}
 
-	b.WriteString("Consider their performance trends, coach observations, goals, and available equipment.\n")
-	b.WriteString("Provide your reasoning in <reasoning> tags, then output the CatalogJSON.")
+	b.WriteString("Consider their performance trends, coach observations, goals, and available equipment.\n\n")
+	b.WriteString("IMPORTANT: Keep your <reasoning> section under 300 words. Then output the complete CatalogJSON.\n")
+	b.WriteString("Do NOT plan or draft the program in reasoning — go directly to the JSON output.\n")
+	b.WriteString("The JSON is the deliverable. Each set is one row, so the output will be large. Prioritize complete JSON.")
 
 	return b.String(), nil
 }
 
 // extractResponse separates reasoning and CatalogJSON from the LLM response.
 func extractResponse(content string) (catalogJSON []byte, reasoning string) {
-	// Extract reasoning.
+	// Extract reasoning from <reasoning>...</reasoning> tags.
 	if start := strings.Index(content, "<reasoning>"); start != -1 {
 		if end := strings.Index(content, "</reasoning>"); end != -1 {
 			reasoning = strings.TrimSpace(content[start+len("<reasoning>") : end])
@@ -371,6 +382,18 @@ func extractResponse(content string) (catalogJSON []byte, reasoning string) {
 
 	// Extract JSON — find the outermost { ... } block.
 	catalogJSON = extractJSON(content)
+
+	// If no JSON found and no reasoning tags, the entire response might be
+	// unstructured reasoning (model used all tokens on thinking). Capture
+	// the response as reasoning so the error message can include it.
+	if catalogJSON == nil && reasoning == "" {
+		reasoning = strings.TrimSpace(content)
+		// Truncate very long reasoning to keep the error message readable.
+		if len(reasoning) > 2000 {
+			reasoning = reasoning[:2000] + "... [truncated]"
+		}
+	}
+
 	return catalogJSON, reasoning
 }
 

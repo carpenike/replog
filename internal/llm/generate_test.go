@@ -86,6 +86,37 @@ func TestExtractResponse_NoReasoning(t *testing.T) {
 	}
 }
 
+func TestExtractResponse_NoTagsNoJSON(t *testing.T) {
+	// When the model uses all tokens on reasoning without producing JSON,
+	// the response is captured as reasoning so the error message can show it.
+	content := "## Analysis\nThe athlete needs a bodyweight program.\nLet me plan day 1..."
+	catalogJSON, reasoning := extractResponse(content)
+	if catalogJSON != nil {
+		t.Errorf("catalogJSON should be nil, got %s", catalogJSON)
+	}
+	if reasoning == "" {
+		t.Error("reasoning should capture unstructured response")
+	}
+	if !strings.Contains(reasoning, "bodyweight program") {
+		t.Errorf("reasoning should contain response text, got %q", reasoning)
+	}
+}
+
+func TestExtractResponse_NoTagsNoJSON_Truncated(t *testing.T) {
+	// Very long unstructured response should be truncated.
+	content := strings.Repeat("A", 5000)
+	catalogJSON, reasoning := extractResponse(content)
+	if catalogJSON != nil {
+		t.Errorf("catalogJSON should be nil")
+	}
+	if len(reasoning) > 2100 {
+		t.Errorf("reasoning should be truncated, len = %d", len(reasoning))
+	}
+	if !strings.HasSuffix(reasoning, "... [truncated]") {
+		t.Errorf("reasoning should end with truncation marker")
+	}
+}
+
 func TestExtractJSON_CodeFence(t *testing.T) {
 	input := "Here is the program:\n```json\n{\"version\": \"1.0\"}\n```\nDone."
 	result := extractJSON(input)
