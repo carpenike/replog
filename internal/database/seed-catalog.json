@@ -585,6 +585,10 @@
         {
           "name": "Dumbbells",
           "optional": true
+        },
+        {
+          "name": "Plyo Box",
+          "optional": true
         }
       ]
     },
@@ -599,6 +603,10 @@
         {
           "name": "Dumbbells",
           "optional": true
+        },
+        {
+          "name": "Plyo Box",
+          "optional": true
         }
       ]
     },
@@ -612,6 +620,10 @@
       "equipment": [
         {
           "name": "Dumbbells",
+          "optional": true
+        },
+        {
+          "name": "Plyo Box",
           "optional": true
         }
       ]
@@ -731,7 +743,7 @@
       "equipment": [
         {
           "name": "Furniture Sliders",
-          "optional": true
+          "optional": false
         }
       ]
     },
@@ -765,7 +777,12 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [
+        {
+          "name": "Resistance Band",
+          "optional": false
+        }
+      ]
     },
     {
       "name": "Inverted Row",
@@ -1514,7 +1531,7 @@
       "equipment": [
         {
           "name": "Furniture Sliders",
-          "optional": true
+          "optional": false
         }
       ]
     },

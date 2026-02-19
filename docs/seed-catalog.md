@@ -171,9 +171,9 @@ Cardiovascular / endurance exercises. These have no default rest timer (`rest_se
 
 | Exercise | Equipment (req) | Equipment (opt) | Form Notes |
 |----------|----------------|-----------------|------------|
-| Step-Up | — | Dumbbells | Drive through top foot, stand tall at top, control descent |
-| Lateral Step-Up | — | Dumbbells | Step up sideways onto box, drive through top foot |
-| Step-Up with Knee Drive | — | Dumbbells | Drive through top foot, lift opposite knee high at top |
+| Step-Up | — | Dumbbells, Plyo Box | Drive through top foot, stand tall at top, control descent |
+| Lateral Step-Up | — | Dumbbells, Plyo Box | Step up sideways onto box, drive through top foot |
+| Step-Up with Knee Drive | — | Dumbbells, Plyo Box | Drive through top foot, lift opposite knee high at top |
 | Goblet Lateral Step-Up | Dumbbells | Kettlebell | Hold dumbbell at chest, step up sideways |
 
 #### Lower Body — Hinge Patterns
@@ -192,7 +192,7 @@ Cardiovascular / endurance exercises. These have no default rest timer (`rest_se
 |----------|----------------|-----------------|------------|
 | Lying Hip Extension | — | — | Lie face down, squeeze glutes to lift legs |
 | Single-Leg Hip Extension | — | — | Lie face down, lift one leg at a time |
-| Slideboard Hamstring Curl | — | — | Lie on back, feet on sliders, bridge up and curl heels |
+| Slideboard Hamstring Curl | Furniture Sliders | — | Lie on back, feet on sliders, bridge up and curl heels |
 | Hamstring March | — | — | Bridge position, alternate extending one leg at a time |
 | TRX Hamstring March | TRX/Suspension Trainer | — | Heels in straps, bridge up, alternate extending one leg |
 
@@ -200,7 +200,7 @@ Cardiovascular / endurance exercises. These have no default rest timer (`rest_se
 
 | Exercise | Equipment (req) | Equipment (opt) | Form Notes |
 |----------|----------------|-----------------|------------|
-| Weighted Push-up | — | — | Weight plate on upper back, body straight, lower chest to floor |
+| Weighted Push-up | Resistance Band | — | Weight plate on upper back, body straight, lower chest to floor |
 
 #### Upper Body — Pull
 
