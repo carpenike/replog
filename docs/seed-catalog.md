@@ -18,8 +18,8 @@ When RepLog starts with an empty database, it seeds a baseline catalog of common
 
 | Category | Count | Notes |
 |----------|-------|-------|
-| Equipment | 16 | Common gym equipment plus foundational training gear |
-| Exercises | 67 | 27 adult (barbell, dumbbell, bodyweight, cable, machine) + 40 foundational (Yessis method) |
+| Equipment | 19 | Common gym equipment, foundational training gear, and cardio machines |
+| Exercises | 72 | 27 adult strength (barbell, dumbbell, bodyweight, cable, machine) + 5 cardio + 40 foundational (Yessis method) |
 | Program Templates | 6 | 4 adult programs from r/Fitness wiki + 2 youth foundations (Yessis) |
 | Prescribed Sets | 394 | Full set/rep schemes for all programs |
 | Progression Rules | 45 | Per-exercise increment suggestions |
@@ -28,7 +28,7 @@ When RepLog starts with an empty database, it seeds a baseline catalog of common
 
 ## Equipment
 
-16 items covering a typical home or commercial gym plus foundational training gear.
+19 items covering a typical home or commercial gym, foundational training gear, and cardio machines.
 
 ### Standard Gym Equipment
 
@@ -58,11 +58,21 @@ Additional equipment used in youth foundational programs (Yessis method).
 | 15 | Trap Bar | Hexagonal barbell for deadlifts and shrugs |
 | 16 | Stability Ball | Large inflatable ball for core and stability work |
 
+### Cardio Equipment
+
+Machines for cardiovascular / endurance exercises.
+
+| # | Name | Description |
+|---|------|-------------|
+| 17 | Rowing Machine | Concept2 or similar indoor rower |
+| 18 | Stationary Bike | Peloton, spin bike, or upright stationary cycle |
+| 19 | Treadmill | Motorized or manual treadmill for indoor running |
+
 ---
 
 ## Exercises
 
-67 exercises: 27 adult (tier = null) and 40 foundational (tier = "foundational"). All exercises use `rep_type = "reps"` unless otherwise noted.
+72 exercises: 27 adult strength (tier = null), 5 cardio (tier = null), and 40 foundational (tier = "foundational"). All exercises use `rep_type = "reps"` unless otherwise noted.
 
 ### Adult Exercises (tier = null)
 
@@ -123,6 +133,18 @@ These four lifts appear on the featured dashboard and are the foundation of all 
 | Leg Extension | Cable Machine |
 
 Rest periods not listed use the app default (90 seconds). Coaches can customize rest per exercise after seeding.
+
+### Cardio
+
+Cardiovascular / endurance exercises. These have no default rest timer (`rest_seconds = null`) since they are continuous-effort activities. Log duration using `rep_type = "seconds"` or distance using `rep_type = "distance"`. Notes can capture metrics like split times, watts, pace, or resistance level.
+
+| Exercise | Equipment (req) | Form Notes |
+|----------|----------------|------------|
+| Rowing | Rowing Machine | Drive with legs first, then lean back and pull handle to lower chest. Reverse on recovery |
+| Stationary Bike | Stationary Bike | Adjust seat height so knee has slight bend at bottom. Keep cadence steady and core engaged |
+| Outdoor Run | — | Land midfoot under hips, cadence ~170-180 spm, relaxed shoulders |
+| Treadmill Run | Treadmill | Set incline to 1-2% to simulate outdoor conditions. Maintain upright posture |
+| Assault Bike | Stationary Bike | Push and pull with arms while pedaling. Keep core braced |
 
 ### Foundational Exercises (tier = "foundational")
 

@@ -66,6 +66,18 @@
     {
       "name": "Stability Ball",
       "description": "Large inflatable ball for core and stability work"
+    },
+    {
+      "name": "Rowing Machine",
+      "description": "Concept2 or similar indoor rower"
+    },
+    {
+      "name": "Stationary Bike",
+      "description": "Peloton, spin bike, or upright stationary cycle"
+    },
+    {
+      "name": "Treadmill",
+      "description": "Motorized or manual treadmill for indoor running"
     }
   ],
   "exercises": [
@@ -982,6 +994,71 @@
       "rest_seconds": 60,
       "featured": false,
       "equipment": []
+    },
+    {
+      "name": "Rowing",
+      "tier": null,
+      "form_notes": "Drive with legs first, then lean back and pull handle to lower chest. Reverse the sequence on recovery: arms, body, legs",
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Rowing Machine",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Stationary Bike",
+      "tier": null,
+      "form_notes": "Adjust seat height so knee has slight bend at bottom of pedal stroke. Keep cadence steady and core engaged",
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Stationary Bike",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Outdoor Run",
+      "tier": null,
+      "form_notes": "Land midfoot under hips, keep cadence around 170-180 spm, relaxed shoulders and arms at 90 degrees",
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": []
+    },
+    {
+      "name": "Treadmill Run",
+      "tier": null,
+      "form_notes": "Set incline to 1-2% to simulate outdoor conditions. Maintain upright posture, avoid holding handrails",
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Treadmill",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "Assault Bike",
+      "tier": null,
+      "form_notes": "Push and pull with arms while pedaling. Keep core braced and maintain steady breathing rhythm",
+      "demo_url": null,
+      "rest_seconds": null,
+      "featured": false,
+      "equipment": [
+        {
+          "name": "Stationary Bike",
+          "optional": false
+        }
+      ]
     }
   ],
   "programs": [
