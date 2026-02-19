@@ -333,6 +333,7 @@ func (h *Workouts) loadWorkoutShowData(user *models.User, athlete *models.Athlet
 		"LastSession":     lastSession,
 		"Review":          review,
 		"CanManage":       middleware.CanManageAthlete(user, athlete),
+		"IsOwnProfile":    user.AthleteID.Valid && user.AthleteID.Int64 == int64(athlete.ID),
 	}, nil
 }
 
@@ -381,12 +382,6 @@ func (h *Workouts) UpdateNotes(w http.ResponseWriter, r *http.Request) {
 
 // Delete removes a workout and all its sets. Coach only.
 func (h *Workouts) Delete(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach {
-		h.Templates.Forbidden(w, r)
-		return
-	}
-
 	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
 	if !ok {
 		return

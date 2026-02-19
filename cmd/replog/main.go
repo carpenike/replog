@@ -323,6 +323,7 @@ func main() {
 		r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/edit", workouts.EditSetForm)
 		r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}", workouts.UpdateSet)
 		r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/delete", workouts.DeleteSet)
+		r.Post("/athletes/{id}/workouts/{workoutID}/delete", workouts.Delete)
 
 		// Athlete Programs — prescription view (athlete self-service).
 		r.Get("/athletes/{id}/prescription", programs.Prescription)
@@ -396,9 +397,6 @@ func main() {
 		// Training Maxes — management.
 		r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes/new", trainingMaxes.NewForm)
 		r.Post("/athletes/{id}/exercises/{exerciseID}/training-maxes", trainingMaxes.Create)
-
-		// Workouts — coach-only actions.
-		r.Post("/athletes/{id}/workouts/{workoutID}/delete", workouts.Delete)
 
 		// Workout Reviews (coach-only).
 		r.Get("/reviews/pending", reviews.PendingReviews)

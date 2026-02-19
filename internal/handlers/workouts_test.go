@@ -188,6 +188,33 @@ func TestWorkouts_Delete_NonCoachForbidden(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
+	otherAthlete := seedAthlete(t, db, "Other", "")
+	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "")
+
+	h := &Workouts{DB: db, Templates: tc}
+
+	req := requestWithUser("POST", "/athletes/"+itoa(otherAthlete.ID)+"/workouts/"+itoa(workout.ID)+"/delete", nil, nonCoach)
+	req.SetPathValue("id", itoa(otherAthlete.ID))
+	req.SetPathValue("workoutID", itoa(workout.ID))
+	rr := httptest.NewRecorder()
+	h.Delete(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rr.Code)
+	}
+
+	// Verify workout was NOT deleted.
+	_, err := models.GetWorkoutByID(db, workout.ID)
+	if err != nil {
+		t.Errorf("workout should still exist, got error: %v", err)
+	}
+}
+
+func TestWorkouts_Delete_OwnAthlete(t *testing.T) {
+	db := testDB(t)
+	tc := testTemplateCache(t)
+	athlete := seedAthlete(t, db, "Kid", "")
+	nonCoach := seedNonCoach(t, db, athlete.ID)
 	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
 
 	h := &Workouts{DB: db, Templates: tc}
@@ -198,8 +225,14 @@ func TestWorkouts_Delete_NonCoachForbidden(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h.Delete(rr, req)
 
-	if rr.Code != http.StatusForbidden {
-		t.Errorf("expected 403, got %d", rr.Code)
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("expected 303, got %d", rr.Code)
+	}
+
+	// Verify workout was deleted.
+	_, err := models.GetWorkoutByID(db, workout.ID)
+	if err == nil {
+		t.Error("expected workout to be deleted, but it still exists")
 	}
 }
 
