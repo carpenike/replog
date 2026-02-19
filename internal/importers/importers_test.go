@@ -469,3 +469,53 @@ func TestFirstLineOf(t *testing.T) {
 		t.Errorf("firstLineOf = %q, want abc (no newline)", got)
 	}
 }
+
+func TestCollectProgramExerciseNames(t *testing.T) {
+	programs := []ParsedProgram{
+		{
+			Template: ParsedProgramTemplate{
+				Name: "Test Program",
+				PrescribedSets: []ParsedPrescribedSet{
+					{Exercise: "Squat", Week: 1, Day: 1, SetNumber: 1},
+					{Exercise: "Bench Press", Week: 1, Day: 1, SetNumber: 1},
+					{Exercise: "Squat", Week: 1, Day: 1, SetNumber: 2}, // duplicate
+				},
+				ProgressionRules: []ParsedProgressionRule{
+					{Exercise: "Squat", Increment: 5},
+					{Exercise: "Deadlift", Increment: 10}, // new from rules
+				},
+			},
+		},
+	}
+
+	names := CollectProgramExerciseNames(programs)
+	if len(names) != 3 {
+		t.Fatalf("CollectProgramExerciseNames() returned %d names, want 3", len(names))
+	}
+
+	// Should be Squat, Bench Press, Deadlift (deduplicated, preserving order).
+	want := map[string]bool{"squat": true, "bench press": true, "deadlift": true}
+	for _, n := range names {
+		if !want[strings.ToLower(n)] {
+			t.Errorf("unexpected exercise name: %q", n)
+		}
+	}
+}
+
+func TestMergeExerciseMappings(t *testing.T) {
+	existing := []EntityMapping{
+		{ImportName: "Squat", MappedID: 1, MappedName: "Squat"},
+	}
+	additional := []EntityMapping{
+		{ImportName: "Squat", MappedID: 1, MappedName: "Squat"},       // duplicate — should be skipped
+		{ImportName: "Bench Press", MappedID: 2, MappedName: "Bench Press"}, // new — should be added
+	}
+
+	merged := MergeExerciseMappings(existing, additional)
+	if len(merged) != 2 {
+		t.Fatalf("MergeExerciseMappings() returned %d mappings, want 2", len(merged))
+	}
+	if merged[0].ImportName != "Squat" || merged[1].ImportName != "Bench Press" {
+		t.Errorf("MergeExerciseMappings() = %v, want [Squat, Bench Press]", merged)
+	}
+}

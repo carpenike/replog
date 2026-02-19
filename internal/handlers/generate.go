@@ -194,6 +194,20 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 		Programs:  importers.BuildProgramMappings(parsed.Programs, existingPrograms),
 	}
 
+	// Exercises referenced in prescribed_sets/progression_rules may not appear
+	// in the catalog's "exercises" array (they're existing DB exercises the AI
+	// used without re-declaring). Merge those into the exercise mappings so the
+	// import can resolve their IDs.
+	progExNames := importers.CollectProgramExerciseNames(parsed.Programs)
+	if len(progExNames) > 0 {
+		progExParsed := make([]importers.ParsedExercise, len(progExNames))
+		for i, name := range progExNames {
+			progExParsed[i] = importers.ParsedExercise{Name: name}
+		}
+		progExMappings := importers.BuildExerciseMappings(progExParsed, existingExercises)
+		ms.Exercises = importers.MergeExerciseMappings(ms.Exercises, progExMappings)
+	}
+
 	// Store results in session for preview/execute.
 	h.Sessions.Put(r.Context(), "generate_result", result)
 	h.Sessions.Put(r.Context(), "generate_mapping", ms)

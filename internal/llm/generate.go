@@ -86,8 +86,7 @@ GENERAL RULES (ALL ATHLETES)
 ═══════════════════════════════════════════════════════════════
 
 1. ONLY use exercises from the provided exercise catalog. Reference them by exact name
-   in prescribed_sets. Only add entries to the "exercises" array for genuinely NEW
-   exercises not already in the catalog.
+   in prescribed_sets. NEVER invent new exercises — the "exercises" array must be empty.
 2. ONLY use exercises marked "compatible": true in the exercise catalog.
    Exercises marked "compatible": false require equipment the athlete does not have.
    If the athlete has no equipment, only bodyweight exercises will be compatible.
@@ -266,14 +265,7 @@ CATALOGJSON SCHEMA
 {
   "version": "1.0",
   "type": "catalog",
-  "exercises": [
-    {
-      "name": "Exercise Name",
-      "tier": "sport_performance",
-      "form_notes": "Optional coaching cues",
-      "equipment": [{"name": "Barbell", "optional": false}]
-    }
-  ],
+  "exercises": [],
   "programs": [
     {
       "name": "Program Name",

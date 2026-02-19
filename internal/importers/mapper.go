@@ -90,6 +90,50 @@ func parsedEquipmentNames(equipment []ParsedEquipment) []string {
 	return names
 }
 
+// CollectProgramExerciseNames returns all unique exercise names referenced in
+// program prescribed_sets and progression_rules but not already in the exercises list.
+// This catches exercises that already exist in the DB and are referenced by programs
+// without being re-declared in the catalog's "exercises" array.
+func CollectProgramExerciseNames(programs []ParsedProgram) []string {
+	seen := make(map[string]bool)
+	var names []string
+	for _, prog := range programs {
+		for _, ps := range prog.Template.PrescribedSets {
+			key := strings.ToLower(ps.Exercise)
+			if !seen[key] {
+				seen[key] = true
+				names = append(names, ps.Exercise)
+			}
+		}
+		for _, pr := range prog.Template.ProgressionRules {
+			key := strings.ToLower(pr.Exercise)
+			if !seen[key] {
+				seen[key] = true
+				names = append(names, pr.Exercise)
+			}
+		}
+	}
+	return names
+}
+
+// MergeExerciseMappings adds mappings for exercise names that aren't already
+// present in the existing mappings. This ensures exercises referenced by
+// program prescribed_sets can be resolved during import even when they're
+// existing DB exercises not re-declared in the import's exercises array.
+func MergeExerciseMappings(existing []EntityMapping, additional []EntityMapping) []EntityMapping {
+	seen := make(map[string]bool, len(existing))
+	for _, m := range existing {
+		seen[strings.ToLower(m.ImportName)] = true
+	}
+	for _, m := range additional {
+		if !seen[strings.ToLower(m.ImportName)] {
+			existing = append(existing, m)
+			seen[strings.ToLower(m.ImportName)] = true
+		}
+	}
+	return existing
+}
+
 // ResolveExerciseID looks up the mapped exercise ID for an import name.
 // Returns 0 if not found.
 func (ms *MappingState) ResolveExerciseID(importName string) int64 {
