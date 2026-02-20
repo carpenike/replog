@@ -2353,6 +2353,27 @@ article.error-page [role="button"] {
     font-size: 0.875rem;
 }
 
+/* Demographic pills — inline metadata under name */
+.demographic-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+}
+.demo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.25em 0.7em;
+    border-radius: var(--radius-pill);
+    background: var(--bg-3);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+}
+
 /* Goal section — styled callout */
 .goal-section {
     margin-bottom: var(--space-lg);
