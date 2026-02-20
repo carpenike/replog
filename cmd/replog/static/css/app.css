@@ -586,6 +586,22 @@ table a:hover {
     opacity: 0.9;
 }
 
+/* Primary sidebar link — accent-colored call to action (e.g. Log Workout) */
+.sidebar-link--primary {
+    color: var(--pico-primary);
+    font-weight: 600;
+}
+
+.sidebar-link--primary svg {
+    opacity: 0.9;
+    color: var(--pico-primary);
+}
+
+.sidebar-link--primary:hover {
+    background: var(--primary-alpha-subtle);
+    color: var(--pico-primary);
+}
+
 .sidebar-divider {
     height: 1px;
     background: var(--sidebar-border);
