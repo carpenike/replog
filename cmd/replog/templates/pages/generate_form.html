@@ -87,7 +87,7 @@
                     Generate Program
                 </button>
             </div>
-            <span id="generate-indicator" class="htmx-indicator spinner">Generating program&hellip; This may take 10&ndash;30 seconds.</span>
+            <p id="generate-indicator" style="display:none" aria-busy="true">Generating program&hellip; This may take 10&ndash;30 seconds.</p>
         </form>
 
         {{ if .Context }}
