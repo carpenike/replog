@@ -178,10 +178,9 @@
             </article>
             {{ end }}
 
-            <div class="page-actions">
-                <a href="/athletes/{{ .Athlete.ID }}/programs/generate" role="button" class="outline secondary">Back</a>
-                <button type="submit" name="action" value="save" class="outline">Save Changes</button>
-                <button type="submit" name="action" value="execute" data-confirm-submit="Import this program into the catalog?">Approve &amp; Import</button>
+            <div class="page-actions" style="display:flex; gap:1rem; justify-content:flex-end;">
+                <a href="/athletes/{{ .Athlete.ID }}/programs/generate" role="button" class="outline secondary" style="flex:1; text-align:center;">Back</a>
+                <button type="submit" name="action" value="execute" data-confirm-submit="Import this program into the catalog?" style="flex:1;">Approve &amp; Import</button>
             </div>
         </form>
         {{ else }}
