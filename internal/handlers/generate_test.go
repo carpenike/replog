@@ -69,7 +69,7 @@ func TestGenerate_Form(t *testing.T) {
 
 	t.Run("pre-fills from active program", func(t *testing.T) {
 		// Create a program template and assign it.
-		pt, err := models.CreateProgramTemplate(db, nil, "Sport Performance Month 3", "test", 4, 4, false)
+		pt, err := models.CreateProgramTemplate(db, nil, "Sport Performance Month 3", "test", 4, 4, false, "")
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -286,6 +286,7 @@ erDiagram
         INTEGER num_weeks
         INTEGER num_days
         INTEGER is_loop "0 or 1, default 0"
+        TEXT audience "nullable, 'youth' or 'adult'"
         DATETIME created_at
         DATETIME updated_at
     }
@@ -587,6 +588,7 @@ erDiagram
 | `num_weeks` | INTEGER      | NOT NULL                             |
 | `num_days`  | INTEGER      | NOT NULL                             |
 | `is_loop`   | INTEGER      | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
+| `audience`  | TEXT         | NULL, CHECK('youth' or 'adult')      |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
@@ -594,6 +596,7 @@ erDiagram
 - `num_weeks` and `num_days` define the cycle length — e.g. 4 weeks × 4 days for 5/3/1.
 - `is_loop = 1` marks indefinite cycling programs (e.g. Yessis 1×20 foundational) that repeat until the coach advances the athlete. `is_loop = 0` (default) for standard programs that still cycle but show completion progress.
 - `athlete_id` NULL = global/shared template (coach-created, assignable to any athlete). Non-NULL = athlete-specific template (e.g. AI-generated), visible only to that athlete.
+- `audience` classifies the program as `'youth'` or `'adult'`. NULL means unclassified (e.g. athlete-scoped AI-generated programs inherit audience from the athlete's tier). Used to filter reference programs in LLM context: youth athletes only see youth reference programs, adults only see adult programs.
 - Uniqueness is enforced via two partial unique indexes: global template names are unique (`WHERE athlete_id IS NULL`), and per-athlete template names are unique within that athlete (`WHERE athlete_id IS NOT NULL`).
 - Assignment to athletes is tracked via `athlete_programs`.
 
@@ -951,6 +954,7 @@ CREATE TABLE IF NOT EXISTS program_templates (
     num_weeks   INTEGER NOT NULL DEFAULT 1,
     num_days    INTEGER NOT NULL DEFAULT 1,
     is_loop     INTEGER NOT NULL DEFAULT 0 CHECK(is_loop IN (0, 1)),
+    audience    TEXT CHECK(audience IN ('youth', 'adult')),
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

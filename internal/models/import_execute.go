@@ -627,10 +627,14 @@ func insertProgramTemplate(tx *sql.Tx, pt importers.ParsedProgramTemplate, athle
 	if pt.IsLoop {
 		isLoopInt = 1
 	}
+	var audVal sql.NullString
+	if pt.Audience != nil && *pt.Audience != "" {
+		audVal = sql.NullString{String: *pt.Audience, Valid: true}
+	}
 	var id int64
 	err := tx.QueryRow(
-		`INSERT INTO program_templates (athlete_id, name, description, num_weeks, num_days, is_loop) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
-		athleteID, pt.Name, descVal, pt.NumWeeks, pt.NumDays, isLoopInt,
+		`INSERT INTO program_templates (athlete_id, name, description, num_weeks, num_days, is_loop, audience) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		athleteID, pt.Name, descVal, pt.NumWeeks, pt.NumDays, isLoopInt, audVal,
 	).Scan(&id)
 	if err != nil {
 		return 0, err

@@ -169,7 +169,7 @@ func TestGetPrescription_CycleWraparound(t *testing.T) {
 	db := testDB(t)
 
 	// 2 weeks × 2 days = 4 total positions.
-	tmpl, _ := CreateProgramTemplate(db, nil, "Short Cycle", "", 2, 2, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "Short Cycle", "", 2, 2, false, "")
 	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
 
 	// Add sets for each day.
@@ -211,7 +211,7 @@ func TestGetPrescription_CycleWraparound(t *testing.T) {
 func TestGetPrescription_NoTrainingMax(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "No TM Test", "", 1, 1, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "No TM Test", "", 1, 1, false, "")
 	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
 
 	reps := 5
@@ -250,7 +250,7 @@ func TestGetPrescription_NoTrainingMax(t *testing.T) {
 func TestGetPrescription_HasWorkoutToday(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "Today Test", "", 1, 1, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "Today Test", "", 1, 1, false, "")
 	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
 	reps := 5
 	CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, 1, &reps, nil, nil, 0, "", "")

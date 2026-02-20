@@ -18,15 +18,16 @@ import (
 // Every field is specific to one athlete — the same function called
 // for two different athletes produces completely different contexts.
 type AthleteContext struct {
-	Athlete         AthleteProfile   `json:"athlete"`
-	Equipment       []string         `json:"available_equipment"`
-	CurrentProgram  *ProgramSummary  `json:"current_program"`
-	Performance     PerformanceData  `json:"performance"`
-	CoachNotes      []NoteEntry      `json:"coach_notes"`
-	Goals           GoalContext      `json:"goals"`
-	ExerciseCatalog []ExerciseEntry  `json:"exercise_catalog"`
-	RecentWorkouts  []WorkoutSummary `json:"recent_workouts"`
-	PriorTemplates  []TemplateSummary `json:"prior_templates"`
+	Athlete           AthleteProfile     `json:"athlete"`
+	Equipment         []string           `json:"available_equipment"`
+	CurrentProgram    *ProgramSummary    `json:"current_program"`
+	Performance       PerformanceData    `json:"performance"`
+	CoachNotes        []NoteEntry        `json:"coach_notes"`
+	Goals             GoalContext        `json:"goals"`
+	ExerciseCatalog   []ExerciseEntry    `json:"exercise_catalog"`
+	RecentWorkouts    []WorkoutSummary   `json:"recent_workouts"`
+	ReferencePrograms []ReferenceProgramSummary `json:"reference_programs"`
+	PriorTemplates    []TemplateSummary  `json:"prior_templates"`
 }
 
 // AthleteProfile contains the athlete's identity and summary stats.
@@ -111,12 +112,38 @@ type SetSummary struct {
 	RepType   string   `json:"rep_type"`
 }
 
-// TemplateSummary describes an existing program template.
+// TemplateSummary describes an existing program template (athlete-scoped, metadata only).
 type TemplateSummary struct {
 	Name     string `json:"name"`
 	NumWeeks int    `json:"num_weeks"`
 	NumDays  int    `json:"num_days"`
 	IsLoop   bool   `json:"is_loop"`
+}
+
+// ReferenceProgramSummary is a global seed/reference program with full prescribed sets.
+// Included so the LLM can see concrete structural examples for the athlete's audience.
+type ReferenceProgramSummary struct {
+	Name           string                   `json:"name"`
+	Description    string                   `json:"description,omitempty"`
+	NumWeeks       int                      `json:"num_weeks"`
+	NumDays        int                      `json:"num_days"`
+	IsLoop         bool                     `json:"is_loop"`
+	Audience       string                   `json:"audience,omitempty"`
+	PrescribedSets []PrescribedSetSummary   `json:"prescribed_sets"`
+}
+
+// PrescribedSetSummary is a single prescribed set within a reference program.
+type PrescribedSetSummary struct {
+	Exercise       string   `json:"exercise"`
+	Week           int      `json:"week"`
+	Day            int      `json:"day"`
+	SetNumber      int      `json:"set_number"`
+	Reps           *int     `json:"reps,omitempty"`
+	RepType        string   `json:"rep_type"`
+	Percentage     *float64 `json:"percentage,omitempty"`
+	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	SortOrder      int      `json:"sort_order"`
+	Notes          string   `json:"notes,omitempty"`
 }
 
 // BuildAthleteContext gathers all relevant data for one athlete into the
@@ -184,12 +211,24 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time) (*AthleteCo
 	}
 	ctx.RecentWorkouts = workouts
 
-	// Prior program templates (global + this athlete's).
+	// Prior program templates (athlete-scoped only — previously generated for this athlete).
 	templates, err := buildPriorTemplates(db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build prior templates: %w", err)
 	}
 	ctx.PriorTemplates = templates
+
+	// Reference programs: global seed templates filtered by audience (youth vs adult),
+	// with full prescribed sets so the LLM can see concrete structural examples.
+	audience := "adult"
+	if profile.Tier != nil {
+		audience = "youth"
+	}
+	refProgs, err := buildReferencePrograms(db, audience)
+	if err != nil {
+		return nil, fmt.Errorf("llm: build reference programs: %w", err)
+	}
+	ctx.ReferencePrograms = refProgs
 
 	return ctx, nil
 }
@@ -454,22 +493,89 @@ func buildRecentWorkouts(db *sql.DB, athleteID int64) ([]WorkoutSummary, error) 
 	return summaries, nil
 }
 
-// buildPriorTemplates returns global + athlete-specific program templates as context.
+// buildPriorTemplates returns athlete-scoped program templates (previously
+// generated for this athlete) as lightweight metadata summaries.
+// Global reference programs are handled separately by buildReferencePrograms.
 func buildPriorTemplates(db *sql.DB, athleteID int64) ([]TemplateSummary, error) {
 	templates, err := models.ListProgramTemplatesForAthlete(db, athleteID)
 	if err != nil {
 		return nil, err
 	}
-	summaries := make([]TemplateSummary, len(templates))
-	for i, t := range templates {
-		summaries[i] = TemplateSummary{
+	var summaries []TemplateSummary
+	for _, t := range templates {
+		// Skip global templates — they're included in reference_programs with full sets.
+		if t.AthleteID == nil {
+			continue
+		}
+		summaries = append(summaries, TemplateSummary{
+			Name:     t.Name,
+			NumWeeks: t.NumWeeks,
+			NumDays:  t.NumDays,
+			IsLoop:   t.IsLoop,
+		})
+	}
+	return summaries, nil
+}
+
+// buildReferencePrograms returns global seed/reference programs filtered by audience
+// ("youth" or "adult") with their full prescribed sets. This gives the LLM concrete
+// structural examples of correctly-built programs for the athlete's audience.
+func buildReferencePrograms(db *sql.DB, audience string) ([]ReferenceProgramSummary, error) {
+	templates, err := models.ListReferenceTemplatesByAudience(db, audience)
+	if err != nil {
+		return nil, err
+	}
+
+	var programs []ReferenceProgramSummary
+	for _, t := range templates {
+		rp := ReferenceProgramSummary{
 			Name:     t.Name,
 			NumWeeks: t.NumWeeks,
 			NumDays:  t.NumDays,
 			IsLoop:   t.IsLoop,
 		}
+		if t.Description.Valid {
+			rp.Description = t.Description.String
+		}
+		if t.Audience.Valid {
+			rp.Audience = t.Audience.String
+		}
+
+		// Load full prescribed sets for this reference program.
+		sets, err := models.ListPrescribedSets(db, t.ID)
+		if err != nil {
+			return nil, fmt.Errorf("list prescribed sets for template %d: %w", t.ID, err)
+		}
+		for _, ps := range sets {
+			pss := PrescribedSetSummary{
+				Exercise:  ps.ExerciseName,
+				Week:      ps.Week,
+				Day:       ps.Day,
+				SetNumber: ps.SetNumber,
+				RepType:   ps.RepType,
+				SortOrder: ps.SortOrder,
+			}
+			if ps.Reps.Valid {
+				r := int(ps.Reps.Int64)
+				pss.Reps = &r
+			}
+			if ps.Percentage.Valid {
+				p := ps.Percentage.Float64
+				pss.Percentage = &p
+			}
+			if ps.AbsoluteWeight.Valid {
+				w := ps.AbsoluteWeight.Float64
+				pss.AbsoluteWeight = &w
+			}
+			if ps.Notes.Valid {
+				pss.Notes = ps.Notes.String
+			}
+			rp.PrescribedSets = append(rp.PrescribedSets, pss)
+		}
+
+		programs = append(programs, rp)
 	}
-	return summaries, nil
+	return programs, nil
 }
 
 // parseDate parses a date string in either "2006-01-02" or "2006-01-02T15:04:05Z" format.

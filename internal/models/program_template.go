@@ -20,6 +20,7 @@ type ProgramTemplate struct {
 	NumWeeks    int
 	NumDays     int  // training days per week
 	IsLoop      bool // true = indefinite cycling (e.g. Yessis 1x20)
+	Audience    sql.NullString // "youth" or "adult"; NULL = unclassified
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 
@@ -29,7 +30,8 @@ type ProgramTemplate struct {
 
 // CreateProgramTemplate inserts a new program template.
 // athleteID nil = global template, non-nil = athlete-scoped.
-func CreateProgramTemplate(db *sql.DB, athleteID *int64, name, description string, numWeeks, numDays int, isLoop bool) (*ProgramTemplate, error) {
+// audience is "youth", "adult", or "" (NULL).
+func CreateProgramTemplate(db *sql.DB, athleteID *int64, name, description string, numWeeks, numDays int, isLoop bool, audience string) (*ProgramTemplate, error) {
 	var descVal sql.NullString
 	if description != "" {
 		descVal = sql.NullString{String: description, Valid: true}
@@ -40,10 +42,15 @@ func CreateProgramTemplate(db *sql.DB, athleteID *int64, name, description strin
 		isLoopInt = 1
 	}
 
+	var audVal sql.NullString
+	if audience != "" {
+		audVal = sql.NullString{String: audience, Valid: true}
+	}
+
 	var id int64
 	err := db.QueryRow(
-		`INSERT INTO program_templates (athlete_id, name, description, num_weeks, num_days, is_loop) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
-		athleteID, name, descVal, numWeeks, numDays, isLoopInt,
+		`INSERT INTO program_templates (athlete_id, name, description, num_weeks, num_days, is_loop, audience) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		athleteID, name, descVal, numWeeks, numDays, isLoopInt, audVal,
 	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -59,14 +66,14 @@ func CreateProgramTemplate(db *sql.DB, athleteID *int64, name, description strin
 func GetProgramTemplateByID(db *sql.DB, id int64) (*ProgramTemplate, error) {
 	t := &ProgramTemplate{}
 	err := db.QueryRow(
-		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.created_at, pt.updated_at,
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
 		 WHERE pt.id = ?
 		 GROUP BY pt.id`,
 		id,
-	).Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount)
+	).Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("models: program template %d not found", id)
@@ -79,7 +86,7 @@ func GetProgramTemplateByID(db *sql.DB, id int64) (*ProgramTemplate, error) {
 // ListProgramTemplates returns all program templates ordered by name.
 func ListProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
 	rows, err := db.Query(
-		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.created_at, pt.updated_at,
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
@@ -94,7 +101,7 @@ func ListProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
 	var templates []*ProgramTemplate
 	for rows.Next() {
 		t := &ProgramTemplate{}
-		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
 			return nil, fmt.Errorf("models: scan program template: %w", err)
 		}
 		templates = append(templates, t)
@@ -110,7 +117,7 @@ func ListProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
 // athlete-facing views and program assignment forms.
 func ListProgramTemplatesForAthlete(db *sql.DB, athleteID int64) ([]*ProgramTemplate, error) {
 	rows, err := db.Query(
-		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.created_at, pt.updated_at,
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
@@ -127,13 +134,46 @@ func ListProgramTemplatesForAthlete(db *sql.DB, athleteID int64) ([]*ProgramTemp
 	var templates []*ProgramTemplate
 	for rows.Next() {
 		t := &ProgramTemplate{}
-		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
 			return nil, fmt.Errorf("models: scan program template for athlete: %w", err)
 		}
 		templates = append(templates, t)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("models: iterate program templates for athlete: %w", err)
+	}
+	return templates, nil
+}
+
+// ListReferenceTemplatesByAudience returns global templates (athlete_id IS NULL)
+// filtered by audience. Pass "youth" or "adult" to get matching programs.
+// Returns templates ordered by name.
+func ListReferenceTemplatesByAudience(db *sql.DB, audience string) ([]*ProgramTemplate, error) {
+	rows, err := db.Query(
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+		        COUNT(ap.id) AS athlete_count
+		 FROM program_templates pt
+		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
+		 WHERE pt.athlete_id IS NULL AND pt.audience = ?
+		 GROUP BY pt.id
+		 ORDER BY pt.name COLLATE NOCASE`,
+		audience,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("models: list reference templates for audience %q: %w", audience, err)
+	}
+	defer rows.Close()
+
+	var templates []*ProgramTemplate
+	for rows.Next() {
+		t := &ProgramTemplate{}
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+			return nil, fmt.Errorf("models: scan reference template: %w", err)
+		}
+		templates = append(templates, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate reference templates: %w", err)
 	}
 	return templates, nil
 }

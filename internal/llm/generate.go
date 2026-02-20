@@ -108,6 +108,10 @@ GENERAL RULES (ALL ATHLETES)
    coach observations, and stated goals when selecting exercises and loads.
 10. If the athlete has a current program, evolve from it — don't start from scratch
     unless coach directions say otherwise.
+11. The context includes "reference_programs" — real, coach-approved programs for this
+    audience (youth or adult) with full prescribed sets. Use these as structural examples:
+    follow their patterns for exercise variety per day, set/rep schemes, loading style,
+    and sort_order conventions. Do NOT copy them verbatim — adapt for the specific athlete.
 
 `)
 

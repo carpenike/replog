@@ -457,7 +457,7 @@ func TestCheckProgramCompatibility(t *testing.T) {
 
 	pushUps, _ := CreateExercise(db, "Push-ups", "", "", "", 0)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "Test Program", "", 4, 3, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "Test Program", "", 4, 3, false, "")
 	reps := 5
 	pct := 80.0
 	CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, 1, &reps, &pct, nil, 0, "reps", "")
@@ -514,7 +514,7 @@ func TestCheckProgramCompatibility(t *testing.T) {
 	})
 
 	t.Run("empty program — ready by default", func(t *testing.T) {
-		emptyTmpl, _ := CreateProgramTemplate(db, nil, "Empty", "", 1, 1, false)
+		emptyTmpl, _ := CreateProgramTemplate(db, nil, "Empty", "", 1, 1, false, "")
 		result, err := CheckProgramCompatibility(db, athlete.ID, emptyTmpl.ID)
 		if err != nil {
 			t.Fatalf("check: %v", err)

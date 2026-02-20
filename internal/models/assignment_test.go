@@ -170,7 +170,7 @@ func TestAssignProgramExercises(t *testing.T) {
 	ex2, _ := CreateExercise(db, "Bench", "", "", "", 0)
 	ex3, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "Test Program", "", 4, 3, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "Test Program", "", 4, 3, false, "")
 	reps5 := 5
 	pct75 := 75.0
 	CreatePrescribedSet(db, tmpl.ID, ex1.ID, 1, 1, 1, &reps5, &pct75, nil, 0, "reps", "")
@@ -222,7 +222,7 @@ func TestAssignProgramExercises(t *testing.T) {
 	})
 
 	t.Run("empty program template", func(t *testing.T) {
-		emptyTmpl, _ := CreateProgramTemplate(db, nil, "Empty Program", "", 1, 1, false)
+		emptyTmpl, _ := CreateProgramTemplate(db, nil, "Empty Program", "", 1, 1, false, "")
 		n, err := AssignProgramExercises(db, athlete.ID, emptyTmpl.ID)
 		if err != nil {
 			t.Fatalf("auto-assign empty: %v", err)

@@ -129,6 +129,7 @@ type ParsedProgramTemplate struct {
 	NumWeeks         int                     `json:"num_weeks"`
 	NumDays          int                     `json:"num_days"`
 	IsLoop           bool                    `json:"is_loop"`
+	Audience         *string                 `json:"audience"`
 	PrescribedSets   []ParsedPrescribedSet   `json:"prescribed_sets"`
 	ProgressionRules []ParsedProgressionRule `json:"progression_rules"`
 }

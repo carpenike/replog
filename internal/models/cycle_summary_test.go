@@ -24,7 +24,7 @@ func TestGetCycleSummary_NoCycleCompletedReturnsNil(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{}, true)
-	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 3, 4, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 3, 4, false, "")
 	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
 
 	// No workouts logged — still in cycle 1.
@@ -45,7 +45,7 @@ func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 
 	// Create a 3-week × 2-day program (6 workouts per cycle).
-	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 3, 2, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 3, 2, false, "")
 	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
 
 	// Add AMRAP prescribed sets (reps=NULL) on week 3 day 1.
@@ -137,7 +137,7 @@ func TestGetCycleSummary_NoTMSkipsExercise(t *testing.T) {
 	a, _ := CreateAthlete(db, "Test", "", "", "", sql.NullInt64{}, true)
 	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 1, 2, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 1, 2, false, "")
 	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
 
 	// Progression rule but no TM set.

@@ -193,6 +193,7 @@ CREATE TABLE IF NOT EXISTS program_templates (
     num_weeks   INTEGER NOT NULL DEFAULT 1,
     num_days    INTEGER NOT NULL DEFAULT 1,
     is_loop     INTEGER NOT NULL DEFAULT 0 CHECK(is_loop IN (0, 1)),
+    audience    TEXT CHECK(audience IN ('youth', 'adult')),
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

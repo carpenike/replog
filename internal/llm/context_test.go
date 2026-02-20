@@ -233,20 +233,100 @@ func TestBuildAthleteContext_ExerciseCatalog_EquipmentFiltering(t *testing.T) {
 func TestBuildAthleteContext_PriorTemplates(t *testing.T) {
 	db := testDB(t)
 
-	if _, err := models.CreateProgramTemplate(db, nil, "Month 1", "First", 4, 3, false); err != nil {
-		t.Fatalf("create template: %v", err)
+	// Create global templates with audience tags.
+	if _, err := models.CreateProgramTemplate(db, nil, "Foundations 1×20", "Youth foundations", 1, 2, true, "youth"); err != nil {
+		t.Fatalf("create youth template: %v", err)
 	}
-	if _, err := models.CreateProgramTemplate(db, nil, "Month 2", "Second", 4, 3, false); err != nil {
-		t.Fatalf("create template: %v", err)
+	if _, err := models.CreateProgramTemplate(db, nil, "5/3/1 BBB", "Adult program", 4, 4, true, "adult"); err != nil {
+		t.Fatalf("create adult template: %v", err)
 	}
 
-	athleteID := seedAthlete(t, db, "Eve", "", "")
+	// Create a youth athlete (has tier).
+	youthID := seedAthlete(t, db, "Eve", "foundational", "general fitness")
+
+	// Create an athlete-scoped template for the youth athlete.
+	if _, err := models.CreateProgramTemplate(db, &youthID, "Eve Custom", "", 3, 3, false, ""); err != nil {
+		t.Fatalf("create athlete-scoped template: %v", err)
+	}
+
+	t.Run("youth athlete sees youth reference programs", func(t *testing.T) {
+		ctx, err := BuildAthleteContext(db, youthID, time.Now())
+		if err != nil {
+			t.Fatalf("BuildAthleteContext: %v", err)
+		}
+		// Should see only the youth global template in reference_programs.
+		if len(ctx.ReferencePrograms) != 1 {
+			t.Fatalf("reference programs = %d, want 1", len(ctx.ReferencePrograms))
+		}
+		if ctx.ReferencePrograms[0].Name != "Foundations 1×20" {
+			t.Errorf("reference program name = %q, want Foundations 1×20", ctx.ReferencePrograms[0].Name)
+		}
+		// Should see the athlete-scoped template in prior_templates (not global ones).
+		if len(ctx.PriorTemplates) != 1 {
+			t.Fatalf("prior templates = %d, want 1", len(ctx.PriorTemplates))
+		}
+		if ctx.PriorTemplates[0].Name != "Eve Custom" {
+			t.Errorf("prior template name = %q, want Eve Custom", ctx.PriorTemplates[0].Name)
+		}
+	})
+
+	// Create an adult athlete (no tier).
+	adultID := seedAthlete(t, db, "Frank", "", "strength")
+
+	t.Run("adult athlete sees adult reference programs", func(t *testing.T) {
+		ctx, err := BuildAthleteContext(db, adultID, time.Now())
+		if err != nil {
+			t.Fatalf("BuildAthleteContext: %v", err)
+		}
+		if len(ctx.ReferencePrograms) != 1 {
+			t.Fatalf("reference programs = %d, want 1", len(ctx.ReferencePrograms))
+		}
+		if ctx.ReferencePrograms[0].Name != "5/3/1 BBB" {
+			t.Errorf("reference program name = %q, want 5/3/1 BBB", ctx.ReferencePrograms[0].Name)
+		}
+		// Adult has no athlete-scoped templates.
+		if len(ctx.PriorTemplates) != 0 {
+			t.Errorf("prior templates = %d, want 0", len(ctx.PriorTemplates))
+		}
+	})
+}
+
+func TestBuildAthleteContext_ReferencePrograms_WithSets(t *testing.T) {
+	db := testDB(t)
+
+	// Create a global youth template with prescribed sets.
+	tmpl, err := models.CreateProgramTemplate(db, nil, "Youth Test Program", "A youth reference", 1, 2, true, "youth")
+	if err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+	exID := seedExercise(t, db, "Push-up", "foundational")
+	reps := 20
+	if _, err := models.CreatePrescribedSet(db, tmpl.ID, exID, 1, 1, 1, &reps, nil, nil, 1, "reps", "Form: full ROM"); err != nil {
+		t.Fatalf("create prescribed set: %v", err)
+	}
+
+	athleteID := seedAthlete(t, db, "Grace", "foundational", "")
 	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
-	if len(ctx.PriorTemplates) != 2 {
-		t.Fatalf("prior templates = %d, want 2", len(ctx.PriorTemplates))
+
+	if len(ctx.ReferencePrograms) != 1 {
+		t.Fatalf("reference programs = %d, want 1", len(ctx.ReferencePrograms))
+	}
+	rp := ctx.ReferencePrograms[0]
+	if len(rp.PrescribedSets) != 1 {
+		t.Fatalf("prescribed sets = %d, want 1", len(rp.PrescribedSets))
+	}
+	ps := rp.PrescribedSets[0]
+	if ps.Exercise != "Push-up" {
+		t.Errorf("exercise = %q, want Push-up", ps.Exercise)
+	}
+	if ps.Reps == nil || *ps.Reps != 20 {
+		t.Errorf("reps = %v, want 20", ps.Reps)
+	}
+	if ps.Notes != "Form: full ROM" {
+		t.Errorf("notes = %q, want 'Form: full ROM'", ps.Notes)
 	}
 }
 
