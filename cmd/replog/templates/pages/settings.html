@@ -51,7 +51,8 @@
                            name="setting_{{ .Key }}"
                            value="{{ if settingIsSensitive .Key }}{{ .Masked }}{{ else }}{{ .Value }}{{ end }}"
                            placeholder="{{ settingDescription .Key }}"
-                           {{ if eq (settingFieldType .Key) "number" }}step="0.1" min="0" max="2"{{ end }}>
+                           {{ if eq .Key "llm.temperature" }}step="0.1" min="0" max="2"{{ end }}
+                           {{ if eq .Key "llm.max_tokens" }}step="1" min="1" max="200000"{{ end }}>
                     {{ end }}
                 {{ end }}
 
