@@ -21,6 +21,7 @@ type AthleteContext struct {
 	Athlete           AthleteProfile     `json:"athlete"`
 	Equipment         []string           `json:"available_equipment"`
 	CurrentProgram    *ProgramSummary    `json:"current_program"`
+	ProgramHistory    []ProgramHistoryEntry `json:"program_history"`
 	Performance       PerformanceData    `json:"performance"`
 	CoachNotes        []NoteEntry        `json:"coach_notes"`
 	Goals             GoalContext        `json:"goals"`
@@ -49,6 +50,18 @@ type ProgramSummary struct {
 	IsLoop    bool   `json:"is_loop"`
 	StartDate string `json:"start_date"`
 	Active    bool   `json:"active"`
+}
+
+// ProgramHistoryEntry describes one program assignment (active or past).
+type ProgramHistoryEntry struct {
+	Name      string  `json:"name"`
+	NumWeeks  int     `json:"num_weeks"`
+	NumDays   int     `json:"num_days"`
+	IsLoop    bool    `json:"is_loop"`
+	StartDate string  `json:"start_date"`
+	Active    bool    `json:"active"`
+	Notes     *string `json:"notes,omitempty"`
+	Goal      *string `json:"goal,omitempty"`
 }
 
 // PerformanceData holds training maxes and body weight history.
@@ -176,6 +189,13 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTe
 		return nil, fmt.Errorf("llm: build program: %w", err)
 	}
 	ctx.CurrentProgram = prog
+
+	// Program history (all assignments, active + past).
+	history, err := buildProgramHistory(db, athleteID)
+	if err != nil {
+		return nil, fmt.Errorf("llm: build program history: %w", err)
+	}
+	ctx.ProgramHistory = history
 
 	// Training maxes.
 	tms, err := buildTrainingMaxes(db, athleteID)
@@ -500,6 +520,33 @@ func buildRecentWorkouts(db *sql.DB, athleteID int64) ([]WorkoutSummary, error) 
 		summaries = append(summaries, ws)
 	}
 	return summaries, nil
+}
+
+// buildProgramHistory returns all program assignments for the athlete,
+// ordered most recent first. Includes start date, notes, goals, and active status.
+func buildProgramHistory(db *sql.DB, athleteID int64) ([]ProgramHistoryEntry, error) {
+	programs, err := models.ListAthletePrograms(db, athleteID)
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]ProgramHistoryEntry, len(programs))
+	for i, p := range programs {
+		entries[i] = ProgramHistoryEntry{
+			Name:      p.TemplateName,
+			NumWeeks:  p.NumWeeks,
+			NumDays:   p.NumDays,
+			IsLoop:    p.IsLoop,
+			StartDate: p.StartDate,
+			Active:    p.Active,
+		}
+		if p.Notes.Valid {
+			entries[i].Notes = &p.Notes.String
+		}
+		if p.Goal.Valid {
+			entries[i].Goal = &p.Goal.String
+		}
+	}
+	return entries, nil
 }
 
 // buildPriorTemplates returns athlete-scoped program templates (previously

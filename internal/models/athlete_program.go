@@ -97,6 +97,39 @@ func GetActiveProgram(db *sql.DB, athleteID int64) (*AthleteProgram, error) {
 	return ap, nil
 }
 
+// ListAthletePrograms returns all program assignments for an athlete,
+// ordered by start_date descending (most recent first). Includes both
+// active and deactivated programs.
+func ListAthletePrograms(db *sql.DB, athleteID int64) ([]*AthleteProgram, error) {
+	rows, err := db.Query(
+		`SELECT ap.id, ap.athlete_id, ap.template_id, ap.start_date, ap.active, ap.notes, ap.goal,
+		        ap.created_at, ap.updated_at, pt.name, pt.num_weeks, pt.num_days, pt.is_loop
+		 FROM athlete_programs ap
+		 JOIN program_templates pt ON pt.id = ap.template_id
+		 WHERE ap.athlete_id = ?
+		 ORDER BY ap.start_date DESC, ap.created_at DESC`,
+		athleteID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("models: list athlete programs for %d: %w", athleteID, err)
+	}
+	defer rows.Close()
+
+	var programs []*AthleteProgram
+	for rows.Next() {
+		ap := &AthleteProgram{}
+		if err := rows.Scan(&ap.ID, &ap.AthleteID, &ap.TemplateID, &ap.StartDate, &ap.Active, &ap.Notes, &ap.Goal,
+			&ap.CreatedAt, &ap.UpdatedAt, &ap.TemplateName, &ap.NumWeeks, &ap.NumDays, &ap.IsLoop); err != nil {
+			return nil, fmt.Errorf("models: scan athlete program: %w", err)
+		}
+		programs = append(programs, ap)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate athlete programs: %w", err)
+	}
+	return programs, nil
+}
+
 // DeactivateProgram deactivates an athlete's program.
 func DeactivateProgram(db *sql.DB, athleteProgramID int64) error {
 	_, err := db.Exec(

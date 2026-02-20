@@ -461,3 +461,142 @@ func TestListProgramTemplatesByIDs(t *testing.T) {
 		}
 	})
 }
+
+func TestBuildAthleteContext_ProgramHistory(t *testing.T) {
+	db := testDB(t)
+	athleteID := seedAthlete(t, db, "Max", "sport_performance", "")
+
+	// Create two templates and assign them sequentially.
+	pt1, err := models.CreateProgramTemplate(db, nil, "Month 1", "first cycle", 4, 3, false, "youth")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pt2, err := models.CreateProgramTemplate(db, nil, "Month 2", "second cycle", 4, 4, false, "youth")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Assign first program, then deactivate it.
+	ap1, err := models.AssignProgram(db, athleteID, pt1.ID, "2026-01-01", "starting out", "build base")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := models.DeactivateProgram(db, ap1.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Assign second (now active).
+	_, err = models.AssignProgram(db, athleteID, pt2.ID, "2026-02-01", "", "increase volume")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	if err != nil {
+		t.Fatalf("BuildAthleteContext: %v", err)
+	}
+
+	if len(ctx.ProgramHistory) != 2 {
+		t.Fatalf("program history = %d, want 2", len(ctx.ProgramHistory))
+	}
+
+	// Most recent first.
+	if ctx.ProgramHistory[0].Name != "Month 2" {
+		t.Errorf("first entry = %q, want Month 2", ctx.ProgramHistory[0].Name)
+	}
+	if !ctx.ProgramHistory[0].Active {
+		t.Error("first entry should be active")
+	}
+	if ctx.ProgramHistory[0].Goal == nil || *ctx.ProgramHistory[0].Goal != "increase volume" {
+		t.Errorf("first entry goal = %v, want 'increase volume'", ctx.ProgramHistory[0].Goal)
+	}
+
+	if ctx.ProgramHistory[1].Name != "Month 1" {
+		t.Errorf("second entry = %q, want Month 1", ctx.ProgramHistory[1].Name)
+	}
+	if ctx.ProgramHistory[1].Active {
+		t.Error("second entry should be inactive")
+	}
+	if ctx.ProgramHistory[1].Notes == nil || *ctx.ProgramHistory[1].Notes != "starting out" {
+		t.Errorf("second entry notes = %v, want 'starting out'", ctx.ProgramHistory[1].Notes)
+	}
+	if ctx.ProgramHistory[1].Goal == nil || *ctx.ProgramHistory[1].Goal != "build base" {
+		t.Errorf("second entry goal = %v, want 'build base'", ctx.ProgramHistory[1].Goal)
+	}
+}
+
+func TestListAthletePrograms(t *testing.T) {
+	db := testDB(t)
+	athleteID := seedAthlete(t, db, "Ella", "foundational", "")
+
+	t.Run("empty for new athlete", func(t *testing.T) {
+		programs, err := models.ListAthletePrograms(db, athleteID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(programs) != 0 {
+			t.Fatalf("got %d programs, want 0", len(programs))
+		}
+	})
+
+	pt, err := models.CreateProgramTemplate(db, nil, "Test Prog", "", 4, 3, false, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ap, err := models.AssignProgram(db, athleteID, pt.ID, "2026-01-15", "notes here", "get strong")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("returns assignments with joined fields", func(t *testing.T) {
+		programs, err := models.ListAthletePrograms(db, athleteID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(programs) != 1 {
+			t.Fatalf("got %d programs, want 1", len(programs))
+		}
+		p := programs[0]
+		if p.TemplateName != "Test Prog" {
+			t.Errorf("name = %q, want Test Prog", p.TemplateName)
+		}
+		if !p.Active {
+			t.Error("expected active")
+		}
+		if !p.Notes.Valid || p.Notes.String != "notes here" {
+			t.Errorf("notes = %v, want 'notes here'", p.Notes)
+		}
+		if !p.Goal.Valid || p.Goal.String != "get strong" {
+			t.Errorf("goal = %v, want 'get strong'", p.Goal)
+		}
+	})
+
+	// Deactivate and add another.
+	if err := models.DeactivateProgram(db, ap.ID); err != nil {
+		t.Fatal(err)
+	}
+	pt2, err := models.CreateProgramTemplate(db, nil, "Test Prog 2", "", 1, 4, true, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := models.AssignProgram(db, athleteID, pt2.ID, "2026-02-15", "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("returns all ordered by start_date desc", func(t *testing.T) {
+		programs, err := models.ListAthletePrograms(db, athleteID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(programs) != 2 {
+			t.Fatalf("got %d programs, want 2", len(programs))
+		}
+		if programs[0].TemplateName != "Test Prog 2" {
+			t.Errorf("first = %q, want Test Prog 2", programs[0].TemplateName)
+		}
+		if programs[1].TemplateName != "Test Prog" {
+			t.Errorf("second = %q, want Test Prog", programs[1].TemplateName)
+		}
+	})
+}

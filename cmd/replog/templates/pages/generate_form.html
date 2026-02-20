@@ -132,6 +132,27 @@
                 <p><em>No current program.</em></p>
                 {{ end }}
 
+                {{/* --- Program History --- */}}
+                {{ if .Context.ProgramHistory }}
+                <h4>Program History ({{ len .Context.ProgramHistory }})</h4>
+                <table>
+                    <thead>
+                        <tr><th scope="col">Name</th><th scope="col">Start Date</th><th scope="col">Structure</th><th scope="col">Status</th><th scope="col">Goal</th></tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Context.ProgramHistory }}
+                        <tr>
+                            <td>{{ .Name }}</td>
+                            <td>{{ .StartDate }}</td>
+                            <td>{{ .NumWeeks }}w &times; {{ .NumDays }}d{{ if .IsLoop }} (loop){{ end }}</td>
+                            <td>{{ if .Active }}Active{{ else }}Completed{{ end }}</td>
+                            <td>{{ if .Goal }}{{ derefStr .Goal }}{{ else }}&mdash;{{ end }}</td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ end }}
+
                 {{/* --- Training Maxes --- */}}
                 <h4>Training Maxes</h4>
                 {{ if .Context.Performance.TrainingMaxes }}
