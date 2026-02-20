@@ -108,7 +108,8 @@
         {{ end }}
         {{ end }}
 
-        <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate/preview">
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate/preview"
+              hx-boost="false">
             <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
             <input type="hidden" name="set_count" value="{{ len .EditableRows }}">
 

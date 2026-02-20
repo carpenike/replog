@@ -22,7 +22,7 @@
         </article>
         {{ else }}
         <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate"
-              data-generate-submit>
+              hx-boost="false" data-generate-submit>
             <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
 
             <label for="program_name">Program Name</label>
