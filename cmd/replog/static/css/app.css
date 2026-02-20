@@ -274,8 +274,11 @@ button:active:not(:disabled),
 }
 
 /* Inline utility buttons (copy, generate link, register passkey) */
-.btn-inline {
+/* Use button.btn-inline to match Pico's button[type=submit] specificity (0,1,1) */
+button.btn-inline,
+a.btn-inline {
     width: auto;
+    flex-shrink: 0;
     white-space: nowrap;
     margin-bottom: 0;
 }
