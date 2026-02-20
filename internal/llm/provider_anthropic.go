@@ -100,10 +100,12 @@ func (p *AnthropicProvider) Generate(ctx context.Context, systemPrompt, userProm
 
 	var result struct {
 		Content []struct {
+			Type string `json:"type"`
 			Text string `json:"text"`
 		} `json:"content"`
-		Model string `json:"model"`
-		Usage struct {
+		Model      string `json:"model"`
+		StopReason string `json:"stop_reason"`
+		Usage      struct {
 			InputTokens  int `json:"input_tokens"`
 			OutputTokens int `json:"output_tokens"`
 		} `json:"usage"`
@@ -116,10 +118,19 @@ func (p *AnthropicProvider) Generate(ctx context.Context, systemPrompt, userProm
 		return nil, fmt.Errorf("llm/anthropic: no content blocks in response")
 	}
 
+	// Concatenate all text content blocks (model may split across multiple).
+	var textContent string
+	for _, block := range result.Content {
+		if block.Type == "text" || block.Type == "" {
+			textContent += block.Text
+		}
+	}
+
 	return &Response{
-		Content:    result.Content[0].Text,
+		Content:    textContent,
 		Model:      result.Model,
 		TokensUsed: result.Usage.InputTokens + result.Usage.OutputTokens,
 		Duration:   duration,
+		StopReason: result.StopReason,
 	}, nil
 }

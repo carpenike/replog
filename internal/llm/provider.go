@@ -88,6 +88,7 @@ type Response struct {
 	Model      string
 	TokensUsed int
 	Duration   time.Duration
+	StopReason string // "end_turn", "max_tokens", "stop", etc.
 }
 
 // GenerationRequest describes what to generate.
@@ -109,6 +110,7 @@ type GenerationResult struct {
 	TokensUsed  int
 	Duration    time.Duration
 	Model       string
+	StopReason  string // "end_turn"/"stop" = complete, "max_tokens"/"length" = truncated
 }
 
 // NewProviderFromSettings creates a Provider using the current app_settings

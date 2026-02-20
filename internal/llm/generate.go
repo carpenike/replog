@@ -50,6 +50,7 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 		TokensUsed:  resp.TokensUsed,
 		Duration:    resp.Duration,
 		Model:       resp.Model,
+		StopReason:  resp.StopReason,
 	}, nil
 }
 

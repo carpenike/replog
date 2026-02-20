@@ -158,12 +158,16 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("handlers: LLM generation complete for athlete %d: model=%s tokens=%d duration=%s catalog_bytes=%d",
-		athleteID, result.Model, result.TokensUsed, result.Duration, len(result.CatalogJSON))
+	log.Printf("handlers: LLM generation complete for athlete %d: model=%s tokens=%d duration=%s catalog_bytes=%d stop_reason=%s",
+		athleteID, result.Model, result.TokensUsed, result.Duration, len(result.CatalogJSON), result.StopReason)
+
+	// Check for output truncation — the model ran out of tokens before completing JSON.
+	isTruncated := result.StopReason == "max_tokens" || result.StopReason == "length"
 
 	// Parse CatalogJSON into import structures.
 	if len(result.CatalogJSON) == 0 {
-		log.Printf("handlers: empty CatalogJSON from LLM for athlete %d, raw response length=%d", athleteID, len(result.RawResponse))
+		log.Printf("handlers: empty CatalogJSON from LLM for athlete %d, raw response length=%d stop_reason=%s",
+			athleteID, len(result.RawResponse), result.StopReason)
 		if len(result.RawResponse) > 0 {
 			// Log a truncated preview to help debug extraction failures.
 			preview := result.RawResponse
@@ -172,9 +176,19 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 			}
 			log.Printf("handlers: raw LLM response preview: %s", preview)
 		}
-		errMsg := "The AI Coach did not return valid program data. Please try again with different directions."
-		if result.Reasoning != "" {
+
+		var errMsg string
+		switch {
+		case isTruncated:
+			errMsg = "The AI Coach ran out of output tokens before completing the program JSON. " +
+				"Try reducing the number of training days or weeks, or simplifying your directions."
+			if result.Reasoning != "" {
+				errMsg += fmt.Sprintf("\n\nThe AI's reasoning before truncation: %s", result.Reasoning)
+			}
+		case result.Reasoning != "":
 			errMsg = fmt.Sprintf("The AI Coach provided reasoning but no valid program JSON. Its reasoning: %s", result.Reasoning)
+		default:
+			errMsg = "The AI Coach did not return valid program data. Please try again with different directions."
 		}
 		h.renderFormError(w, r, athlete, req, errMsg)
 		return

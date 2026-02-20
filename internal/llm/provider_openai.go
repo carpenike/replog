@@ -111,6 +111,7 @@ func (p *OpenAIProvider) Generate(ctx context.Context, systemPrompt, userPrompt 
 			Message struct {
 				Content string `json:"content"`
 			} `json:"message"`
+			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
 		Model string `json:"model"`
 		Usage struct {
@@ -130,5 +131,6 @@ func (p *OpenAIProvider) Generate(ctx context.Context, systemPrompt, userPrompt 
 		Model:      result.Model,
 		TokensUsed: result.Usage.TotalTokens,
 		Duration:   duration,
+		StopReason: result.Choices[0].FinishReason,
 	}, nil
 }

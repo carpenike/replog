@@ -120,5 +120,6 @@ func (p *OllamaProvider) Generate(ctx context.Context, systemPrompt, userPrompt 
 		Model:      result.Model,
 		TokensUsed: 0, // Ollama doesn't always report tokens
 		Duration:   duration,
+		StopReason: "stop", // Ollama doesn't report stop reason in chat API
 	}, nil
 }
