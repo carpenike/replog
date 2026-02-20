@@ -861,6 +861,7 @@ html.sidebar-collapsed .sidebar-collapse-btn svg {
 html.sidebar-collapsed .sidebar-header {
     justify-content: center;
     padding: 1rem 0.5rem 0.75rem;
+    position: relative;
 }
 
 /* Hide the brand entirely in rail, show collapse btn centered */
@@ -869,7 +870,11 @@ html.sidebar-collapsed .sidebar-brand {
 }
 
 html.sidebar-collapsed .sidebar-collapse-btn {
-    margin: 0 auto;
+    position: absolute;
+    top: 0.75rem;
+    right: 0.25rem;
+    margin: 0;
+    z-index: 2;
 }
 
 html.sidebar-collapsed .sidebar-nav {
@@ -897,48 +902,25 @@ html.sidebar-collapsed .main-content {
     margin-left: var(--sidebar-rail-width);
 }
 
-/* On hover in rail mode, show a tooltip-style expanded sidebar overlaying content */
-@media (min-width: 769px) {
-    html.sidebar-collapsed .sidebar:hover {
-        width: var(--sidebar-width);
-        box-shadow: var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.2));
-    }
-    html.sidebar-collapsed .sidebar:hover .sidebar-brand-text,
-    html.sidebar-collapsed .sidebar:hover .sidebar-link span,
-    html.sidebar-collapsed .sidebar:hover .sidebar-divider,
-    html.sidebar-collapsed .sidebar:hover .sidebar-footer {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-        overflow: visible;
-    }
-    html.sidebar-collapsed .sidebar:hover .sidebar-header {
-        justify-content: space-between;
-        padding: 1.25rem 1rem 0.75rem;
-    }
-    html.sidebar-collapsed .sidebar:hover .sidebar-brand {
-        display: flex;
-        justify-content: flex-start;
-    }
-    html.sidebar-collapsed .sidebar:hover .sidebar-collapse-btn {
-        margin: 0;
-    }
-    html.sidebar-collapsed .sidebar:hover .sidebar-nav {
-        padding: 0.5rem 0.75rem;
-        align-items: stretch;
-    }
-    html.sidebar-collapsed .sidebar:hover .sidebar-link {
-        justify-content: flex-start;
-        padding: 0.55rem 0.75rem;
-        width: auto;
-        height: auto;
-        overflow: visible;
-        font-size: inherit;
-    }
-    html.sidebar-collapsed .sidebar:hover .sidebar-link svg {
-        width: 1.1rem;
-        height: 1.1rem;
-    }
+/* Tooltip on rail icons */
+html.sidebar-collapsed .sidebar-link {
+    position: relative;
+}
+html.sidebar-collapsed .sidebar-link:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 0.5rem);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-2);
+    color: var(--text-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    box-shadow: var(--shadow-md, 0 2px 8px rgba(0,0,0,0.15));
+    z-index: 200;
+    pointer-events: none;
 }
 
 /* Mobile top bar — hidden on desktop */
