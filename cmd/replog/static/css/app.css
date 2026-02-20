@@ -877,6 +877,7 @@ table a:hover {
 /* ---- Collapsible sidebar (rail mode) ---- */
 html.sidebar-collapsed .sidebar {
     width: var(--sidebar-rail-width);
+    overflow: visible; /* allow tooltips to extend past the rail edge */
 }
 
 /* Hide text labels, dividers, section labels, and user footer in rail mode */
@@ -919,6 +920,7 @@ html.sidebar-collapsed .sidebar-collapse-btn {
 html.sidebar-collapsed .sidebar-nav {
     padding: 0.5rem;
     align-items: center;
+    overflow: visible; /* allow tooltips to extend past nav bounds */
 }
 
 html.sidebar-collapsed .sidebar-link {
@@ -926,8 +928,9 @@ html.sidebar-collapsed .sidebar-link {
     padding: 0.6rem;
     width: 2.25rem;
     height: 2.25rem;
-    overflow: hidden;
+    overflow: visible; /* allow ::after tooltip to render outside link box */
     font-size: 0;
+    position: relative;
 }
 
 html.sidebar-collapsed .sidebar-link svg {
@@ -941,13 +944,12 @@ html.sidebar-collapsed .main-content {
     margin-left: var(--sidebar-rail-width);
 }
 
-/* Tooltip on rail icons — positioned relative to sidebar, not the link,
-   so it always clears the rail edge regardless of link centering/overflow. */
+/* Tooltip on rail icons */
 html.sidebar-collapsed .sidebar-link:hover::after {
     content: attr(data-tooltip);
-    position: fixed;
-    left: calc(var(--sidebar-rail-width) + 0.25rem);
-    top: auto;
+    position: absolute;
+    left: calc(100% + 0.5rem);
+    top: 50%;
     transform: translateY(-50%);
     background: var(--bg-2);
     color: var(--text-primary);
