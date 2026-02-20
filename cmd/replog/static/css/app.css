@@ -1,10 +1,14 @@
 /* RepLog — app-specific overrides on top of Pico CSS v2 */
 
 /* =========================================================
-   Design System — Linear-inspired dark theme
+   Design System — Warm, content-focused theme (Notion/Obsidian feel)
    ========================================================= */
 
 :root {
+    /* ---- Font ---- */
+    --pico-font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --pico-font-family: var(--pico-font-family-sans-serif);
+
     /* ---- Spacing scale (8px base) ---- */
     --space-xs: 0.25rem;   /* 4px  */
     --space-sm: 0.5rem;    /* 8px  */
@@ -20,74 +24,76 @@
     --radius-lg: 0.75rem;
     --radius-pill: 9999px;
 
-    /* ---- Elevation ---- */
+    /* ---- Elevation — soft and warm ---- */
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
 
     /* ---- Transition ---- */
     --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
     --duration-fast: 0.15s;
 }
 
-/* ---- Dark theme color palette ---- */
+/* ---- Dark theme — warm neutrals, Notion-inspired ---- */
 [data-theme="dark"] {
-    /* Background layers — create depth */
-    --pico-background-color: #0c0c0c;
-    --pico-card-background-color: #161616;
-    --pico-card-sectioning-background-color: #1a1a1a;
+    /* Background layers — warm grays, not cold */
+    --pico-background-color: #121212;
+    --pico-card-background-color: #1a1a1a;
+    --pico-card-sectioning-background-color: #1e1e1e;
 
-    --bg-0: #0c0c0c;
-    --bg-1: #141414;
-    --bg-2: #1a1a1a;
-    --bg-3: #242424;
-    --bg-4: #2e2e2e;
+    --bg-0: #121212;
+    --bg-1: #181818;
+    --bg-2: #1e1e1e;
+    --bg-3: #282828;
+    --bg-4: #333333;
 
-    /* Text hierarchy */
-    --pico-color: #ececec;
-    --text-primary: #ececec;
-    --text-secondary: #a0a0a0;
-    --text-tertiary: #6b6b6b;
+    /* Text — warm off-white, not clinical */
+    --pico-color: #e8e8e3;
+    --text-primary: #e8e8e3;
+    --text-secondary: #a1a09b;
+    --text-tertiary: #706f6a;
 
-    /* Accent — indigo */
-    --pico-primary: #818cf8;
-    --pico-primary-hover: #a5b4fc;
-    --pico-primary-focus: rgba(129, 140, 248, 0.2);
-    --pico-primary-inverse: #0c0c0c;
+    /* Accent — soft indigo */
+    --pico-primary: #8b8ff5;
+    --pico-primary-hover: #a5a9fc;
+    --pico-primary-focus: rgba(139, 143, 245, 0.18);
+    --pico-primary-inverse: #121212;
 
-    /* Borders */
-    --pico-muted-border-color: #262626;
-    --pico-muted-color: #6b6b6b;
-    --border-subtle: #1e1e1e;
-    --border-default: #303030;
-    --border-hover: #404040;
+    /* Borders — subtle, warm */
+    --pico-muted-border-color: #242424;
+    --pico-muted-color: #706f6a;
+    --border-subtle: #222222;
+    --border-default: #2e2e2e;
+    --border-hover: #3d3d3d;
 
-    /* Semantic colors */
+    /* Semantic colors — slightly desaturated for dark mode */
     --color-success: #34d399;
     --color-warning: #fbbf24;
     --color-danger: #f87171;
     --color-info: #38bdf8;
 
-    /* Elevation — deeper in dark mode */
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+    /* Elevation — deeper warm shadows */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.2);
 
     /* Surfaces */
-    --surface-hover: rgba(255, 255, 255, 0.04);
-    --surface-active: rgba(255, 255, 255, 0.06);
+    --surface-hover: rgba(255, 255, 255, 0.035);
+    --surface-active: rgba(255, 255, 255, 0.055);
 
-    /* Primary with alpha — for hover/focus surfaces */
-    --primary-alpha-subtle: rgba(129, 140, 248, 0.08);
-    --primary-alpha-light: rgba(129, 140, 248, 0.12);
-    --primary-alpha-medium: rgba(129, 140, 248, 0.15);
+    /* Primary with alpha */
+    --primary-alpha-subtle: rgba(139, 143, 245, 0.07);
+    --primary-alpha-light: rgba(139, 143, 245, 0.11);
+    --primary-alpha-medium: rgba(139, 143, 245, 0.15);
 
     /* Tier decoration colors */
     --tier-foundational: #34d399;
     --tier-intermediate: #38bdf8;
     --tier-sport-performance: #c084fc;
 
-    /* Pico component variable overrides */
+    /* Pico component overrides */
     --pico-h1-color: var(--text-primary);
     --pico-h2-color: var(--text-primary);
     --pico-h3-color: var(--text-primary);
@@ -97,83 +103,96 @@
     --pico-form-element-border-color: var(--border-default);
     --pico-form-element-active-border-color: var(--pico-primary);
     --pico-form-element-focus-color: var(--pico-primary-focus);
+    --pico-form-element-background-color: #161616;
 }
 
-/* ---- Light theme palette ---- */
+/* ---- Light theme — warm off-white, readable ---- */
 [data-theme="light"] {
-    /* Pico alignment — match our indigo accent system-wide */
-    --pico-background-color: #ffffff;
-    --pico-color: #171717;
+    --pico-background-color: #fafaf8;
+    --pico-color: #1a1a18;
     --pico-card-background-color: #ffffff;
-    --pico-card-sectioning-background-color: #fafafa;
-    --pico-primary: #4f46e5;
+    --pico-card-sectioning-background-color: #f7f7f5;
+    --pico-primary: #5046e5;
     --pico-primary-hover: #4338ca;
-    --pico-primary-focus: rgba(79, 70, 229, 0.2);
+    --pico-primary-focus: rgba(80, 70, 229, 0.15);
     --pico-primary-inverse: #ffffff;
-    --pico-muted-color: #737373;
-    --pico-muted-border-color: #e5e5e5;
+    --pico-muted-color: #737370;
+    --pico-muted-border-color: #e5e4e0;
 
-    --bg-0: #ffffff;
-    --bg-1: #fafafa;
-    --bg-2: #f5f5f5;
-    --bg-3: #ebebeb;
-    --bg-4: #e0e0e0;
+    --bg-0: #fafaf8;
+    --bg-1: #f5f5f2;
+    --bg-2: #eeeeea;
+    --bg-3: #e4e4de;
+    --bg-4: #dad9d3;
 
-    --text-primary: #171717;
-    --text-secondary: #525252;
-    --text-tertiary: #a3a3a3;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5a55;
+    --text-tertiary: #9a9a93;
 
-    --border-subtle: #e5e5e5;
-    --border-default: #d4d4d4;
-    --border-hover: #a3a3a3;
+    --border-subtle: #e8e8e3;
+    --border-default: #d4d3ce;
+    --border-hover: #a3a29b;
 
     --color-success: #10b981;
     --color-warning: #f59e0b;
     --color-danger: #ef4444;
     --color-info: #0ea5e9;
 
-    --surface-hover: rgba(0, 0, 0, 0.03);
-    --surface-active: rgba(0, 0, 0, 0.05);
+    --surface-hover: rgba(0, 0, 0, 0.025);
+    --surface-active: rgba(0, 0, 0, 0.045);
 
-    /* Primary with alpha — for hover/focus surfaces */
-    --primary-alpha-subtle: rgba(79, 70, 229, 0.06);
-    --primary-alpha-light: rgba(79, 70, 229, 0.10);
-    --primary-alpha-medium: rgba(79, 70, 229, 0.14);
+    --primary-alpha-subtle: rgba(80, 70, 229, 0.05);
+    --primary-alpha-light: rgba(80, 70, 229, 0.09);
+    --primary-alpha-medium: rgba(80, 70, 229, 0.13);
 
-    /* Tier decoration colors */
+    /* Tier decoration colors — slightly deeper for light bg */
     --tier-foundational: #059669;
     --tier-intermediate: #0284c7;
     --tier-sport-performance: #9333ea;
 
-    /* Pico component variable overrides */
+    /* Pico component overrides */
     --pico-h1-color: var(--text-primary);
     --pico-h2-color: var(--text-primary);
     --pico-h3-color: var(--text-primary);
     --pico-h4-color: var(--text-primary);
     --pico-card-border-color: var(--border-subtle);
-    --pico-card-box-shadow: var(--shadow-xs);
+    --pico-card-box-shadow: var(--shadow-sm);
     --pico-form-element-border-color: var(--border-default);
     --pico-form-element-active-border-color: var(--pico-primary);
     --pico-form-element-focus-color: var(--pico-primary-focus);
+    --pico-form-element-background-color: #ffffff;
 }
 
 /* =========================================================
    Global Element Refinements
    ========================================================= */
 
-/* ---- Typography hierarchy ---- */
+/* ---- Typography hierarchy — Inter-optimized ---- */
 h1 {
-    font-weight: 700;
-    letter-spacing: -0.025em;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-size: 1.85rem;
+    line-height: 1.2;
 }
 
 h2 {
     font-weight: 600;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
+    font-size: 1.35rem;
+    line-height: 1.25;
 }
 
-h3, h4 {
+h3 {
     font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+h4 {
+    font-weight: 500;
+}
+
+p {
+    line-height: 1.6;
 }
 
 small, .text-muted {
@@ -185,9 +204,16 @@ a, button, [role="button"], input, select, textarea {
     transition: all var(--duration-fast) var(--ease-default);
 }
 
-/* ---- Articles / Cards ---- */
+/* ---- Focus styling — soft glow instead of hard outline ---- */
+:focus-visible {
+    outline: 2px solid var(--pico-primary);
+    outline-offset: 2px;
+}
+
+/* ---- Articles / Cards — soft, warm surfaces ---- */
 article {
     border-radius: var(--radius-lg);
+    border-color: var(--border-subtle);
     transition: box-shadow var(--duration-fast) var(--ease-default),
                 border-color var(--duration-fast) var(--ease-default);
 }
@@ -200,14 +226,14 @@ article > footer {
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
-/* ---- Buttons ---- */
+/* ---- Buttons — understated, warm ---- */
 [role="button"],
 button,
 input[type="submit"],
 input[type="button"] {
     border-radius: var(--radius-sm);
     font-weight: 500;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.005em;
 }
 
 [role="button"]:focus-visible,
@@ -216,9 +242,10 @@ input[type="submit"]:focus-visible,
 input[type="button"]:focus-visible {
     outline: 2px solid var(--pico-primary);
     outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--pico-primary-focus);
 }
 
-/* Press effect */
+/* Subtle press effect */
 button:active:not(:disabled),
 [role="button"]:active:not(:disabled) {
     transform: scale(0.98);
@@ -253,35 +280,43 @@ button:active:not(:disabled),
     margin-bottom: 0;
 }
 
-/* ---- Inputs — tighter radius than global ---- */
+/* ---- Inputs — warmer, softer field appearance ---- */
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
     border-radius: var(--radius-sm);
+    background: var(--pico-form-element-background-color);
 }
 
-/* ---- Tables ---- */
+/* Focus glow on inputs */
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+    box-shadow: 0 0 0 3px var(--pico-primary-focus);
+}
+
+/* ---- Tables — clean, content-focused ---- */
 table {
     border-collapse: separate;
     border-spacing: 0;
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     overflow: hidden;
 }
 
 table thead th {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
     color: var(--text-tertiary);
-    padding: 0.65rem 1rem;
+    padding: 0.6rem 1rem;
     background: var(--bg-2);
     border-bottom: 1px solid var(--border-subtle);
+    text-transform: none;
 }
 
 table tbody td {
-    padding: 0.7rem 1rem;
+    padding: 0.65rem 1rem;
     font-size: 0.9rem;
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text-primary);
@@ -320,33 +355,33 @@ table a:hover {
 }
 
 /* =========================================================
-   Alert Messages
+   Alert Messages — soft, warm tones
    ========================================================= */
 
 .alert {
     padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: var(--space-md);
     border: 1px solid;
 }
 
 .alert-error {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.10);
+    border-color: rgba(239, 68, 68, 0.25);
     color: #fca5a5;
 }
 
 .alert-success {
-    background: rgba(34, 197, 94, 0.12);
-    border-color: rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.10);
+    border-color: rgba(34, 197, 94, 0.25);
     color: #86efac;
 }
 
 .alert-warning {
-    background: rgba(251, 191, 36, 0.12);
-    border-color: rgba(251, 191, 36, 0.3);
+    background: rgba(251, 191, 36, 0.10);
+    border-color: rgba(251, 191, 36, 0.25);
     color: #fde68a;
 }
 
@@ -390,7 +425,7 @@ table a:hover {
    ========================================================= */
 
 :root {
-    --sidebar-width: 12rem;
+    --sidebar-width: 13rem;
     --topbar-height: 3.5rem;
     --sidebar-bg: var(--bg-1);
     --sidebar-border: var(--border-subtle);
@@ -486,33 +521,32 @@ table a:hover {
     align-items: center;
     gap: 0.625rem;
     padding: 0.55rem 0.75rem;
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
     font-weight: 500;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     text-decoration: none;
     transition: background 0.15s, color 0.15s;
-    /* Override Pico nav link defaults */
     margin: 0;
     border: none;
     line-height: 1.4;
 }
 
 .sidebar-link:hover {
-    background: var(--primary-alpha-light);
-    color: var(--pico-primary);
+    background: var(--surface-hover);
+    color: var(--text-primary);
     text-decoration: none;
 }
 
 .sidebar-link svg {
-    width: 1.15rem;
-    height: 1.15rem;
+    width: 1.1rem;
+    height: 1.1rem;
     flex-shrink: 0;
-    opacity: 0.7;
+    opacity: 0.6;
 }
 
 .sidebar-link:hover svg {
-    opacity: 1;
+    opacity: 0.9;
 }
 
 .sidebar-divider {
@@ -799,16 +833,17 @@ table a:hover {
 
 .content-container {
     flex: 1;
-    max-width: 72rem;
+    max-width: 64rem;
     width: 100%;
     margin: 0 auto;
-    padding: 1.5rem 2rem 2rem;
+    padding: 2rem 2.5rem 2rem;
 }
 
 .content-footer {
-    padding: 1rem 2rem;
+    padding: 1.5rem 2.5rem;
     color: var(--text-tertiary);
     text-align: center;
+    font-size: 0.8rem;
 }
 
 /* ---- Responsive: mobile sidebar ---- */
@@ -941,11 +976,11 @@ main.container {
     align-items: center;
 }
 
-/* ---- Breadcrumbs ---- */
+/* ---- Breadcrumbs — subtle, understated ---- */
 .breadcrumb {
     font-size: 0.8rem;
     color: var(--text-tertiary);
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
     padding: var(--space-xs) 0;
 }
 
@@ -1288,7 +1323,7 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
     white-space: nowrap;
 }
 
-/* ---- Dashboard Cards ---- */
+/* ---- Dashboard Cards — warm hover, no transform ---- */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
@@ -1302,17 +1337,16 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
     cursor: pointer;
     margin: 0;
     width: 100%;
-    background: var(--bg-2);
+    background: var(--bg-1);
+    border: 1px solid var(--border-subtle);
     transition: box-shadow var(--duration-fast) var(--ease-default),
-                border-color var(--duration-fast) var(--ease-default),
-                transform var(--duration-fast) var(--ease-default);
+                border-color var(--duration-fast) var(--ease-default);
 }
 
 .dashboard-grid > article:hover,
 .dashboard-grid > .card-link:hover > article {
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    border-color: var(--pico-primary);
+    box-shadow: 0 0 0 1px var(--pico-primary-focus), var(--shadow-md);
 }
 
 .card-link {
@@ -1370,7 +1404,7 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
 
 .featured-lift-card {
     margin: 0;
-    background: var(--bg-2);
+    background: var(--bg-1);
 }
 
 .featured-lift-card header {
@@ -1436,10 +1470,11 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
 
 .athlete-card-link:hover article {
     border-color: var(--pico-primary);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 0 0 1px var(--pico-primary-focus);
 }
 
 .athlete-card {
+    background: var(--bg-1);
     border-left: 3px solid var(--border-default);
     transition: border-color var(--duration-fast) var(--ease-default),
                 box-shadow var(--duration-fast) var(--ease-default);
@@ -1492,13 +1527,14 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
     letter-spacing: normal;
 }
 
-/* ---- Empty States ---- */
+/* ---- Empty States — warm, inviting ---- */
 article.empty-state {
     text-align: center;
     margin: var(--space-xl) 0;
     padding: var(--space-2xl) var(--space-lg);
     border-style: dashed;
     border-color: var(--border-default);
+    background: var(--bg-1);
 }
 
 article.empty-state p {
@@ -1677,7 +1713,7 @@ input[inputmode="numeric"] {
     display: block;
 }
 
-/* ---- Dashboard Stats Row ---- */
+/* ---- Dashboard Stats Row — visually prominent ---- */
 .stats-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1687,16 +1723,33 @@ input[inputmode="numeric"] {
 
 .stat-card {
     text-align: center;
-    padding: var(--space-md) var(--space-sm) !important;
+    padding: var(--space-lg) var(--space-sm) !important;
     margin: 0 !important;
+    background: var(--bg-1) !important;
+    border: 1px solid var(--border-subtle) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle accent glow at top of stat cards */
+.stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--pico-primary), transparent);
+    opacity: 0.5;
 }
 
 .stat-value {
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
@@ -1745,13 +1798,13 @@ input[inputmode="numeric"] {
 /* Heatmap color scale — shared by cells (SVG fill) and swatches (CSS background) */
 :root {
     --heatmap-0: var(--bg-3);
-    --heatmap-1: rgba(129, 140, 248, 0.25);
-    --heatmap-2: rgba(129, 140, 248, 0.45);
-    --heatmap-3: rgba(129, 140, 248, 0.70);
-    --heatmap-4: rgba(129, 140, 248, 0.95);
+    --heatmap-1: rgba(139, 143, 245, 0.25);
+    --heatmap-2: rgba(139, 143, 245, 0.45);
+    --heatmap-3: rgba(139, 143, 245, 0.70);
+    --heatmap-4: rgba(139, 143, 245, 0.95);
 }
 [data-theme="light"] {
-    --heatmap-0: #ebedf0;
+    --heatmap-0: #eae9e4;
     --heatmap-1: rgba(99, 102, 241, 0.20);
     --heatmap-2: rgba(99, 102, 241, 0.40);
     --heatmap-3: rgba(99, 102, 241, 0.60);
@@ -1964,6 +2017,7 @@ input[inputmode="numeric"] {
 
 .review-card {
     border-left: 4px solid var(--pico-muted-border-color);
+    background: var(--bg-1);
 }
 
 .review-card[data-status="approved"] {
@@ -2400,10 +2454,12 @@ article.error-page [role="button"] {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    background: var(--bg-0);
 }
 .login-card {
     max-width: 24rem;
     width: 100%;
+    background: var(--bg-1);
 }
 .login-passkey-btn {
     width: 100%;
