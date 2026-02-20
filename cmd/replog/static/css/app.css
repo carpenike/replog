@@ -1216,6 +1216,9 @@ main.container {
 .page-actions [role="button"] {
     width: auto;
     margin-bottom: 0;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
 }
 
 /* ---- Breadcrumbs — subtle, understated ---- */
