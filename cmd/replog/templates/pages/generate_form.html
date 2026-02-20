@@ -41,13 +41,15 @@
                 <div>
                     <label for="num_weeks">Number of Weeks</label>
                     <input type="number" id="num_weeks" name="num_weeks"
-                           value="{{ .NumWeeks }}" min="1" max="52">
+                           value="{{ if .IsLoop }}1{{ else }}{{ .NumWeeks }}{{ end }}" min="1" max="52"
+                           {{ if .IsLoop }}disabled{{ end }}>
                 </div>
             </div>
 
             <fieldset>
                 <label>
-                    <input type="checkbox" name="is_loop" value="1" {{ if .IsLoop }}checked{{ end }}>
+                    <input type="checkbox" id="is_loop" name="is_loop" value="1" {{ if .IsLoop }}checked{{ end }}
+                           data-toggle-weeks>
                     Looping program (repeats weekly)
                 </label>
             </fieldset>

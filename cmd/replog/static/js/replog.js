@@ -173,11 +173,30 @@
         }
     });
 
+    // ---- Loop toggle: disable weeks input when looping is checked ----
+    document.addEventListener("change", function (e) {
+        if (!e.target.hasAttribute("data-toggle-weeks")) return;
+        var weeks = document.getElementById("num_weeks");
+        if (!weeks) return;
+        if (e.target.checked) {
+            weeks.dataset.prevWeeks = weeks.value;
+            weeks.value = "1";
+            weeks.disabled = true;
+        } else {
+            weeks.disabled = false;
+            weeks.value = weeks.dataset.prevWeeks || "4";
+        }
+    });
+
     // ---- Submit delegation for long-running forms ----
     document.addEventListener("submit", function (e) {
         // Generate form: show busy indicator when submitting.
         var form = e.target.closest("[data-generate-submit]");
         if (form) {
+            // Re-enable disabled fields so their values are submitted.
+            var weeks = form.querySelector("#num_weeks");
+            if (weeks && weeks.disabled) weeks.disabled = false;
+
             var btn = form.querySelector("#generate-btn");
             var indicator = form.querySelector("#generate-indicator");
             if (btn) {
