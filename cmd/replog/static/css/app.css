@@ -426,7 +426,9 @@ table a:hover {
 
 :root {
     --sidebar-width: 13rem;
+    --sidebar-rail-width: 3.5rem;
     --topbar-height: 3.5rem;
+    --bottom-tab-height: 3.5rem;
     --sidebar-bg: var(--bg-1);
     --sidebar-border: var(--border-subtle);
 }
@@ -444,7 +446,8 @@ table a:hover {
     flex-direction: column;
     z-index: 100;
     overflow-y: auto;
-    transition: transform 0.25s ease;
+    overflow-x: hidden;
+    transition: width 0.2s ease, transform 0.25s ease;
     /* Reset Pico <aside> defaults */
     margin: 0;
     padding: 0;
@@ -481,6 +484,9 @@ table a:hover {
 
 .sidebar-header {
     padding: 1.25rem 1rem 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .sidebar-brand {
@@ -491,6 +497,37 @@ table a:hover {
     font-weight: 700;
     text-decoration: none;
     color: var(--text-primary);
+    min-width: 0;
+}
+
+.sidebar-brand-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-collapse-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    transition: color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sidebar-collapse-btn:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+}
+
+.sidebar-collapse-btn svg {
+    width: 1rem;
+    height: 1rem;
 }
 
 .sidebar-brand:hover {
@@ -799,6 +836,92 @@ table a:hover {
     padding: 0;
 }
 
+/* ---- Collapsible sidebar (rail mode) ---- */
+body.sidebar-collapsed .sidebar {
+    width: var(--sidebar-rail-width);
+}
+
+body.sidebar-collapsed .sidebar-brand-text,
+body.sidebar-collapsed .sidebar-link span,
+body.sidebar-collapsed .sidebar-divider,
+body.sidebar-collapsed .sidebar-footer,
+body.sidebar-collapsed .sidebar-collapse-btn svg {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s, visibility 0.15s;
+}
+
+body.sidebar-collapsed .sidebar-collapse-btn svg {
+    transform: rotate(180deg);
+}
+
+body.sidebar-collapsed .sidebar-header {
+    justify-content: center;
+    padding: 1.25rem 0.5rem 0.75rem;
+}
+
+body.sidebar-collapsed .sidebar-brand {
+    justify-content: center;
+}
+
+body.sidebar-collapsed .sidebar-nav {
+    padding: 0.5rem;
+    align-items: center;
+}
+
+body.sidebar-collapsed .sidebar-link {
+    justify-content: center;
+    padding: 0.6rem;
+    width: 2.25rem;
+    height: 2.25rem;
+}
+
+body.sidebar-collapsed .sidebar-link svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    opacity: 0.8;
+}
+
+/* Expand on hover (desktop only) */
+@media (min-width: 769px) {
+    body.sidebar-collapsed .sidebar:hover {
+        width: var(--sidebar-width);
+    }
+    body.sidebar-collapsed .sidebar:hover .sidebar-brand-text,
+    body.sidebar-collapsed .sidebar:hover .sidebar-link span,
+    body.sidebar-collapsed .sidebar:hover .sidebar-divider,
+    body.sidebar-collapsed .sidebar:hover .sidebar-footer,
+    body.sidebar-collapsed .sidebar:hover .sidebar-collapse-btn svg {
+        opacity: 1;
+        visibility: visible;
+    }
+    body.sidebar-collapsed .sidebar:hover .sidebar-header {
+        justify-content: space-between;
+        padding: 1.25rem 1rem 0.75rem;
+    }
+    body.sidebar-collapsed .sidebar:hover .sidebar-brand {
+        justify-content: flex-start;
+    }
+    body.sidebar-collapsed .sidebar:hover .sidebar-nav {
+        padding: 0.5rem 0.75rem;
+        align-items: stretch;
+    }
+    body.sidebar-collapsed .sidebar:hover .sidebar-link {
+        justify-content: flex-start;
+        padding: 0.55rem 0.75rem;
+        width: auto;
+        height: auto;
+    }
+    body.sidebar-collapsed .sidebar:hover .sidebar-link svg {
+        width: 1.1rem;
+        height: 1.1rem;
+    }
+}
+
+body.sidebar-collapsed .main-content {
+    margin-left: var(--sidebar-rail-width);
+}
+
 /* Mobile top bar — hidden on desktop */
 .topbar {
     display: none;
@@ -846,7 +969,7 @@ table a:hover {
     font-size: 0.8rem;
 }
 
-/* ---- Responsive: mobile sidebar ---- */
+/* ---- Responsive: mobile sidebar + bottom tabs ---- */
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
@@ -858,6 +981,11 @@ table a:hover {
 
     body.sidebar-open .sidebar-overlay {
         display: block;
+    }
+
+    /* Hide collapse button on mobile — not needed with bottom tabs */
+    .sidebar-collapse-btn {
+        display: none;
     }
 
     .topbar {
@@ -902,10 +1030,90 @@ table a:hover {
 
     .main-content {
         margin-left: 0;
+        padding-bottom: var(--bottom-tab-height);
     }
 
     .content-container {
         padding: 1rem;
+    }
+
+    /* Hide topbar hamburger — bottom tabs handle nav now */
+    .topbar-toggle {
+        display: none;
+    }
+}
+
+/* ---- Mobile Bottom Tab Bar ---- */
+.bottom-tabs {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .bottom-tabs {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: var(--bottom-tab-height);
+        background: var(--sidebar-bg);
+        border-top: 1px solid var(--sidebar-border);
+        z-index: 101;
+        padding: 0;
+        margin: 0;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    .bottom-tab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.15rem;
+        padding: 0.4rem 0.25rem;
+        color: var(--text-tertiary);
+        text-decoration: none;
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        transition: color 0.15s;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        -webkit-tap-highlight-color: transparent;
+        min-height: 2.75rem;
+    }
+
+    .bottom-tab:hover,
+    .bottom-tab:active {
+        color: var(--pico-primary);
+        text-decoration: none;
+    }
+
+    .bottom-tab svg {
+        width: 1.35rem;
+        height: 1.35rem;
+        flex-shrink: 0;
+    }
+
+    .bottom-tab span {
+        line-height: 1;
+    }
+
+    /* Primary action tab (Log Workout) */
+    .bottom-tab--primary {
+        color: var(--pico-primary);
+    }
+
+    .bottom-tab--primary svg {
+        background: var(--pico-primary);
+        color: var(--pico-primary-inverse);
+        border-radius: 50%;
+        padding: 0.2rem;
+        width: 1.75rem;
+        height: 1.75rem;
     }
 }
 
@@ -1330,6 +1538,40 @@ tr[data-rpe="9"], tr[data-rpe="9.5"], tr[data-rpe="10"] {
     gap: var(--space-md);
     margin-top: var(--space-md);
     margin-bottom: var(--space-lg);
+}
+
+/* ---- Bento Layout: two-column content sections ---- */
+.content-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.content-2col > section,
+.content-2col > article,
+.content-2col > div {
+    min-width: 0;
+}
+
+.content-2col--wide-left {
+    grid-template-columns: 2fr 1fr;
+}
+
+.content-2col--wide-right {
+    grid-template-columns: 1fr 2fr;
+}
+
+.content-span-full {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+    .content-2col,
+    .content-2col--wide-left,
+    .content-2col--wide-right {
+        grid-template-columns: 1fr;
+    }
 }
 
 .dashboard-grid > article,

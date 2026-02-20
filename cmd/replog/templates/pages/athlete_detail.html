@@ -173,6 +173,9 @@
             {{ end }}
         </div>
 
+        <!-- Activity Overview — two-column bento layout -->
+        <div class="content-2col">
+
         <!-- Weekly Completion Streaks -->
         {{ if .Streaks }}
         <section>
@@ -185,40 +188,6 @@
                     <span class="streak-tooltip">{{ .WeekStart }} – {{ .WeekEnd }}</span>
                 </div>
                 {{ end }}
-            </div>
-        </section>
-        {{ end }}
-
-        <!-- Workout Frequency Heatmap -->
-        {{ if .Heatmap }}
-        <section>
-            <h2>Activity</h2>
-            <p class="text-muted">Workout frequency over the last year. Brighter = higher volume.</p>
-            <div class="heatmap-container">
-                <svg class="workout-heatmap" viewBox="0 0 810 120" preserveAspectRatio="xMidYMid meet">
-                    <!-- Month labels -->
-                    {{ range .Heatmap.MonthLabels }}
-                    <text x="{{ .X }}" y="10" class="heatmap-label">{{ .Label }}</text>
-                    {{ end }}
-                    <!-- Day cells -->
-                    <g transform="translate(0, 18)">
-                    {{ range .Heatmap.Cells }}
-                    <rect x="{{ .X }}" y="{{ .Y }}" width="12" height="12" rx="2"
-                          class="heatmap-cell" data-level="{{ .Level }}">
-                        <title>{{ formatDateStr $.Prefs .Date }}{{ if gt .Volume 0.0 }}: {{ formatVolume .Volume }} volume{{ end }}</title>
-                    </rect>
-                    {{ end }}
-                    </g>
-                </svg>
-                <div class="heatmap-legend">
-                    <span class="text-muted">Less</span>
-                    <span class="heatmap-swatch" data-level="0"></span>
-                    <span class="heatmap-swatch" data-level="1"></span>
-                    <span class="heatmap-swatch" data-level="2"></span>
-                    <span class="heatmap-swatch" data-level="3"></span>
-                    <span class="heatmap-swatch" data-level="4"></span>
-                    <span class="text-muted">More</span>
-                </div>
             </div>
         </section>
         {{ end }}
@@ -257,6 +226,42 @@
             </div>
         </section>
         {{ end }}
+
+        <!-- Workout Frequency Heatmap (spans full width) -->
+        {{ if .Heatmap }}
+        <section class="content-span-full">
+            <h2>Activity</h2>
+            <p class="text-muted">Workout frequency over the last year. Brighter = higher volume.</p>
+            <div class="heatmap-container">
+                <svg class="workout-heatmap" viewBox="0 0 810 120" preserveAspectRatio="xMidYMid meet">
+                    <!-- Month labels -->
+                    {{ range .Heatmap.MonthLabels }}
+                    <text x="{{ .X }}" y="10" class="heatmap-label">{{ .Label }}</text>
+                    {{ end }}
+                    <!-- Day cells -->
+                    <g transform="translate(0, 18)">
+                    {{ range .Heatmap.Cells }}
+                    <rect x="{{ .X }}" y="{{ .Y }}" width="12" height="12" rx="2"
+                          class="heatmap-cell" data-level="{{ .Level }}">
+                        <title>{{ formatDateStr $.Prefs .Date }}{{ if gt .Volume 0.0 }}: {{ formatVolume .Volume }} volume{{ end }}</title>
+                    </rect>
+                    {{ end }}
+                    </g>
+                </svg>
+                <div class="heatmap-legend">
+                    <span class="text-muted">Less</span>
+                    <span class="heatmap-swatch" data-level="0"></span>
+                    <span class="heatmap-swatch" data-level="1"></span>
+                    <span class="heatmap-swatch" data-level="2"></span>
+                    <span class="heatmap-swatch" data-level="3"></span>
+                    <span class="heatmap-swatch" data-level="4"></span>
+                    <span class="text-muted">More</span>
+                </div>
+            </div>
+        </section>
+        {{ end }}
+
+        </div><!-- end .content-2col -->
 
         <!-- Today's Prescription -->
         {{ if and .ActiveProgram .Prescription }}
