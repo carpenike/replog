@@ -34,6 +34,7 @@ func TestPrescriptionLine_TargetWeightLabel(t *testing.T) {
 		want   string
 	}{
 		{"nil", nil, ""},
+		{"zero is BW", ptrFloat(0), "BW"},
 		{"130", ptrFloat(130.0), "130.0"},
 		{"132.5", ptrFloat(132.5), "132.5"},
 	}

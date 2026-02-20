@@ -296,7 +296,7 @@
                         <td>{{ .ExerciseName }}</td>
                         <td>{{ .SetsSummary }}</td>
                         <td>{{ if .PercentageLabel }}{{ .PercentageLabel }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
-                        <td>{{ if .TargetWeightLabel }}{{ .TargetWeightLabel }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td>{{ if .TargetWeightLabel }}{{ if eq .TargetWeightLabel "BW" }}BW{{ else }}{{ .TargetWeightLabel }} {{ weightUnit $.Prefs }}{{ end }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                     </tr>
                     {{ end }}
                 </tbody>

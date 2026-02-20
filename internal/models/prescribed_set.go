@@ -29,11 +29,15 @@ type PrescribedSet struct {
 }
 
 // TargetWeightLabel returns the formatted target weight for this set, or "" if none.
+// Returns "BW" when the weight is zero (bodyweight exercise).
 func (ps *PrescribedSet) TargetWeightLabel() string {
 	if ps.TargetWeight == nil {
 		return ""
 	}
 	w := *ps.TargetWeight
+	if w == 0 {
+		return "BW"
+	}
 	if w == float64(int(w)) {
 		return fmt.Sprintf("%.0f", w)
 	}
@@ -41,11 +45,15 @@ func (ps *PrescribedSet) TargetWeightLabel() string {
 }
 
 // AbsoluteWeightLabel returns the formatted absolute weight for this set, or "" if none.
+// Returns "BW" when the weight is zero (bodyweight exercise).
 func (ps *PrescribedSet) AbsoluteWeightLabel() string {
 	if !ps.AbsoluteWeight.Valid {
 		return ""
 	}
 	w := ps.AbsoluteWeight.Float64
+	if w == 0 {
+		return "BW"
+	}
 	if w == float64(int(w)) {
 		return fmt.Sprintf("%.0f", w)
 	}

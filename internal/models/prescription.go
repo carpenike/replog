@@ -27,9 +27,13 @@ func (pl *PrescriptionLine) PercentageLabel() string {
 }
 
 // TargetWeightLabel returns a formatted string like "185.0" or empty if nil.
+// Returns "BW" when the weight is zero (bodyweight exercise).
 func (pl *PrescriptionLine) TargetWeightLabel() string {
 	if pl.TargetWeight == nil {
 		return ""
+	}
+	if *pl.TargetWeight == 0 {
+		return "BW"
 	}
 	return fmt.Sprintf("%.1f", *pl.TargetWeight)
 }

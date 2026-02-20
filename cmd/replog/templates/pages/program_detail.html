@@ -78,7 +78,7 @@
                         <td>{{ .SortOrder }}</td>
                         <td>{{ .SetNumber }}</td>
                         <td>{{ .RepsLabel }}</td>
-                        <td>{{ if .Percentage.Valid }}{{ printf "%.0f" .Percentage.Float64 }}%{{ else }}{{ .AbsoluteWeightLabel }}{{ end }}</td>
+                        <td>{{ if .Percentage.Valid }}{{ printf "%.0f" .Percentage.Float64 }}%{{ else }}{{ if .AbsoluteWeightLabel }}{{ .AbsoluteWeightLabel }}{{ else }}BW{{ end }}{{ end }}</td>
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         <td class="action-buttons">
                             {{ if or $.User.IsCoach $.User.IsAdmin }}
