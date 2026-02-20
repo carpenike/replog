@@ -877,7 +877,6 @@ table a:hover {
 /* ---- Collapsible sidebar (rail mode) ---- */
 html.sidebar-collapsed .sidebar {
     width: var(--sidebar-rail-width);
-    overflow: visible; /* allow tooltips to extend past the rail edge */
 }
 
 /* Hide text labels, dividers, section labels, and user footer in rail mode */
@@ -920,7 +919,6 @@ html.sidebar-collapsed .sidebar-collapse-btn {
 html.sidebar-collapsed .sidebar-nav {
     padding: 0.5rem;
     align-items: center;
-    overflow: visible; /* allow tooltips to extend past nav bounds */
 }
 
 html.sidebar-collapsed .sidebar-link {
@@ -928,9 +926,17 @@ html.sidebar-collapsed .sidebar-link {
     padding: 0.6rem;
     width: 2.25rem;
     height: 2.25rem;
-    overflow: visible; /* allow ::after tooltip to render outside link box */
+    overflow: hidden;
     font-size: 0;
-    position: relative;
+    border-radius: var(--radius-sm, 0.375rem);
+}
+
+html.sidebar-collapsed .sidebar-link:hover {
+    background: var(--surface-hover);
+}
+
+html.sidebar-collapsed .sidebar-link:hover svg {
+    opacity: 1;
 }
 
 html.sidebar-collapsed .sidebar-link svg {
@@ -942,24 +948,6 @@ html.sidebar-collapsed .sidebar-link svg {
 
 html.sidebar-collapsed .main-content {
     margin-left: var(--sidebar-rail-width);
-}
-
-/* Tooltip on rail icons */
-html.sidebar-collapsed .sidebar-link:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    left: calc(100% + 0.5rem);
-    top: 50%;
-    transform: translateY(-50%);
-    background: var(--bg-2);
-    color: var(--text-primary);
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.8rem;
-    white-space: nowrap;
-    box-shadow: var(--shadow-md, 0 2px 8px rgba(0,0,0,0.15));
-    z-index: 200;
-    pointer-events: none;
 }
 
 /* Mobile top bar — hidden on desktop */
