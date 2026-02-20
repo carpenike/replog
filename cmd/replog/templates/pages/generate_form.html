@@ -74,5 +74,167 @@
             </div>
             <span id="generate-indicator" style="display:none;">Generating program&hellip; This may take 10&ndash;30 seconds.</span>
         </form>
+
+        {{ if .Context }}
+        <details style="margin-top: 2rem;">
+            <summary>Athlete Context Sent to AI Coach</summary>
+            <div style="margin-top: 1rem;">
+
+                {{/* --- Profile --- */}}
+                <h4>Athlete Profile</h4>
+                <table>
+                    <tbody>
+                        <tr><th scope="row">Name</th><td>{{ .Context.Athlete.Name }}</td></tr>
+                        {{ if .Context.Athlete.Tier }}<tr><th scope="row">Tier</th><td>{{ derefStr .Context.Athlete.Tier }}</td></tr>{{ end }}
+                        {{ if .Context.Athlete.Goal }}<tr><th scope="row">Goal</th><td>{{ derefStr .Context.Athlete.Goal }}</td></tr>{{ end }}
+                        {{ if .Context.Athlete.Notes }}<tr><th scope="row">Notes</th><td>{{ derefStr .Context.Athlete.Notes }}</td></tr>{{ end }}
+                        <tr><th scope="row">Training Months</th><td>{{ .Context.Athlete.TrainingMonths }}</td></tr>
+                        <tr><th scope="row">Total Workouts</th><td>{{ .Context.Athlete.TotalWorkouts }}</td></tr>
+                        {{ if .Context.Athlete.LatestBW }}<tr><th scope="row">Latest Body Weight</th><td>{{ printf "%.1f" (deref .Context.Athlete.LatestBW) }} lbs</td></tr>{{ end }}
+                    </tbody>
+                </table>
+
+                {{/* --- Equipment --- */}}
+                <h4>Available Equipment</h4>
+                {{ if .Context.Equipment }}
+                <ul>
+                    {{ range .Context.Equipment }}<li>{{ . }}</li>{{ end }}
+                </ul>
+                {{ else }}
+                <p><em>No equipment assigned &mdash; only bodyweight exercises will be used.</em></p>
+                {{ end }}
+
+                {{/* --- Current Program --- */}}
+                <h4>Current Program</h4>
+                {{ if .Context.CurrentProgram }}
+                <table>
+                    <tbody>
+                        <tr><th scope="row">Name</th><td>{{ .Context.CurrentProgram.Name }}</td></tr>
+                        <tr><th scope="row">Structure</th><td>{{ .Context.CurrentProgram.NumWeeks }} weeks &times; {{ .Context.CurrentProgram.NumDays }} days{{ if .Context.CurrentProgram.IsLoop }} (looping){{ end }}</td></tr>
+                        <tr><th scope="row">Start Date</th><td>{{ .Context.CurrentProgram.StartDate }}</td></tr>
+                        <tr><th scope="row">Active</th><td>{{ if .Context.CurrentProgram.Active }}Yes{{ else }}No{{ end }}</td></tr>
+                    </tbody>
+                </table>
+                {{ else }}
+                <p><em>No current program.</em></p>
+                {{ end }}
+
+                {{/* --- Training Maxes --- */}}
+                <h4>Training Maxes</h4>
+                {{ if .Context.Performance.TrainingMaxes }}
+                <table>
+                    <thead>
+                        <tr><th scope="col">Exercise</th><th scope="col">Weight</th><th scope="col">Date</th></tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Context.Performance.TrainingMaxes }}
+                        <tr><td>{{ .Exercise }}</td><td>{{ printf "%.1f" .Weight }} lbs</td><td>{{ .EffectiveDate }}</td></tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ else }}
+                <p><em>No training maxes set.</em></p>
+                {{ end }}
+
+                {{/* --- Body Weights --- */}}
+                {{ if .Context.Performance.BodyWeights }}
+                <h4>Recent Body Weights</h4>
+                <table>
+                    <thead>
+                        <tr><th scope="col">Date</th><th scope="col">Weight</th></tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Context.Performance.BodyWeights }}
+                        <tr><td>{{ .Date }}</td><td>{{ printf "%.1f" .Weight }} lbs</td></tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ end }}
+
+                {{/* --- Coach Notes --- */}}
+                {{ if .Context.CoachNotes }}
+                <h4>Coach Notes &amp; Reviews</h4>
+                <table>
+                    <thead>
+                        <tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Content</th></tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Context.CoachNotes }}
+                        <tr><td>{{ .Date }}</td><td>{{ .Type }}</td><td>{{ .Content }}</td></tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ end }}
+
+                {{/* --- Recent Workouts --- */}}
+                {{ if .Context.RecentWorkouts }}
+                <h4>Recent Workouts ({{ len .Context.RecentWorkouts }})</h4>
+                {{ range .Context.RecentWorkouts }}
+                <details>
+                    <summary>{{ .Date }}{{ if .Notes }} &mdash; {{ derefStr .Notes }}{{ end }} ({{ len .Sets }} sets)</summary>
+                    <table>
+                        <thead>
+                            <tr><th scope="col">Exercise</th><th scope="col">Set</th><th scope="col">Reps</th><th scope="col">Weight</th><th scope="col">RPE</th></tr>
+                        </thead>
+                        <tbody>
+                            {{ range .Sets }}
+                            <tr>
+                                <td>{{ .Exercise }}</td>
+                                <td>{{ .SetNumber }}</td>
+                                <td>{{ .Reps }}{{ if ne .RepType "reps" }} ({{ .RepType }}){{ end }}</td>
+                                <td>{{ if .Weight }}{{ printf "%.1f" (deref .Weight) }}{{ else }}BW{{ end }}</td>
+                                <td>{{ if .RPE }}{{ printf "%.1f" (deref .RPE) }}{{ else }}&mdash;{{ end }}</td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </details>
+                {{ end }}
+                {{ end }}
+
+                {{/* --- Exercise Catalog --- */}}
+                <h4>Exercise Catalog ({{ len .Context.ExerciseCatalog }} exercises)</h4>
+                <details>
+                    <summary>View all exercises</summary>
+                    <table>
+                        <thead>
+                            <tr><th scope="col">Exercise</th><th scope="col">Tier</th><th scope="col">Compatible</th></tr>
+                        </thead>
+                        <tbody>
+                            {{ range .Context.ExerciseCatalog }}
+                            <tr>
+                                <td>{{ .Name }}</td>
+                                <td>{{ if .Tier }}{{ derefStr .Tier }}{{ else }}&mdash;{{ end }}</td>
+                                <td>{{ if .Compatible }}&#10003;{{ else }}&#10007;{{ end }}</td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </details>
+
+                {{/* --- Prior Templates --- */}}
+                {{ if .Context.PriorTemplates }}
+                <h4>Prior Program Templates</h4>
+                <table>
+                    <thead>
+                        <tr><th scope="col">Name</th><th scope="col">Structure</th></tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Context.PriorTemplates }}
+                        <tr><td>{{ .Name }}</td><td>{{ .NumWeeks }}w &times; {{ .NumDays }}d{{ if .IsLoop }} (loop){{ end }}</td></tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ end }}
+
+                <div class="page-actions" style="margin-top: 1rem;">
+                    <a href="/athletes/{{ $.Athlete.ID }}/context.json" role="button" class="outline secondary" download>
+                        Download Raw JSON
+                    </a>
+                </div>
+            </div>
+        </details>
+        {{ end }}
+
         {{ end }}
 {{ end }}

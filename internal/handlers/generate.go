@@ -55,6 +55,12 @@ func (h *Generate) Form(w http.ResponseWriter, r *http.Request) {
 		isLoop = active.IsLoop
 	}
 
+	// Build athlete context for the LLM preview panel.
+	athleteCtx, ctxErr := llm.BuildAthleteContext(h.DB, athleteID, time.Now())
+	if ctxErr != nil {
+		log.Printf("handlers: build context preview for athlete %d: %v", athleteID, ctxErr)
+	}
+
 	data := map[string]any{
 		"Athlete":       athlete,
 		"Configured":    configured,
@@ -62,6 +68,7 @@ func (h *Generate) Form(w http.ResponseWriter, r *http.Request) {
 		"NumDays":       numDays,
 		"NumWeeks":      numWeeks,
 		"IsLoop":        isLoop,
+		"Context":       athleteCtx,
 	}
 	if err := h.Templates.Render(w, r, "generate_form.html", data); err != nil {
 		log.Printf("handlers: render generate form: %v", err)

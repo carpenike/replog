@@ -182,6 +182,14 @@ var templateFuncs = template.FuncMap{
 		}
 		return *p
 	},
+	// derefStr dereferences a *string, returning "" if nil. Useful in templates
+	// that receive optional string values from context/model structs.
+	"derefStr": func(p *string) string {
+		if p == nil {
+			return ""
+		}
+		return *p
+	},
 	// settingFieldType returns the HTML input type for a setting key.
 	"settingFieldType": func(key string) string {
 		def := models.GetSettingDefinition(key)
