@@ -2790,7 +2790,7 @@ article.error-page [role="button"] {
 .preview-col-sets { width: 3.5rem; }
 .preview-col-reps { width: 5.5rem; }
 .preview-col-load { width: 7rem; }
-.preview-col-del  { width: 2.5rem; }
+.preview-col-del  { width: 4rem; }
 /* Compact table cells in preview */
 table:has(.preview-input) {
     border-spacing: 0;
