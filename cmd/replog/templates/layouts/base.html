@@ -81,14 +81,14 @@
         }
 
         function collapseSidebar() {
-            document.body.classList.toggle("sidebar-collapsed");
-            localStorage.setItem("sidebar-collapsed", document.body.classList.contains("sidebar-collapsed"));
+            document.documentElement.classList.toggle("sidebar-collapsed");
+            localStorage.setItem("sidebar-collapsed", document.documentElement.classList.contains("sidebar-collapsed"));
         }
 
-        // Restore sidebar collapsed state.
+        // Restore sidebar collapsed state (uses documentElement so it works in <head>).
         (function() {
             if (localStorage.getItem("sidebar-collapsed") === "true") {
-                document.body.classList.add("sidebar-collapsed");
+                document.documentElement.classList.add("sidebar-collapsed");
             }
         })();
 

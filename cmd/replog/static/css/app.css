@@ -837,15 +837,15 @@ table a:hover {
 }
 
 /* ---- Collapsible sidebar (rail mode) ---- */
-body.sidebar-collapsed .sidebar {
+html.sidebar-collapsed .sidebar {
     width: var(--sidebar-rail-width);
 }
 
 /* Hide text labels, dividers, and user footer in rail mode */
-body.sidebar-collapsed .sidebar-brand-text,
-body.sidebar-collapsed .sidebar-link span,
-body.sidebar-collapsed .sidebar-divider,
-body.sidebar-collapsed .sidebar-footer {
+html.sidebar-collapsed .sidebar-brand-text,
+html.sidebar-collapsed .sidebar-link span,
+html.sidebar-collapsed .sidebar-divider,
+html.sidebar-collapsed .sidebar-footer {
     opacity: 0;
     visibility: hidden;
     width: 0;
@@ -854,30 +854,30 @@ body.sidebar-collapsed .sidebar-footer {
 }
 
 /* Flip the collapse chevron to point right (expand) */
-body.sidebar-collapsed .sidebar-collapse-btn svg {
+html.sidebar-collapsed .sidebar-collapse-btn svg {
     transform: rotate(180deg);
 }
 
-body.sidebar-collapsed .sidebar-header {
+html.sidebar-collapsed .sidebar-header {
     justify-content: center;
     padding: 1rem 0.5rem 0.75rem;
 }
 
 /* Hide the brand entirely in rail, show collapse btn centered */
-body.sidebar-collapsed .sidebar-brand {
+html.sidebar-collapsed .sidebar-brand {
     display: none;
 }
 
-body.sidebar-collapsed .sidebar-collapse-btn {
+html.sidebar-collapsed .sidebar-collapse-btn {
     margin: 0 auto;
 }
 
-body.sidebar-collapsed .sidebar-nav {
+html.sidebar-collapsed .sidebar-nav {
     padding: 0.5rem;
     align-items: center;
 }
 
-body.sidebar-collapsed .sidebar-link {
+html.sidebar-collapsed .sidebar-link {
     justify-content: center;
     padding: 0.6rem;
     width: 2.25rem;
@@ -886,54 +886,56 @@ body.sidebar-collapsed .sidebar-link {
     font-size: 0;
 }
 
-body.sidebar-collapsed .sidebar-link svg {
+html.sidebar-collapsed .sidebar-link svg {
     width: 1.25rem;
     height: 1.25rem;
     opacity: 0.8;
     flex-shrink: 0;
 }
 
-body.sidebar-collapsed .main-content {
+html.sidebar-collapsed .main-content {
     margin-left: var(--sidebar-rail-width);
 }
 
 /* On hover in rail mode, show a tooltip-style expanded sidebar overlaying content */
 @media (min-width: 769px) {
-    body.sidebar-collapsed .sidebar:hover {
+    html.sidebar-collapsed .sidebar:hover {
         width: var(--sidebar-width);
         box-shadow: var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.2));
     }
-    body.sidebar-collapsed .sidebar:hover .sidebar-brand-text,
-    body.sidebar-collapsed .sidebar:hover .sidebar-link span,
-    body.sidebar-collapsed .sidebar:hover .sidebar-divider,
-    body.sidebar-collapsed .sidebar:hover .sidebar-footer {
+    html.sidebar-collapsed .sidebar:hover .sidebar-brand-text,
+    html.sidebar-collapsed .sidebar:hover .sidebar-link span,
+    html.sidebar-collapsed .sidebar:hover .sidebar-divider,
+    html.sidebar-collapsed .sidebar:hover .sidebar-footer {
         opacity: 1;
         visibility: visible;
         width: auto;
         overflow: visible;
     }
-    body.sidebar-collapsed .sidebar:hover .sidebar-header {
+    html.sidebar-collapsed .sidebar:hover .sidebar-header {
         justify-content: space-between;
         padding: 1.25rem 1rem 0.75rem;
     }
-    body.sidebar-collapsed .sidebar:hover .sidebar-brand {
+    html.sidebar-collapsed .sidebar:hover .sidebar-brand {
         display: flex;
         justify-content: flex-start;
     }
-    body.sidebar-collapsed .sidebar:hover .sidebar-collapse-btn {
+    html.sidebar-collapsed .sidebar:hover .sidebar-collapse-btn {
         margin: 0;
     }
-    body.sidebar-collapsed .sidebar:hover .sidebar-nav {
+    html.sidebar-collapsed .sidebar:hover .sidebar-nav {
         padding: 0.5rem 0.75rem;
         align-items: stretch;
     }
-    body.sidebar-collapsed .sidebar:hover .sidebar-link {
+    html.sidebar-collapsed .sidebar:hover .sidebar-link {
         justify-content: flex-start;
         padding: 0.55rem 0.75rem;
         width: auto;
         height: auto;
+        overflow: visible;
+        font-size: inherit;
     }
-    body.sidebar-collapsed .sidebar:hover .sidebar-link svg {
+    html.sidebar-collapsed .sidebar:hover .sidebar-link svg {
         width: 1.1rem;
         height: 1.1rem;
     }
