@@ -841,27 +841,35 @@ body.sidebar-collapsed .sidebar {
     width: var(--sidebar-rail-width);
 }
 
+/* Hide text labels, dividers, and user footer in rail mode */
 body.sidebar-collapsed .sidebar-brand-text,
 body.sidebar-collapsed .sidebar-link span,
 body.sidebar-collapsed .sidebar-divider,
-body.sidebar-collapsed .sidebar-footer,
-body.sidebar-collapsed .sidebar-collapse-btn svg {
+body.sidebar-collapsed .sidebar-footer {
     opacity: 0;
     visibility: hidden;
+    width: 0;
+    overflow: hidden;
     transition: opacity 0.15s, visibility 0.15s;
 }
 
+/* Flip the collapse chevron to point right (expand) */
 body.sidebar-collapsed .sidebar-collapse-btn svg {
     transform: rotate(180deg);
 }
 
 body.sidebar-collapsed .sidebar-header {
     justify-content: center;
-    padding: 1.25rem 0.5rem 0.75rem;
+    padding: 1rem 0.5rem 0.75rem;
 }
 
+/* Hide the brand entirely in rail, show collapse btn centered */
 body.sidebar-collapsed .sidebar-brand {
-    justify-content: center;
+    display: none;
+}
+
+body.sidebar-collapsed .sidebar-collapse-btn {
+    margin: 0 auto;
 }
 
 body.sidebar-collapsed .sidebar-nav {
@@ -882,25 +890,35 @@ body.sidebar-collapsed .sidebar-link svg {
     opacity: 0.8;
 }
 
-/* Expand on hover (desktop only) */
+body.sidebar-collapsed .main-content {
+    margin-left: var(--sidebar-rail-width);
+}
+
+/* On hover in rail mode, show a tooltip-style expanded sidebar overlaying content */
 @media (min-width: 769px) {
     body.sidebar-collapsed .sidebar:hover {
         width: var(--sidebar-width);
+        box-shadow: var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.2));
     }
     body.sidebar-collapsed .sidebar:hover .sidebar-brand-text,
     body.sidebar-collapsed .sidebar:hover .sidebar-link span,
     body.sidebar-collapsed .sidebar:hover .sidebar-divider,
-    body.sidebar-collapsed .sidebar:hover .sidebar-footer,
-    body.sidebar-collapsed .sidebar:hover .sidebar-collapse-btn svg {
+    body.sidebar-collapsed .sidebar:hover .sidebar-footer {
         opacity: 1;
         visibility: visible;
+        width: auto;
+        overflow: visible;
     }
     body.sidebar-collapsed .sidebar:hover .sidebar-header {
         justify-content: space-between;
         padding: 1.25rem 1rem 0.75rem;
     }
     body.sidebar-collapsed .sidebar:hover .sidebar-brand {
+        display: flex;
         justify-content: flex-start;
+    }
+    body.sidebar-collapsed .sidebar:hover .sidebar-collapse-btn {
+        margin: 0;
     }
     body.sidebar-collapsed .sidebar:hover .sidebar-nav {
         padding: 0.5rem 0.75rem;
@@ -916,10 +934,6 @@ body.sidebar-collapsed .sidebar-link svg {
         width: 1.1rem;
         height: 1.1rem;
     }
-}
-
-body.sidebar-collapsed .main-content {
-    margin-left: var(--sidebar-rail-width);
 }
 
 /* Mobile top bar — hidden on desktop */
