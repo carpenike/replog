@@ -2757,13 +2757,6 @@ article.error-page [role="button"] {
     margin-bottom: 0.25rem;
 }
 
-/* ---- Passkey registration row ---- */
-.passkey-register-row {
-    display: flex;
-    gap: var(--space-sm);
-    align-items: center;
-}
-
 /* ---- Mobile table scroll wrapper ---- */
 .table-scroll {
     overflow-x: auto;
