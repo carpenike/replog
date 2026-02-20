@@ -421,6 +421,8 @@ func exportEquipment(db *sql.DB, athleteID int64) (map[int64]ExportEquipment, er
 	}
 
 	// Also include equipment linked to exercises used in workouts.
+	// Collect IDs first to avoid holding rows open during secondary queries
+	// (SQLite single-connection deadlock with MaxOpenConns(1)).
 	rows, err := db.Query(`
 		SELECT DISTINCT ws.exercise_id
 		FROM workout_sets ws
@@ -429,13 +431,22 @@ func exportEquipment(db *sql.DB, athleteID int64) (map[int64]ExportEquipment, er
 	if err != nil {
 		return nil, fmt.Errorf("models: export equipment (workout exercises): %w", err)
 	}
-	defer rows.Close()
-
+	var workoutExIDs []int64
 	for rows.Next() {
 		var exID int64
 		if err := rows.Scan(&exID); err != nil {
+			rows.Close()
 			return nil, err
 		}
+		workoutExIDs = append(workoutExIDs, exID)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, err
+	}
+	rows.Close()
+
+	for _, exID := range workoutExIDs {
 		eeList, err := ListExerciseEquipment(db, exID)
 		if err != nil {
 			return nil, fmt.Errorf("models: export equipment for workout exercise %d: %w", exID, err)
@@ -450,9 +461,6 @@ func exportEquipment(db *sql.DB, athleteID int64) (map[int64]ExportEquipment, er
 				}
 			}
 		}
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	return result, nil
@@ -629,6 +637,8 @@ func exportWorkouts(db *sql.DB, athleteID int64) ([]ExportWorkout, error) {
 
 func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 	// Get athlete programs (active + inactive).
+	// Collect row data first, then close rows before running secondary queries
+	// (SQLite single-connection deadlock with MaxOpenConns(1)).
 	rows, err := db.Query(`
 		SELECT ap.id, ap.template_id, ap.start_date, ap.active, ap.notes, ap.goal,
 		       pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop
@@ -639,9 +649,12 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 	if err != nil {
 		return nil, fmt.Errorf("models: export programs for athlete %d: %w", athleteID, err)
 	}
-	defer rows.Close()
 
-	var result []ExportProgram
+	type programRow struct {
+		templateID int64
+		program    ExportProgram
+	}
+	var programRows []programRow
 	for rows.Next() {
 		var (
 			apID                         int64
@@ -654,27 +667,42 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 			isLoop                       bool
 		)
 		if err := rows.Scan(&apID, &templateID, &startDate, &active, &notes, &goal, &name, &desc, &numWeeks, &numDays, &isLoop); err != nil {
+			rows.Close()
 			return nil, fmt.Errorf("models: scan export program: %w", err)
 		}
 
-		ep := ExportProgram{
-			StartDate: startDate,
-			Active:    active,
-			Notes:     nullStringPtr(notes),
-			Goal:      nullStringPtr(goal),
-			Template: ExportProgramTemplate{
-				Name:        name,
-				Description: nullStringPtr(desc),
-				NumWeeks:    numWeeks,
-				NumDays:     numDays,
-				IsLoop:      isLoop,
+		programRows = append(programRows, programRow{
+			templateID: templateID,
+			program: ExportProgram{
+				StartDate: startDate,
+				Active:    active,
+				Notes:     nullStringPtr(notes),
+				Goal:      nullStringPtr(goal),
+				Template: ExportProgramTemplate{
+					Name:        name,
+					Description: nullStringPtr(desc),
+					NumWeeks:    numWeeks,
+					NumDays:     numDays,
+					IsLoop:      isLoop,
+				},
 			},
-		}
+		})
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, fmt.Errorf("models: iterate export programs: %w", err)
+	}
+	rows.Close()
+
+	// Now fetch prescribed sets and progression rules with rows closed.
+	var result []ExportProgram
+	for _, pr := range programRows {
+		ep := pr.program
 
 		// Prescribed sets.
-		pSets, err := ListPrescribedSets(db, templateID)
+		pSets, err := ListPrescribedSets(db, pr.templateID)
 		if err != nil {
-			return nil, fmt.Errorf("models: export prescribed sets for template %d: %w", templateID, err)
+			return nil, fmt.Errorf("models: export prescribed sets for template %d: %w", pr.templateID, err)
 		}
 		for _, ps := range pSets {
 			eps := ExportPrescribedSet{
@@ -702,9 +730,9 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 		}
 
 		// Progression rules.
-		rules, err := ListProgressionRules(db, templateID)
+		rules, err := ListProgressionRules(db, pr.templateID)
 		if err != nil {
-			return nil, fmt.Errorf("models: export progression rules for template %d: %w", templateID, err)
+			return nil, fmt.Errorf("models: export progression rules for template %d: %w", pr.templateID, err)
 		}
 		for _, r := range rules {
 			ep.Template.ProgressionRules = append(ep.Template.ProgressionRules, ExportProgressionRule{
@@ -714,9 +742,6 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 		}
 
 		result = append(result, ep)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("models: iterate export programs: %w", err)
 	}
 
 	return result, nil

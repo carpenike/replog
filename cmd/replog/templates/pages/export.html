@@ -17,7 +17,7 @@
                 <p>Full backup of all data including workouts, exercises, equipment, assignments, training maxes, body weights, programs, and reviews.</p>
                 <p><small>Best for backing up or transferring data between RepLog instances.</small></p>
                 <footer>
-                    <a href="/athletes/{{ .Athlete.ID }}/export/json" role="button" download>Download JSON</a>
+                    <a href="/athletes/{{ .Athlete.ID }}/export/json" role="button" download hx-boost="false">Download JSON</a>
                 </footer>
             </article>
 
@@ -28,7 +28,7 @@
                 <p>Workout history in Strong app format. Includes exercise names, sets, reps, weight, and notes.</p>
                 <p><small>Compatible with Strong, Hevy, and other fitness apps.</small></p>
                 <footer>
-                    <a href="/athletes/{{ .Athlete.ID }}/export/csv" role="button" class="outline" download>Download CSV</a>
+                    <a href="/athletes/{{ .Athlete.ID }}/export/csv" role="button" class="outline" download hx-boost="false">Download CSV</a>
                 </footer>
             </article>
         </div>
