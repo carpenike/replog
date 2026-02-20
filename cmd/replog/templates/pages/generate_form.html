@@ -73,7 +73,7 @@
                 <label>
                     <input type="checkbox" name="reference_programs" value="{{ .ID }}"
                            {{ if not $.SelectedRefIDs }}checked{{ else }}{{ if index $.SelectedRefIDs .ID }}checked{{ end }}{{ end }}>
-                    {{ .Name }}{{ if .Description.Valid }} &mdash; <small>{{ .Description.String }}</small>{{ end }}
+                    <span>{{ .Name }}{{ if .Description.Valid }}<br><small>{{ .Description.String }}</small>{{ end }}</span>
                 </label>
                 {{ end }}
             </fieldset>
