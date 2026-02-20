@@ -337,3 +337,127 @@ func TestBuildAthleteContext_NotFound(t *testing.T) {
 		t.Fatal("expected error for nonexistent athlete")
 	}
 }
+
+func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
+	db := testDB(t)
+
+	// Create two youth templates and one adult template.
+	youthA, err := models.CreateProgramTemplate(db, nil, "Youth A", "first", 1, 2, true, "youth")
+	if err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+	_, err = models.CreateProgramTemplate(db, nil, "Youth B", "second", 1, 3, true, "youth")
+	if err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+	adultC, err := models.CreateProgramTemplate(db, nil, "Adult C", "adult ref", 4, 4, false, "adult")
+	if err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+
+	// Add a prescribed set to youthA so we can verify it loads.
+	exID := seedExercise(t, db, "Squat", "foundational")
+	reps := 20
+	if _, err := models.CreatePrescribedSet(db, youthA.ID, exID, 1, 1, 1, &reps, nil, nil, 1, "reps", ""); err != nil {
+		t.Fatalf("create prescribed set: %v", err)
+	}
+
+	// Youth athlete — default behavior would load both youth templates.
+	athleteID := seedAthlete(t, db, "Zoe", "foundational", "")
+
+	t.Run("explicit IDs override audience filter", func(t *testing.T) {
+		// Request only youthA — should get just that one, not youthB.
+		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), youthA.ID)
+		if err != nil {
+			t.Fatalf("BuildAthleteContext: %v", err)
+		}
+		if len(ctx.ReferencePrograms) != 1 {
+			t.Fatalf("reference programs = %d, want 1", len(ctx.ReferencePrograms))
+		}
+		if ctx.ReferencePrograms[0].Name != "Youth A" {
+			t.Errorf("name = %q, want Youth A", ctx.ReferencePrograms[0].Name)
+		}
+		if len(ctx.ReferencePrograms[0].PrescribedSets) != 1 {
+			t.Errorf("prescribed sets = %d, want 1", len(ctx.ReferencePrograms[0].PrescribedSets))
+		}
+	})
+
+	t.Run("can select cross-audience template", func(t *testing.T) {
+		// Youth athlete can still get the adult template if coach explicitly picks it.
+		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), adultC.ID)
+		if err != nil {
+			t.Fatalf("BuildAthleteContext: %v", err)
+		}
+		if len(ctx.ReferencePrograms) != 1 {
+			t.Fatalf("reference programs = %d, want 1", len(ctx.ReferencePrograms))
+		}
+		if ctx.ReferencePrograms[0].Name != "Adult C" {
+			t.Errorf("name = %q, want Adult C", ctx.ReferencePrograms[0].Name)
+		}
+	})
+
+	t.Run("empty IDs falls back to audience", func(t *testing.T) {
+		ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+		if err != nil {
+			t.Fatalf("BuildAthleteContext: %v", err)
+		}
+		// Should get both youth templates (youthA and youthB), not adultC.
+		if len(ctx.ReferencePrograms) != 2 {
+			t.Fatalf("reference programs = %d, want 2", len(ctx.ReferencePrograms))
+		}
+		names := map[string]bool{}
+		for _, rp := range ctx.ReferencePrograms {
+			names[rp.Name] = true
+		}
+		if !names["Youth A"] || !names["Youth B"] {
+			t.Errorf("expected Youth A and Youth B, got %v", names)
+		}
+	})
+}
+
+func TestListProgramTemplatesByIDs(t *testing.T) {
+	db := testDB(t)
+
+	a, err := models.CreateProgramTemplate(db, nil, "Prog A", "desc a", 4, 3, false, "adult")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := models.CreateProgramTemplate(db, nil, "Prog B", "desc b", 1, 4, true, "youth")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = models.CreateProgramTemplate(db, nil, "Prog C", "", 2, 2, false, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("returns matching templates", func(t *testing.T) {
+		results, err := models.ListProgramTemplatesByIDs(db, []int64{a.ID, b.ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(results) != 2 {
+			t.Fatalf("got %d results, want 2", len(results))
+		}
+	})
+
+	t.Run("empty IDs returns nil", func(t *testing.T) {
+		results, err := models.ListProgramTemplatesByIDs(db, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if results != nil {
+			t.Fatalf("expected nil, got %d results", len(results))
+		}
+	})
+
+	t.Run("nonexistent IDs return empty", func(t *testing.T) {
+		results, err := models.ListProgramTemplatesByIDs(db, []int64{99999})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(results) != 0 {
+			t.Fatalf("got %d results, want 0", len(results))
+		}
+	})
+}

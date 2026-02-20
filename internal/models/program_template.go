@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -174,6 +175,50 @@ func ListReferenceTemplatesByAudience(db *sql.DB, audience string) ([]*ProgramTe
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("models: iterate reference templates: %w", err)
+	}
+	return templates, nil
+}
+
+// ListProgramTemplatesByIDs returns program templates matching the given IDs.
+// Used when the coach explicitly selects which reference programs to provide
+// to the LLM. Returns templates ordered by name.
+func ListProgramTemplatesByIDs(db *sql.DB, ids []int64) ([]*ProgramTemplate, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	// Build placeholders: ?, ?, ?
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+
+	query := `SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+	                  COUNT(ap.id) AS athlete_count
+	           FROM program_templates pt
+	           LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
+	           WHERE pt.id IN (` + strings.Join(placeholders, ", ") + `)
+	           GROUP BY pt.id
+	           ORDER BY pt.name COLLATE NOCASE`
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("models: list program templates by IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var templates []*ProgramTemplate
+	for rows.Next() {
+		t := &ProgramTemplate{}
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+			return nil, fmt.Errorf("models: scan program template by ID: %w", err)
+		}
+		templates = append(templates, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate program templates by IDs: %w", err)
 	}
 	return templates, nil
 }

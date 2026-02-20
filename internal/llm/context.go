@@ -149,7 +149,11 @@ type PrescribedSetSummary struct {
 // BuildAthleteContext gathers all relevant data for one athlete into the
 // structured context document that the LLM receives. This is the per-athlete
 // "briefing packet" — pure server-side queries, no LLM involved.
-func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time) (*AthleteContext, error) {
+//
+// If referenceTemplateIDs is non-empty, only those specific templates are
+// included as reference programs. Otherwise all audience-matching global
+// templates are included (audience inferred from the athlete's tier).
+func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTemplateIDs ...int64) (*AthleteContext, error) {
 	ctx := &AthleteContext{}
 
 	// Athlete profile.
@@ -218,13 +222,18 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time) (*AthleteCo
 	}
 	ctx.PriorTemplates = templates
 
-	// Reference programs: global seed templates filtered by audience (youth vs adult),
-	// with full prescribed sets so the LLM can see concrete structural examples.
-	audience := "adult"
-	if profile.Tier != nil {
-		audience = "youth"
+	// Reference programs: either coach-selected specific templates, or all
+	// global seed templates filtered by audience (youth vs adult).
+	var refProgs []ReferenceProgramSummary
+	if len(referenceTemplateIDs) > 0 {
+		refProgs, err = buildReferenceProgramsByIDs(db, referenceTemplateIDs)
+	} else {
+		audience := "adult"
+		if profile.Tier != nil {
+			audience = "youth"
+		}
+		refProgs, err = buildReferencePrograms(db, audience)
 	}
-	refProgs, err := buildReferencePrograms(db, audience)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build reference programs: %w", err)
 	}
@@ -522,6 +531,67 @@ func buildPriorTemplates(db *sql.DB, athleteID int64) ([]TemplateSummary, error)
 // structural examples of correctly-built programs for the athlete's audience.
 func buildReferencePrograms(db *sql.DB, audience string) ([]ReferenceProgramSummary, error) {
 	templates, err := models.ListReferenceTemplatesByAudience(db, audience)
+	if err != nil {
+		return nil, err
+	}
+
+	var programs []ReferenceProgramSummary
+	for _, t := range templates {
+		rp := ReferenceProgramSummary{
+			Name:     t.Name,
+			NumWeeks: t.NumWeeks,
+			NumDays:  t.NumDays,
+			IsLoop:   t.IsLoop,
+		}
+		if t.Description.Valid {
+			rp.Description = t.Description.String
+		}
+		if t.Audience.Valid {
+			rp.Audience = t.Audience.String
+		}
+
+		// Load full prescribed sets for this reference program.
+		sets, err := models.ListPrescribedSets(db, t.ID)
+		if err != nil {
+			return nil, fmt.Errorf("list prescribed sets for template %d: %w", t.ID, err)
+		}
+		for _, ps := range sets {
+			pss := PrescribedSetSummary{
+				Exercise:  ps.ExerciseName,
+				Week:      ps.Week,
+				Day:       ps.Day,
+				SetNumber: ps.SetNumber,
+				RepType:   ps.RepType,
+				SortOrder: ps.SortOrder,
+			}
+			if ps.Reps.Valid {
+				r := int(ps.Reps.Int64)
+				pss.Reps = &r
+			}
+			if ps.Percentage.Valid {
+				p := ps.Percentage.Float64
+				pss.Percentage = &p
+			}
+			if ps.AbsoluteWeight.Valid {
+				w := ps.AbsoluteWeight.Float64
+				pss.AbsoluteWeight = &w
+			}
+			if ps.Notes.Valid {
+				pss.Notes = ps.Notes.String
+			}
+			rp.PrescribedSets = append(rp.PrescribedSets, pss)
+		}
+
+		programs = append(programs, rp)
+	}
+	return programs, nil
+}
+
+// buildReferenceProgramsByIDs loads specific program templates by their IDs
+// with full prescribed sets. Used when the coach explicitly selects which
+// reference programs to provide to the LLM.
+func buildReferenceProgramsByIDs(db *sql.DB, ids []int64) ([]ReferenceProgramSummary, error) {
+	templates, err := models.ListProgramTemplatesByIDs(db, ids)
 	if err != nil {
 		return nil, err
 	}

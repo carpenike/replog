@@ -61,14 +61,22 @@ func (h *Generate) Form(w http.ResponseWriter, r *http.Request) {
 		log.Printf("handlers: build context preview for athlete %d: %v", athleteID, ctxErr)
 	}
 
+	// Load available reference programs for the audience so the coach can select.
+	audience := "adult"
+	if athlete.Tier.Valid {
+		audience = "youth"
+	}
+	refPrograms, _ := models.ListReferenceTemplatesByAudience(h.DB, audience)
+
 	data := map[string]any{
-		"Athlete":       athlete,
-		"Configured":    configured,
-		"SuggestedName": suggestedName,
-		"NumDays":       numDays,
-		"NumWeeks":      numWeeks,
-		"IsLoop":        isLoop,
-		"Context":       athleteCtx,
+		"Athlete":           athlete,
+		"Configured":        configured,
+		"SuggestedName":     suggestedName,
+		"NumDays":           numDays,
+		"NumWeeks":          numWeeks,
+		"IsLoop":            isLoop,
+		"Context":           athleteCtx,
+		"ReferencePrograms": refPrograms,
 	}
 	if err := h.Templates.Render(w, r, "generate_form.html", data); err != nil {
 		log.Printf("handlers: render generate form: %v", err)
@@ -113,14 +121,23 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 	coachDirections := strings.TrimSpace(r.FormValue("coach_directions"))
 	focusAreas := r.Form["focus_areas"]
 
+	// Parse selected reference program IDs.
+	var refTemplateIDs []int64
+	for _, v := range r.Form["reference_programs"] {
+		if id, err := strconv.ParseInt(v, 10, 64); err == nil {
+			refTemplateIDs = append(refTemplateIDs, id)
+		}
+	}
+
 	req := llm.GenerationRequest{
-		AthleteID:       athleteID,
-		ProgramName:     programName,
-		NumDays:         numDays,
-		NumWeeks:        numWeeks,
-		IsLoop:          isLoop,
-		FocusAreas:      focusAreas,
-		CoachDirections: coachDirections,
+		AthleteID:            athleteID,
+		ProgramName:          programName,
+		NumDays:              numDays,
+		NumWeeks:             numWeeks,
+		IsLoop:               isLoop,
+		FocusAreas:           focusAreas,
+		CoachDirections:      coachDirections,
+		ReferenceTemplateIDs: refTemplateIDs,
 	}
 
 	// Create provider from settings.
@@ -346,14 +363,29 @@ func (h *Generate) loadAthlete(w http.ResponseWriter, r *http.Request) (*models.
 // renderFormError re-renders the generate form with an error message,
 // preserving the user\u2019s input values.
 func (h *Generate) renderFormError(w http.ResponseWriter, r *http.Request, athlete *models.Athlete, req llm.GenerationRequest, errMsg string) {
+	// Re-load reference programs for the checkbox list.
+	audience := "adult"
+	if athlete.Tier.Valid {
+		audience = "youth"
+	}
+	refPrograms, _ := models.ListReferenceTemplatesByAudience(h.DB, audience)
+
+	// Build a map of the previously selected IDs for re-checking.
+	selectedRefIDs := make(map[int64]bool, len(req.ReferenceTemplateIDs))
+	for _, id := range req.ReferenceTemplateIDs {
+		selectedRefIDs[id] = true
+	}
+
 	data := map[string]any{
-		"Athlete":       athlete,
-		"Error":         errMsg,
-		"SuggestedName": req.ProgramName,
-		"NumDays":       req.NumDays,
-		"NumWeeks":      req.NumWeeks,
-		"IsLoop":        req.IsLoop,
-		"Configured":    true,
+		"Athlete":           athlete,
+		"Error":             errMsg,
+		"SuggestedName":     req.ProgramName,
+		"NumDays":           req.NumDays,
+		"NumWeeks":          req.NumWeeks,
+		"IsLoop":            req.IsLoop,
+		"Configured":        true,
+		"ReferencePrograms": refPrograms,
+		"SelectedRefIDs":    selectedRefIDs,
 	}
 	if err := h.Templates.Render(w, r, "generate_form.html", data); err != nil {
 		log.Printf("handlers: render generate form with error: %v", err)

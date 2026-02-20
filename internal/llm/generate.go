@@ -18,7 +18,7 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 	now := time.Now()
 
 	// Step 1: Assemble athlete context.
-	athleteCtx, err := BuildAthleteContext(db, req.AthleteID, now)
+	athleteCtx, err := BuildAthleteContext(db, req.AthleteID, now, req.ReferenceTemplateIDs...)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build context: %w", err)
 	}

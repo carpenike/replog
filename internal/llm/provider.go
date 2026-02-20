@@ -93,13 +93,14 @@ type Response struct {
 
 // GenerationRequest describes what to generate.
 type GenerationRequest struct {
-	AthleteID       int64
-	ProgramName     string   // e.g. "Sport Performance Month 4"
-	NumWeeks        int      // 1 (loop) or N (fixed block)
-	NumDays         int      // training days per week
-	IsLoop          bool
-	FocusAreas      []string // e.g. ["power", "conditioning"]
-	CoachDirections string   // free-text instructions for the LLM
+	AthleteID            int64
+	ProgramName          string   // e.g. "Sport Performance Month 4"
+	NumWeeks             int      // 1 (loop) or N (fixed block)
+	NumDays              int      // training days per week
+	IsLoop               bool
+	FocusAreas           []string // e.g. ["power", "conditioning"]
+	CoachDirections      string   // free-text instructions for the LLM
+	ReferenceTemplateIDs []int64  // coach-selected reference program IDs (empty = none)
 }
 
 // GenerationResult holds the complete output from a generation.

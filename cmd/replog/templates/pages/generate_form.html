@@ -66,6 +66,19 @@
             <textarea id="coach_directions" name="coach_directions" rows="4"
                       placeholder="e.g. Start introducing hang cleans, pull back on carries..."></textarea>
 
+            {{ if .ReferencePrograms }}
+            <label>Reference Programs for AI Context</label>
+            <fieldset class="reference-programs">
+                {{ range .ReferencePrograms }}
+                <label>
+                    <input type="checkbox" name="reference_programs" value="{{ .ID }}"
+                           {{ if not $.SelectedRefIDs }}checked{{ else }}{{ if index $.SelectedRefIDs .ID }}checked{{ end }}{{ end }}>
+                    {{ .Name }}{{ if .Description.Valid }} &mdash; <small>{{ .Description.String }}</small>{{ end }}
+                </label>
+                {{ end }}
+            </fieldset>
+            {{ end }}
+
             <div class="page-actions">
                 <a href="/athletes/{{ .Athlete.ID }}" role="button" class="outline secondary">Cancel</a>
                 <button type="submit" id="generate-btn">
@@ -222,6 +235,26 @@
                     <tbody>
                         {{ range .Context.PriorTemplates }}
                         <tr><td>{{ .Name }}</td><td>{{ .NumWeeks }}w &times; {{ .NumDays }}d{{ if .IsLoop }} (loop){{ end }}</td></tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ end }}
+
+                {{/* --- Reference Programs --- */}}
+                {{ if .Context.ReferencePrograms }}
+                <h4>Reference Programs ({{ len .Context.ReferencePrograms }})</h4>
+                <table>
+                    <thead>
+                        <tr><th scope="col">Name</th><th scope="col">Audience</th><th scope="col">Structure</th><th scope="col">Sets</th></tr>
+                    </thead>
+                    <tbody>
+                        {{ range .Context.ReferencePrograms }}
+                        <tr>
+                            <td>{{ .Name }}</td>
+                            <td>{{ .Audience }}</td>
+                            <td>{{ .NumWeeks }}w &times; {{ .NumDays }}d{{ if .IsLoop }} (loop){{ end }}</td>
+                            <td>{{ len .PrescribedSets }}</td>
+                        </tr>
                         {{ end }}
                     </tbody>
                 </table>
