@@ -33,6 +33,7 @@
         {{ end }}
 
         {{ if .Prescription.Lines }}
+        <div class="table-scroll">
         <table class="striped">
             <thead>
                 <tr>
@@ -53,6 +54,7 @@
                 {{ end }}
             </tbody>
         </table>
+        </div>
 
         {{ if not .Prescription.HasWorkout }}
         <a href="/athletes/{{ .Athlete.ID }}/workouts/new" role="button">Start Today's Workout</a>

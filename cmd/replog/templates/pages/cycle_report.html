@@ -11,7 +11,7 @@
                 <p>{{ .Athlete.Name }}</p>
             </hgroup>
             <div class="page-actions no-print">
-                <button type="button" onclick="window.print()" class="outline secondary">Print</button>
+                <button type="button" data-print class="outline secondary">Print</button>
             </div>
         </div>
 
@@ -20,6 +20,7 @@
             <article class="report-day">
                 <header><strong>Week {{ .Week }}, Day {{ .Day }}</strong></header>
                 {{ if .Lines }}
+                <div class="table-scroll">
                 <table>
                     <thead>
                         <tr>
@@ -42,6 +43,7 @@
                         {{ end }}
                     </tbody>
                 </table>
+                </div>
                 {{ else }}
                 <p class="text-muted">Rest day</p>
                 {{ end }}

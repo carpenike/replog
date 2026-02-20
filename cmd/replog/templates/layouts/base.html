@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/static/css/app.css">
     <link rel="stylesheet" href="/static/css/print.css" media="print">
     <script src="/static/js/htmx.min.js"></script>
+    <script src="/static/js/replog.js" defer></script>
     {{ if .CSRFToken }}<meta name="csrf-token" content="{{ .CSRFToken }}">{{ end }}
     <script>
         // Theme toggle — persist in localStorage, default to dark.
@@ -76,23 +77,34 @@
             document.body.classList.toggle("sidebar-open");
         }
 
-        function toggleUserMenu(e) {
-            e.stopPropagation();
+        function toggleUserMenu(btn) {
             var menu = document.getElementById("user-menu-dropdown");
-            var btn = e.currentTarget;
             var open = menu.classList.toggle("open");
             btn.setAttribute("aria-expanded", open);
         }
 
-        // Close user menu when clicking outside.
+        // Delegated click handler for data-action attributes.
         document.addEventListener("click", function(e) {
+            // Close user menu when clicking outside.
             var menu = document.getElementById("user-menu-dropdown");
             if (menu && menu.classList.contains("open")) {
                 if (!e.target.closest(".sidebar-user-menu")) {
                     menu.classList.remove("open");
-                    var btn = document.querySelector(".sidebar-user");
+                    var btn = document.querySelector("[data-action='toggle-user-menu']");
                     if (btn) btn.setAttribute("aria-expanded", "false");
                 }
+            }
+
+            var actionEl = e.target.closest("[data-action]");
+            if (!actionEl) return;
+            var action = actionEl.getAttribute("data-action");
+            if (action === "toggle-sidebar") {
+                toggleSidebar();
+            } else if (action === "toggle-user-menu") {
+                e.stopPropagation();
+                toggleUserMenu(actionEl);
+            } else if (action === "toggle-theme") {
+                toggleTheme();
             }
         });
 
@@ -107,7 +119,7 @@
 <body hx-boost="true">
     {{ if .User }}
     <!-- Sidebar overlay for mobile -->
-    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar-overlay" data-action="toggle-sidebar"></div>
 
     <!-- Left sidebar navigation -->
     <aside class="sidebar">
@@ -175,7 +187,7 @@
         <div class="sidebar-footer">
             <div class="sidebar-divider"></div>
             <div class="sidebar-user-menu">
-                <button class="sidebar-user" onclick="toggleUserMenu(event)" type="button" aria-expanded="false" aria-haspopup="true">
+                <button class="sidebar-user" data-action="toggle-user-menu" type="button" aria-expanded="false" aria-haspopup="true">
                     {{ if .User.HasAvatar }}<img src="{{ .User.AvatarURL }}" alt="" class="user-avatar user-avatar--img">{{ else }}<div class="user-avatar">{{ userInitials (displayName .User) }}</div>{{ end }}
                     <div class="user-info">
                         <div class="user-name">{{ displayName .User }}</div>
@@ -202,7 +214,7 @@
                         Settings
                     </a>
                     {{ end }}
-                    <button class="user-menu-item" onclick="toggleTheme(); return false;" id="theme-btn">
+                    <button class="user-menu-item" data-action="toggle-theme" id="theme-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                         <span class="theme-label">Light Mode</span>
                     </button>
@@ -220,13 +232,14 @@
 
     <!-- Mobile top bar -->
     <header class="topbar">
-        <button class="topbar-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation">
+        <button class="topbar-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
         <span class="topbar-title">{{ template "title" . }}</span>
+        <span class="htmx-indicator spinner" id="global-indicator"></span>
     </header>
 
-    <main class="main-content">
+    <main class="main-content" hx-indicator="#global-indicator">
         <div class="content-container">
             {{ block "content" . }}{{ end }}
         </div>

@@ -8,14 +8,14 @@
         <h1>{{ if .EditUser }}Edit {{ .EditUser.Username }}{{ else }}New User{{ end }}</h1>
 
         {{ if .Error }}
-        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        <div class="alert alert-error" role="alert" id="form-error">{{ .Error }}</div>
         {{ end }}
 
         <form method="POST" action="{{ if .EditUser }}/users/{{ .EditUser.ID }}{{ else }}/users{{ end }}">
             <label for="username">Username
                 <input type="text" id="username" name="username" required
                        value="{{ if .EditUser }}{{ .EditUser.Username }}{{ end }}"
-                       {{ if .Error }}aria-invalid="true"{{ end }}>
+                       {{ if .Error }}aria-invalid="true" aria-describedby="form-error"{{ end }}>
             </label>
 
             <label for="name">Name
@@ -60,7 +60,7 @@
             </fieldset>
 
             <label for="athlete_id">Linked Athlete
-                <select id="athlete_id" name="athlete_id" onchange="document.getElementById('new-athlete-fields').style.display = this.value === '__new__' ? '' : 'none'">
+                <select id="athlete_id" name="athlete_id" data-new-athlete-toggle>
                     <option value="">None</option>
                     {{ $currentAthleteID := "" }}
                     {{ if .EditUser }}{{ if .EditUser.AthleteID.Valid }}{{ $currentAthleteID = printf "%d" .EditUser.AthleteID.Int64 }}{{ end }}{{ end }}
@@ -73,7 +73,7 @@
                 </select>
             </label>
 
-            <div id="new-athlete-fields" style="display:none;">
+            <div id="new-athlete-fields" hidden>
                 <label for="new_athlete_name">New Athlete Name
                     <input type="text" id="new_athlete_name" name="new_athlete_name" placeholder="e.g. Caydan">
                 </label>
@@ -92,12 +92,12 @@
             <p><small>Generate a link your kid can bookmark or add to their iOS home screen for passwordless login.</small></p>
 
             {{ if .NewTokenURL }}
-            <article style="border-left: 3px solid var(--pico-primary); padding-left: 1rem;">
+            <article class="callout-card">
                 <p><strong>New login link created!</strong></p>
                 <p>Copy this link and send it to the device. It will only be shown once in full.</p>
-                <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem;">
-                    <input type="text" value="{{ .NewTokenURL }}" readonly onclick="this.select()" aria-label="Login URL" style="flex:1; margin-bottom:0;">
-                    <button type="button" class="btn-inline" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='Copy'},2000)})">Copy</button>
+                <div class="flex-row--spaced">
+                    <input type="text" value="{{ .NewTokenURL }}" readonly data-select-on-focus aria-label="Login URL" class="input-flex mb-0">
+                    <button type="button" class="btn-inline" data-copy>Copy</button>
                 </div>
                 <p><small>Tip: On iOS Safari, open this link, then tap Share → Add to Home Screen for one-tap login.</small></p>
             </article>
@@ -105,13 +105,14 @@
 
             <form hx-post="/users/{{ .EditUser.ID }}/tokens" hx-target="#login-tokens-section" hx-swap="outerHTML">
                 {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
-                <div style="display:flex; gap:0.5rem; align-items:center;">
-                    <input type="text" id="token-label" name="label" placeholder="e.g. iPad, iPhone" autocomplete="off" aria-label="Device Label" style="flex:1; margin-bottom:0;">
+                <div class="flex-row">
+                    <input type="text" id="token-label" name="label" placeholder="e.g. iPad, iPhone" autocomplete="off" aria-label="Device Label" class="input-flex mb-0">
                     <button type="submit" class="btn-inline">Generate Link</button>
                 </div>
             </form>
 
             {{ if .Tokens }}
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -146,14 +147,15 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
             {{ else }}
             <p><small>No active login links.</small></p>
             {{ end }}
         </div>
 
         <hr>
-        <section style="border: 1px solid #e5534b; border-radius: 8px; padding: 1.5rem;">
-            <h2 style="color: #e5534b; margin-top: 0;">Danger Zone</h2>
+        <section class="danger-zone">
+            <h2>Danger Zone</h2>
             <form method="POST" action="/users/{{ .EditUser.ID }}/delete" class="inline"
                   hx-confirm="Delete user {{ .EditUser.Username }}? This cannot be undone.">
                 <button type="submit" class="btn-danger">Delete User</button>

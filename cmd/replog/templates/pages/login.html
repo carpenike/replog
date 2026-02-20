@@ -16,20 +16,20 @@
     </script>
 </head>
 <body>
-    <main class="container" style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
-        <article style="max-width:24rem; width:100%;">
-            <hgroup style="text-align:center;">
+    <main class="container login-container">
+        <article class="login-card">
+            <hgroup class="text-center">
                 <h1>RepLog</h1>
                 <p>Sign in to continue</p>
             </hgroup>
 
             {{ if .Error }}
-            <div class="alert alert-error" role="alert">{{ .Error }}</div>
+            <div class="alert alert-error" role="alert" id="form-error">{{ .Error }}</div>
             {{ end }}
 
-            <div data-passkey style="margin-bottom:1rem;">
-                <button type="button" class="outline contrast" style="width:100%;"
-                        onclick="RepLogPasskeys.login('passkey-login-status')">
+            <div data-passkey>
+                <button type="button" class="outline contrast login-passkey-btn"
+                        data-action="passkey-login">
                     Sign in with Passkey
                 </button>
                 <small id="passkey-login-status" class="passkey-status"></small>
@@ -40,7 +40,7 @@
                 <form method="POST" action="/login" hx-boost="false">
                     <label for="username">Username
                         <input type="text" id="username" name="username" required autofocus autocomplete="username"
-                               {{ if .Error }}aria-invalid="true"{{ end }}>
+                               {{ if .Error }}aria-invalid="true" aria-describedby="form-error"{{ end }}>
                     </label>
                     <label for="password">Password
                         <input type="password" id="password" name="password" required autocomplete="current-password">

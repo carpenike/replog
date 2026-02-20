@@ -44,20 +44,20 @@
         <article class="goal-section" id="athlete-goal">
             <div class="goal-section-header">
                 <h3>🎯 Goal</h3>
-                <button class="outline secondary inline-edit-btn" onclick="this.closest('.goal-section').querySelector('.goal-edit-form').hidden = false; this.closest('.goal-section').querySelector('.goal-display').hidden = true; this.hidden = true;">Edit</button>
+                <button class="outline secondary inline-edit-btn edit-toggle-trigger" data-toggle-edit=".goal-section">Edit</button>
             </div>
-            <div class="goal-display">
+            <div class="goal-display edit-toggle-display">
                 {{ if .Athlete.Goal.Valid }}
                 <p class="goal-text">{{ .Athlete.Goal.String }}</p>
                 {{ else }}
                 <p class="goal-text text-muted">No goal set — tap Edit to add one</p>
                 {{ end }}
             </div>
-            <form method="POST" action="/athletes/{{ .Athlete.ID }}/goal" class="goal-edit-form" hidden>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/goal" class="goal-edit-form edit-toggle-form" hidden>
                 <textarea name="goal" rows="2" placeholder="What are you working toward?">{{ if .Athlete.Goal.Valid }}{{ .Athlete.Goal.String }}{{ end }}</textarea>
                 <div class="inline-form-actions">
                     <button type="submit" class="outline">Save</button>
-                    <button type="button" class="outline secondary" onclick="this.closest('.goal-edit-form').hidden = true; this.closest('.goal-section').querySelector('.goal-display').hidden = false; this.closest('.goal-section').querySelector('.inline-edit-btn').hidden = false;">Cancel</button>
+                    <button type="button" class="outline secondary" data-cancel-edit=".goal-section">Cancel</button>
                 </div>
             </form>
         </article>
@@ -281,6 +281,7 @@
             </p>
 
             {{ if .Prescription.Lines }}
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -301,6 +302,7 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
             {{ else }}
             <p class="text-muted">No exercises prescribed for today's session.</p>
             {{ end }}
@@ -350,6 +352,7 @@
             </div>
 
             {{ if .Assignments }}
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -389,6 +392,7 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
             {{ else }}
             <article class="empty-state">
                 <p>No exercises assigned yet.</p>
@@ -402,6 +406,7 @@
         <details>
             <summary>Previously Assigned ({{ len .Deactivated }})</summary>
             <p class="text-muted">These exercises were previously assigned and can be reactivated.</p>
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -427,6 +432,7 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
         </details>
         {{ end }}
 {{ end }}

@@ -117,6 +117,7 @@
         <section>
             <h2>Recent Activity</h2>
             {{ if .RecentSets }}
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -141,6 +142,7 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
             {{ else }}
             <p class="text-muted">No sets logged for this exercise yet.</p>
             {{ end }}

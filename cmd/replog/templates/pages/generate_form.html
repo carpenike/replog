@@ -81,17 +81,17 @@
 
             <div class="page-actions">
                 <a href="/athletes/{{ .Athlete.ID }}" role="button" class="outline secondary">Cancel</a>
-                <button type="submit" id="generate-btn">
+                <button type="submit" id="generate-btn" aria-busy="false">
                     Generate Program
                 </button>
             </div>
-            <span id="generate-indicator" style="display:none;">Generating program&hellip; This may take 10&ndash;30 seconds.</span>
+            <span id="generate-indicator" class="htmx-indicator spinner">Generating program&hellip; This may take 10&ndash;30 seconds.</span>
         </form>
 
         {{ if .Context }}
-        <details style="margin-top: 2rem;">
+        <details class="mt-xl">
             <summary>Athlete Context Sent to AI Coach</summary>
-            <div style="margin-top: 1rem;">
+            <div class="mt-md">
 
                 {{/* --- Profile --- */}}
                 <h4>Athlete Profile</h4>
@@ -135,6 +135,7 @@
                 {{/* --- Program History --- */}}
                 {{ if .Context.ProgramHistory }}
                 <h4>Program History ({{ len .Context.ProgramHistory }})</h4>
+                <div class="table-scroll">
                 <table>
                     <thead>
                         <tr><th scope="col">Name</th><th scope="col">Start Date</th><th scope="col">Structure</th><th scope="col">Status</th><th scope="col">Goal</th></tr>
@@ -151,6 +152,7 @@
                         {{ end }}
                     </tbody>
                 </table>
+                </div>
                 {{ end }}
 
                 {{/* --- Training Maxes --- */}}
@@ -206,6 +208,7 @@
                 {{ range .Context.RecentWorkouts }}
                 <details>
                     <summary>{{ .Date }}{{ if .Notes }} &mdash; {{ derefStr .Notes }}{{ end }} ({{ len .Sets }} sets)</summary>
+                    <div class="table-scroll">
                     <table>
                         <thead>
                             <tr><th scope="col">Exercise</th><th scope="col">Set</th><th scope="col">Reps</th><th scope="col">Weight</th><th scope="col">RPE</th></tr>
@@ -222,6 +225,7 @@
                             {{ end }}
                         </tbody>
                     </table>
+                    </div>
                 </details>
                 {{ end }}
                 {{ end }}
@@ -264,6 +268,7 @@
                 {{/* --- Reference Programs --- */}}
                 {{ if .Context.ReferencePrograms }}
                 <h4>Reference Programs ({{ len .Context.ReferencePrograms }})</h4>
+                <div class="table-scroll">
                 <table>
                     <thead>
                         <tr><th scope="col">Name</th><th scope="col">Audience</th><th scope="col">Structure</th><th scope="col">Sets</th></tr>
@@ -279,9 +284,10 @@
                         {{ end }}
                     </tbody>
                 </table>
+                </div>
                 {{ end }}
 
-                <div class="page-actions" style="margin-top: 1rem;">
+                <div class="page-actions mt-md">
                     <a href="/athletes/{{ $.Athlete.ID }}/context.json" role="button" class="outline secondary" download>
                         Download Raw JSON
                     </a>

@@ -14,7 +14,7 @@
             <div class="page-actions">
                 <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/delete" class="inline"
                       hx-confirm="Delete this workout and all its sets?">
-                    <button type="submit" class="outline contrast">Delete Workout</button>
+                    <button type="submit" class="outline contrast" aria-busy="false">Delete Workout</button>
                 </form>
             </div>
             {{ end }}
@@ -94,7 +94,7 @@
                         <label class="field-sm">RPE
                             <input type="number" name="rpe" step="0.5" min="1" max="10" inputmode="numeric" placeholder="1-10">
                         </label>
-                        <button type="submit" class="outline secondary scaffold-log-btn">Log</button>
+                        <button type="submit" class="outline secondary scaffold-log-btn" aria-busy="false">Log</button>
                     </div>
                 </form>
                 {{ end }}
@@ -104,7 +104,7 @@
             {{ end }}
 
             <!-- Fallback: add unscripted / accessory sets -->
-            <button type="button" id="unscripted-toggle" class="outline secondary" onclick="document.getElementById('unscripted-form').hidden=false;this.hidden=true">+ Add Unscripted Set</button>
+            <button type="button" id="unscripted-toggle" class="outline secondary" data-show="#unscripted-form">+ Add Unscripted Set</button>
             <div id="unscripted-form" hidden>
             {{ else if .Assigned }}
             <details>
@@ -177,7 +177,7 @@
                 </label>
                 <div class="unscripted-form-actions">
                     <button type="submit" aria-busy="false">Log Set</button>
-                    <button type="button" class="outline contrast" onclick="document.getElementById('unscripted-form').hidden=true;document.getElementById('unscripted-toggle').hidden=false">Cancel</button>
+                    <button type="button" class="outline contrast" data-hide="#unscripted-form" data-show-on-hide="#unscripted-toggle">Cancel</button>
                 </div>
             </form>
 
@@ -187,7 +187,7 @@
         </section>
 
         <!-- Rest Timer -->
-        <div id="rest-timer" class="rest-timer" style="display:none;">
+        <div id="rest-timer" class="rest-timer" hidden>
             <div class="timer-ring-container">
                 <svg class="timer-ring" viewBox="0 0 120 120">
                     <circle class="timer-ring-bg" cx="60" cy="60" r="54" />
@@ -198,7 +198,7 @@
             <div class="timer-controls">
                 <button type="button" class="timer-toggle outline secondary">Pause</button>
                 <button type="button" class="timer-reset outline secondary">Reset</button>
-                <button type="button" class="timer-dismiss outline contrast">✕</button>
+                <button type="button" class="timer-dismiss outline contrast" aria-label="Dismiss timer">✕</button>
             </div>
         </div>
 
@@ -227,6 +227,7 @@
                     </div>
                 </details>
                 {{ end }}
+                <div class="table-scroll">
                 <table class="striped">
                     <thead>
                         <tr>
@@ -250,13 +251,14 @@
                                 <a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/edit" role="button" class="outline secondary">Edit</a>
                                 <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets/{{ .ID }}/delete" class="inline"
                                       hx-confirm="Delete this set?">
-                                    <button type="submit" class="outline contrast">✕</button>
+                                    <button type="submit" class="outline contrast" aria-label="Delete set">✕</button>
                                 </form>
                             </td>
                         </tr>
                         {{ end }}
                     </tbody>
                 </table>
+                </div>
                 <!-- Quick-add: repeat another set for this exercise -->
                 {{ $last := lastSet .Sets }}
                 <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets" class="quick-add-form">
@@ -307,11 +309,11 @@
                             </label>
                             <div class="review-actions">
                                 <button type="submit" class="outline secondary">Update Review</button>
-                                <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review/delete" class="inline"
-                                      hx-confirm="Remove this review?">
-                                    <button type="submit" class="outline contrast">Remove Review</button>
-                                </form>
                             </div>
+                        </form>
+                        <form method="POST" action="/athletes/{{ .Athlete.ID }}/workouts/{{ .Workout.ID }}/review/delete" class="inline review-actions"
+                              hx-confirm="Remove this review?">
+                            <button type="submit" class="outline contrast">Remove Review</button>
                         </form>
                     </details>
                 </footer>

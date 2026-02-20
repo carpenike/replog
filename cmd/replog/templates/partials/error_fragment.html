@@ -1,1 +1,8 @@
 {{ define "error-fragment" }}<div class="alert alert-error" role="alert">{{ . }}</div>{{ end }}
+
+{{/*
+    field-error — inline field-level error message.
+    Usage: {{ template "field-error" "Field-specific error message" }}
+    Pair with aria-invalid="true" and aria-describedby="<id>" on the input.
+*/}}
+{{ define "field-error" }}{{ if . }}<small class="field-error" role="alert">{{ . }}</small>{{ end }}{{ end }}

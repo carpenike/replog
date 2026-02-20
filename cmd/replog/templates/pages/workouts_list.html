@@ -11,6 +11,7 @@
         </div>
 
         {{ if .Workouts }}
+        <div class="table-scroll">
         <table class="striped">
             <thead>
                 <tr>
@@ -31,6 +32,7 @@
                 {{ end }}
             </tbody>
         </table>
+        </div>
         {{ if .HasMore }}
         <div class="load-more">
             <button class="outline"

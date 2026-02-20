@@ -373,6 +373,18 @@ table a:hover {
     color: #92400e;
 }
 
+/* ---- Field-level validation error ---- */
+.field-error {
+    display: block;
+    color: var(--color-danger);
+    font-size: 0.8rem;
+    margin-top: calc(-1 * var(--space-sm));
+    margin-bottom: var(--space-md);
+}
+[data-theme="light"] .field-error {
+    color: #b91c1c;
+}
+
 /* =========================================================
    Sidebar Layout
    ========================================================= */
@@ -507,16 +519,6 @@ table a:hover {
     height: 1px;
     background: var(--sidebar-border);
     margin: 0.5rem 0.75rem;
-}
-
-.sidebar-section-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-tertiary);
-    padding: 0.25rem 0.75rem;
-    opacity: 0.7;
 }
 
 /* Sidebar footer — user area */
@@ -883,7 +885,10 @@ main.container {
 }
 
 /* ---- Tier Badges (pill style) ---- */
-.tier-badge {
+/* ---- Badge base (shared by tier, review, status badges) ---- */
+.tier-badge,
+.review-badge,
+.status-badge {
     font-size: 0.7rem;
     font-weight: 600;
     padding: 0.2em 0.6em;
@@ -980,18 +985,22 @@ main.container {
     border-top: 1px solid var(--pico-muted-border-color);
 }
 
-.quick-add-grid {
+/* ---- Input grid base (shared by quick-add and scaffold forms) ---- */
+.quick-add-grid,
+.scaffold-grid {
     display: flex;
     gap: 0.5rem;
     align-items: end;
     flex-wrap: wrap;
 }
 
-.quick-add-grid label {
+.quick-add-grid label,
+.scaffold-grid label {
     margin-bottom: 0;
 }
 
-.quick-add-grid input {
+.quick-add-grid input,
+.scaffold-grid input {
     max-width: 5.5rem;
     margin-bottom: 0;
 }
@@ -1079,27 +1088,11 @@ details.scaffold-exercise > summary {
     padding-bottom: 0;
 }
 
-.scaffold-grid {
-    display: flex;
-    gap: 0.5rem;
-    align-items: end;
-    flex-wrap: wrap;
-}
-
 .scaffold-target {
     flex: 1 1 100%;
     font-size: 0.9rem;
     font-weight: 500;
     margin-bottom: 0.25rem;
-}
-
-.scaffold-grid label {
-    margin-bottom: 0;
-}
-
-.scaffold-grid input {
-    max-width: 5.5rem;
-    margin-bottom: 0;
 }
 
 .scaffold-log-btn {
@@ -1542,54 +1535,6 @@ form.inline button {
     padding: 0.25rem 0.5rem;
 }
 
-/* ---- Theme Toggle ---- */
-.theme-toggle {
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0.25rem;
-    font-size: 1.1rem;
-    line-height: 1;
-    color: var(--text-tertiary);
-}
-
-.theme-toggle:hover {
-    color: var(--pico-primary);
-}
-
-/* ---- htmx loading indicators ---- */
-.htmx-indicator {
-    display: none;
-}
-
-.htmx-request .htmx-indicator,
-.htmx-request.htmx-indicator {
-    display: inline-block;
-}
-
-[aria-busy="true"].htmx-request {
-    opacity: 0.65;
-    pointer-events: none;
-}
-
-/* ---- Promote button ---- */
-.promote-btn {
-    margin-left: 0.5rem;
-}
-
-/* ---- Misc ---- */
-.text-muted {
-    color: var(--text-secondary);
-}
-
-/* Coach badge in user lists (pill) */
-mark.coach-badge {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.15em 0.5em;
-    border-radius: var(--radius-pill);
-}
-
 /* Numeric inputs — large touch targets on mobile */
 input[inputmode="numeric"] {
     font-size: 1.125rem;
@@ -1797,17 +1742,27 @@ input[inputmode="numeric"] {
     stroke-width: 1;
 }
 
-.heatmap-cell[data-level="0"] { fill: var(--bg-3); }
-.heatmap-cell[data-level="1"] { fill: rgba(129, 140, 248, 0.25); }
-.heatmap-cell[data-level="2"] { fill: rgba(129, 140, 248, 0.45); }
-.heatmap-cell[data-level="3"] { fill: rgba(129, 140, 248, 0.70); }
-.heatmap-cell[data-level="4"] { fill: rgba(129, 140, 248, 0.95); }
+/* Heatmap color scale — shared by cells (SVG fill) and swatches (CSS background) */
+:root {
+    --heatmap-0: var(--bg-3);
+    --heatmap-1: rgba(129, 140, 248, 0.25);
+    --heatmap-2: rgba(129, 140, 248, 0.45);
+    --heatmap-3: rgba(129, 140, 248, 0.70);
+    --heatmap-4: rgba(129, 140, 248, 0.95);
+}
+[data-theme="light"] {
+    --heatmap-0: #ebedf0;
+    --heatmap-1: rgba(99, 102, 241, 0.20);
+    --heatmap-2: rgba(99, 102, 241, 0.40);
+    --heatmap-3: rgba(99, 102, 241, 0.60);
+    --heatmap-4: rgba(99, 102, 241, 0.85);
+}
 
-[data-theme="light"] .heatmap-cell[data-level="0"] { fill: #ebedf0; }
-[data-theme="light"] .heatmap-cell[data-level="1"] { fill: rgba(99, 102, 241, 0.20); }
-[data-theme="light"] .heatmap-cell[data-level="2"] { fill: rgba(99, 102, 241, 0.40); }
-[data-theme="light"] .heatmap-cell[data-level="3"] { fill: rgba(99, 102, 241, 0.60); }
-[data-theme="light"] .heatmap-cell[data-level="4"] { fill: rgba(99, 102, 241, 0.85); }
+.heatmap-cell[data-level="0"] { fill: var(--heatmap-0); }
+.heatmap-cell[data-level="1"] { fill: var(--heatmap-1); }
+.heatmap-cell[data-level="2"] { fill: var(--heatmap-2); }
+.heatmap-cell[data-level="3"] { fill: var(--heatmap-3); }
+.heatmap-cell[data-level="4"] { fill: var(--heatmap-4); }
 
 .heatmap-legend {
     display: flex;
@@ -1825,17 +1780,11 @@ input[inputmode="numeric"] {
     border-radius: 2px;
 }
 
-.heatmap-swatch[data-level="0"] { background: var(--bg-3); }
-.heatmap-swatch[data-level="1"] { background: rgba(129, 140, 248, 0.25); }
-.heatmap-swatch[data-level="2"] { background: rgba(129, 140, 248, 0.45); }
-.heatmap-swatch[data-level="3"] { background: rgba(129, 140, 248, 0.70); }
-.heatmap-swatch[data-level="4"] { background: rgba(129, 140, 248, 0.95); }
-
-[data-theme="light"] .heatmap-swatch[data-level="0"] { background: #ebedf0; }
-[data-theme="light"] .heatmap-swatch[data-level="1"] { background: rgba(99, 102, 241, 0.20); }
-[data-theme="light"] .heatmap-swatch[data-level="2"] { background: rgba(99, 102, 241, 0.40); }
-[data-theme="light"] .heatmap-swatch[data-level="3"] { background: rgba(99, 102, 241, 0.60); }
-[data-theme="light"] .heatmap-swatch[data-level="4"] { background: rgba(99, 102, 241, 0.85); }
+.heatmap-swatch[data-level="0"] { background: var(--heatmap-0); }
+.heatmap-swatch[data-level="1"] { background: var(--heatmap-1); }
+.heatmap-swatch[data-level="2"] { background: var(--heatmap-2); }
+.heatmap-swatch[data-level="3"] { background: var(--heatmap-3); }
+.heatmap-swatch[data-level="4"] { background: var(--heatmap-4); }
 
 /* ---- SVG Charts ---- */
 .chart-card {
@@ -1997,17 +1946,6 @@ input[inputmode="numeric"] {
 /* ==========================================================
    WORKOUT REVIEW BADGES & CARDS
    ========================================================= */
-.review-badge {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.2em 0.6em;
-    border-radius: var(--radius-pill);
-    vertical-align: middle;
-    white-space: nowrap;
-    letter-spacing: 0.02em;
-    border: 1px solid transparent;
-}
-
 .review-badge[data-status="approved"] {
     background: rgba(52, 211, 153, 0.12);
     color: var(--tier-foundational, #34d399);
@@ -2075,16 +2013,6 @@ article.error-page [role="button"] {
 }
 
 /* ---- Equipment Compatibility Status Badges ---- */
-.status-badge {
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.2em 0.6em;
-    border-radius: var(--radius-pill);
-    white-space: nowrap;
-    letter-spacing: 0.02em;
-    border: 1px solid transparent;
-}
-
 .status-badge--ok {
     background: rgba(52, 211, 153, 0.12);
     color: #34d399;
@@ -2415,4 +2343,139 @@ article.error-page [role="button"] {
     font-size: 0.85rem;
     padding: 0.3rem 0.75rem;
     margin: 0;
+}
+
+/* =========================================================
+   Utility classes — replace inline styles
+   ========================================================= */
+
+/* ---- Layout utilities ---- */
+.flex-row {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+}
+.flex-row--spaced {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+/* ---- Spacing utilities ---- */
+.mb-0 { margin-bottom: 0; }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+.mt-xl { margin-top: var(--space-xl); }
+
+/* ---- Sizing utilities ---- */
+.input-flex { flex: 1; }
+.max-w-date { max-width: 12rem; }
+
+/* ---- Text utilities ---- */
+.text-center { text-align: center; }
+.text-sm { font-size: 0.85rem; }
+.text-xs { font-size: 0.75rem; }
+
+/* ---- Callout card (success banner with left accent) ---- */
+.callout-card {
+    border-left: 3px solid var(--pico-primary);
+    padding-left: var(--space-md);
+}
+
+/* ---- Danger zone ---- */
+.danger-zone {
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+.danger-zone h2 {
+    color: var(--color-danger);
+    margin-top: 0;
+}
+
+/* ---- Login page layout ---- */
+.login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+.login-card {
+    max-width: 24rem;
+    width: 100%;
+}
+.login-passkey-btn {
+    width: 100%;
+    margin-bottom: var(--space-md);
+}
+
+/* ---- Generate preview compact inputs ---- */
+.preview-input {
+    margin-bottom: 0;
+}
+.preview-col-sets { width: 5rem; }
+.preview-col-reps { width: 7rem; }
+.preview-col-load { width: 9rem; }
+.preview-col-del  { width: 3rem; }
+.preview-select {
+    margin-bottom: 0.25rem;
+}
+
+/* ---- Passkey registration row ---- */
+.passkey-register-row {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+/* ---- Mobile table scroll wrapper ---- */
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---- htmx loading indicators ---- */
+.htmx-indicator {
+    display: none;
+}
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}
+.htmx-indicator.spinner {
+    display: none;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--text-tertiary);
+    border-top-color: var(--pico-primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-left: var(--space-xs);
+}
+.htmx-request .htmx-indicator.spinner,
+.htmx-request.htmx-indicator.spinner {
+    display: inline-block;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+[aria-busy="true"].htmx-request {
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+/* ---- Touch-target minimum for action buttons ---- */
+.set-actions a,
+.set-actions button,
+.action-buttons a,
+.action-buttons button,
+.scaffold-log-btn,
+.quick-add-btn {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }

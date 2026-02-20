@@ -21,6 +21,7 @@
         {{ if .Summary.AllAMRAPs }}
         <details open>
             <summary><strong>AMRAP Results This Cycle</strong></summary>
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -45,6 +46,7 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
         </details>
         {{ end }}
 
@@ -53,6 +55,7 @@
         <p class="text-muted">Review the suggested TM bumps below. Check the exercises you want to apply, then submit.</p>
 
         <form method="POST" action="/athletes/{{ .Athlete.ID }}/cycle-review">
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -89,6 +92,7 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
 
             <div class="page-actions">
                 <button type="submit">Apply Selected TM Bumps</button>

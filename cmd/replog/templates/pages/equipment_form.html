@@ -8,7 +8,7 @@
         <h1>{{ if .Equipment }}Edit {{ .Equipment.Name }}{{ else }}New Equipment{{ end }}</h1>
 
         {{ if .Error }}
-        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        <div class="alert alert-error" role="alert" id="form-error">{{ .Error }}</div>
         {{ end }}
 
         <form method="POST" action="{{ if .Equipment }}/equipment/{{ .Equipment.ID }}{{ else }}/equipment{{ end }}">
@@ -16,7 +16,7 @@
                 <input type="text" id="name" name="name" required
                        value="{{ if .Equipment }}{{ .Equipment.Name }}{{ end }}"
                        placeholder="e.g., Barbell, Squat Rack, Dumbbells"
-                       {{ if .Error }}aria-invalid="true"{{ end }}>
+                       {{ if .Error }}aria-invalid="true" aria-describedby="form-error"{{ end }}>
             </label>
 
             <label for="description">Description

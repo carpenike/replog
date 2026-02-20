@@ -8,14 +8,14 @@
         <h1>{{ if .Athlete }}Edit {{ .Athlete.Name }}{{ else }}New Athlete{{ end }}</h1>
 
         {{ if .Error }}
-        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        <div class="alert alert-error" role="alert" id="form-error">{{ .Error }}</div>
         {{ end }}
 
         <form method="POST" action="{{ if .Athlete }}/athletes/{{ .Athlete.ID }}{{ else }}/athletes{{ end }}">
             <label for="name">Name
                 <input type="text" id="name" name="name" required
                        value="{{ if .Athlete }}{{ .Athlete.Name }}{{ end }}"
-                       {{ if .Error }}aria-invalid="true"{{ end }}>
+                       {{ if .Error }}aria-invalid="true" aria-describedby="form-error"{{ end }}>
             </label>
 
             <label for="tier">Tier

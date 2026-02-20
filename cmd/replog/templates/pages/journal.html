@@ -19,7 +19,7 @@
             <summary role="button" class="outline secondary">Add Note</summary>
             <form method="POST" action="/athletes/{{ .Athlete.ID }}/notes">
                 <label for="note_date">Date
-                    <input type="date" id="note_date" name="date" value="{{ .Today }}" required style="max-width: 12rem;">
+                    <input type="date" id="note_date" name="date" value="{{ .Today }}" required class="max-w-date">
                 </label>
                 <label for="note_content">Note
                     <textarea id="note_content" name="content" rows="3" required placeholder="Add a note..."></textarea>
@@ -91,9 +91,9 @@
                             <span><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .SecondID }}">{{ .Summary }}</a>{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}</span>
                         {{ else if eq .Type "note" }}
                             <span class="journal-icon" title="Note">📝</span>
-                            <span class="journal-note-display">{{ .Summary }}{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}{{ if .IsPrivate }} <span class="badge-private" title="Private — only visible to coaches">🔒</span>{{ end }}{{ if .Pinned }} <span class="badge-pinned" title="Pinned">📌</span>{{ end }}</span>
+                            <span class="journal-note-display edit-toggle-display">{{ .Summary }}{{ if .Author }} <span class="text-muted">— {{ .Author }}</span>{{ end }}{{ if .IsPrivate }} <span class="badge-private" title="Private — only visible to coaches">🔒</span>{{ end }}{{ if .Pinned }} <span class="badge-pinned" title="Pinned">📌</span>{{ end }}</span>
                             {{ if and (ne .AuthorID 0) (eq .AuthorID $.User.ID) }}
-                            <form class="journal-note-edit-form" hidden method="POST" action="/athletes/{{ $.Athlete.ID }}/notes/{{ .ID }}">
+                            <form class="journal-note-edit-form edit-toggle-form" hidden method="POST" action="/athletes/{{ $.Athlete.ID }}/notes/{{ .ID }}">
                                 <textarea name="content" rows="2" required>{{ .Summary }}</textarea>
                                 {{ if $.CanManage }}
                                 <fieldset class="journal-note-edit-flags">
@@ -103,7 +103,7 @@
                                 {{ end }}
                                 <div class="journal-note-edit-actions">
                                     <button type="submit">Save</button>
-                                    <button type="button" class="outline secondary" onclick="var e=this.closest('.journal-entry');e.querySelector('.journal-note-display').hidden=false;e.querySelector('.journal-entry-actions').hidden=false;e.querySelector('.journal-note-edit-form').hidden=true;">Cancel</button>
+                                    <button type="button" class="outline secondary" data-cancel-edit=".journal-entry">Cancel</button>
                                 </div>
                             </form>
                             {{ end }}
@@ -112,14 +112,14 @@
                         {{ end }}
                     </div>
                     {{ if and (eq .Type "note") (or $.CanManage (and (ne .AuthorID 0) (eq .AuthorID $.User.ID))) }}
-                    <div class="journal-entry-actions">
+                    <div class="journal-entry-actions edit-toggle-display">
                         {{ if and (ne .AuthorID 0) (eq .AuthorID $.User.ID) }}
-                        <button type="button" class="outline secondary" onclick="var e=this.closest('.journal-entry');e.querySelector('.journal-note-display').hidden=true;e.querySelector('.journal-entry-actions').hidden=true;var f=e.querySelector('.journal-note-edit-form');f.hidden=false;f.querySelector('textarea').focus();">✎</button>
+                        <button type="button" class="outline secondary edit-toggle-trigger" data-toggle-edit=".journal-entry" aria-label="Edit note">✎</button>
                         {{ end }}
                         {{ if $.CanManage }}
                         <form method="POST" action="/athletes/{{ $.Athlete.ID }}/notes/{{ .ID }}/delete" class="inline"
                               hx-confirm="Delete this note?">
-                            <button type="submit" class="outline contrast">✕</button>
+                            <button type="submit" class="outline contrast" aria-label="Delete note">✕</button>
                         </form>
                         {{ end }}
                     </div>

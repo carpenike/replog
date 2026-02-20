@@ -30,12 +30,12 @@
                         {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
                         <label for="avatar" class="avatar-file-label">
                             Choose Image
-                            <input type="file" id="avatar" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp" class="avatar-file-input" onchange="this.form.submit()">
+                            <input type="file" id="avatar" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp" class="avatar-file-input" data-auto-submit>
                         </label>
                         <small>JPEG, PNG, GIF, or WebP. Max 2 MB.</small>
                     </form>
                     {{ if and .AvatarUser .AvatarUser.HasAvatar }}
-                    <form method="POST" action="/avatars/delete" style="margin-top: 0.5rem;">
+                    <form method="POST" action="/avatars/delete" class="mt-md">
                         {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
                         <button type="submit" class="outline secondary">Remove Avatar</button>
                     </form>
@@ -124,10 +124,10 @@
                 {{ end }}
             </div>
 
-            <div style="display:flex; gap:0.5rem; align-items:center;">
-                <input type="text" id="passkey-label" placeholder="Label (e.g. iPad)" aria-label="Passkey label" style="flex:1; margin-bottom:0;">
+            <div class="passkey-register-row">
+                <input type="text" id="passkey-label" placeholder="Label (e.g. iPad)" aria-label="Passkey label" class="input-flex mb-0">
                 <button type="button" class="btn-inline"
-                        onclick="RepLogPasskeys.register('passkey-label', 'passkey-register-status')">
+                        data-action="passkey-register">
                     Register Passkey
                 </button>
             </div>

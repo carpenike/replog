@@ -58,6 +58,7 @@
 
         <!-- History Table -->
         {{ if .Entries }}
+        <div class="table-scroll">
         <table class="striped">
             <thead>
                 <tr>
@@ -76,13 +77,14 @@
                     <td class="set-actions">
                         <form method="POST" action="/athletes/{{ $.Athlete.ID }}/body-weights/{{ .ID }}/delete" class="inline"
                               hx-confirm="Delete this entry?">
-                            <button type="submit" class="outline contrast">✕</button>
+                            <button type="submit" class="outline contrast" aria-label="Delete entry">✕</button>
                         </form>
                     </td>
                 </tr>
                 {{ end }}
             </tbody>
         </table>
+        </div>
 
         {{ if .HasMore }}
         <div class="load-more">

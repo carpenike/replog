@@ -29,6 +29,7 @@
         {{ if .Unreviewed }}
         <section>
             <h2>Workouts Needing Review</h2>
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -51,6 +52,7 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
         </section>
         {{ else }}
         <article class="empty-state">

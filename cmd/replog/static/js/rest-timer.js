@@ -10,7 +10,7 @@
     var params = new URLSearchParams(window.location.search);
     var totalSeconds = parseInt(params.get("timer"), 10);
     if (!totalSeconds || totalSeconds <= 0) {
-        timerEl.style.display = "none";
+        timerEl.hidden = true;
         return;
     }
 
@@ -38,7 +38,7 @@
         ringProgress.style.strokeDashoffset = "0";
     }
 
-    timerEl.style.display = "";
+    timerEl.hidden = false;
 
     function formatTime(sec) {
         var m = Math.floor(sec / 60);
@@ -97,7 +97,7 @@
 
     function dismiss() {
         stop();
-        timerEl.style.display = "none";
+        timerEl.hidden = true;
     }
 
     // Simple beep using Web Audio API — no external audio file needed.

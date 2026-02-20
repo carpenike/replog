@@ -59,6 +59,7 @@
             </summary>
 
             {{ if .Sets }}
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -82,16 +83,16 @@
                         <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
                         <td class="action-buttons">
                             {{ if or $.User.IsCoach $.User.IsAdmin }}
-                            <button type="button" class="outline secondary" onclick="var r=document.getElementById('edit-set-{{ .ID }}');r.style.display=r.style.display==='none'?'':'none'">✎</button>
+                            <button type="button" class="outline secondary" data-toggle-row="edit-set-{{ .ID }}" aria-label="Edit set">✎</button>
                             <form method="POST" action="/programs/{{ $.Program.ID }}/sets/{{ .ID }}/delete?week={{ $.CurrentWeek }}" class="inline">
-                                <button type="submit" class="outline contrast">✕</button>
+                                <button type="submit" class="outline contrast" aria-label="Delete set">✕</button>
                             </form>
                             {{ end }}
                         </td>
                     </tr>
                     {{ if or $.User.IsCoach $.User.IsAdmin }}
                     {{ $set := . }}
-                    <tr id="edit-set-{{ .ID }}" class="edit-row" style="display: none;">
+                    <tr id="edit-set-{{ .ID }}" class="edit-row" hidden>
                         <td colspan="7">
                             <form method="POST" action="/programs/{{ $.Program.ID }}/sets/{{ .ID }}/update" class="edit-set-inline">
                                 <input type="hidden" name="week" value="{{ $.CurrentWeek }}">
@@ -131,7 +132,7 @@
                                     </label>
                                 </div>
                                 <button type="submit" class="outline secondary">Save</button>
-                                <button type="button" class="outline" onclick="this.closest('.edit-row').style.display='none'">Cancel</button>
+                                <button type="button" class="outline" data-hide-row>Cancel</button>
                             </form>
                         </td>
                     </tr>
@@ -139,6 +140,7 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
             {{ else }}
             <p class="text-muted">No sets prescribed yet.</p>
             {{ end }}
@@ -211,7 +213,7 @@
                         <td>+{{ .IncrementLabel }}</td>
                         <td>
                             <form method="POST" action="/programs/{{ $.Program.ID }}/progression/{{ .ID }}/delete" class="inline">
-                                <button type="submit" class="outline contrast">✕</button>
+                                <button type="submit" class="outline contrast" aria-label="Delete rule">✕</button>
                             </form>
                         </td>
                     </tr>

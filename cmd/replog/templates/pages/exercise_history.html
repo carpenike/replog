@@ -31,6 +31,7 @@
         {{ range .Days }}
         <article>
             <header><strong><a href="/athletes/{{ $.Athlete.ID }}/workouts/{{ .WorkoutID }}">{{ .WorkoutDate }}</a></strong></header>
+            <div class="table-scroll">
             <table class="striped">
                 <thead>
                     <tr>
@@ -53,6 +54,7 @@
                     {{ end }}
                 </tbody>
             </table>
+            </div>
         </article>
         {{ end }}
         {{ if .HasMore }}

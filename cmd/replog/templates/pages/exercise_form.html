@@ -8,14 +8,14 @@
         <h1>{{ if .Exercise }}Edit {{ .Exercise.Name }}{{ else }}New Exercise{{ end }}</h1>
 
         {{ if .Error }}
-        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        <div class="alert alert-error" role="alert" id="form-error">{{ .Error }}</div>
         {{ end }}
 
         <form method="POST" action="{{ if .Exercise }}/exercises/{{ .Exercise.ID }}{{ else }}/exercises{{ end }}">
             <label for="name">Name
                 <input type="text" id="name" name="name" required
                        value="{{ if .Exercise }}{{ .Exercise.Name }}{{ end }}"
-                       {{ if .Error }}aria-invalid="true"{{ end }}>
+                       {{ if .Error }}aria-invalid="true" aria-describedby="form-error"{{ end }}>
             </label>
 
             <label for="tier">Tier
