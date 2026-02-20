@@ -87,6 +87,15 @@ func (h *Workouts) NewForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	today := time.Now().Format("2006-01-02")
+
+	// If a workout already exists for today, go straight to it.
+	existing, err := models.GetWorkoutByAthleteDate(h.DB, athleteID, today)
+	if err == nil {
+		http.Redirect(w, r, "/athletes/"+strconv.FormatInt(athleteID, 10)+"/workouts/"+strconv.FormatInt(existing.ID, 10), http.StatusSeeOther)
+		return
+	}
+
 	athlete, err := models.GetAthleteByID(h.DB, athleteID)
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Athlete not found", http.StatusNotFound)
@@ -100,7 +109,7 @@ func (h *Workouts) NewForm(w http.ResponseWriter, r *http.Request) {
 
 	data := map[string]any{
 		"Athlete": athlete,
-		"Today":   time.Now().Format("2006-01-02"),
+		"Today":   today,
 	}
 	if err := h.Templates.Render(w, r, "workout_form.html", data); err != nil {
 		log.Printf("handlers: workout form template: %v", err)
