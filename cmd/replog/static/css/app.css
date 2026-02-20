@@ -255,6 +255,13 @@ button:active:not(:disabled),
 .form-actions {
     display: flex;
     gap: var(--space-sm);
+    align-items: center;
+}
+
+.form-actions button,
+.form-actions [role="button"] {
+    width: auto;
+    margin-bottom: 0;
 }
 
 /* Compact action buttons */
