@@ -539,6 +539,18 @@ func listExistingPrograms(db *sql.DB) ([]importers.ExistingEntity, error) {
 	return result, nil
 }
 
+func listExistingProgramsForAthlete(db *sql.DB, athleteID int64) ([]importers.ExistingEntity, error) {
+	programs, err := models.ListProgramTemplatesForAthlete(db, athleteID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]importers.ExistingEntity, len(programs))
+	for i, p := range programs {
+		result[i] = importers.ExistingEntity{ID: p.ID, Name: p.Name}
+	}
+	return result, nil
+}
+
 func sanitizeFilename(name string) string {
 	r := strings.NewReplacer(
 		" ", "-", "/", "-", "\\", "-",
@@ -781,7 +793,7 @@ func (h *ImportExport) CatalogExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := models.ExecuteCatalogImport(h.DB, ms)
+	result, err := models.ExecuteCatalogImport(h.DB, ms, nil)
 	if err != nil {
 		log.Printf("handlers: execute catalog import: %v", err)
 		tplData := map[string]any{"Error": fmt.Sprintf("Catalog import failed: %v", err)}

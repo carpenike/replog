@@ -401,7 +401,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 					ok = true
 				} else if m.Create {
 					// Create the program template.
-					id, err := insertProgramTemplate(tx, prog.Template)
+					id, err := insertProgramTemplate(tx, prog.Template, nil)
 					if err != nil {
 						return nil, fmt.Errorf("models: import program template %q: %w", prog.Template.Name, err)
 					}
@@ -618,7 +618,7 @@ func insertReview(tx *sql.Tx, workoutID, coachID int64, status, notes string) er
 	return err
 }
 
-func insertProgramTemplate(tx *sql.Tx, pt importers.ParsedProgramTemplate) (int64, error) {
+func insertProgramTemplate(tx *sql.Tx, pt importers.ParsedProgramTemplate, athleteID *int64) (int64, error) {
 	var descVal sql.NullString
 	if pt.Description != nil && *pt.Description != "" {
 		descVal = sql.NullString{String: *pt.Description, Valid: true}
@@ -629,8 +629,8 @@ func insertProgramTemplate(tx *sql.Tx, pt importers.ParsedProgramTemplate) (int6
 	}
 	var id int64
 	err := tx.QueryRow(
-		`INSERT INTO program_templates (name, description, num_weeks, num_days, is_loop) VALUES (?, ?, ?, ?, ?) RETURNING id`,
-		pt.Name, descVal, pt.NumWeeks, pt.NumDays, isLoopInt,
+		`INSERT INTO program_templates (athlete_id, name, description, num_weeks, num_days, is_loop) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+		athleteID, pt.Name, descVal, pt.NumWeeks, pt.NumDays, isLoopInt,
 	).Scan(&id)
 	if err != nil {
 		return 0, err
@@ -751,8 +751,9 @@ func BuildCatalogImportPreview(ms *importers.MappingState) *CatalogImportPreview
 }
 
 // ExecuteCatalogImport creates equipment, exercises, and program templates
-// from a parsed catalog file. No athlete-specific data is touched.
-func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState) (*CatalogImportResult, error) {
+// from a parsed catalog file. athleteID scopes new program templates: nil =
+// global, non-nil = athlete-specific (e.g. AI-generated).
+func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int64) (*CatalogImportResult, error) {
 	pf := ms.Parsed
 	result := &CatalogImportResult{}
 
@@ -866,7 +867,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState) (*CatalogImpor
 			continue
 		}
 
-		templateID, err := insertProgramTemplate(tx, *pt)
+		templateID, err := insertProgramTemplate(tx, *pt, athleteID)
 		if err != nil {
 			if isUniqueViolation(err) {
 				continue

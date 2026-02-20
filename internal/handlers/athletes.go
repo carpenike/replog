@@ -271,7 +271,7 @@ func (h *Athletes) loadAthleteShowData(user *models.User, athlete *models.Athlet
 	// Load available program templates for assignment (coach/admin only for managed athletes).
 	var programTemplates []*models.ProgramTemplate
 	if middleware.CanManageAthlete(user, athlete) {
-		programTemplates, err = models.ListProgramTemplates(h.DB)
+		programTemplates, err = models.ListProgramTemplatesForAthlete(h.DB, id)
 		if err != nil {
 			log.Printf("handlers: list program templates for athlete %d: %v", id, err)
 		}

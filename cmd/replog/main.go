@@ -567,7 +567,7 @@ func bootstrapCatalog(db *sql.DB) error {
 		Parsed:    parsed,
 	}
 
-	result, err := models.ExecuteCatalogImport(db, ms)
+	result, err := models.ExecuteCatalogImport(db, ms, nil)
 	if err != nil {
 		return fmt.Errorf("execute seed catalog import: %w", err)
 	}

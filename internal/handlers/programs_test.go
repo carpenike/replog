@@ -16,8 +16,8 @@ func TestPrograms_List(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 
-	models.CreateProgramTemplate(db, "5/3/1 BBB", "Boring But Big", 4, 4, false)
-	models.CreateProgramTemplate(db, "GZCL", "", 3, 4, false)
+	models.CreateProgramTemplate(db, nil, "5/3/1 BBB", "Boring But Big", 4, 4, false)
+	models.CreateProgramTemplate(db, nil, "GZCL", "", 3, 4, false)
 
 	h := &Programs{DB: db, Templates: tc}
 	req := requestWithUser("GET", "/programs", nil, coach)
@@ -142,7 +142,7 @@ func TestPrograms_Show(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 
-	tmpl, _ := models.CreateProgramTemplate(db, "Show Test", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Show Test", "", 4, 4, false)
 
 	h := &Programs{DB: db, Templates: tc}
 	req := requestWithUser("GET", "/programs/"+itoa(tmpl.ID), nil, coach)
@@ -176,7 +176,7 @@ func TestPrograms_EditForm_CoachOnly(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	nonCoach := seedUnlinkedNonCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "Edit Test", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Edit Test", "", 4, 4, false)
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -207,7 +207,7 @@ func TestPrograms_Update_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "Old Name", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Old Name", "", 4, 4, false)
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -253,7 +253,7 @@ func TestPrograms_Delete_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "Delete Me", "", 1, 1, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Delete Me", "", 1, 1, false)
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -274,7 +274,7 @@ func TestPrograms_Delete_InUseConflict(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "In Use", "", 1, 1, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "In Use", "", 1, 1, false)
 	a := seedAthlete(t, db, "Athlete", "")
 	models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
@@ -311,7 +311,7 @@ func TestPrograms_AddSet_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "AddSet Test", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "AddSet Test", "", 4, 4, false)
 	ex := seedExercise(t, db, "Bench Press", "")
 
 	h := &Programs{DB: db, Templates: tc}
@@ -361,7 +361,7 @@ func TestPrograms_AddSet_MissingFields(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "Missing Fields", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Missing Fields", "", 4, 4, false)
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -395,7 +395,7 @@ func TestPrograms_DeleteSet_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "DeleteSet Test", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "DeleteSet Test", "", 4, 4, false)
 	ex := seedExercise(t, db, "Bench", "")
 
 	reps := 5
@@ -441,7 +441,7 @@ func TestPrograms_AssignProgram_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "Assign Test", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Assign Test", "", 4, 4, false)
 	a := seedAthlete(t, db, "Athlete", "")
 
 	// Add prescribed sets with two distinct exercises.
@@ -486,7 +486,7 @@ func TestPrograms_AssignProgram_AlreadyActive(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "Conflict Test", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Conflict Test", "", 4, 4, false)
 	a := seedAthlete(t, db, "Athlete", "")
 	models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
@@ -528,7 +528,7 @@ func TestPrograms_DeactivateProgram_Success(t *testing.T) {
 	db := testDB(t)
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
-	tmpl, _ := models.CreateProgramTemplate(db, "Deactivate Test", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Deactivate Test", "", 4, 4, false)
 	a := seedAthlete(t, db, "Athlete", "")
 	models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
@@ -604,7 +604,7 @@ func TestPrograms_Prescription(t *testing.T) {
 	})
 
 	t.Run("with program", func(t *testing.T) {
-		tmpl, _ := models.CreateProgramTemplate(db, "Rx Test", "", 4, 4, false)
+		tmpl, _ := models.CreateProgramTemplate(db, nil, "Rx Test", "", 4, 4, false)
 		models.AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 
 		req := requestWithUser("GET", "/athletes/"+itoa(a.ID)+"/prescription", nil, coach)
@@ -640,7 +640,7 @@ func TestPrograms_AssignProgramForm(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	a := seedAthlete(t, db, "Athlete", "")
-	models.CreateProgramTemplate(db, "Template A", "", 4, 4, false)
+	models.CreateProgramTemplate(db, nil, "Template A", "", 4, 4, false)
 
 	h := &Programs{DB: db, Templates: tc}
 
@@ -692,7 +692,7 @@ func TestPrograms_ProgramCompatibility(t *testing.T) {
 	reps := 5
 	pct1 := 80.0
 	pct2 := 75.0
-	tmpl, _ := models.CreateProgramTemplate(db, "Strength", "", 4, 3, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Strength", "", 4, 3, false)
 	models.CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, 1, &reps, &pct1, nil, 0, "reps", "")
 	models.CreatePrescribedSet(db, tmpl.ID, benchPress.ID, 1, 2, 1, &reps, &pct2, nil, 0, "reps", "")
 
@@ -765,7 +765,7 @@ func TestPrograms_AddProgressionRule_Success(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 
-	tmpl, _ := models.CreateProgramTemplate(db, "Rule Program", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Rule Program", "", 4, 4, false)
 	ex := seedExercise(t, db, "Squats", "")
 
 	h := &Programs{DB: db, Templates: tc}
@@ -815,7 +815,7 @@ func TestPrograms_AddProgressionRule_InvalidIncrement(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 
-	tmpl, _ := models.CreateProgramTemplate(db, "Rule Prog", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Rule Prog", "", 4, 4, false)
 	ex := seedExercise(t, db, "Bench", "")
 
 	h := &Programs{DB: db, Templates: tc}
@@ -836,7 +836,7 @@ func TestPrograms_DeleteProgressionRule_Success(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 
-	tmpl, _ := models.CreateProgramTemplate(db, "Del Rule Prog", "", 4, 4, false)
+	tmpl, _ := models.CreateProgramTemplate(db, nil, "Del Rule Prog", "", 4, 4, false)
 	ex := seedExercise(t, db, "Deadlift", "")
 	rule, _ := models.SetProgressionRule(db, tmpl.ID, ex.ID, 5.0)
 

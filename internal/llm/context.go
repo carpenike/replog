@@ -184,8 +184,8 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time) (*AthleteCo
 	}
 	ctx.RecentWorkouts = workouts
 
-	// Prior program templates.
-	templates, err := buildPriorTemplates(db)
+	// Prior program templates (global + this athlete's).
+	templates, err := buildPriorTemplates(db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build prior templates: %w", err)
 	}
@@ -454,9 +454,9 @@ func buildRecentWorkouts(db *sql.DB, athleteID int64) ([]WorkoutSummary, error) 
 	return summaries, nil
 }
 
-// buildPriorTemplates returns all existing program templates as context.
-func buildPriorTemplates(db *sql.DB) ([]TemplateSummary, error) {
-	templates, err := models.ListProgramTemplates(db)
+// buildPriorTemplates returns global + athlete-specific program templates as context.
+func buildPriorTemplates(db *sql.DB, athleteID int64) ([]TemplateSummary, error) {
+	templates, err := models.ListProgramTemplatesForAthlete(db, athleteID)
 	if err != nil {
 		return nil, err
 	}

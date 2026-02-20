@@ -28,7 +28,7 @@ func TestSeedCatalogImport(t *testing.T) {
 		Parsed:    parsed,
 	}
 
-	result, err := ExecuteCatalogImport(db, ms)
+	result, err := ExecuteCatalogImport(db, ms, nil)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestSeedCatalogImport_Idempotent(t *testing.T) {
 		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
 		Parsed:    parsed,
 	}
-	first, err := ExecuteCatalogImport(db, ms)
+	first, err := ExecuteCatalogImport(db, ms, nil)
 	if err != nil {
 		t.Fatalf("first import: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestSeedCatalogImport_Idempotent(t *testing.T) {
 		Programs:  importers.BuildProgramMappings(parsed2.Programs, existingPr),
 		Parsed:    parsed2,
 	}
-	second, err := ExecuteCatalogImport(db, ms2)
+	second, err := ExecuteCatalogImport(db, ms2, nil)
 	if err != nil {
 		t.Fatalf("second import: %v", err)
 	}

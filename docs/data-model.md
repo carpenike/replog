@@ -165,6 +165,7 @@ erDiagram
     users ||--o{ athlete_notes : "authored by"
     workouts ||--o| workout_reviews : "reviewed via"
     users ||--o{ workout_reviews : "reviews"
+    athletes ||--o{ program_templates : "owns (optional)"
     program_templates ||--o{ prescribed_sets : "defines"
     exercises ||--o{ prescribed_sets : "used in"
     athletes ||--o{ athlete_programs : "follows"
@@ -279,7 +280,8 @@ erDiagram
 
     program_templates {
         INTEGER id PK
-        TEXT name UK "COLLATE NOCASE"
+        INTEGER athlete_id FK "nullable, FK → athletes(id)"
+        TEXT name "NOT NULL COLLATE NOCASE"
         TEXT description "nullable"
         INTEGER num_weeks
         INTEGER num_days
@@ -579,7 +581,8 @@ erDiagram
 | Column       | Type         | Constraints                          |
 |-------------|-------------|--------------------------------------|
 | `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
-| `name`      | TEXT         | NOT NULL UNIQUE COLLATE NOCASE        |
+| `athlete_id`| INTEGER      | NULL, FK → athletes(id) ON DELETE CASCADE |
+| `name`      | TEXT         | NOT NULL COLLATE NOCASE              |
 | `description`| TEXT        | NULL                                 |
 | `num_weeks` | INTEGER      | NOT NULL                             |
 | `num_days`  | INTEGER      | NOT NULL                             |
@@ -590,7 +593,9 @@ erDiagram
 - Defines a reusable training program structure (e.g. "5/3/1 BBB", "GZCL T1/T2/T3").
 - `num_weeks` and `num_days` define the cycle length — e.g. 4 weeks × 4 days for 5/3/1.
 - `is_loop = 1` marks indefinite cycling programs (e.g. Yessis 1×20 foundational) that repeat until the coach advances the athlete. `is_loop = 0` (default) for standard programs that still cycle but show completion progress.
-- Templates are shared across athletes; assignment is tracked via `athlete_programs`.
+- `athlete_id` NULL = global/shared template (coach-created, assignable to any athlete). Non-NULL = athlete-specific template (e.g. AI-generated), visible only to that athlete.
+- Uniqueness is enforced via two partial unique indexes: global template names are unique (`WHERE athlete_id IS NULL`), and per-athlete template names are unique within that athlete (`WHERE athlete_id IS NOT NULL`).
+- Assignment to athletes is tracked via `athlete_programs`.
 
 ### `prescribed_sets`
 
@@ -940,7 +945,8 @@ END;
 
 CREATE TABLE IF NOT EXISTS program_templates (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    athlete_id  INTEGER REFERENCES athletes(id) ON DELETE CASCADE,
+    name        TEXT    NOT NULL COLLATE NOCASE,
     description TEXT,
     num_weeks   INTEGER NOT NULL DEFAULT 1,
     num_days    INTEGER NOT NULL DEFAULT 1,
@@ -948,6 +954,17 @@ CREATE TABLE IF NOT EXISTS program_templates (
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Global templates (athlete_id IS NULL) must have unique names.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_program_templates_name_global
+    ON program_templates(name) WHERE athlete_id IS NULL;
+
+-- Per-athlete templates must have unique names within that athlete.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_program_templates_name_athlete
+    ON program_templates(athlete_id, name) WHERE athlete_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_program_templates_athlete
+    ON program_templates(athlete_id);
 
 CREATE TABLE IF NOT EXISTS prescribed_sets (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,

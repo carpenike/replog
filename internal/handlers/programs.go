@@ -83,7 +83,7 @@ func (h *Programs) Create(w http.ResponseWriter, r *http.Request) {
 
 	isLoop := r.FormValue("is_loop") == "1"
 
-	tmpl, err := models.CreateProgramTemplate(h.DB, name, description, numWeeks, numDays, isLoop)
+	tmpl, err := models.CreateProgramTemplate(h.DB, nil, name, description, numWeeks, numDays, isLoop)
 	if err != nil {
 		log.Printf("handlers: create program template: %v", err)
 		http.Error(w, "Failed to create program template", http.StatusInternalServerError)
@@ -744,7 +744,7 @@ func (h *Programs) AssignProgramForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates, err := models.ListProgramTemplates(h.DB)
+	templates, err := models.ListProgramTemplatesForAthlete(h.DB, athleteID)
 	if err != nil {
 		log.Printf("handlers: list templates for assign form: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

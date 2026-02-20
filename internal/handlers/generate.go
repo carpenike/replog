@@ -191,7 +191,7 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 	// Build entity mappings against existing catalog.
 	existingExercises, _ := listExistingExercises(h.DB)
 	existingEquipment, _ := listExistingEquipment(h.DB)
-	existingPrograms, _ := listExistingPrograms(h.DB)
+	existingPrograms, _ := listExistingProgramsForAthlete(h.DB, athleteID)
 
 	ms := &importers.MappingState{
 		Format:    importers.FormatCatalogJSON,
@@ -277,7 +277,7 @@ func (h *Generate) Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	importResult, err := models.ExecuteCatalogImport(h.DB, ms)
+	importResult, err := models.ExecuteCatalogImport(h.DB, ms, &athleteID)
 	if err != nil {
 		log.Printf("handlers: execute generated import for athlete %d: %v", athleteID, err)
 		data := map[string]any{

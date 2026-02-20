@@ -13,7 +13,7 @@ func TestSetProgressionRule(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
-	tmpl, err := CreateProgramTemplate(db, "5/3/1", "", 4, 4, false)
+	tmpl, err := CreateProgramTemplate(db, nil, "5/3/1", "", 4, 4, false)
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestGetProgressionRule_NotFound(t *testing.T) {
 func TestListProgressionRules(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, err := CreateProgramTemplate(db, "5/3/1", "", 4, 4, false)
+	tmpl, err := CreateProgramTemplate(db, nil, "5/3/1", "", 4, 4, false)
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestListProgressionRules(t *testing.T) {
 func TestDeleteProgressionRule(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, err := CreateProgramTemplate(db, "5/3/1", "", 4, 4, false)
+	tmpl, err := CreateProgramTemplate(db, nil, "5/3/1", "", 4, 4, false)
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
@@ -142,7 +142,7 @@ func TestProgressionRule_IncrementLabel(t *testing.T) {
 func TestProgressionRule_CascadeDeleteTemplate(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, err := CreateProgramTemplate(db, "Temp", "", 1, 1, false)
+	tmpl, err := CreateProgramTemplate(db, nil, "Temp", "", 1, 1, false)
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}

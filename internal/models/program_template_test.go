@@ -8,13 +8,16 @@ import (
 func TestCreateProgramTemplate(t *testing.T) {
 	db := testDB(t)
 
-	t.Run("basic create", func(t *testing.T) {
-		tmpl, err := CreateProgramTemplate(db, "5/3/1 BBB", "Boring But Big", 4, 4, false)
+	t.Run("basic create global", func(t *testing.T) {
+		tmpl, err := CreateProgramTemplate(db, nil, "5/3/1 BBB", "Boring But Big", 4, 4, false)
 		if err != nil {
 			t.Fatalf("create program template: %v", err)
 		}
 		if tmpl.Name != "5/3/1 BBB" {
 			t.Errorf("name = %q, want 5/3/1 BBB", tmpl.Name)
+		}
+		if tmpl.AthleteID != nil {
+			t.Errorf("athlete_id = %v, want nil (global)", tmpl.AthleteID)
 		}
 		if tmpl.NumWeeks != 4 {
 			t.Errorf("num_weeks = %d, want 4", tmpl.NumWeeks)
@@ -27,8 +30,19 @@ func TestCreateProgramTemplate(t *testing.T) {
 		}
 	})
 
-	t.Run("duplicate name", func(t *testing.T) {
-		_, err := CreateProgramTemplate(db, "5/3/1 BBB", "", 1, 1, false)
+	t.Run("athlete-scoped create", func(t *testing.T) {
+		a, _ := CreateAthlete(db, "Scoped Test", "", "", "", sql.NullInt64{}, true)
+		tmpl, err := CreateProgramTemplate(db, &a.ID, "Athlete Program", "", 3, 3, false)
+		if err != nil {
+			t.Fatalf("create athlete-scoped template: %v", err)
+		}
+		if tmpl.AthleteID == nil || *tmpl.AthleteID != a.ID {
+			t.Errorf("athlete_id = %v, want %d", tmpl.AthleteID, a.ID)
+		}
+	})
+
+	t.Run("duplicate name global", func(t *testing.T) {
+		_, err := CreateProgramTemplate(db, nil, "5/3/1 BBB", "", 1, 1, false)
 		if err == nil {
 			t.Error("expected error for duplicate name")
 		}
@@ -38,8 +52,8 @@ func TestCreateProgramTemplate(t *testing.T) {
 func TestListProgramTemplates(t *testing.T) {
 	db := testDB(t)
 
-	CreateProgramTemplate(db, "Program A", "", 4, 4, false)
-	CreateProgramTemplate(db, "Program B", "", 3, 3, false)
+	CreateProgramTemplate(db, nil, "Program A", "", 4, 4, false)
+	CreateProgramTemplate(db, nil, "Program B", "", 3, 3, false)
 
 	templates, err := ListProgramTemplates(db)
 	if err != nil {
@@ -50,10 +64,75 @@ func TestListProgramTemplates(t *testing.T) {
 	}
 }
 
+func TestListProgramTemplatesForAthlete(t *testing.T) {
+	db := testDB(t)
+
+	a1, _ := CreateAthlete(db, "Athlete One", "", "", "", sql.NullInt64{}, true)
+	a2, _ := CreateAthlete(db, "Athlete Two", "", "", "", sql.NullInt64{}, true)
+
+	// Global template.
+	CreateProgramTemplate(db, nil, "Global Program", "", 4, 4, false)
+	// Athlete-1-scoped template.
+	CreateProgramTemplate(db, &a1.ID, "A1 Program", "", 3, 3, false)
+	// Athlete-2-scoped template.
+	CreateProgramTemplate(db, &a2.ID, "A2 Program", "", 2, 2, false)
+
+	t.Run("athlete 1 sees global + own", func(t *testing.T) {
+		templates, err := ListProgramTemplatesForAthlete(db, a1.ID)
+		if err != nil {
+			t.Fatalf("list for athlete 1: %v", err)
+		}
+		if len(templates) != 2 {
+			t.Errorf("len = %d, want 2 (global + a1)", len(templates))
+		}
+		names := make(map[string]bool)
+		for _, tmpl := range templates {
+			names[tmpl.Name] = true
+		}
+		if !names["Global Program"] || !names["A1 Program"] {
+			t.Errorf("expected Global Program and A1 Program, got %v", names)
+		}
+	})
+
+	t.Run("athlete 2 sees global + own", func(t *testing.T) {
+		templates, err := ListProgramTemplatesForAthlete(db, a2.ID)
+		if err != nil {
+			t.Fatalf("list for athlete 2: %v", err)
+		}
+		if len(templates) != 2 {
+			t.Errorf("len = %d, want 2 (global + a2)", len(templates))
+		}
+	})
+
+	t.Run("all templates listed globally", func(t *testing.T) {
+		templates, err := ListProgramTemplates(db)
+		if err != nil {
+			t.Fatalf("list all: %v", err)
+		}
+		if len(templates) != 3 {
+			t.Errorf("len = %d, want 3", len(templates))
+		}
+	})
+
+	t.Run("same name allowed for different athletes", func(t *testing.T) {
+		_, err := CreateProgramTemplate(db, &a2.ID, "A1 Program", "", 1, 1, false)
+		if err != nil {
+			t.Errorf("should allow same name for different athlete, got: %v", err)
+		}
+	})
+
+	t.Run("duplicate name within same athlete rejected", func(t *testing.T) {
+		_, err := CreateProgramTemplate(db, &a1.ID, "A1 Program", "", 1, 1, false)
+		if err == nil {
+			t.Error("expected unique violation for duplicate name within same athlete")
+		}
+	})
+}
+
 func TestUpdateProgramTemplate(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, "Old Name", "", 4, 4, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "Old Name", "", 4, 4, false)
 
 	updated, err := UpdateProgramTemplate(db, tmpl.ID, "New Name", "Updated description", 3, 3, false)
 	if err != nil {
@@ -71,14 +150,14 @@ func TestDeleteProgramTemplate(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("delete unused", func(t *testing.T) {
-		tmpl, _ := CreateProgramTemplate(db, "To Delete", "", 1, 1, false)
+		tmpl, _ := CreateProgramTemplate(db, nil, "To Delete", "", 1, 1, false)
 		if err := DeleteProgramTemplate(db, tmpl.ID); err != nil {
 			t.Fatalf("delete: %v", err)
 		}
 	})
 
 	t.Run("delete in use", func(t *testing.T) {
-		tmpl, _ := CreateProgramTemplate(db, "In Use", "", 1, 1, false)
+		tmpl, _ := CreateProgramTemplate(db, nil, "In Use", "", 1, 1, false)
 		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 		if err != nil {
@@ -95,7 +174,7 @@ func TestDeleteProgramTemplate(t *testing.T) {
 func TestPrescribedSets(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, "Test Program", "", 4, 4, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "Test Program", "", 4, 4, false)
 	e, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 
 	t.Run("create prescribed set", func(t *testing.T) {
@@ -162,7 +241,7 @@ func TestPrescribedSets(t *testing.T) {
 func TestAthleteProgram(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, "5/3/1", "", 4, 4, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "5/3/1", "", 4, 4, false)
 	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("assign program", func(t *testing.T) {
@@ -221,7 +300,7 @@ func TestGetPrescription(t *testing.T) {
 	db := testDB(t)
 
 	// Set up template: 4 weeks × 4 days, with exercises on W1D1.
-	tmpl, _ := CreateProgramTemplate(db, "Test 531", "", 4, 4, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "Test 531", "", 4, 4, false)
 	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 	squat, _ := CreateExercise(db, "Back Squat", "", "", "", 0)
 
@@ -321,7 +400,7 @@ func TestGetPrescription(t *testing.T) {
 func TestCopyWeek(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, "Copy Test", "", 3, 3, false)
+	tmpl, _ := CreateProgramTemplate(db, nil, "Copy Test", "", 3, 3, false)
 	e1, _ := CreateExercise(db, "Squat", "", "", "", 0)
 	e2, _ := CreateExercise(db, "Bench", "", "", "", 0)
 

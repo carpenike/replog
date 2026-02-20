@@ -187,7 +187,8 @@ CREATE INDEX IF NOT EXISTS idx_workout_reviews_status
 
 CREATE TABLE IF NOT EXISTS program_templates (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    athlete_id  INTEGER REFERENCES athletes(id) ON DELETE CASCADE,
+    name        TEXT    NOT NULL COLLATE NOCASE,
     description TEXT,
     num_weeks   INTEGER NOT NULL DEFAULT 1,
     num_days    INTEGER NOT NULL DEFAULT 1,
@@ -195,6 +196,17 @@ CREATE TABLE IF NOT EXISTS program_templates (
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Global templates (athlete_id IS NULL) must have unique names.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_program_templates_name_global
+    ON program_templates(name) WHERE athlete_id IS NULL;
+
+-- Per-athlete templates must have unique names within that athlete.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_program_templates_name_athlete
+    ON program_templates(athlete_id, name) WHERE athlete_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_program_templates_athlete
+    ON program_templates(athlete_id);
 
 CREATE TABLE IF NOT EXISTS prescribed_sets (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -460,6 +472,9 @@ DROP INDEX IF EXISTS idx_workout_reviews_status;
 DROP INDEX IF EXISTS idx_workout_reviews_workout_id;
 DROP INDEX IF EXISTS idx_user_preferences_user_id;
 DROP INDEX IF EXISTS idx_progression_rules_template;
+DROP INDEX IF EXISTS idx_program_templates_athlete;
+DROP INDEX IF EXISTS idx_program_templates_name_athlete;
+DROP INDEX IF EXISTS idx_program_templates_name_global;
 DROP INDEX IF EXISTS idx_athlete_programs_active;
 DROP INDEX IF EXISTS idx_prescribed_sets_template;
 DROP TRIGGER IF EXISTS trigger_athlete_notes_updated_at;

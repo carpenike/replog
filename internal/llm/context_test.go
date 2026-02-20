@@ -233,10 +233,10 @@ func TestBuildAthleteContext_ExerciseCatalog_EquipmentFiltering(t *testing.T) {
 func TestBuildAthleteContext_PriorTemplates(t *testing.T) {
 	db := testDB(t)
 
-	if _, err := models.CreateProgramTemplate(db, "Month 1", "First", 4, 3, false); err != nil {
+	if _, err := models.CreateProgramTemplate(db, nil, "Month 1", "First", 4, 3, false); err != nil {
 		t.Fatalf("create template: %v", err)
 	}
-	if _, err := models.CreateProgramTemplate(db, "Month 2", "Second", 4, 3, false); err != nil {
+	if _, err := models.CreateProgramTemplate(db, nil, "Month 2", "Second", 4, 3, false); err != nil {
 		t.Fatalf("create template: %v", err)
 	}
 
