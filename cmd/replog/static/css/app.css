@@ -1212,6 +1212,12 @@ main.container {
     align-items: center;
 }
 
+.page-actions button,
+.page-actions [role="button"] {
+    width: auto;
+    margin-bottom: 0;
+}
+
 /* ---- Breadcrumbs — subtle, understated ---- */
 .breadcrumb {
     font-size: 0.8rem;
