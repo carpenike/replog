@@ -492,6 +492,7 @@ func main() {
 		// Application settings — admin-only.
 		r.Get("/admin/settings", settings.Show)
 		r.Post("/admin/settings", settings.Update)
+		r.Post("/admin/settings/test-llm", settings.TestConnection)
 	})
 
 	// Start server.

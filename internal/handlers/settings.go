@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -121,4 +125,36 @@ func isMaskedPlaceholder(v string) bool {
 		}
 	}
 	return false
+}
+
+// TestConnection attempts to connect to the configured LLM provider and
+// returns a success/failure message as an HTML fragment (for htmx swap).
+func (h *Settings) TestConnection(w http.ResponseWriter, r *http.Request) {
+	provider, err := llm.NewProviderFromSettings(h.DB)
+	if err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		w.Write([]byte(`<span class="test-result test-error">Not configured. Please set an AI Coach provider, model, and API key first.</span>`))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	if err := provider.Ping(ctx); err != nil {
+		log.Printf("handlers: test LLM connection: %v", err)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+
+		var apiErr *llm.APIError
+		msg := err.Error()
+		if errors.As(err, &apiErr) {
+			msg = apiErr.UserMessage()
+		}
+		w.Write([]byte(`<span class="test-result test-error">` + msg + `</span>`))
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(`<span class="test-result test-success">Connected to ` + provider.Name() + ` successfully!</span>`))
 }

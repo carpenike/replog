@@ -180,7 +180,7 @@
             <div class="page-actions">
                 <a href="/athletes/{{ .Athlete.ID }}/programs/generate" role="button" class="outline secondary">Back</a>
                 <button type="submit" name="action" value="save" class="outline">Save Changes</button>
-                <button type="submit" name="action" value="execute" hx-confirm="Import this program into the catalog?">Approve &amp; Import</button>
+                <button type="submit" name="action" value="execute" data-confirm-submit="Import this program into the catalog?">Approve &amp; Import</button>
             </div>
         </form>
         {{ else }}

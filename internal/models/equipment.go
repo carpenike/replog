@@ -553,3 +553,60 @@ func CheckProgramCompatibility(db *sql.DB, athleteID, templateID int64) (*Progra
 
 	return result, nil
 }
+
+// BatchCheckExerciseCompatibility checks equipment compatibility for ALL exercises
+// against an athlete's equipment inventory in a single query. Returns a map from
+// exercise ID to whether the athlete has all required equipment.
+func BatchCheckExerciseCompatibility(db *sql.DB, athleteID int64) (map[int64]bool, error) {
+	// Get athlete's available equipment IDs.
+	athleteIDs, err := AthleteEquipmentIDs(db, athleteID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all exercises and their required equipment in one query.
+	rows, err := db.Query(
+		`SELECT e.id, ee.equipment_id
+		 FROM exercises e
+		 LEFT JOIN exercise_equipment ee ON ee.exercise_id = e.id AND ee.optional = 0
+		 ORDER BY e.id`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("models: batch exercise compatibility: %w", err)
+	}
+	defer rows.Close()
+
+	// Track which exercises have any missing required equipment.
+	type exerciseReqs struct {
+		hasRequired bool
+	}
+	reqs := make(map[int64]*exerciseReqs)
+
+	for rows.Next() {
+		var exID int64
+		var eqID sql.NullInt64
+		if err := rows.Scan(&exID, &eqID); err != nil {
+			return nil, fmt.Errorf("models: scan batch compat: %w", err)
+		}
+
+		entry, exists := reqs[exID]
+		if !exists {
+			entry = &exerciseReqs{hasRequired: true}
+			reqs[exID] = entry
+		}
+
+		// If this exercise has a required equipment that the athlete doesn't have, mark incompatible.
+		if eqID.Valid && !athleteIDs[eqID.Int64] {
+			entry.hasRequired = false
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate batch compat: %w", err)
+	}
+
+	result := make(map[int64]bool, len(reqs))
+	for id, entry := range reqs {
+		result[id] = entry.hasRequired
+	}
+	return result, nil
+}

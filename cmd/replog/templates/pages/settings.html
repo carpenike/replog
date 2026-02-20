@@ -42,6 +42,9 @@
                         <option value="{{ . }}" {{ if eq . $current }}selected{{ end }}>{{ if eq . "" }}(not set){{ else }}{{ . }}{{ end }}</option>
                         {{ end }}
                     </select>
+                    {{ else if eq (settingFieldType .Key) "textarea" }}
+                    <textarea id="setting_{{ .Key }}" name="setting_{{ .Key }}" rows="4"
+                              placeholder="{{ settingDescription .Key }}">{{ if settingIsSensitive .Key }}{{ .Masked }}{{ else }}{{ .Value }}{{ end }}</textarea>
                     {{ else }}
                     <input type="{{ settingFieldType .Key }}"
                            id="setting_{{ .Key }}"
@@ -59,6 +62,15 @@
 
             <div class="form-actions">
                 <button type="submit">Save Settings</button>
+                <button type="button" class="outline"
+                        hx-post="/admin/settings/test-llm"
+                        hx-target="#test-llm-result"
+                        hx-swap="innerHTML"
+                        hx-indicator="#test-llm-spinner">
+                    Test AI Coach Connection
+                </button>
+                <span id="test-llm-spinner" class="htmx-indicator">Testing&hellip;</span>
             </div>
+            <div id="test-llm-result" class="mt-sm"></div>
         </form>
 {{ end }}

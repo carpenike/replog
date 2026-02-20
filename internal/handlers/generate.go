@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alexedwards/scs/v2"
@@ -30,6 +31,10 @@ type Generate struct {
 	DB        *sql.DB
 	Sessions  *scs.SessionManager
 	Templates TemplateCache
+
+	// Rate limiting: track in-flight generations per athlete.
+	mu        sync.Mutex
+	inflight  map[int64]time.Time
 }
 
 // Form renders the program generation form for an athlete.
@@ -91,6 +96,14 @@ func (h *Generate) Submit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+
+	// Rate limiting: prevent concurrent/rapid generations for the same athlete.
+	if !h.acquireSlot(athleteID) {
+		h.renderFormError(w, r, athlete, llm.GenerationRequest{AthleteID: athleteID},
+			"A generation is already in progress for this athlete. Please wait for it to complete before starting another.")
+		return
+	}
+	defer h.releaseSlot(athleteID)
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
@@ -450,6 +463,12 @@ func (h *Generate) renderFormError(w http.ResponseWriter, r *http.Request, athle
 		selectedRefIDs[id] = true
 	}
 
+	// Build a set of the previously selected focus areas for re-checking.
+	selectedFocus := make(map[string]bool, len(req.FocusAreas))
+	for _, fa := range req.FocusAreas {
+		selectedFocus[fa] = true
+	}
+
 	data := map[string]any{
 		"Athlete":           athlete,
 		"Error":             errMsg,
@@ -457,6 +476,8 @@ func (h *Generate) renderFormError(w http.ResponseWriter, r *http.Request, athle
 		"NumDays":           req.NumDays,
 		"NumWeeks":          req.NumWeeks,
 		"IsLoop":            req.IsLoop,
+		"CoachDirections":   req.CoachDirections,
+		"SelectedFocusAreas": selectedFocus,
 		"Configured":        true,
 		"ReferencePrograms": refPrograms,
 		"SelectedRefIDs":    selectedRefIDs,
@@ -465,6 +486,33 @@ func (h *Generate) renderFormError(w http.ResponseWriter, r *http.Request, athle
 		log.Printf("handlers: render generate form with error: %v", err)
 		h.Templates.ServerError(w, r)
 	}
+}
+
+// acquireSlot attempts to claim a generation slot for an athlete.
+// Returns false if a generation is already in progress (started within the last 10 minutes).
+func (h *Generate) acquireSlot(athleteID int64) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.inflight == nil {
+		h.inflight = make(map[int64]time.Time)
+	}
+
+	if started, ok := h.inflight[athleteID]; ok {
+		// Allow re-entry if the previous generation is stale (>10 min).
+		if time.Since(started) < 10*time.Minute {
+			return false
+		}
+	}
+	h.inflight[athleteID] = time.Now()
+	return true
+}
+
+// releaseSlot releases the generation slot for an athlete.
+func (h *Generate) releaseSlot(athleteID int64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.inflight, athleteID)
 }
 
 // ContextJSON returns the full athlete context as JSON. This lets coaches

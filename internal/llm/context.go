@@ -69,8 +69,19 @@ type ProgramHistoryEntry struct {
 
 // PerformanceData holds training maxes and body weight history.
 type PerformanceData struct {
-	TrainingMaxes []TMEntry         `json:"training_maxes"`
-	BodyWeights   []BodyWeightEntry `json:"body_weights"`
+	TrainingMaxes []TMEntry              `json:"training_maxes"`
+	BodyWeights   []BodyWeightEntry      `json:"body_weights"`
+	Trends        []ExercisePerformance  `json:"trends,omitempty"`
+}
+
+// ExercisePerformance holds computed performance trends for a single exercise
+// from the athlete's recent workout history.
+type ExercisePerformance struct {
+	Exercise   string   `json:"exercise"`
+	AvgRPE     *float64 `json:"avg_rpe,omitempty"`
+	MaxWeight  *float64 `json:"max_weight,omitempty"`
+	TotalSets  int      `json:"total_sets"`
+	TotalReps  int      `json:"total_reps"`
 }
 
 // TMEntry is a single training max snapshot.
@@ -221,8 +232,8 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTe
 	}
 	ctx.CoachNotes = notes
 
-	// Goals.
-	ctx.Goals = buildGoals(profile)
+	// Goals (with history from goal_history table).
+	ctx.Goals = buildGoals(db, profile, athleteID)
 
 	// Exercise catalog (filtered by equipment compatibility).
 	exercises, err := buildExerciseCatalog(db, athleteID)
@@ -237,6 +248,9 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTe
 		return nil, fmt.Errorf("llm: build recent workouts: %w", err)
 	}
 	ctx.RecentWorkouts = workouts
+
+	// Exercise performance trends (computed from recent workouts).
+	ctx.Performance.Trends = buildPerformanceTrends(workouts)
 
 	// Prior program templates (athlete-scoped only — previously generated for this athlete).
 	templates, err := buildPriorTemplates(db, athleteID)
@@ -297,30 +311,15 @@ func buildProfile(db *sql.DB, athleteID int64, now time.Time) (*AthleteProfile, 
 		profile.Gender = &athlete.Gender.String
 	}
 
-	// Compute training months from earliest workout.
-	page, err := models.ListWorkouts(db, athleteID, 0)
+	// Compute training months from earliest workout (single query, no paging).
+	count, earliest, err := models.WorkoutStats(db, athleteID)
 	if err != nil {
-		return nil, fmt.Errorf("list workouts for profile: %w", err)
+		return nil, fmt.Errorf("workout stats for profile: %w", err)
 	}
-	profile.TotalWorkouts = len(page.Workouts)
+	profile.TotalWorkouts = count
 
-	// Walk pages to get total count and earliest date.
-	allWorkouts := page.Workouts
-	offset := 0
-	for page.HasMore {
-		offset += len(page.Workouts)
-		page, err = models.ListWorkouts(db, athleteID, offset)
-		if err != nil {
-			return nil, fmt.Errorf("list workouts page: %w", err)
-		}
-		allWorkouts = append(allWorkouts, page.Workouts...)
-	}
-	profile.TotalWorkouts = len(allWorkouts)
-
-	if len(allWorkouts) > 0 {
-		// Earliest workout is the last in the list (sorted DESC).
-		earliest := allWorkouts[len(allWorkouts)-1]
-		if t, err := parseDate(earliest.Date); err == nil {
+	if earliest != "" {
+		if t, err := parseDate(earliest); err == nil {
 			months := int(now.Sub(t).Hours() / 24 / 30)
 			profile.TrainingMonths = months
 		}
@@ -403,6 +402,57 @@ func buildBodyWeights(db *sql.DB, athleteID int64) ([]BodyWeightEntry, error) {
 	return entries, nil
 }
 
+// buildPerformanceTrends computes per-exercise aggregate stats from recent workouts.
+// This gives the LLM a quick view of volume and intensity trends without
+// needing to parse every individual set.
+func buildPerformanceTrends(workouts []WorkoutSummary) []ExercisePerformance {
+	type accumulator struct {
+		totalRPE  float64
+		rpeCount  int
+		maxWeight float64
+		totalSets int
+		totalReps int
+	}
+	byExercise := make(map[string]*accumulator)
+
+	for _, w := range workouts {
+		for _, s := range w.Sets {
+			acc, exists := byExercise[s.Exercise]
+			if !exists {
+				acc = &accumulator{}
+				byExercise[s.Exercise] = acc
+			}
+			acc.totalSets++
+			acc.totalReps += s.Reps
+			if s.RPE != nil {
+				acc.totalRPE += *s.RPE
+				acc.rpeCount++
+			}
+			if s.Weight != nil && *s.Weight > acc.maxWeight {
+				acc.maxWeight = *s.Weight
+			}
+		}
+	}
+
+	trends := make([]ExercisePerformance, 0, len(byExercise))
+	for name, acc := range byExercise {
+		ep := ExercisePerformance{
+			Exercise:  name,
+			TotalSets: acc.totalSets,
+			TotalReps: acc.totalReps,
+		}
+		if acc.rpeCount > 0 {
+			avg := acc.totalRPE / float64(acc.rpeCount)
+			ep.AvgRPE = &avg
+		}
+		if acc.maxWeight > 0 {
+			ep.MaxWeight = &acc.maxWeight
+		}
+		trends = append(trends, ep)
+	}
+	return trends
+}
+
 // buildCoachNotes returns a combined view of coach notes and relevant journal entries.
 func buildCoachNotes(db *sql.DB, athleteID int64) ([]NoteEntry, error) {
 	// Athlete notes (coach observations, pinned items).
@@ -444,12 +494,21 @@ func buildCoachNotes(db *sql.DB, athleteID int64) ([]NoteEntry, error) {
 	return entries, nil
 }
 
-// buildGoals constructs the goal context from the athlete profile.
-func buildGoals(profile *AthleteProfile) GoalContext {
+// buildGoals constructs the goal context from the athlete profile and goal history.
+func buildGoals(db *sql.DB, profile *AthleteProfile, athleteID int64) GoalContext {
 	gc := GoalContext{}
 	if profile.Goal != nil {
 		gc.Current = *profile.Goal
 	}
+
+	// Populate goal history from the goal_history table.
+	history, err := models.ListGoalHistory(db, athleteID)
+	if err == nil && len(history) > 0 {
+		for _, h := range history {
+			gc.History = append(gc.History, h.Goal)
+		}
+	}
+
 	return gc
 }
 
@@ -458,6 +517,12 @@ func buildExerciseCatalog(db *sql.DB, athleteID int64) ([]ExerciseEntry, error) 
 	exercises, err := models.ListExercises(db, "")
 	if err != nil {
 		return nil, err
+	}
+
+	// Batch compatibility check (single query instead of N per-exercise calls).
+	compatMap, err := models.BatchCheckExerciseCompatibility(db, athleteID)
+	if err != nil {
+		return nil, fmt.Errorf("batch exercise compatibility: %w", err)
 	}
 
 	entries := make([]ExerciseEntry, 0, len(exercises))
@@ -474,12 +539,7 @@ func buildExerciseCatalog(db *sql.DB, athleteID int64) ([]ExerciseEntry, error) 
 			entry.FormNotes = &ex.FormNotes.String
 		}
 
-		// Check equipment compatibility.
-		compat, err := models.CheckExerciseCompatibility(db, athleteID, ex.ID)
-		if err != nil {
-			return nil, fmt.Errorf("check compatibility for exercise %d: %w", ex.ID, err)
-		}
-		entry.Compatible = compat.HasRequired
+		entry.Compatible = compatMap[ex.ID]
 
 		entries = append(entries, entry)
 	}
@@ -500,6 +560,16 @@ func buildRecentWorkouts(db *sql.DB, athleteID int64) ([]WorkoutSummary, error) 
 		workouts = workouts[:20]
 	}
 
+	// Batch-load all sets for the selected workouts (single query).
+	workoutIDs := make([]int64, len(workouts))
+	for i, w := range workouts {
+		workoutIDs[i] = w.ID
+	}
+	allSets, err := models.ListSetsByWorkoutIDs(db, workoutIDs)
+	if err != nil {
+		return nil, fmt.Errorf("batch list sets: %w", err)
+	}
+
 	summaries := make([]WorkoutSummary, 0, len(workouts))
 	for _, w := range workouts {
 		ws := WorkoutSummary{
@@ -509,11 +579,8 @@ func buildRecentWorkouts(db *sql.DB, athleteID int64) ([]WorkoutSummary, error) 
 			ws.Notes = &w.Notes.String
 		}
 
-		// Get sets grouped by exercise.
-		groups, err := models.ListSetsByWorkout(db, w.ID)
-		if err != nil {
-			return nil, fmt.Errorf("list sets for workout %d: %w", w.ID, err)
-		}
+		// Use batch-loaded sets for this workout.
+		groups := allSets[w.ID]
 		for _, g := range groups {
 			for _, s := range g.Sets {
 				ss := SetSummary{
@@ -596,57 +663,7 @@ func buildReferencePrograms(db *sql.DB, audience string) ([]ReferenceProgramSumm
 	if err != nil {
 		return nil, err
 	}
-
-	var programs []ReferenceProgramSummary
-	for _, t := range templates {
-		rp := ReferenceProgramSummary{
-			Name:     t.Name,
-			NumWeeks: t.NumWeeks,
-			NumDays:  t.NumDays,
-			IsLoop:   t.IsLoop,
-		}
-		if t.Description.Valid {
-			rp.Description = t.Description.String
-		}
-		if t.Audience.Valid {
-			rp.Audience = t.Audience.String
-		}
-
-		// Load full prescribed sets for this reference program.
-		sets, err := models.ListPrescribedSets(db, t.ID)
-		if err != nil {
-			return nil, fmt.Errorf("list prescribed sets for template %d: %w", t.ID, err)
-		}
-		for _, ps := range sets {
-			pss := PrescribedSetSummary{
-				Exercise:  ps.ExerciseName,
-				Week:      ps.Week,
-				Day:       ps.Day,
-				SetNumber: ps.SetNumber,
-				RepType:   ps.RepType,
-				SortOrder: ps.SortOrder,
-			}
-			if ps.Reps.Valid {
-				r := int(ps.Reps.Int64)
-				pss.Reps = &r
-			}
-			if ps.Percentage.Valid {
-				p := ps.Percentage.Float64
-				pss.Percentage = &p
-			}
-			if ps.AbsoluteWeight.Valid {
-				w := ps.AbsoluteWeight.Float64
-				pss.AbsoluteWeight = &w
-			}
-			if ps.Notes.Valid {
-				pss.Notes = ps.Notes.String
-			}
-			rp.PrescribedSets = append(rp.PrescribedSets, pss)
-		}
-
-		programs = append(programs, rp)
-	}
-	return programs, nil
+	return templatesToReferenceSummaries(db, templates)
 }
 
 // buildReferenceProgramsByIDs loads specific program templates by their IDs
@@ -657,7 +674,12 @@ func buildReferenceProgramsByIDs(db *sql.DB, ids []int64) ([]ReferenceProgramSum
 	if err != nil {
 		return nil, err
 	}
+	return templatesToReferenceSummaries(db, templates)
+}
 
+// templatesToReferenceSummaries converts a slice of program templates into
+// ReferenceProgramSummary values, loading full prescribed sets for each.
+func templatesToReferenceSummaries(db *sql.DB, templates []*models.ProgramTemplate) ([]ReferenceProgramSummary, error) {
 	var programs []ReferenceProgramSummary
 	for _, t := range templates {
 		rp := ReferenceProgramSummary{
@@ -673,7 +695,6 @@ func buildReferenceProgramsByIDs(db *sql.DB, ids []int64) ([]ReferenceProgramSum
 			rp.Audience = t.Audience.String
 		}
 
-		// Load full prescribed sets for this reference program.
 		sets, err := models.ListPrescribedSets(db, t.ID)
 		if err != nil {
 			return nil, fmt.Errorf("list prescribed sets for template %d: %w", t.ID, err)

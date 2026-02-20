@@ -162,3 +162,20 @@ func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error)
 	}
 	return &WorkoutPage{Workouts: workouts, HasMore: hasMore}, nil
 }
+
+// WorkoutStats returns the total workout count and earliest workout date for
+// an athlete in a single query. Returns count=0Source and earliest="" if no workouts exist.
+func WorkoutStats(db *sql.DB, athleteID int64) (count int, earliest string, err error) {
+	var earliestVal sql.NullString
+	err = db.QueryRow(
+		`SELECT COUNT(*), MIN(date) FROM workouts WHERE athlete_id = ?`,
+		athleteID,
+	).Scan(&count, &earliestVal)
+	if err != nil {
+		return 0, "", fmt.Errorf("models: workout stats for athlete %d: %w", athleteID, err)
+	}
+	if earliestVal.Valid {
+		earliest = earliestVal.String
+	}
+	return count, earliest, nil
+}

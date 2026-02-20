@@ -147,3 +147,19 @@ func TemperatureFromSettings(db *sql.DB) float64 {
 	}
 	return temp
 }
+
+// MaxTokensFromSettings reads the max_tokens setting.
+func MaxTokensFromSettings(db *sql.DB) int {
+	v := models.GetSetting(db, "llm.max_tokens")
+	var tokens int
+	if _, err := fmt.Sscanf(v, "%d", &tokens); err != nil || tokens <= 0 {
+		return 32768 // fallback default
+	}
+	return tokens
+}
+
+// SystemPromptOverrideFromSettings reads the system_prompt_override setting.
+// Returns empty string if not set, in which case the default prompt is used.
+func SystemPromptOverrideFromSettings(db *sql.DB) string {
+	return models.GetSetting(db, "llm.system_prompt_override")
+}

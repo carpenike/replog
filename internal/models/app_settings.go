@@ -4,11 +4,15 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+
+	"golang.org/x/crypto/hkdf"
 )
 
 // SettingDefinition describes a configurable application setting.
@@ -60,6 +64,16 @@ var SettingsRegistry = []SettingDefinition{
 		Key: "llm.temperature", EnvVar: "REPLOG_LLM_TEMPERATURE", Default: "0.7",
 		Label: "Temperature", Description: "Creativity level (0.0 = deterministic, 2.0 = very creative)",
 		FieldType: "number", Category: "AI Coach",
+	},
+	{
+		Key: "llm.max_tokens", EnvVar: "REPLOG_LLM_MAX_TOKENS", Default: "32768",
+		Label: "Max Tokens", Description: "Maximum output tokens for generation (4096–65536)",
+		FieldType: "number", Category: "AI Coach",
+	},
+	{
+		Key: "llm.system_prompt_override", EnvVar: "", Default: "",
+		Label: "System Prompt Override", Description: "Replace the default system prompt (leave empty to use built-in prompt)",
+		FieldType: "textarea", Category: "AI Coach",
 	},
 }
 
@@ -238,17 +252,20 @@ func maskValue(value string, sensitive bool) string {
 
 // --- Encryption helpers ---
 
-// secretKey returns the 32-byte encryption key derived from REPLOG_SECRET_KEY.
-// Returns nil if the env var is not set.
+// secretKey returns the 32-byte encryption key derived from REPLOG_SECRET_KEY
+// using HKDF (RFC 5869). Returns nil if the env var is not set.
 func secretKey() []byte {
 	key := os.Getenv("REPLOG_SECRET_KEY")
 	if key == "" {
 		return nil
 	}
-	// Pad or truncate to 32 bytes for AES-256.
-	b := make([]byte, 32)
-	copy(b, []byte(key))
-	return b
+	// Derive a proper 32-byte AES-256 key using HKDF with a fixed salt and info.
+	h := hkdf.New(sha256.New, []byte(key), []byte("replog-settings-v1"), []byte("aes-256-gcm"))
+	derived := make([]byte, 32)
+	if _, err := io.ReadFull(h, derived); err != nil {
+		return nil
+	}
+	return derived
 }
 
 func encryptValue(plaintext string) (string, error) {

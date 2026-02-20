@@ -22,7 +22,7 @@
         </article>
         {{ else }}
         <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate"
-              onsubmit="document.getElementById('generate-btn').setAttribute('aria-busy','true'); document.getElementById('generate-btn').textContent='Generating\u2026'; document.getElementById('generate-indicator').style.display='block';">
+              data-generate-submit>
             <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
 
             <label for="program_name">Program Name</label>
@@ -54,17 +54,17 @@
 
             <label>Focus Areas</label>
             <fieldset class="focus-areas">
-                <label><input type="checkbox" name="focus_areas" value="strength"> Strength</label>
-                <label><input type="checkbox" name="focus_areas" value="power"> Power</label>
-                <label><input type="checkbox" name="focus_areas" value="hypertrophy"> Hypertrophy</label>
-                <label><input type="checkbox" name="focus_areas" value="conditioning"> Conditioning</label>
-                <label><input type="checkbox" name="focus_areas" value="mobility"> Mobility</label>
-                <label><input type="checkbox" name="focus_areas" value="sport_specific"> Sport-Specific</label>
+                <label><input type="checkbox" name="focus_areas" value="strength" {{ if and $.SelectedFocusAreas (index $.SelectedFocusAreas "strength") }}checked{{ end }}> Strength</label>
+                <label><input type="checkbox" name="focus_areas" value="power" {{ if and $.SelectedFocusAreas (index $.SelectedFocusAreas "power") }}checked{{ end }}> Power</label>
+                <label><input type="checkbox" name="focus_areas" value="hypertrophy" {{ if and $.SelectedFocusAreas (index $.SelectedFocusAreas "hypertrophy") }}checked{{ end }}> Hypertrophy</label>
+                <label><input type="checkbox" name="focus_areas" value="conditioning" {{ if and $.SelectedFocusAreas (index $.SelectedFocusAreas "conditioning") }}checked{{ end }}> Conditioning</label>
+                <label><input type="checkbox" name="focus_areas" value="mobility" {{ if and $.SelectedFocusAreas (index $.SelectedFocusAreas "mobility") }}checked{{ end }}> Mobility</label>
+                <label><input type="checkbox" name="focus_areas" value="sport_specific" {{ if and $.SelectedFocusAreas (index $.SelectedFocusAreas "sport_specific") }}checked{{ end }}> Sport-Specific</label>
             </fieldset>
 
             <label for="coach_directions">Coach Directions</label>
             <textarea id="coach_directions" name="coach_directions" rows="4"
-                      placeholder="e.g. Start introducing hang cleans, pull back on carries..."></textarea>
+                      placeholder="e.g. Start introducing hang cleans, pull back on carries...">{{ .CoachDirections }}</textarea>
 
             {{ if .ReferencePrograms }}
             <label>Reference Programs for AI Context</label>

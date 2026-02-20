@@ -336,6 +336,83 @@ func ListSetsByWorkout(db *sql.DB, workoutID int64) ([]*ExerciseGroup, error) {
 	return groups, nil
 }
 
+// ListSetsByWorkoutIDs returns all sets for multiple workouts in a single query,
+// keyed by workout ID. Each value is a slice of ExerciseGroups for that workout.
+// This replaces N calls to ListSetsByWorkout with 1 query.
+func ListSetsByWorkoutIDs(db *sql.DB, workoutIDs []int64) (map[int64][]*ExerciseGroup, error) {
+	if len(workoutIDs) == 0 {
+		return make(map[int64][]*ExerciseGroup), nil
+	}
+
+	// Build IN clause placeholders.
+	placeholders := make([]byte, 0, len(workoutIDs)*2)
+	args := make([]any, len(workoutIDs))
+	for i, id := range workoutIDs {
+		if i > 0 {
+			placeholders = append(placeholders, ',')
+		}
+		placeholders = append(placeholders, '?')
+		args[i] = id
+	}
+
+	rows, err := db.Query(`
+		SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.notes, ws.created_at, ws.updated_at,
+		       e.name
+		FROM workout_sets ws
+		JOIN exercises e ON e.id = ws.exercise_id
+		WHERE ws.workout_id IN (`+string(placeholders)+`)
+		ORDER BY ws.workout_id, e.name COLLATE NOCASE, ws.set_number`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("models: list sets for %d workouts: %w", len(workoutIDs), err)
+	}
+	defer rows.Close()
+
+	// Track exercise groups per workout, preserving insertion order.
+	type workoutGroups struct {
+		groupMap   map[int64]*ExerciseGroup
+		groupOrder []int64
+	}
+	byWorkout := make(map[int64]*workoutGroups, len(workoutIDs))
+
+	for rows.Next() {
+		s := &WorkoutSet{}
+		if err := rows.Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.RPE, &s.RepType, &s.Notes, &s.CreatedAt, &s.UpdatedAt, &s.ExerciseName); err != nil {
+			return nil, fmt.Errorf("models: scan set in batch: %w", err)
+		}
+
+		wg, exists := byWorkout[s.WorkoutID]
+		if !exists {
+			wg = &workoutGroups{groupMap: make(map[int64]*ExerciseGroup)}
+			byWorkout[s.WorkoutID] = wg
+		}
+
+		g, gExists := wg.groupMap[s.ExerciseID]
+		if !gExists {
+			g = &ExerciseGroup{
+				ExerciseID:   s.ExerciseID,
+				ExerciseName: s.ExerciseName,
+			}
+			wg.groupMap[s.ExerciseID] = g
+			wg.groupOrder = append(wg.groupOrder, s.ExerciseID)
+		}
+		g.Sets = append(g.Sets, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Convert to final map.
+	result := make(map[int64][]*ExerciseGroup, len(byWorkout))
+	for wid, wg := range byWorkout {
+		groups := make([]*ExerciseGroup, 0, len(wg.groupOrder))
+		for _, eid := range wg.groupOrder {
+			groups = append(groups, wg.groupMap[eid])
+		}
+		result[wid] = groups
+	}
+	return result, nil
+}
+
 // ExerciseHistoryEntry represents a single set in the exercise history view,
 // enriched with workout date for grouping.
 type ExerciseHistoryEntry struct {

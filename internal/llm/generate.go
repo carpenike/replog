@@ -25,6 +25,10 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 
 	// Step 2: Construct prompts.
 	systemPrompt := buildSystemPrompt(athleteCtx)
+	// Allow admin override of the system prompt via settings.
+	if override := SystemPromptOverrideFromSettings(db); override != "" {
+		systemPrompt = override
+	}
 	userPrompt, err := buildUserPrompt(athleteCtx, req)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build prompt: %w", err)
@@ -33,7 +37,7 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 	// Step 3: Call the LLM.
 	opts := Options{
 		Temperature: TemperatureFromSettings(db),
-		MaxTokens:   32768,
+		MaxTokens:   MaxTokensFromSettings(db),
 	}
 	resp, err := provider.Generate(ctx, systemPrompt, userPrompt, opts)
 	if err != nil {

@@ -172,4 +172,33 @@
             if (form) form.submit();
         }
     });
+
+    // ---- Submit delegation for long-running forms ----
+    document.addEventListener("submit", function (e) {
+        // Generate form: show busy indicator when submitting.
+        var form = e.target.closest("[data-generate-submit]");
+        if (form) {
+            var btn = form.querySelector("#generate-btn");
+            var indicator = form.querySelector("#generate-indicator");
+            if (btn) {
+                btn.setAttribute("aria-busy", "true");
+                btn.textContent = "Generating\u2026";
+            }
+            if (indicator) {
+                indicator.style.display = "block";
+            }
+        }
+        // Confirm-submit: require confirmation before submitting.
+        // Can be placed on a form or on a specific submit button within a form.
+        var confirmForm = e.target.closest("[data-confirm-submit]");
+        if (!confirmForm && e.submitter) {
+            confirmForm = e.submitter.closest("[data-confirm-submit]");
+        }
+        if (confirmForm) {
+            var msg = confirmForm.getAttribute("data-confirm-submit");
+            if (msg && !window.confirm(msg)) {
+                e.preventDefault();
+            }
+        }
+    });
 })();
