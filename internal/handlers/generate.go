@@ -319,6 +319,16 @@ func (h *Generate) Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-assign the program's exercises to the athlete so they appear
+	// in the Assigned Exercises list (for TM management, history, etc.).
+	for _, templateID := range importResult.CreatedTemplateIDs {
+		if n, err := models.AssignProgramExercises(h.DB, athleteID, templateID); err != nil {
+			log.Printf("handlers: auto-assign exercises from template %d to athlete %d: %v", templateID, athleteID, err)
+		} else if n > 0 {
+			log.Printf("handlers: auto-assigned %d exercises from template %d to athlete %d", n, templateID, athleteID)
+		}
+	}
+
 	// Get generation result for display metadata.
 	genResult, _ := h.Sessions.Get(r.Context(), "generate_result").(*llm.GenerationResult)
 

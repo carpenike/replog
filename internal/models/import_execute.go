@@ -720,9 +720,11 @@ type CatalogImportResult struct {
 	ExercisesCreated    int
 	EquipmentCreated    int
 	ProgramsCreated     int
+	ProgramsAssigned    int
 	PrescribedSets      int
 	ProgressionRules    int
 	ExerciseEquipLinks  int
+	CreatedTemplateIDs  []int64 // template IDs created, for post-import exercise auto-assignment
 }
 
 // BuildCatalogImportPreview generates a preview of a catalog import.
@@ -879,6 +881,19 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 			return nil, fmt.Errorf("models: catalog import program template %q: %w", pt.Name, err)
 		}
 		result.ProgramsCreated++
+		result.CreatedTemplateIDs = append(result.CreatedTemplateIDs, templateID)
+
+		// Assign the program to the athlete when scoped to one.
+		if athleteID != nil {
+			// Deactivate any currently active program first (unique index enforces one active).
+			_, _ = tx.Exec(`UPDATE athlete_programs SET active = 0 WHERE athlete_id = ? AND active = 1`, *athleteID)
+
+			startDate := time.Now().Format("2006-01-02")
+			if err := insertAthleteProgram(tx, *athleteID, templateID, startDate, "", "", true); err != nil {
+				return nil, fmt.Errorf("models: catalog import assign program %q to athlete %d: %w", pt.Name, *athleteID, err)
+			}
+			result.ProgramsAssigned++
+		}
 
 		// Prescribed sets.
 		for _, ps := range pt.PrescribedSets {

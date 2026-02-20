@@ -25,6 +25,9 @@
                     {{ if .ImportResult.ProgramsCreated }}
                     <tr><td>Programs created</td><td>{{ .ImportResult.ProgramsCreated }}</td></tr>
                     {{ end }}
+                    {{ if .ImportResult.ProgramsAssigned }}
+                    <tr><td>Programs assigned</td><td>{{ .ImportResult.ProgramsAssigned }}</td></tr>
+                    {{ end }}
                     {{ if .ImportResult.PrescribedSets }}
                     <tr><td>Prescribed sets</td><td>{{ .ImportResult.PrescribedSets }}</td></tr>
                     {{ end }}
