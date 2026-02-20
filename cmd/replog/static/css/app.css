@@ -927,7 +927,7 @@ html.sidebar-collapsed .sidebar-link {
     padding: 0.6rem;
     width: 2.25rem;
     height: 2.25rem;
-    overflow: hidden;
+    overflow: visible;
     font-size: 0;
 }
 
