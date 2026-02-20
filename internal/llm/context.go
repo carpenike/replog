@@ -33,12 +33,15 @@ type AthleteContext struct {
 
 // AthleteProfile contains the athlete's identity and summary stats.
 type AthleteProfile struct {
-	Name           string  `json:"name"`
-	Tier           *string `json:"tier"`
-	Goal           *string `json:"goal"`
-	Notes          *string `json:"notes"`
-	TrainingMonths int     `json:"training_months"`
-	TotalWorkouts  int     `json:"total_workouts"`
+	Name           string   `json:"name"`
+	Tier           *string  `json:"tier"`
+	Goal           *string  `json:"goal"`
+	Notes          *string  `json:"notes"`
+	Age            *int     `json:"age,omitempty"`
+	Grade          *string  `json:"grade,omitempty"`
+	Gender         *string  `json:"gender,omitempty"`
+	TrainingMonths int      `json:"training_months"`
+	TotalWorkouts  int      `json:"total_workouts"`
 	LatestBW       *float64 `json:"latest_body_weight,omitempty"`
 }
 
@@ -280,6 +283,18 @@ func buildProfile(db *sql.DB, athleteID int64, now time.Time) (*AthleteProfile, 
 	}
 	if athlete.Notes.Valid {
 		profile.Notes = &athlete.Notes.String
+	}
+	if athlete.DateOfBirth.Valid {
+		if dob, err := parseDate(athlete.DateOfBirth.String); err == nil {
+			age := int(now.Sub(dob).Hours() / 24 / 365)
+			profile.Age = &age
+		}
+	}
+	if athlete.Grade.Valid {
+		profile.Grade = &athlete.Grade.String
+	}
+	if athlete.Gender.Valid {
+		profile.Gender = &athlete.Gender.String
 	}
 
 	// Compute training months from earliest workout.

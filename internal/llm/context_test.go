@@ -25,7 +25,7 @@ func testDB(t testing.TB) *sql.DB {
 
 func seedAthlete(t testing.TB, db *sql.DB, name, tier, goal string) int64 {
 	t.Helper()
-	a, err := models.CreateAthlete(db, name, tier, "", goal, sql.NullInt64{}, true)
+	a, err := models.CreateAthlete(db, name, tier, "", goal, "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("seed athlete: %v", err)
 	}

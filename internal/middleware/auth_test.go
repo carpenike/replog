@@ -162,11 +162,11 @@ func TestCanAccessAthlete(t *testing.T) {
 	}
 
 	// Create athletes: one owned by coach, one unowned.
-	ownedAthlete, err := models.CreateAthlete(db, "OwnedKid", "", "", "", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
+	ownedAthlete, err := models.CreateAthlete(db, "OwnedKid", "", "", "", "", "", "", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
 	if err != nil {
 		t.Fatalf("create owned athlete: %v", err)
 	}
-	unownedAthlete, err := models.CreateAthlete(db, "UnownedKid", "", "", "", sql.NullInt64{}, true)
+	unownedAthlete, err := models.CreateAthlete(db, "UnownedKid", "", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create unowned athlete: %v", err)
 	}

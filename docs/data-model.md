@@ -76,6 +76,9 @@ erDiagram
         TEXT tier "nullable"
         TEXT notes "nullable"
         TEXT goal "nullable"
+        DATE date_of_birth "nullable"
+        TEXT grade "nullable"
+        TEXT gender "nullable, male/female"
         INTEGER coach_id FK "nullable"
         INTEGER track_body_weight "0 or 1, default 1"
         DATETIME created_at
@@ -380,6 +383,9 @@ erDiagram
 | `tier`             | TEXT         | NULL, CHECK(tier IN ('foundational','intermediate','sport_performance')) |
 | `notes`            | TEXT         | NULL                                 |
 | `goal`             | TEXT         | NULL                                 |
+| `date_of_birth`    | DATE         | NULL                                 |
+| `grade`            | TEXT         | NULL                                 |
+| `gender`           | TEXT         | NULL, CHECK(gender IN ('male','female')) |
 | `coach_id`         | INTEGER      | NULL, FK → users(id)                 |
 | `track_body_weight`| INTEGER      | NOT NULL DEFAULT 1, CHECK(track_body_weight IN (0, 1)) |
 | `created_at`       | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -388,6 +394,9 @@ erDiagram
 - `tier` is nullable — adults running their own programs don't use the tier system.
 - `notes` holds free-form coaching observations ("ready to try intermediate bench").
 - `goal` holds a long-term training objective ("build overall strength", "prepare for football season"). Nullable.
+- `date_of_birth` stores the athlete's birth date for age computation. Used by the LLM to make age-appropriate programming decisions.
+- `grade` is a free-text school grade or year (e.g. "9th", "Junior"). Helps inform sport season scheduling.
+- `gender` is "male" or "female". Used by the LLM for gender-aware loading norms and reference ranges.
 - `track_body_weight` controls whether body weight tracking UI is visible for this athlete. Defaults to enabled.
 
 ### `exercises`
@@ -745,6 +754,9 @@ CREATE TABLE IF NOT EXISTS athletes (
     tier        TEXT    CHECK(tier IN ('foundational', 'intermediate', 'sport_performance')),
     notes       TEXT,
     goal        TEXT,
+    date_of_birth DATE,
+    grade       TEXT,
+    gender      TEXT    CHECK(gender IN ('male', 'female')),
     coach_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
     track_body_weight INTEGER NOT NULL DEFAULT 1 CHECK(track_body_weight IN (0, 1)),
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

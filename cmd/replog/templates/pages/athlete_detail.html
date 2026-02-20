@@ -32,6 +32,14 @@
         <blockquote>{{ .Athlete.Notes.String }}</blockquote>
         {{ end }}
 
+        {{ if or .Athlete.DateOfBirth.Valid .Athlete.Grade.Valid .Athlete.Gender.Valid }}
+        <div class="demographic-info">
+            {{ if .Athlete.DateOfBirth.Valid }}<span><strong>DOB:</strong> {{ .Athlete.DateOfBirth.String }}</span>{{ end }}
+            {{ if .Athlete.Grade.Valid }}<span><strong>Grade:</strong> {{ .Athlete.Grade.String }}</span>{{ end }}
+            {{ if .Athlete.Gender.Valid }}<span><strong>Gender:</strong> {{ .Athlete.Gender.String }}</span>{{ end }}
+        </div>
+        {{ end }}
+
         {{ if or .CanManage .IsOwnProfile }}
         <article class="goal-section" id="athlete-goal">
             <div class="goal-section-header">

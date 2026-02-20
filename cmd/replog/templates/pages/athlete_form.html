@@ -36,6 +36,28 @@
                 <textarea id="goal" name="goal" rows="2" placeholder="Long-term training goal">{{ if .Athlete }}{{ if .Athlete.Goal.Valid }}{{ .Athlete.Goal.String }}{{ end }}{{ end }}</textarea>
             </label>
 
+            <div class="grid">
+                <label for="date_of_birth">Date of Birth
+                    <input type="date" id="date_of_birth" name="date_of_birth"
+                           value="{{ if .Athlete }}{{ if .Athlete.DateOfBirth.Valid }}{{ .Athlete.DateOfBirth.String }}{{ end }}{{ end }}">
+                </label>
+
+                <label for="grade">Grade
+                    <input type="text" id="grade" name="grade" placeholder="e.g. 9th, 10th, Junior"
+                           value="{{ if .Athlete }}{{ if .Athlete.Grade.Valid }}{{ .Athlete.Grade.String }}{{ end }}{{ end }}">
+                </label>
+
+                <label for="gender">Gender
+                    <select id="gender" name="gender">
+                        {{ $currentGender := "" }}
+                        {{ if .Athlete }}{{ if .Athlete.Gender.Valid }}{{ $currentGender = .Athlete.Gender.String }}{{ end }}{{ end }}
+                        <option value="" {{ if eq $currentGender "" }}selected{{ end }}>— Not set —</option>
+                        <option value="male" {{ if eq $currentGender "male" }}selected{{ end }}>Male</option>
+                        <option value="female" {{ if eq $currentGender "female" }}selected{{ end }}>Female</option>
+                    </select>
+                </label>
+            </div>
+
             <fieldset>
                 <label for="track_body_weight">
                     <input type="checkbox" id="track_body_weight" name="track_body_weight" value="1"

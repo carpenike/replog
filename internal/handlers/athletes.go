@@ -92,7 +92,7 @@ func (h *Athletes) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	trackBW := r.FormValue("track_body_weight") != "0"
-	athlete, err := models.CreateAthlete(h.DB, name, r.FormValue("tier"), r.FormValue("notes"), r.FormValue("goal"), sql.NullInt64{Int64: user.ID, Valid: true}, trackBW)
+	athlete, err := models.CreateAthlete(h.DB, name, r.FormValue("tier"), r.FormValue("notes"), r.FormValue("goal"), r.FormValue("date_of_birth"), r.FormValue("grade"), r.FormValue("gender"), sql.NullInt64{Int64: user.ID, Valid: true}, trackBW)
 	if err != nil {
 		log.Printf("handlers: create athlete: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -405,7 +405,7 @@ func (h *Athletes) Update(w http.ResponseWriter, r *http.Request) {
 		oldTier = athlete.Tier.String
 	}
 
-	_, err = models.UpdateAthlete(h.DB, id, name, newTier, r.FormValue("notes"), newGoal, athlete.CoachID, r.FormValue("track_body_weight") == "1")
+	_, err = models.UpdateAthlete(h.DB, id, name, newTier, r.FormValue("notes"), newGoal, r.FormValue("date_of_birth"), r.FormValue("grade"), r.FormValue("gender"), athlete.CoachID, r.FormValue("track_body_weight") == "1")
 	if errors.Is(err, models.ErrNotFound) {
 		http.Error(w, "Athlete not found", http.StatusNotFound)
 		return

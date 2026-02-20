@@ -15,6 +15,9 @@ type Athlete struct {
 	Tier              sql.NullString
 	Notes             sql.NullString
 	Goal              sql.NullString // long-term athlete goal
+	DateOfBirth       sql.NullString // DATE format: YYYY-MM-DD
+	Grade             sql.NullString
+	Gender            sql.NullString // "male" or "female"
 	CoachID           sql.NullInt64
 	TrackBodyWeight   bool
 	CreatedAt         time.Time
@@ -36,7 +39,7 @@ type AthleteCardInfo struct {
 
 // CreateAthlete inserts a new athlete. coachID links the athlete to a coach.
 // trackBodyWeight controls whether body weight tracking is enabled (default true for new athletes).
-func CreateAthlete(db *sql.DB, name, tier, notes, goal string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
+func CreateAthlete(db *sql.DB, name, tier, notes, goal, dateOfBirth, grade, gender string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -49,6 +52,18 @@ func CreateAthlete(db *sql.DB, name, tier, notes, goal string, coachID sql.NullI
 	if goal != "" {
 		goalVal = sql.NullString{String: goal, Valid: true}
 	}
+	var dobVal sql.NullString
+	if dateOfBirth != "" {
+		dobVal = sql.NullString{String: dateOfBirth, Valid: true}
+	}
+	var gradeVal sql.NullString
+	if grade != "" {
+		gradeVal = sql.NullString{String: grade, Valid: true}
+	}
+	var genderVal sql.NullString
+	if gender != "" {
+		genderVal = sql.NullString{String: gender, Valid: true}
+	}
 
 	trackBWInt := 0
 	if trackBodyWeight {
@@ -57,8 +72,8 @@ func CreateAthlete(db *sql.DB, name, tier, notes, goal string, coachID sql.NullI
 
 	var id int64
 	err := db.QueryRow(
-		`INSERT INTO athletes (name, tier, notes, goal, coach_id, track_body_weight) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
-		name, tierVal, notesVal, goalVal, coachID, trackBWInt,
+		`INSERT INTO athletes (name, tier, notes, goal, date_of_birth, grade, gender, coach_id, track_body_weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		name, tierVal, notesVal, goalVal, dobVal, gradeVal, genderVal, coachID, trackBWInt,
 	).Scan(&id)
 	if err != nil {
 		return nil, fmt.Errorf("models: create athlete %q: %w", name, err)
@@ -71,12 +86,14 @@ func CreateAthlete(db *sql.DB, name, tier, notes, goal string, coachID sql.NullI
 func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 	a := &Athlete{}
 	err := db.QueryRow(
-		`SELECT a.id, a.name, a.tier, a.notes, a.goal, a.coach_id, a.track_body_weight,
+		`SELECT a.id, a.name, a.tier, a.notes, a.goal, a.date_of_birth, a.grade, a.gender,
+		        a.coach_id, a.track_body_weight,
 		        a.created_at, a.updated_at,
 		        COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 		                  WHERE ae.athlete_id = a.id AND ae.active = 1), 0)
 		 FROM athletes a WHERE a.id = ?`, id,
-	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.Goal, &a.CoachID, &a.TrackBodyWeight,
+	).Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.Goal, &a.DateOfBirth, &a.Grade, &a.Gender,
+		&a.CoachID, &a.TrackBodyWeight,
 		&a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -88,7 +105,7 @@ func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 }
 
 // UpdateAthlete modifies an existing athlete's fields.
-func UpdateAthlete(db *sql.DB, id int64, name, tier, notes, goal string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
+func UpdateAthlete(db *sql.DB, id int64, name, tier, notes, goal, dateOfBirth, grade, gender string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -101,10 +118,22 @@ func UpdateAthlete(db *sql.DB, id int64, name, tier, notes, goal string, coachID
 	if goal != "" {
 		goalVal = sql.NullString{String: goal, Valid: true}
 	}
+	var dobVal sql.NullString
+	if dateOfBirth != "" {
+		dobVal = sql.NullString{String: dateOfBirth, Valid: true}
+	}
+	var gradeVal sql.NullString
+	if grade != "" {
+		gradeVal = sql.NullString{String: grade, Valid: true}
+	}
+	var genderVal sql.NullString
+	if gender != "" {
+		genderVal = sql.NullString{String: gender, Valid: true}
+	}
 
 	result, err := db.Exec(
-		`UPDATE athletes SET name = ?, tier = ?, notes = ?, goal = ?, coach_id = ?, track_body_weight = ? WHERE id = ?`,
-		name, tierVal, notesVal, goalVal, coachID, trackBodyWeight, id,
+		`UPDATE athletes SET name = ?, tier = ?, notes = ?, goal = ?, date_of_birth = ?, grade = ?, gender = ?, coach_id = ?, track_body_weight = ? WHERE id = ?`,
+		name, tierVal, notesVal, goalVal, dobVal, gradeVal, genderVal, coachID, trackBodyWeight, id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: update athlete %d: %w", id, err)
@@ -197,7 +226,8 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 	var err error
 	if coachID.Valid {
 		rows, err = db.Query(`
-			SELECT a.id, a.name, a.tier, a.notes, a.goal, a.coach_id, a.track_body_weight,
+			SELECT a.id, a.name, a.tier, a.notes, a.goal, a.date_of_birth, a.grade, a.gender,
+			       a.coach_id, a.track_body_weight,
 			       a.created_at, a.updated_at,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
@@ -207,7 +237,8 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 			LIMIT 100`, coachID.Int64)
 	} else {
 		rows, err = db.Query(`
-			SELECT a.id, a.name, a.tier, a.notes, a.goal, a.coach_id, a.track_body_weight,
+			SELECT a.id, a.name, a.tier, a.notes, a.goal, a.date_of_birth, a.grade, a.gender,
+			       a.coach_id, a.track_body_weight,
 			       a.created_at, a.updated_at,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
@@ -223,7 +254,8 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 	var athletes []*Athlete
 	for rows.Next() {
 		a := &Athlete{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.Goal, &a.CoachID, &a.TrackBodyWeight,
+		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.Goal, &a.DateOfBirth, &a.Grade, &a.Gender,
+			&a.CoachID, &a.TrackBodyWeight,
 			&a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
 			return nil, fmt.Errorf("models: scan athlete: %w", err)
 		}
@@ -240,7 +272,8 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 // Pass 0 for exceptAthleteID to exclude no one extra.
 func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error) {
 	rows, err := db.Query(`
-		SELECT a.id, a.name, a.tier, a.notes, a.goal, a.coach_id, a.track_body_weight,
+		SELECT a.id, a.name, a.tier, a.notes, a.goal, a.date_of_birth, a.grade, a.gender,
+		       a.coach_id, a.track_body_weight,
 		       a.created_at, a.updated_at,
 		       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 		                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments
@@ -257,7 +290,8 @@ func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error
 	var athletes []*Athlete
 	for rows.Next() {
 		a := &Athlete{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.Goal, &a.CoachID, &a.TrackBodyWeight,
+		if err := rows.Scan(&a.ID, &a.Name, &a.Tier, &a.Notes, &a.Goal, &a.DateOfBirth, &a.Grade, &a.Gender,
+			&a.CoachID, &a.TrackBodyWeight,
 			&a.CreatedAt, &a.UpdatedAt, &a.ActiveAssignments); err != nil {
 			return nil, fmt.Errorf("models: scan available athlete: %w", err)
 		}

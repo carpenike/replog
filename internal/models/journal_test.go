@@ -9,7 +9,7 @@ import (
 func TestListJournalEntries(t *testing.T) {
 	db := testDB(t)
 	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
-	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "Build strength", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "Build strength", "", "", "", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
 
 	// Seed some data across multiple tables.
 	w, _ := CreateWorkout(db, a.ID, "2026-02-10", "Felt strong today")
@@ -90,7 +90,7 @@ func TestListJournalEntries(t *testing.T) {
 	})
 
 	t.Run("empty for different athlete", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Other Athlete", "", "", "", sql.NullInt64{}, true)
+		a2, _ := CreateAthlete(db, "Other Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 		entries, err := ListJournalEntries(db, a2.ID, true, 100)
 		if err != nil {
 			t.Fatalf("list journal entries: %v", err)

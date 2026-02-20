@@ -35,6 +35,9 @@ type ExportAthlete struct {
 	Tier            *string `json:"tier"`
 	Notes           *string `json:"notes"`
 	Goal            *string `json:"goal"`
+	DateOfBirth     *string `json:"date_of_birth,omitempty"`
+	Grade           *string `json:"grade,omitempty"`
+	Gender          *string `json:"gender,omitempty"`
 	TrackBodyWeight bool    `json:"track_body_weight"`
 }
 
@@ -171,6 +174,9 @@ func BuildExportJSON(db *sql.DB, athleteID int64) (*ExportJSON, error) {
 		Tier:            nullStringPtr(athlete.Tier),
 		Notes:           nullStringPtr(athlete.Notes),
 		Goal:            nullStringPtr(athlete.Goal),
+		DateOfBirth:     nullStringPtr(athlete.DateOfBirth),
+		Grade:           nullStringPtr(athlete.Grade),
+		Gender:          nullStringPtr(athlete.Gender),
 		TrackBodyWeight: athlete.TrackBodyWeight,
 	}
 

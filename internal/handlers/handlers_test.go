@@ -106,7 +106,7 @@ func seedUnlinkedNonCoach(t testing.TB, db *sql.DB) *models.User {
 // seedAthlete creates an athlete and returns it.
 func seedAthlete(t testing.TB, db *sql.DB, name, tier string) *models.Athlete {
 	t.Helper()
-	a, err := models.CreateAthlete(db, name, tier, "", "", sql.NullInt64{}, true)
+	a, err := models.CreateAthlete(db, name, tier, "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("seed athlete %q: %v", name, err)
 	}

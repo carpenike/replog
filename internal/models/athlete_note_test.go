@@ -7,7 +7,7 @@ import (
 
 func TestCreateAthleteNote(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	t.Run("basic note", func(t *testing.T) {
@@ -52,7 +52,7 @@ func TestCreateAthleteNote(t *testing.T) {
 
 func TestUpdateAthleteNote(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	note, _ := CreateAthleteNote(db, a.ID, coach.ID, "", "Original note", false, false)
@@ -83,7 +83,7 @@ func TestUpdateAthleteNote(t *testing.T) {
 
 func TestDeleteAthleteNote(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	note, _ := CreateAthleteNote(db, a.ID, coach.ID, "", "Delete me", false, false)
@@ -101,7 +101,7 @@ func TestDeleteAthleteNote(t *testing.T) {
 
 func TestListAthleteNotes(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	CreateAthleteNote(db, a.ID, coach.ID, "2026-01-01", "Public note", false, false)
@@ -138,7 +138,7 @@ func TestListAthleteNotes(t *testing.T) {
 	})
 
 	t.Run("cascades on athlete delete", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Delete Me", "", "", "", sql.NullInt64{}, true)
+		a2, _ := CreateAthlete(db, "Delete Me", "", "", "", "", "", "", sql.NullInt64{}, true)
 		CreateAthleteNote(db, a2.ID, coach.ID, "", "Temp note", false, false)
 		db.Exec("DELETE FROM athletes WHERE id = ?", a2.ID)
 

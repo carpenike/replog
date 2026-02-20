@@ -31,7 +31,7 @@ func TestCreateProgramTemplate(t *testing.T) {
 	})
 
 	t.Run("athlete-scoped create", func(t *testing.T) {
-		a, _ := CreateAthlete(db, "Scoped Test", "", "", "", sql.NullInt64{}, true)
+		a, _ := CreateAthlete(db, "Scoped Test", "", "", "", "", "", "", sql.NullInt64{}, true)
 		tmpl, err := CreateProgramTemplate(db, &a.ID, "Athlete Program", "", 3, 3, false, "")
 		if err != nil {
 			t.Fatalf("create athlete-scoped template: %v", err)
@@ -67,8 +67,8 @@ func TestListProgramTemplates(t *testing.T) {
 func TestListProgramTemplatesForAthlete(t *testing.T) {
 	db := testDB(t)
 
-	a1, _ := CreateAthlete(db, "Athlete One", "", "", "", sql.NullInt64{}, true)
-	a2, _ := CreateAthlete(db, "Athlete Two", "", "", "", sql.NullInt64{}, true)
+	a1, _ := CreateAthlete(db, "Athlete One", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a2, _ := CreateAthlete(db, "Athlete Two", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	// Global template.
 	CreateProgramTemplate(db, nil, "Global Program", "", 4, 4, false, "")
@@ -138,7 +138,7 @@ func TestListReferenceTemplatesByAudience(t *testing.T) {
 	CreateProgramTemplate(db, nil, "No Audience", "Unclassified", 1, 1, false, "")
 
 	// Athlete-scoped template should NOT appear.
-	a, _ := CreateAthlete(db, "Aud Test", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Aud Test", "", "", "", "", "", "", sql.NullInt64{}, true)
 	CreateProgramTemplate(db, &a.ID, "Athlete Program", "", 3, 3, false, "youth")
 
 	t.Run("youth audience", func(t *testing.T) {
@@ -234,7 +234,7 @@ func TestDeleteProgramTemplate(t *testing.T) {
 
 	t.Run("delete in use", func(t *testing.T) {
 		tmpl, _ := CreateProgramTemplate(db, nil, "In Use", "", 1, 1, false, "")
-		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
+		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
 		if err != nil {
 			t.Fatalf("assign program: %v", err)
@@ -318,7 +318,7 @@ func TestAthleteProgram(t *testing.T) {
 	db := testDB(t)
 
 	tmpl, _ := CreateProgramTemplate(db, nil, "5/3/1", "", 4, 4, false, "")
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("assign program", func(t *testing.T) {
 		ap, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "Starting cycle", "")
@@ -395,7 +395,7 @@ func TestGetPrescription(t *testing.T) {
 		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 2, i, &reps, &pct, nil, 0, "", "")
 	}
 
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	// Set training maxes.
 	SetTrainingMax(db, a.ID, bench.ID, 200, "2026-01-01", "")
@@ -462,7 +462,7 @@ func TestGetPrescription(t *testing.T) {
 	})
 
 	t.Run("no active program", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "No Program", "", "", "", sql.NullInt64{}, true)
+		a2, _ := CreateAthlete(db, "No Program", "", "", "", "", "", "", sql.NullInt64{}, true)
 		rx, err := GetPrescription(db, a2.ID, mustParseDate("2026-02-01"))
 		if err != nil {
 			t.Fatalf("get prescription: %v", err)

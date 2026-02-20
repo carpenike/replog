@@ -110,7 +110,7 @@ func (h *Users) Create(w http.ResponseWriter, r *http.Request) {
 		if newAthleteName == "" {
 			newAthleteName = strings.ToUpper(username[:1]) + username[1:]
 		}
-		athlete, err := models.CreateAthlete(h.DB, newAthleteName, "", "", "", sql.NullInt64{}, true)
+		athlete, err := models.CreateAthlete(h.DB, newAthleteName, "", "", "", "", "", "", sql.NullInt64{}, true)
 		if err != nil {
 			log.Printf("handlers: inline create athlete: %v", err)
 			h.renderFormError(w, r, "Failed to create athlete.", nil)

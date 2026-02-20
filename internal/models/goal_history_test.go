@@ -8,7 +8,7 @@ import (
 
 func TestRecordGoalChange(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	t.Run("initial goal", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestRecordGoalChange(t *testing.T) {
 
 func TestListGoalHistory(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	// Record multiple goal changes.
@@ -87,7 +87,7 @@ func TestListGoalHistory(t *testing.T) {
 	})
 
 	t.Run("empty for different athlete", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Other Athlete", "", "", "", sql.NullInt64{}, true)
+		a2, _ := CreateAthlete(db, "Other Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 		history, err := ListGoalHistory(db, a2.ID)
 		if err != nil {
 			t.Fatalf("list goal history: %v", err)
@@ -98,7 +98,7 @@ func TestListGoalHistory(t *testing.T) {
 	})
 
 	t.Run("cascades on athlete delete", func(t *testing.T) {
-		a3, _ := CreateAthlete(db, "Delete Me", "", "", "", sql.NullInt64{}, true)
+		a3, _ := CreateAthlete(db, "Delete Me", "", "", "", "", "", "", sql.NullInt64{}, true)
 		RecordGoalChange(db, a3.ID, "Temp goal", "", coach.ID, "", "")
 
 		// Delete athlete — goal history should cascade.

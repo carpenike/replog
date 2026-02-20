@@ -10,7 +10,7 @@ import (
 func TestTrainingMaxCRUD(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "TM Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "TM Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	e, _ := CreateExercise(db, "TM Exercise", "", "", "", 0)
 
 	t.Run("set training max", func(t *testing.T) {
@@ -92,7 +92,7 @@ func TestTrainingMaxCRUD(t *testing.T) {
 func TestListCurrentTrainingMaxes(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "TM List Athlete", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "TM List Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	e1, _ := CreateExercise(db, "TM List Ex 1", "", "", "", 0)
 	e2, _ := CreateExercise(db, "TM List Ex 2", "", "", "", 0)
 

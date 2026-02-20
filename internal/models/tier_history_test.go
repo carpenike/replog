@@ -8,7 +8,7 @@ import (
 
 func TestRecordTierChange(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
 	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	t.Run("initial tier", func(t *testing.T) {
@@ -59,7 +59,7 @@ func TestRecordTierChange(t *testing.T) {
 
 func TestListTierHistory(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
 	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	RecordTierChange(db, a.ID, "foundational", "", coach.ID, "2026-01-01", "")
@@ -83,7 +83,7 @@ func TestListTierHistory(t *testing.T) {
 	})
 
 	t.Run("cascades on athlete delete", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Delete Me", "foundational", "", "", sql.NullInt64{}, true)
+		a2, _ := CreateAthlete(db, "Delete Me", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
 		RecordTierChange(db, a2.ID, "foundational", "", coach.ID, "", "")
 		db.Exec("DELETE FROM athletes WHERE id = ?", a2.ID)
 

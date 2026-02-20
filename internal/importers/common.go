@@ -38,6 +38,9 @@ type ParsedAthlete struct {
 	Tier            *string `json:"tier"`
 	Notes           *string `json:"notes"`
 	Goal            *string `json:"goal"`
+	DateOfBirth     *string `json:"date_of_birth"`
+	Grade           *string `json:"grade"`
+	Gender          *string `json:"gender"`
 	TrackBodyWeight *bool   `json:"track_body_weight"`
 }
 
