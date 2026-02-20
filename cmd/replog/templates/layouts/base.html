@@ -152,6 +152,7 @@
 
         <nav class="sidebar-nav">
             {{ if or .User.IsCoach .User.IsAdmin }}
+            <div class="sidebar-section-label">Coaching</div>
             <a href="/" class="sidebar-link" data-tooltip="Home">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 <span>Home</span>
@@ -173,7 +174,7 @@
                 <span>Equipment</span>
             </a>
             {{ if .User.IsAdmin }}
-            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label">Admin</div>
             <a href="/catalog" class="sidebar-link" data-tooltip="Import / Export">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 <span>Import / Export</span>
@@ -188,7 +189,7 @@
             </a>
             {{ end }}
             {{ if .User.AthleteID.Valid }}
-            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label">My Training</div>
             <a href="/athletes/{{ .User.AthleteID.Int64 }}/workouts/new" class="sidebar-link sidebar-link--primary" data-tooltip="Log Workout">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 <span>Log Workout</span>
@@ -207,6 +208,7 @@
             </a>
             {{ end }}
             {{ else if .User.AthleteID.Valid }}
+            <div class="sidebar-section-label">My Training</div>
             <a href="/athletes/{{ .User.AthleteID.Int64 }}/workouts/new" class="sidebar-link sidebar-link--primary" data-tooltip="Log Workout">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 <span>Log Workout</span>

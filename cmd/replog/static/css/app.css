@@ -608,6 +608,18 @@ table a:hover {
     margin: 0.5rem 0.75rem;
 }
 
+.sidebar-section-label {
+    padding: 0.5rem 0.75rem 0.25rem;
+    margin-top: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--pico-muted-color);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
 /* Sidebar footer — user area */
 .sidebar-footer {
     padding: 0.5rem 0.75rem 0.75rem;
@@ -857,10 +869,11 @@ html.sidebar-collapsed .sidebar {
     width: var(--sidebar-rail-width);
 }
 
-/* Hide text labels, dividers, and user footer in rail mode */
+/* Hide text labels, dividers, section labels, and user footer in rail mode */
 html.sidebar-collapsed .sidebar-brand-text,
 html.sidebar-collapsed .sidebar-link span,
 html.sidebar-collapsed .sidebar-divider,
+html.sidebar-collapsed .sidebar-section-label,
 html.sidebar-collapsed .sidebar-footer {
     opacity: 0;
     visibility: hidden;
