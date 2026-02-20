@@ -36,3 +36,13 @@ applyTo: "**/*.html,**/*.gohtml,**/*.tmpl"
 - Forms use `<label>` elements linked to inputs via `for`/`id`
 - Tables use `<thead>`, `<tbody>`, `<th scope="col|row">`
 - Use `<button type="submit">` inside forms, not `<a>` tags for actions
+
+## Separation of Concerns
+
+- **No inline styles** — never use `style="..."` attributes in templates; all styling goes in `app.css`
+- **No inline scripts** — never add `onclick`, `onchange`, or other `on*` event attributes; use `data-*` attributes and delegate from `replog.js` or htmx attributes
+- **No `<style>` blocks** in templates — all CSS belongs in `app.css`
+- **No `<script>` blocks** in templates except the base layout's initialization block (sidebar collapse restore, theme restore, htmx config)
+- When new styling is needed, add a CSS class in `app.css` and reference it in the template
+- When new interactivity is needed, add a `data-action` or `data-*` attribute and handle it in `replog.js`
+- Pico CSS sets `width: 100%` on buttons and inputs — when overriding, use class selectors with sufficient specificity (e.g., `.form-actions button` or `button.btn-inline`) rather than inline styles

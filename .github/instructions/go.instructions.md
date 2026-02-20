@@ -40,6 +40,8 @@ applyTo: "**/*.go"
 - Use `embed.FS` to embed template files into the binary
 - Template functions: register helpers for formatting dates, weights, percentages
 - Never construct HTML strings in Go code — always use templates
+- Never emit inline `style` attributes or `<style>` blocks from Go code — all styling lives in `app.css`
+- Never emit inline event handlers (`onclick`, etc.) — use htmx attributes or `data-*` delegation
 
 ## Models / Data Access
 
