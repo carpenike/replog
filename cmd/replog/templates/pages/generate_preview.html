@@ -1,6 +1,7 @@
 {{ define "title" }}RepLog &mdash; AI Coach Preview{{ end }}
 
 {{ define "content" }}
+        <style>.content-container { max-width: 90rem; }</style>
         <div class="breadcrumb">
             <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo;
             <a href="/athletes/{{ .Athlete.ID }}/programs/generate">AI Coach</a> &rsaquo; Preview
