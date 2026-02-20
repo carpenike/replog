@@ -64,6 +64,36 @@ func TestListProgramTemplates(t *testing.T) {
 	}
 }
 
+func TestListAthleteScopedTemplates(t *testing.T) {
+	db := testDB(t)
+
+	a1, _ := CreateAthlete(db, "Alice", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a2, _ := CreateAthlete(db, "Bob", "", "", "", "", "", "", sql.NullInt64{}, true)
+
+	// Global template — should NOT appear.
+	CreateProgramTemplate(db, nil, "Global Program", "", 4, 4, false, "")
+	// Athlete-scoped templates — should appear.
+	CreateProgramTemplate(db, &a1.ID, "Alice Custom", "", 3, 3, false, "")
+	CreateProgramTemplate(db, &a2.ID, "Bob Custom", "", 2, 2, false, "")
+
+	templates, err := ListAthleteScopedTemplates(db)
+	if err != nil {
+		t.Fatalf("list athlete-scoped: %v", err)
+	}
+	if len(templates) != 2 {
+		t.Errorf("len = %d, want 2", len(templates))
+	}
+	// Ordered by athlete name: Alice before Bob.
+	if len(templates) >= 2 {
+		if templates[0].AthleteName != "Alice" {
+			t.Errorf("first athlete name = %q, want Alice", templates[0].AthleteName)
+		}
+		if templates[1].AthleteName != "Bob" {
+			t.Errorf("second athlete name = %q, want Bob", templates[1].AthleteName)
+		}
+	}
+}
+
 func TestListProgramTemplatesForAthlete(t *testing.T) {
 	db := testDB(t)
 
@@ -85,12 +115,14 @@ func TestListProgramTemplatesForAthlete(t *testing.T) {
 		if len(templates) != 2 {
 			t.Errorf("len = %d, want 2 (global + a1)", len(templates))
 		}
-		names := make(map[string]bool)
-		for _, tmpl := range templates {
-			names[tmpl.Name] = true
-		}
-		if !names["Global Program"] || !names["A1 Program"] {
-			t.Errorf("expected Global Program and A1 Program, got %v", names)
+		// Athlete-scoped programs should sort before global ones.
+		if len(templates) == 2 {
+			if templates[0].Name != "A1 Program" {
+				t.Errorf("first template = %q, want A1 Program (athlete-scoped first)", templates[0].Name)
+			}
+			if templates[1].Name != "Global Program" {
+				t.Errorf("second template = %q, want Global Program", templates[1].Name)
+			}
 		}
 	})
 
@@ -111,6 +143,19 @@ func TestListProgramTemplatesForAthlete(t *testing.T) {
 		}
 		if len(templates) != 3 {
 			t.Errorf("len = %d, want 3", len(templates))
+		}
+	})
+
+	t.Run("global-only list excludes athlete-scoped", func(t *testing.T) {
+		templates, err := ListGlobalProgramTemplates(db)
+		if err != nil {
+			t.Fatalf("list global: %v", err)
+		}
+		if len(templates) != 1 {
+			t.Errorf("len = %d, want 1 (only global)", len(templates))
+		}
+		if len(templates) > 0 && templates[0].Name != "Global Program" {
+			t.Errorf("expected Global Program, got %q", templates[0].Name)
 		}
 	})
 

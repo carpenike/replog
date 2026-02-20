@@ -877,6 +877,7 @@ table a:hover {
 /* ---- Collapsible sidebar (rail mode) ---- */
 html.sidebar-collapsed .sidebar {
     width: var(--sidebar-rail-width);
+    overflow: visible;
 }
 
 /* Hide text labels, dividers, section labels, and user footer in rail mode */

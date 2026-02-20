@@ -27,6 +27,7 @@ type ProgramTemplate struct {
 
 	// Joined fields populated by detail queries.
 	AthleteCount int
+	AthleteName  string // populated by athlete-scoped listing queries
 }
 
 // CreateProgramTemplate inserts a new program template.
@@ -113,8 +114,75 @@ func ListProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
 	return templates, nil
 }
 
+// ListGlobalProgramTemplates returns only global (shared) program templates
+// where athlete_id IS NULL, ordered by name. Athlete-scoped templates
+// (e.g. AI-generated) are excluded — they are managed from the athlete page.
+func ListGlobalProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
+	rows, err := db.Query(
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+		        COUNT(ap.id) AS athlete_count
+		 FROM program_templates pt
+		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
+		 WHERE pt.athlete_id IS NULL
+		 GROUP BY pt.id
+		 ORDER BY pt.name COLLATE NOCASE`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("models: list global program templates: %w", err)
+	}
+	defer rows.Close()
+
+	var templates []*ProgramTemplate
+	for rows.Next() {
+		t := &ProgramTemplate{}
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+			return nil, fmt.Errorf("models: scan global program template: %w", err)
+		}
+		templates = append(templates, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate global program templates: %w", err)
+	}
+	return templates, nil
+}
+
+// ListAthleteScopedTemplates returns all athlete-specific program templates
+// (athlete_id IS NOT NULL) with the athlete name joined, ordered by athlete
+// name then program name. Used on the programs list page to show a separate
+// section for athlete-specific programs.
+func ListAthleteScopedTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
+	rows, err := db.Query(
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+		        COUNT(ap.id) AS athlete_count, a.name AS athlete_name
+		 FROM program_templates pt
+		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
+		 JOIN athletes a ON a.id = pt.athlete_id
+		 WHERE pt.athlete_id IS NOT NULL
+		 GROUP BY pt.id
+		 ORDER BY a.name COLLATE NOCASE, pt.name COLLATE NOCASE`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("models: list athlete-scoped templates: %w", err)
+	}
+	defer rows.Close()
+
+	var templates []*ProgramTemplate
+	for rows.Next() {
+		t := &ProgramTemplate{}
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount, &t.AthleteName); err != nil {
+			return nil, fmt.Errorf("models: scan athlete-scoped template: %w", err)
+		}
+		templates = append(templates, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate athlete-scoped templates: %w", err)
+	}
+	return templates, nil
+}
+
 // ListProgramTemplatesForAthlete returns global templates plus templates scoped
-// to the given athlete, ordered by name. This is the appropriate listing for
+// to the given athlete. Athlete-specific programs sort first, then global,
+// alphabetically within each group. This is the appropriate listing for
 // athlete-facing views and program assignment forms.
 func ListProgramTemplatesForAthlete(db *sql.DB, athleteID int64) ([]*ProgramTemplate, error) {
 	rows, err := db.Query(
@@ -124,7 +192,7 @@ func ListProgramTemplatesForAthlete(db *sql.DB, athleteID int64) ([]*ProgramTemp
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
 		 WHERE pt.athlete_id IS NULL OR pt.athlete_id = ?
 		 GROUP BY pt.id
-		 ORDER BY pt.name COLLATE NOCASE`,
+		 ORDER BY (pt.athlete_id IS NOT NULL) DESC, pt.name COLLATE NOCASE`,
 		athleteID,
 	)
 	if err != nil {

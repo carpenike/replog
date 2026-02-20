@@ -20,16 +20,25 @@ type Programs struct {
 }
 
 // List renders the program templates list page. Coach only.
+// Shows global (shared) templates and a separate section for athlete-specific programs.
 func (h *Programs) List(w http.ResponseWriter, r *http.Request) {
-	templates, err := models.ListProgramTemplates(h.DB)
+	globalTemplates, err := models.ListGlobalProgramTemplates(h.DB)
 	if err != nil {
-		log.Printf("handlers: list program templates: %v", err)
+		log.Printf("handlers: list global program templates: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	athleteTemplates, err := models.ListAthleteScopedTemplates(h.DB)
+	if err != nil {
+		log.Printf("handlers: list athlete-scoped program templates: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	data := map[string]any{
-		"Programs": templates,
+		"Programs":         globalTemplates,
+		"AthletePrograms":  athleteTemplates,
 	}
 	if err := h.Templates.Render(w, r, "programs_list.html", data); err != nil {
 		log.Printf("handlers: programs list template: %v", err)

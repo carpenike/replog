@@ -7,6 +7,7 @@
         </div>
 
         {{ if .Programs }}
+        <h2>Global Programs</h2>
         <div class="dashboard-grid">
             {{ range .Programs }}
             <a href="/programs/{{ .ID }}" class="card-link"><article>
@@ -18,8 +19,20 @@
         </div>
         {{ else }}
         <article class="empty-state">
-            <p>No program templates yet.</p>
+            <p>No global program templates yet.</p>
             <a href="/programs/new" role="button">Create First Program</a>
         </article>
+        {{ end }}
+
+        {{ if .AthletePrograms }}
+        <h2>Athlete-Specific Programs</h2>
+        <div class="dashboard-grid">
+            {{ range .AthletePrograms }}
+            <a href="/programs/{{ .ID }}" class="card-link"><article>
+                <h2>{{ .Name }}</h2>
+                <p>{{ .AthleteName }} · {{ .NumWeeks }} week{{ if ne .NumWeeks 1 }}s{{ end }} × {{ .NumDays }} day{{ if ne .NumDays 1 }}s{{ end }}/week</p>
+            </article></a>
+            {{ end }}
+        </div>
         {{ end }}
 {{ end }}
