@@ -2691,6 +2691,15 @@ article.error-page [role="button"] {
     margin-bottom: var(--space-sm);
 }
 
+/* Normalize heights inside flex rows so inputs and buttons align */
+.flex-row input:not([type="checkbox"]):not([type="radio"]),
+.flex-row button,
+.flex-row--spaced input:not([type="checkbox"]):not([type="radio"]),
+.flex-row--spaced button {
+    height: auto;
+    margin-bottom: 0;
+}
+
 /* ---- Spacing utilities ---- */
 .mb-0 { margin-bottom: 0; }
 .mt-md { margin-top: var(--space-md); }
