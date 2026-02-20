@@ -282,17 +282,81 @@ func (h *Generate) Preview(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Build flat editable rows for inline editing.
+	var editableRows []editableSetRow
+	if ms.Parsed != nil {
+		editableRows = buildEditableRows(ms.Parsed.Programs)
+	}
+
 	data := map[string]any{
-		"Athlete":     athlete,
-		"Result":      result,
-		"Preview":     preview,
-		"Mapping":     ms,
-		"ProgramDays": programViews,
+		"Athlete":      athlete,
+		"Result":       result,
+		"Preview":      preview,
+		"Mapping":      ms,
+		"ProgramDays":  programViews,
+		"EditableRows": editableRows,
 	}
 	if err := h.Templates.Render(w, r, "generate_preview.html", data); err != nil {
 		log.Printf("handlers: render generate preview: %v", err)
 		h.Templates.ServerError(w, r)
 	}
+}
+
+// SaveEdits handles POST to update the editable prescribed sets in the session.
+// The "action" form value determines the next step:
+//   - "save": update session and redirect back to preview
+//   - "execute": update session and run the import
+func (h *Generate) SaveEdits(w http.ResponseWriter, r *http.Request) {
+	_, athleteID, ok := h.loadAthlete(w, r)
+	if !ok {
+		return
+	}
+
+	ms, ok := h.Sessions.Get(r.Context(), "generate_mapping").(*importers.MappingState)
+	if !ok || ms == nil {
+		http.Redirect(w, r, fmt.Sprintf("/athletes/%d/programs/generate", athleteID), http.StatusSeeOther)
+		return
+	}
+
+	rows, err := parseEditableRows(r)
+	if err != nil {
+		log.Printf("handlers: parse editable rows for athlete %d: %v", athleteID, err)
+		http.Redirect(w, r, fmt.Sprintf("/athletes/%d/programs/generate/preview", athleteID), http.StatusSeeOther)
+		return
+	}
+
+	// Rebuild prescribed sets from edited rows.
+	setsByProgram := rebuildPrescribedSets(rows)
+	for i := range ms.Parsed.Programs {
+		if sets, found := setsByProgram[i]; found {
+			ms.Parsed.Programs[i].Template.PrescribedSets = sets
+		} else {
+			ms.Parsed.Programs[i].Template.PrescribedSets = nil
+		}
+	}
+
+	// Update exercise mappings to ensure any renamed/new exercises are included.
+	existingExercises, _ := listExistingExercises(h.DB)
+	progExNames := importers.CollectProgramExerciseNames(ms.Parsed.Programs)
+	if len(progExNames) > 0 {
+		progExParsed := make([]importers.ParsedExercise, len(progExNames))
+		for i, name := range progExNames {
+			progExParsed[i] = importers.ParsedExercise{Name: name}
+		}
+		progExMappings := importers.BuildExerciseMappings(progExParsed, existingExercises)
+		ms.Exercises = importers.MergeExerciseMappings(ms.Exercises, progExMappings)
+	}
+
+	// Store updated mapping back in session.
+	h.Sessions.Put(r.Context(), "generate_mapping", ms)
+
+	action := r.FormValue("action")
+	if action == "execute" {
+		h.Execute(w, r)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/athletes/%d/programs/generate/preview", athleteID), http.StatusSeeOther)
 }
 
 // Execute approves the generated program and imports it.
@@ -442,6 +506,235 @@ func suggestNextProgramName(current string) string {
 }
 
 // --- Program preview structures ---
+
+// editableSetRow represents one exercise within one day for inline editing
+// on the preview page. It collapses multiple PrescribedSets for the same
+// exercise + week + day into a single row that the coach can modify.
+type editableSetRow struct {
+	Index      int    // sequential index for form field naming
+	ProgramIdx int    // index into MappingState.Parsed.Programs
+	Week       int
+	Day        int
+	Exercise   string
+	NumSets    int
+	Reps       string // reps per working set ("5", "" = all AMRAP)
+	AmrapLast  bool   // last set uses AMRAP while others use Reps
+	RepType    string // reps, each_side, seconds, distance
+	LoadType   string // "percent", "absolute", "bodyweight"
+	LoadValue  string // "75" (percent), "25" (absolute), "" (BW)
+	Notes      string
+	SortOrder  int
+}
+
+// buildEditableRows converts parsed programs into a flat list of editable rows,
+// one per unique (program, week, day, exercise) combination.
+func buildEditableRows(programs []importers.ParsedProgram) []editableSetRow {
+	var rows []editableSetRow
+	idx := 0
+	for pi, prog := range programs {
+		type groupKey struct {
+			Week, Day int
+			Exercise  string
+			SortOrder int
+		}
+		groups := make(map[groupKey][]importers.ParsedPrescribedSet)
+		var groupOrder []groupKey
+
+		for _, s := range prog.Template.PrescribedSets {
+			gk := groupKey{s.Week, s.Day, s.Exercise, s.SortOrder}
+			if _, exists := groups[gk]; !exists {
+				groupOrder = append(groupOrder, gk)
+			}
+			groups[gk] = append(groups[gk], s)
+		}
+
+		sort.Slice(groupOrder, func(i, j int) bool {
+			a, b := groupOrder[i], groupOrder[j]
+			if a.Week != b.Week {
+				return a.Week < b.Week
+			}
+			if a.Day != b.Day {
+				return a.Day < b.Day
+			}
+			return a.SortOrder < b.SortOrder
+		})
+
+		for _, gk := range groupOrder {
+			sets := groups[gk]
+			row := editableSetRow{
+				Index:      idx,
+				ProgramIdx: pi,
+				Week:       gk.Week,
+				Day:        gk.Day,
+				Exercise:   gk.Exercise,
+				NumSets:    len(sets),
+				SortOrder:  gk.SortOrder,
+			}
+
+			if len(sets) > 0 {
+				first := sets[0]
+				last := sets[len(sets)-1]
+
+				row.RepType = first.RepType
+				if row.RepType == "" {
+					row.RepType = "reps"
+				}
+
+				// Determine reps pattern.
+				if first.Reps != nil {
+					row.Reps = strconv.Itoa(*first.Reps)
+				}
+				// AMRAP last: last set has nil reps, others have reps.
+				if last.Reps == nil && len(sets) > 1 && first.Reps != nil {
+					row.AmrapLast = true
+				}
+
+				// Load.
+				if first.Percentage != nil && *first.Percentage > 0 {
+					row.LoadType = "percent"
+					row.LoadValue = fmt.Sprintf("%.0f", *first.Percentage*100)
+				} else if first.AbsoluteWeight != nil && *first.AbsoluteWeight != 0 {
+					row.LoadType = "absolute"
+					if *first.AbsoluteWeight == float64(int(*first.AbsoluteWeight)) {
+						row.LoadValue = fmt.Sprintf("%.0f", *first.AbsoluteWeight)
+					} else {
+						row.LoadValue = fmt.Sprintf("%.1f", *first.AbsoluteWeight)
+					}
+				} else {
+					row.LoadType = "bodyweight"
+				}
+
+				// Notes from first set.
+				if first.Notes != nil {
+					row.Notes = *first.Notes
+				}
+			}
+
+			rows = append(rows, row)
+			idx++
+		}
+	}
+	return rows
+}
+
+// parseEditableRows reads form-submitted editable rows from the request.
+// Deleted rows (with delete checkbox checked) are excluded from the result.
+func parseEditableRows(r *http.Request) ([]editableSetRow, error) {
+	countStr := r.FormValue("set_count")
+	count, err := strconv.Atoi(countStr)
+	if err != nil || count < 0 {
+		return nil, fmt.Errorf("handlers: invalid set_count %q", countStr)
+	}
+
+	var rows []editableSetRow
+	for i := 0; i < count; i++ {
+		prefix := fmt.Sprintf("set_%d_", i)
+
+		// Skip deleted rows.
+		if r.FormValue(prefix+"delete") != "" {
+			continue
+		}
+
+		progIdx, _ := strconv.Atoi(r.FormValue(prefix + "program_idx"))
+		week, _ := strconv.Atoi(r.FormValue(prefix + "week"))
+		day, _ := strconv.Atoi(r.FormValue(prefix + "day"))
+		numSets, _ := strconv.Atoi(r.FormValue(prefix + "num_sets"))
+		sortOrder, _ := strconv.Atoi(r.FormValue(prefix + "sort_order"))
+
+		if numSets < 1 {
+			numSets = 1
+		}
+
+		row := editableSetRow{
+			Index:      i,
+			ProgramIdx: progIdx,
+			Week:       week,
+			Day:        day,
+			Exercise:   strings.TrimSpace(r.FormValue(prefix + "exercise")),
+			NumSets:    numSets,
+			Reps:       strings.TrimSpace(r.FormValue(prefix + "reps")),
+			AmrapLast:  r.FormValue(prefix+"amrap_last") != "",
+			RepType:    r.FormValue(prefix + "rep_type"),
+			LoadType:   r.FormValue(prefix + "load_type"),
+			LoadValue:  strings.TrimSpace(r.FormValue(prefix + "load_value")),
+			Notes:      strings.TrimSpace(r.FormValue(prefix + "notes")),
+			SortOrder:  sortOrder,
+		}
+
+		if row.Exercise == "" {
+			continue // skip rows with no exercise
+		}
+		if row.RepType == "" {
+			row.RepType = "reps"
+		}
+
+		rows = append(rows, row)
+	}
+	return rows, nil
+}
+
+// rebuildPrescribedSets converts editable rows back into PrescribedSets,
+// grouped by program index.
+func rebuildPrescribedSets(rows []editableSetRow) map[int][]importers.ParsedPrescribedSet {
+	result := make(map[int][]importers.ParsedPrescribedSet)
+
+	for _, row := range rows {
+		// Parse reps.
+		var reps *int
+		if row.Reps != "" {
+			if v, err := strconv.Atoi(row.Reps); err == nil {
+				reps = &v
+			}
+		}
+
+		// Parse load.
+		var percentage *float64
+		var absoluteWeight *float64
+		switch row.LoadType {
+		case "percent":
+			if v, err := strconv.ParseFloat(row.LoadValue, 64); err == nil && v > 0 {
+				pct := v / 100.0
+				percentage = &pct
+			}
+		case "absolute":
+			if v, err := strconv.ParseFloat(row.LoadValue, 64); err == nil {
+				absoluteWeight = &v
+			}
+		case "bodyweight":
+			zero := 0.0
+			absoluteWeight = &zero
+		}
+
+		var notes *string
+		if row.Notes != "" {
+			n := row.Notes
+			notes = &n
+		}
+
+		for setNum := 1; setNum <= row.NumSets; setNum++ {
+			setReps := reps
+			// AMRAP last: final set gets nil reps.
+			if row.AmrapLast && setNum == row.NumSets {
+				setReps = nil
+			}
+
+			ps := importers.ParsedPrescribedSet{
+				Exercise:       row.Exercise,
+				Week:           row.Week,
+				Day:            row.Day,
+				SetNumber:      setNum,
+				Reps:           setReps,
+				RepType:        row.RepType,
+				Percentage:     percentage,
+				AbsoluteWeight: absoluteWeight,
+				SortOrder:      row.SortOrder,
+				Notes:          notes,
+			}
+			result[row.ProgramIdx] = append(result[row.ProgramIdx], ps)
+		}
+	}
+	return result
+}
 
 // programDayView groups exercises and sets for one training day in one program.
 type programDayView struct {

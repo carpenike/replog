@@ -449,6 +449,7 @@ func main() {
 		r.Get("/athletes/{id}/programs/generate", generate.Form)
 		r.Post("/athletes/{id}/programs/generate", generate.Submit)
 		r.Get("/athletes/{id}/programs/generate/preview", generate.Preview)
+		r.Post("/athletes/{id}/programs/generate/preview", generate.SaveEdits)
 		r.Post("/athletes/{id}/programs/generate/execute", generate.Execute)
 		r.Get("/athletes/{id}/context.json", generate.ContextJSON)
 

@@ -107,40 +107,83 @@
         </article>
         {{ end }}
         {{ end }}
-        {{ range .ProgramDays }}
-        <article>
-            <header>
-                <h3>{{ if gt .NumWeeks 1 }}Week {{ .Week }} &mdash; {{ end }}Day {{ .Day }}</h3>
-            </header>
-            <table class="striped">
-                <thead>
-                    <tr>
-                        <th>Exercise</th>
-                        <th>Sets &times; Reps</th>
-                        <th>Load</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{ range .Exercises }}
-                    <tr>
-                        <td><strong>{{ .Name }}</strong></td>
-                        <td>{{ .SetsReps }}</td>
-                        <td>{{ .WeightStr }}</td>
-                        <td><small>{{ .FirstNotes }}</small></td>
-                    </tr>
-                    {{ end }}
-                </tbody>
-            </table>
-        </article>
-        {{ end }}
-        {{ end }}
 
+        <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate/preview">
+            <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+            <input type="hidden" name="set_count" value="{{ len .EditableRows }}">
+
+            {{ range .ProgramDays }}
+            <article>
+                <header>
+                    <h3>{{ if gt .NumWeeks 1 }}Week {{ .Week }} &mdash; {{ end }}Day {{ .Day }}</h3>
+                </header>
+                <table class="striped">
+                    <thead>
+                        <tr>
+                            <th>Exercise</th>
+                            <th>Sets</th>
+                            <th>Reps</th>
+                            <th>Load</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ $week := .Week }}{{ $day := .Day }}
+                        {{ range $.EditableRows }}{{ if and (eq .Week $week) (eq .Day $day) }}
+                        <tr>
+                            <td>
+                                <input type="text" name="set_{{ .Index }}_exercise" value="{{ .Exercise }}" style="margin-bottom:0">
+                                <input type="hidden" name="set_{{ .Index }}_program_idx" value="{{ .ProgramIdx }}">
+                                <input type="hidden" name="set_{{ .Index }}_week" value="{{ .Week }}">
+                                <input type="hidden" name="set_{{ .Index }}_day" value="{{ .Day }}">
+                                <input type="hidden" name="set_{{ .Index }}_sort_order" value="{{ .SortOrder }}">
+                                <input type="hidden" name="set_{{ .Index }}_rep_type" value="{{ .RepType }}">
+                            </td>
+                            <td style="width:5rem">
+                                <input type="number" name="set_{{ .Index }}_num_sets" value="{{ .NumSets }}" min="1" max="20" style="margin-bottom:0">
+                            </td>
+                            <td style="width:7rem">
+                                <input type="text" name="set_{{ .Index }}_reps" value="{{ .Reps }}" placeholder="AMRAP" style="margin-bottom:0">
+                                {{ if .AmrapLast }}
+                                <label style="font-size:0.75rem"><input type="checkbox" name="set_{{ .Index }}_amrap_last" value="1" checked style="margin-bottom:0"> +AMRAP</label>
+                                {{ else }}
+                                <label style="font-size:0.75rem"><input type="checkbox" name="set_{{ .Index }}_amrap_last" value="1" style="margin-bottom:0"> +AMRAP</label>
+                                {{ end }}
+                            </td>
+                            <td style="width:9rem">
+                                <select name="set_{{ .Index }}_load_type" style="margin-bottom:0.25rem">
+                                    <option value="percent"{{ if eq .LoadType "percent" }} selected{{ end }}>% TM</option>
+                                    <option value="absolute"{{ if eq .LoadType "absolute" }} selected{{ end }}>lbs</option>
+                                    <option value="bodyweight"{{ if eq .LoadType "bodyweight" }} selected{{ end }}>BW</option>
+                                </select>
+                                {{ if ne .LoadType "bodyweight" }}
+                                <input type="text" name="set_{{ .Index }}_load_value" value="{{ .LoadValue }}" style="margin-bottom:0">
+                                {{ else }}
+                                <input type="text" name="set_{{ .Index }}_load_value" value="" style="margin-bottom:0" placeholder="&mdash;">
+                                {{ end }}
+                            </td>
+                            <td>
+                                <input type="text" name="set_{{ .Index }}_notes" value="{{ .Notes }}" style="margin-bottom:0">
+                            </td>
+                            <td style="width:3rem">
+                                <label style="font-size:0.75rem"><input type="checkbox" name="set_{{ .Index }}_delete" value="1"> Del</label>
+                            </td>
+                        </tr>
+                        {{ end }}{{ end }}
+                    </tbody>
+                </table>
+            </article>
+            {{ end }}
+
+            <div class="page-actions">
+                <a href="/athletes/{{ .Athlete.ID }}/programs/generate" role="button" class="outline secondary">Back</a>
+                <button type="submit" name="action" value="save" class="outline">Save Changes</button>
+                <button type="submit" name="action" value="execute" hx-confirm="Import this program into the catalog?">Approve &amp; Import</button>
+            </div>
+        </form>
+        {{ else }}
         <div class="page-actions">
             <a href="/athletes/{{ .Athlete.ID }}/programs/generate" role="button" class="outline secondary">Back</a>
-            <form method="POST" action="/athletes/{{ .Athlete.ID }}/programs/generate/execute" class="inline">
-                <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
-                <button type="submit" hx-confirm="Import this program into the catalog?">Approve &amp; Import</button>
-            </form>
         </div>
+        {{ end }}
 {{ end }}

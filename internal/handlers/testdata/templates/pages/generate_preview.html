@@ -4,4 +4,5 @@
 {{ if .Athlete }}<p>{{ .Athlete.Name }}</p>{{ end }}
 {{ if .Result }}<p>{{ .Result.Reasoning }}</p>{{ end }}
 {{ if .Preview }}<p>preview</p>{{ end }}
+{{ if .EditableRows }}<p>editable:{{ len .EditableRows }}</p>{{ end }}
 {{ end }}
