@@ -54,7 +54,7 @@
                     {{ end }}
                     <div class="notification-item__meta">
                         <span class="notification-item__type">{{ notificationTypeLabel .Type }}</span>
-                        <span class="notification-item__time">{{ formatDateHuman .CreatedAt }}</span>
+                        <span class="notification-item__time">{{ formatDate $.Prefs .CreatedAt }}</span>
                     </div>
                 </div>
                 {{ if not .Read }}
