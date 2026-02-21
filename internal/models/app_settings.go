@@ -268,29 +268,28 @@ func GetAppName(db *sql.DB) string {
 // Resolution: REPLOG_SECRET_KEY env var → _internal.secret_key DB row → auto-generate.
 // The key is stored in plaintext in app_settings (since it IS the encryption key).
 // Returns the key and sets it as an env var so the rest of the code can use it.
-func GetOrCreateSecretKey(db *sql.DB) (string, error) {
+func GetOrCreateSecretKey(db *sql.DB) (key, source string, err error) {
 	// 1. Check env var — if provided, persist to DB so the key survives
 	//    even if the env var is later removed.
-	if key := os.Getenv("REPLOG_SECRET_KEY"); key != "" {
+	if key = os.Getenv("REPLOG_SECRET_KEY"); key != "" {
 		_, _ = db.Exec(
 			`INSERT INTO app_settings (key, value) VALUES ('_internal.secret_key', ?)
 			 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key,
 		)
-		return key, nil
+		return key, "env", nil
 	}
 
 	// 2. Check DB for previously generated key.
-	var key string
-	err := db.QueryRow(`SELECT value FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&key)
+	err = db.QueryRow(`SELECT value FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&key)
 	if err == nil && key != "" {
 		os.Setenv("REPLOG_SECRET_KEY", key)
-		return key, nil
+		return key, "database", nil
 	}
 
 	// 3. Generate a new key.
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {
-		return "", fmt.Errorf("models: generate secret key: %w", err)
+		return "", "", fmt.Errorf("models: generate secret key: %w", err)
 	}
 	key = base64.StdEncoding.EncodeToString(buf)
 
@@ -299,11 +298,11 @@ func GetOrCreateSecretKey(db *sql.DB) (string, error) {
 		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key,
 	)
 	if err != nil {
-		return "", fmt.Errorf("models: store secret key: %w", err)
+		return "", "", fmt.Errorf("models: store secret key: %w", err)
 	}
 
 	os.Setenv("REPLOG_SECRET_KEY", key)
-	return key, nil
+	return key, "generated", nil
 }
 
 // ListSettingsByCategoryOrdered returns settings grouped by category in the

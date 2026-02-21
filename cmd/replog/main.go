@@ -66,8 +66,17 @@ func main() {
 
 	// Bootstrap secret key for encrypting sensitive settings.
 	// Generates and stores a key automatically if REPLOG_SECRET_KEY is not set.
-	if _, err := models.GetOrCreateSecretKey(db); err != nil {
+	if _, source, err := models.GetOrCreateSecretKey(db); err != nil {
 		log.Printf("Warning: secret key not available — sensitive settings will not be encrypted: %v", err)
+	} else {
+		switch source {
+		case "generated":
+			log.Printf("Secret key generated and stored in database")
+		case "database":
+			log.Printf("Secret key loaded from database")
+		case "env":
+			log.Printf("Secret key loaded from REPLOG_SECRET_KEY environment variable")
+		}
 	}
 
 	// Bootstrap admin user if no users exist.

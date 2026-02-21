@@ -298,12 +298,15 @@ func TestGetOrCreateSecretKey(t *testing.T) {
 	t.Setenv("REPLOG_SECRET_KEY", "")
 
 	// First call should generate and store a key.
-	key1, err := GetOrCreateSecretKey(db)
+	key1, source, err := GetOrCreateSecretKey(db)
 	if err != nil {
 		t.Fatalf("first call: %v", err)
 	}
 	if key1 == "" {
 		t.Fatal("expected non-empty key")
+	}
+	if source != "generated" {
+		t.Errorf("expected source 'generated', got %q", source)
 	}
 
 	// Verify it was set as env var.
@@ -315,22 +318,28 @@ func TestGetOrCreateSecretKey(t *testing.T) {
 	t.Setenv("REPLOG_SECRET_KEY", "")
 
 	// Second call should retrieve the same key from DB.
-	key2, err := GetOrCreateSecretKey(db)
+	key2, source, err := GetOrCreateSecretKey(db)
 	if err != nil {
 		t.Fatalf("second call: %v", err)
 	}
 	if key2 != key1 {
 		t.Errorf("expected same key %q, got %q", key1, key2)
 	}
+	if source != "database" {
+		t.Errorf("expected source 'database', got %q", source)
+	}
 
 	// With env var set, should prefer env var.
 	t.Setenv("REPLOG_SECRET_KEY", "explicit-key")
-	key3, err := GetOrCreateSecretKey(db)
+	key3, source, err := GetOrCreateSecretKey(db)
 	if err != nil {
 		t.Fatalf("env var call: %v", err)
 	}
 	if key3 != "explicit-key" {
 		t.Errorf("expected 'explicit-key', got %q", key3)
+	}
+	if source != "env" {
+		t.Errorf("expected source 'env', got %q", source)
 	}
 }
 
