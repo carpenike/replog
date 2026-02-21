@@ -3204,7 +3204,7 @@ a.notification-item__title:hover {
     color: var(--pico-muted-color);
 }
 
-/* Passkey nudge on preferences / home page */
+/* Passkey nudge on preferences page */
 .passkey-nudge {
     border-left: 3px solid var(--pico-primary);
 }
@@ -3216,18 +3216,35 @@ a.notification-item__title:hover {
 .passkey-nudge p {
     margin-bottom: 0;
 }
-.passkey-nudge-content {
+
+/* Passkey hint bar on home page */
+.passkey-hint {
     display: flex;
-    flex-direction: column;
-}
-.passkey-nudge-actions {
-    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--space-sm);
-    margin-top: var(--space-sm);
-}
-.passkey-nudge-actions a[role="button"],
-.passkey-nudge-actions button {
-    margin-bottom: 0;
-    padding: 0.35rem 0.75rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: var(--space-md);
+    background: var(--bg-0);
+    border-radius: var(--pico-border-radius);
+    border-left: 3px solid var(--pico-primary);
     font-size: 0.85rem;
+    color: var(--pico-muted-color);
+}
+.passkey-hint a {
+    font-weight: 500;
+}
+.passkey-hint form {
+    margin: 0;
+}
+.passkey-hint-dismiss {
+    all: unset;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--pico-muted-color);
+    padding: 0 0.25rem;
+}
+.passkey-hint-dismiss:hover {
+    color: var(--pico-color);
 }

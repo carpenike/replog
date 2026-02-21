@@ -5,22 +5,16 @@
     <h1>Welcome{{ if .User }}, {{ displayName .User }}{{ end }}</h1>
 
     {{ if .ShowPasskeySuggestion }}
-    <article class="passkey-nudge" id="passkey-suggestion">
-        <div class="passkey-nudge-content">
-            <h4>Set up passwordless sign-in</h4>
-            <p>Register a passkey to use Face ID, Touch ID, or your device PIN — faster and more secure than passwords.</p>
-            <div class="passkey-nudge-actions">
-                <a href="/setup/passkey" role="button" class="outline">Set Up Passkey</a>
-                <form method="POST" action="/setup/passkey/skip"
-                      hx-post="/setup/passkey/skip"
-                      hx-target="#passkey-suggestion"
-                      hx-swap="delete">
-                    {{ if $.CSRFToken }}<input type="hidden" name="csrf_token" value="{{ $.CSRFToken }}">{{ end }}
-                    <button type="submit" class="outline secondary">Dismiss</button>
-                </form>
-            </div>
-        </div>
-    </article>
+    <div class="passkey-hint" id="passkey-suggestion">
+        <span>Secure your account with a <a href="/setup/passkey">passkey</a> for passwordless sign-in.</span>
+        <form method="POST" action="/setup/passkey/skip"
+              hx-post="/setup/passkey/skip"
+              hx-target="#passkey-suggestion"
+              hx-swap="delete">
+            {{ if $.CSRFToken }}<input type="hidden" name="csrf_token" value="{{ $.CSRFToken }}">{{ end }}
+            <button type="submit" class="passkey-hint-dismiss" aria-label="Dismiss">&times;</button>
+        </form>
+    </div>
     {{ end }}
 
     {{ if or .User.IsCoach .User.IsAdmin }}
