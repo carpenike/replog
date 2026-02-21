@@ -1,0 +1,79 @@
+{{/* base.html — shared email layout for all RepLog emails.
+     Callers define "subject", "preheader", and "content" blocks. */}}
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{{ block "subject" . }}{{ .AppName }}{{ end }}</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style type="text/css">
+    /* Reset */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0; padding: 0; width: 100% !important; height: 100% !important; }
+    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <!-- Hidden preheader text -->
+  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+    {{ block "preheader" . }}{{ end }}
+    &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847; &#847;
+  </div>
+
+  <!-- Outer wrapper table -->
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f4f7;">
+    <tr>
+      <td align="center" style="padding: 24px 16px;">
+
+        <!-- Header with app name -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width: 560px;">
+          <tr>
+            <td align="center" style="padding: 16px 0 24px 0;">
+              <span style="font-size: 22px; font-weight: 700; color: #5046e5; letter-spacing: -0.5px; text-decoration: none;">
+                {{ .AppName }}
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Content card -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width: 560px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="padding: 32px 40px;">
+              {{ block "content" . }}{{ end }}
+            </td>
+          </tr>
+        </table>
+
+        <!-- Footer -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width: 560px;">
+          <tr>
+            <td align="center" style="padding: 24px 0 0 0;">
+              <p style="margin: 0; font-size: 13px; line-height: 20px; color: #9a9ea6;">
+                Sent by {{ .AppName }}{{ if .BaseURL }} &mdash;
+                <a href="{{ .BaseURL }}" style="color: #5046e5; text-decoration: none;">{{ .BaseURL }}</a>{{ end }}
+              </p>
+              <p style="margin: 8px 0 0 0; font-size: 12px; line-height: 18px; color: #b5b9c2;">
+                You received this email because your account is configured to receive notifications.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

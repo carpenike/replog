@@ -103,8 +103,8 @@ func (h *LoginTokens) GenerateToken(w http.ResponseWriter, r *http.Request) {
 
 	// Deliver the login link to the target user's email (fire-and-forget).
 	appName := models.GetAppName(h.DB)
-	emailBody := fmt.Sprintf("Your login link for %s:\n\n%s\n\nThis link will expire — use it soon.", appName, loginURL)
-	notify.SendToUser(h.DB, id, appName+" — Login Link", emailBody)
+	htmlBody := notify.RenderMagicLinkEmail(h.DB, loginURL)
+	notify.SendToUser(h.DB, id, appName+" — Login Link", htmlBody)
 
 	// Also create an in-app notification for the target user.
 	_, _ = models.CreateNotification(h.DB, id, models.NotifyMagicLinkSent,

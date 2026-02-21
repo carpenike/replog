@@ -50,23 +50,58 @@ func Send(db *sql.DB, req Request) {
 
 	// External channel: email the target user and/or broadcast.
 	if pref.External {
-		body := buildBody(req)
-		sendToUser(db, req.UserID, req.Title, body)
-		sendBroadcast(db, body)
+		// HTML email to the target user.
+		link := req.Link
+		if link != "" && !strings.HasPrefix(link, "http") {
+			if baseURL := models.GetSetting(db, "app.base_url"); baseURL != "" {
+				link = strings.TrimRight(baseURL, "/") + "/" + strings.TrimLeft(link, "/")
+			}
+		}
+		htmlBody := renderEmail("notification.html", EmailData{
+			AppName: models.GetAppName(db),
+			BaseURL: models.GetSetting(db, "app.base_url"),
+			Title:   req.Title,
+			Message: req.Message,
+			Link:    link,
+		})
+		if htmlBody != "" {
+			sendHTMLToUser(db, req.UserID, req.Title, htmlBody)
+		} else {
+			// Fallback to plain text if template rendering fails.
+			sendToUser(db, req.UserID, req.Title, buildBody(req))
+		}
+
+		// Plain text to broadcast channels (ntfy, Discord, etc.).
+		sendBroadcast(db, buildBody(req))
 	}
 }
 
-// SendToUser sends a message directly to a specific user's email address.
+// SendToUser sends an HTML email to a specific user's email address.
 // Used for targeted delivery like magic links where only the recipient should
 // see the message. Does not check preferences or create in-app notifications.
-func SendToUser(db *sql.DB, userID int64, subject, body string) {
-	sendToUser(db, userID, subject, body)
+func SendToUser(db *sql.DB, userID int64, subject, htmlBody string) {
+	sendHTMLToUser(db, userID, subject, htmlBody)
 }
 
-// sendToUser sends an email to the target user using app-level SMTP settings.
+// sendHTMLToUser sends an HTML email to the target user using app-level SMTP settings.
+// Silently returns if SMTP is not configured or the user has no email.
+func sendHTMLToUser(db *sql.DB, userID int64, subject, htmlBody string) {
+	smtpURL := buildSMTPURL(db, userID, subject, true)
+	if smtpURL == "" {
+		return
+	}
+
+	go func() {
+		if err := shoutrrr.Send(smtpURL, htmlBody); err != nil {
+			log.Printf("notify: HTML email send failed for user %d: %v", userID, err)
+		}
+	}()
+}
+
+// sendToUser sends a plain text email to the target user using app-level SMTP settings.
 // Silently returns if SMTP is not configured or the user has no email.
 func sendToUser(db *sql.DB, userID int64, subject, body string) {
-	smtpURL := buildSMTPURL(db, userID, subject)
+	smtpURL := buildSMTPURL(db, userID, subject, false)
 	if smtpURL == "" {
 		return
 	}
@@ -117,7 +152,7 @@ func TestConnection(db *sql.DB) error {
 			errs = append(errs, "SMTP: from address not configured")
 		} else {
 			// Send test to the from address itself.
-			testURL := buildSMTPURLDirect(db, fromAddr, "RepLog SMTP Test")
+			testURL := buildSMTPURLDirect(db, fromAddr, "RepLog SMTP Test", false)
 			if testURL != "" {
 				if err := shoutrrr.Send(testURL, "If you see this, RepLog SMTP is working!"); err != nil {
 					errs = append(errs, fmt.Sprintf("SMTP: %v", err))
@@ -152,17 +187,19 @@ func TestConnection(db *sql.DB) error {
 
 // buildSMTPURL constructs a Shoutrrr SMTP URL for a specific user.
 // Returns empty string if SMTP is not configured or the user has no email.
-func buildSMTPURL(db *sql.DB, userID int64, subject string) string {
+// When html is true, sets usehtml=Yes so Shoutrrr sends Content-Type: text/html.
+func buildSMTPURL(db *sql.DB, userID int64, subject string, html bool) string {
 	user, err := models.GetUserByID(db, userID)
 	if err != nil || !user.Email.Valid || user.Email.String == "" {
 		return ""
 	}
-	return buildSMTPURLDirect(db, user.Email.String, subject)
+	return buildSMTPURLDirect(db, user.Email.String, subject, html)
 }
 
 // buildSMTPURLDirect constructs a Shoutrrr SMTP URL for a given email address.
 // Returns empty string if SMTP is not configured.
-func buildSMTPURLDirect(db *sql.DB, toEmail, subject string) string {
+// When html is true, sets usehtml=Yes so Shoutrrr sends Content-Type: text/html.
+func buildSMTPURLDirect(db *sql.DB, toEmail, subject string, html bool) string {
 	host := models.GetSetting(db, "smtp.host")
 	if host == "" {
 		return ""
@@ -193,6 +230,9 @@ func buildSMTPURLDirect(db *sql.DB, toEmail, subject string) string {
 	params.Set("to", toEmail)
 	if subject != "" {
 		params.Set("subject", subject)
+	}
+	if html {
+		params.Set("usehtml", "Yes")
 	}
 
 	return fmt.Sprintf("smtp://%s%s:%s/?%s", userInfo, host, port, params.Encode())

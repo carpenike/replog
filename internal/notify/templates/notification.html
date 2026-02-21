@@ -1,0 +1,40 @@
+{{/* notification.html — general notification email for all event types.
+     Data: .AppName, .BaseURL, .Title, .Message (optional), .Link (optional), .LinkText (optional) */}}
+{{ template "base.html" . }}
+
+{{ define "subject" }}{{ .Title }} — {{ .AppName }}{{ end }}
+
+{{ define "preheader" }}{{ .Title }}{{ if .Message }} — {{ .Message }}{{ end }}{{ end }}
+
+{{ define "content" }}
+<h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: #1a1a2e; line-height: 28px;">
+  {{ .Title }}
+</h1>
+{{ if .Message }}
+<p style="margin: 0 0 24px 0; font-size: 15px; line-height: 24px; color: #4a4a68;">
+  {{ .Message }}
+</p>
+{{ end }}
+
+{{ if .Link }}
+<!-- Action Button -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 16px 0;">
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ .Link }}" style="height:44px;v-text-anchor:middle;width:200px;" arcsize="18%" stroke="f" fillcolor="#5046e5">
+        <w:anchorlock/>
+        <center>
+      <![endif]-->
+      <a href="{{ .Link }}" target="_blank" style="display: inline-block; background-color: #5046e5; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 12px 28px; border-radius: 8px; mso-padding-alt: 0; text-align: center;">
+        <!--[if mso]><![endif]-->{{ if .LinkText }}{{ .LinkText }}{{ else }}View Details{{ end }}<!--[if mso]><![endif]-->
+      </a>
+      <!--[if mso]>
+        </center>
+      </v:roundrect>
+      <![endif]-->
+    </td>
+  </tr>
+</table>
+{{ end }}
+{{ end }}

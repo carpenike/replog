@@ -1,0 +1,43 @@
+{{/* magic_link.html — sign-in link email with prominent CTA button.
+     Data: .AppName, .BaseURL, .LoginURL */}}
+{{ template "base.html" . }}
+
+{{ define "subject" }}Sign in to {{ .AppName }}{{ end }}
+
+{{ define "preheader" }}Your sign-in link for {{ .AppName }} — click to log in instantly.{{ end }}
+
+{{ define "content" }}
+<h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: #1a1a2e; line-height: 28px;">
+  Sign in to {{ .AppName }}
+</h1>
+<p style="margin: 0 0 24px 0; font-size: 15px; line-height: 24px; color: #4a4a68;">
+  Click the button below to sign in to your account. This link is single-use and will expire shortly.
+</p>
+
+<!-- CTA Button -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 24px 0;">
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ .LoginURL }}" style="height:48px;v-text-anchor:middle;width:220px;" arcsize="17%" stroke="f" fillcolor="#5046e5">
+        <w:anchorlock/>
+        <center>
+      <![endif]-->
+      <a href="{{ .LoginURL }}" target="_blank" style="display: inline-block; background-color: #5046e5; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; mso-padding-alt: 0; text-align: center;">
+        <!--[if mso]><![endif]-->Sign In<!--[if mso]><![endif]-->
+      </a>
+      <!--[if mso]>
+        </center>
+      </v:roundrect>
+      <![endif]-->
+    </td>
+  </tr>
+</table>
+
+<p style="margin: 0 0 8px 0; font-size: 13px; line-height: 20px; color: #9a9ea6;">
+  If the button doesn&rsquo;t work, copy and paste this URL into your browser:
+</p>
+<p style="margin: 0; font-size: 13px; line-height: 20px; word-break: break-all;">
+  <a href="{{ .LoginURL }}" style="color: #5046e5; text-decoration: none;">{{ .LoginURL }}</a>
+</p>
+{{ end }}
