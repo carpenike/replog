@@ -1,0 +1,58 @@
+{{ define "title" }}{{ appName }} — Set Up Passkey{{ end }}
+
+{{ define "content" }}
+        <hgroup>
+            <h3>Secure Your Account</h3>
+            <p>Register a passkey to sign in with Face ID, Touch ID, or your device PIN — no password needed.</p>
+        </hgroup>
+
+        {{ if .Error }}
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        {{ end }}
+
+        {{ if .Success }}
+        <div class="alert alert-success" role="alert">
+            <strong>Passkey registered!</strong> You can now sign in with biometrics on this device.
+        </div>
+        <div class="wizard-actions">
+            <a href="/" role="button">Continue to {{ appName }}</a>
+        </div>
+        {{ else }}
+        <div data-passkey>
+            <div class="wizard-passkey-explainer">
+                <div class="wizard-passkey-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                </div>
+                <p>A passkey lets this device remember you securely. Next time, just use your fingerprint or face — no links or passwords required.</p>
+            </div>
+
+            <div class="wizard-form-group">
+                <label for="passkey-label">Device Name <small>(optional)</small></label>
+                <input type="text" id="passkey-label" placeholder='e.g. "iPad", "Mom\'s iPhone"' aria-label="Device name for this passkey">
+            </div>
+
+            <div class="wizard-actions">
+                <button type="button" class="btn-primary" data-action="passkey-register" id="register-btn">
+                    Register Passkey
+                </button>
+            </div>
+            <small id="passkey-register-status" class="passkey-status"></small>
+        </div>
+
+        <div class="wizard-skip">
+            <a href="{{ .SkipURL }}" class="secondary">Skip for now</a>
+            <small>You can register a passkey later from Preferences.</small>
+        </div>
+
+        <script src="/static/js/passkeys.js"></script>
+        <script>
+            // After successful registration, redirect to show success state.
+            document.addEventListener("passkey-registered", function() {
+                window.location.href = "/setup/passkey?done=1";
+            });
+        </script>
+        {{ end }}
+{{ end }}

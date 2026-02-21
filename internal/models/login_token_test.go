@@ -30,8 +30,13 @@ func TestCreateLoginToken(t *testing.T) {
 		if !lt.Label.Valid || lt.Label.String != "iPad" {
 			t.Errorf("label = %v, want iPad", lt.Label)
 		}
-		if lt.ExpiresAt.Valid {
-			t.Error("expires_at should be null for no-expiry token")
+		// When nil is passed for expiresAt, the model defaults to 7 days.
+		if !lt.ExpiresAt.Valid {
+			t.Fatal("expires_at should default to ~7 days when nil is passed")
+		}
+		untilExpiry := time.Until(lt.ExpiresAt.Time)
+		if untilExpiry < 6*24*time.Hour || untilExpiry > 8*24*time.Hour {
+			t.Errorf("default expiry = %v from now, want ~7 days", untilExpiry)
 		}
 	})
 
@@ -147,7 +152,7 @@ func TestDeleteLoginToken(t *testing.T) {
 
 	t.Run("delete existing", func(t *testing.T) {
 		lt, _ := CreateLoginToken(db, user.ID, "to-delete", nil)
-		err := DeleteLoginToken(db, lt.ID)
+		err := DeleteLoginToken(db, lt.ID, user.ID)
 		if err != nil {
 			t.Fatalf("delete token: %v", err)
 		}
@@ -160,7 +165,7 @@ func TestDeleteLoginToken(t *testing.T) {
 	})
 
 	t.Run("delete non-existent", func(t *testing.T) {
-		err := DeleteLoginToken(db, 99999)
+		err := DeleteLoginToken(db, 99999, user.ID)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}

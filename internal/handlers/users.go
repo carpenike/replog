@@ -298,6 +298,12 @@ func (h *Users) Update(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+		// Invalidate existing login tokens — a password change should
+		// revoke any outstanding magic links for security.
+		if err := models.DeleteLoginTokensByUser(h.DB, id); err != nil {
+			log.Printf("handlers: revoke tokens after password change for user %d: %v", id, err)
+			// Non-fatal — continue.
+		}
 	}
 
 	http.Redirect(w, r, "/users", http.StatusSeeOther)

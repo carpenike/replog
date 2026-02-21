@@ -509,15 +509,8 @@ func (h *Programs) UpdateSet(w http.ResponseWriter, r *http.Request) {
 
 // AssignProgram assigns a program template to an athlete. Coach only.
 func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach && !user.IsAdmin {
-		h.Templates.Forbidden(w, r)
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -566,15 +559,8 @@ func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 // pre-filled, so the coach can confirm or set initial training maxes after
 // assigning a program.
 func (h *Programs) TMSetupForm(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach && !user.IsAdmin {
-		h.Templates.Forbidden(w, r)
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -617,15 +603,8 @@ func (h *Programs) TMSetupForm(w http.ResponseWriter, r *http.Request) {
 
 // TMSetupSave processes the batch TM setup form submission.
 func (h *Programs) TMSetupSave(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach && !user.IsAdmin {
-		h.Templates.Forbidden(w, r)
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -668,15 +647,8 @@ func (h *Programs) TMSetupSave(w http.ResponseWriter, r *http.Request) {
 
 // DeactivateProgram deactivates an athlete's current program. Coach only.
 func (h *Programs) DeactivateProgram(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach && !user.IsAdmin {
-		h.Templates.Forbidden(w, r)
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -702,9 +674,8 @@ func (h *Programs) DeactivateProgram(w http.ResponseWriter, r *http.Request) {
 
 // Prescription renders today's training prescription for an athlete.
 func (h *Programs) Prescription(w http.ResponseWriter, r *http.Request) {
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -734,15 +705,8 @@ func (h *Programs) Prescription(w http.ResponseWriter, r *http.Request) {
 
 // AssignProgramForm renders the form to assign a program to an athlete. Coach only.
 func (h *Programs) AssignProgramForm(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach && !user.IsAdmin {
-		h.Templates.Forbidden(w, r)
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -775,9 +739,8 @@ func (h *Programs) AssignProgramForm(w http.ResponseWriter, r *http.Request) {
 // has the required equipment for a given program template. Used by htmx on
 // the assign-program form to preview equipment readiness.
 func (h *Programs) ProgramCompatibility(w http.ResponseWriter, r *http.Request) {
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -827,9 +790,8 @@ func (h *Programs) ProgramCompatibility(w http.ResponseWriter, r *http.Request) 
 
 // CycleReport renders a print-friendly cycle report for an athlete.
 func (h *Programs) CycleReport(w http.ResponseWriter, r *http.Request) {
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -933,15 +895,8 @@ func (h *Programs) DeleteProgressionRule(w http.ResponseWriter, r *http.Request)
 
 // CycleReview renders the cycle review page showing TM bump suggestions. Coach only.
 func (h *Programs) CycleReview(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach && !user.IsAdmin {
-		h.Templates.Forbidden(w, r)
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 
@@ -971,15 +926,8 @@ func (h *Programs) CycleReview(w http.ResponseWriter, r *http.Request) {
 
 // ApplyTMBumps processes the coach's TM bump decisions from the cycle review form.
 func (h *Programs) ApplyTMBumps(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	if !user.IsCoach && !user.IsAdmin {
-		h.Templates.Forbidden(w, r)
-		return
-	}
-
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid athlete ID", http.StatusBadRequest)
+	athleteID, ok := checkAthleteAccess(h.DB, h.Templates, w, r)
+	if !ok {
 		return
 	}
 

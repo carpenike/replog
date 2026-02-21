@@ -1,0 +1,14 @@
+{{ define "wizard" }}<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ block "title" . }}{{ appName }}{{ end }}</title>
+    {{ if .CSRFToken }}<meta name="csrf-token" content="{{ .CSRFToken }}">{{ end }}
+</head>
+<body>
+    <main class="wizard-container">
+        {{ block "content" . }}{{ end }}
+    </main>
+</body>
+</html>{{ end }}

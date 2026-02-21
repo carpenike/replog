@@ -87,7 +87,16 @@
 
         <section data-passkey>
             <h2>Passkeys</h2>
+            {{ if not .Passkeys }}
+            <article class="passkey-nudge" aria-label="Passkey recommendation">
+                <hgroup>
+                    <h4>Secure your account with a passkey</h4>
+                    <p>Sign in with Face ID, Touch ID, or your device PIN — faster and more secure than passwords or magic links.</p>
+                </hgroup>
+            </article>
+            {{ else }}
             <p>Register Face ID, Touch ID, or a security key for passwordless sign-in.</p>
+            {{ end }}
 
             <div id="passkeys-list">
                 {{ if .Passkeys }}

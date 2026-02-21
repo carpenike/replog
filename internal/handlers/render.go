@@ -302,6 +302,16 @@ func NewTemplateCache(fsys fs.FS) (TemplateCache, error) {
 			continue
 		}
 
+		// Setup/wizard pages use the wizard layout (focused, no sidebar).
+		if strings.HasPrefix(name, "setup_") {
+			ts, err := template.New(name).Funcs(templateFuncs).ParseFS(fsys, "templates/layouts/wizard.html", page)
+			if err != nil {
+				return nil, fmt.Errorf("handlers: parse %s with wizard layout: %w", name, err)
+			}
+			cache[name] = ts
+			continue
+		}
+
 		// All other pages extend the base layout.
 		ts, err := template.New(name).Funcs(templateFuncs).ParseFS(fsys, "templates/layouts/base.html", page)
 		if err != nil {
@@ -425,6 +435,11 @@ func (tc TemplateCache) Render(w http.ResponseWriter, r *http.Request, name stri
 	// Non-boosted htmx requests get just the content fragment.
 	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Boosted") != "true" {
 		return ts.ExecuteTemplate(w, "content", data)
+	}
+
+	// Wizard pages use the "wizard" template instead of "base".
+	if strings.HasPrefix(name, "setup_") {
+		return ts.ExecuteTemplate(w, "wizard", data)
 	}
 
 	return ts.ExecuteTemplate(w, "base", data)

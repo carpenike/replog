@@ -212,9 +212,10 @@ func UpdateWebAuthnCredentialSignCount(db *sql.DB, credentialID []byte, signCoun
 	return nil
 }
 
-// DeleteWebAuthnCredential removes a WebAuthn credential by its row ID.
-func DeleteWebAuthnCredential(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM webauthn_credentials WHERE id = ?`, id)
+// DeleteWebAuthnCredential removes a WebAuthn credential by its row ID,
+// scoped to the specified user to prevent cross-user deletion.
+func DeleteWebAuthnCredential(db *sql.DB, id, userID int64) error {
+	result, err := db.Exec(`DELETE FROM webauthn_credentials WHERE id = ? AND user_id = ?`, id, userID)
 	if err != nil {
 		return fmt.Errorf("models: delete webauthn credential %d: %w", id, err)
 	}

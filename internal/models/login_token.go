@@ -39,8 +39,13 @@ func generateToken(nBytes int) (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
+// DefaultTokenLifetime is the default validity period for login tokens.
+// Tokens created without an explicit expiry will expire after this duration.
+const DefaultTokenLifetime = 7 * 24 * time.Hour // 7 days
+
 // CreateLoginToken generates a new login token for the given user.
-// Label is optional (e.g. "iPad", "iPhone"). ExpiresAt is optional — nil means no expiry.
+// Label is optional (e.g. "iPad", "iPhone"). ExpiresAt is optional — nil
+// defaults to DefaultTokenLifetime from now.
 func CreateLoginToken(db *sql.DB, userID int64, label string, expiresAt *time.Time) (*LoginToken, error) {
 	token, err := generateToken(32) // 256-bit token
 	if err != nil {
@@ -55,6 +60,9 @@ func CreateLoginToken(db *sql.DB, userID int64, label string, expiresAt *time.Ti
 	var expiresVal sql.NullTime
 	if expiresAt != nil {
 		expiresVal = sql.NullTime{Time: *expiresAt, Valid: true}
+	} else {
+		defaultExpiry := time.Now().Add(DefaultTokenLifetime)
+		expiresVal = sql.NullTime{Time: defaultExpiry, Valid: true}
 	}
 
 	var id int64
@@ -128,10 +136,11 @@ func ListLoginTokensByUser(db *sql.DB, userID int64) ([]*LoginToken, error) {
 	return tokens, nil
 }
 
-// DeleteLoginToken removes a login token by ID. Returns ErrNotFound if the
-// token does not exist.
-func DeleteLoginToken(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM login_tokens WHERE id = ?`, id)
+// DeleteLoginToken removes a login token by ID, scoped to the specified user
+// to prevent cross-user deletion. Returns ErrNotFound if the token does not
+// exist or does not belong to the user.
+func DeleteLoginToken(db *sql.DB, id, userID int64) error {
+	result, err := db.Exec(`DELETE FROM login_tokens WHERE id = ? AND user_id = ?`, id, userID)
 	if err != nil {
 		return fmt.Errorf("models: delete login token %d: %w", id, err)
 	}

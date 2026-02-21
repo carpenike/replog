@@ -1,0 +1,55 @@
+{{ define "wizard" }}<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <title>{{ block "title" . }}{{ appName }}{{ end }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="/static/css/pico.min.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script src="/static/js/htmx.min.js"></script>
+    <script src="/static/js/replog.js" defer></script>
+    {{ if .CSRFToken }}<meta name="csrf-token" content="{{ .CSRFToken }}">{{ end }}
+    <script>
+        (function() {
+            var saved = localStorage.getItem("theme") || "dark";
+            document.documentElement.setAttribute("data-theme", saved);
+        })();
+    </script>
+</head>
+<body>
+    <main class="container wizard-container">
+        <article class="wizard-card">
+            <!-- Brand header -->
+            <div class="wizard-header text-center">
+                <svg class="wizard-brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M8 8h8M8 16h8"/></svg>
+                <h2 class="wizard-brand">{{ appName }}</h2>
+            </div>
+
+            <!-- Step indicator -->
+            {{ if .WizardSteps }}
+            <nav class="wizard-steps" aria-label="Setup progress">
+                {{ $current := .WizardCurrentStep }}
+                {{ range .WizardSteps }}
+                <div class="wizard-step{{ if eq .Number $current }} wizard-step--active{{ else if lt .Number $current }} wizard-step--done{{ end }}" aria-current="{{ if eq .Number $current }}step{{ end }}">
+                    <span class="wizard-step-number">{{ if lt .Number $current }}&#10003;{{ else }}{{ .Number }}{{ end }}</span>
+                    <span class="wizard-step-label">{{ .Label }}</span>
+                </div>
+                {{ end }}
+            </nav>
+            {{ end }}
+
+            <!-- Step content -->
+            <div class="wizard-content">
+                {{ block "content" . }}{{ end }}
+            </div>
+        </article>
+    </main>
+    <footer class="container text-center">
+        <small>{{ appName }} — workout tracking for the family</small>
+    </footer>
+</body>
+</html>{{ end }}

@@ -115,6 +115,9 @@
                 statusEl.className = "passkey-status success";
             }
 
+            // Dispatch event so pages (e.g. setup wizard) can react.
+            document.dispatchEvent(new CustomEvent("passkey-registered"));
+
             // Reload the page to show the new credential in the list.
             setTimeout(function () { window.location.reload(); }, 1000);
         } catch (e) {

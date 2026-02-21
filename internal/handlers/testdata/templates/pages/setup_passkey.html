@@ -1,0 +1,10 @@
+{{ define "title" }}{{ appName }} — Set Up Passkey{{ end }}
+
+{{ define "content" }}
+<section>
+    <h3>Secure Your Account</h3>
+    {{ if .Success }}<p>Passkey registered!</p>{{ end }}
+    {{ if .Error }}<p class="error">{{ .Error }}</p>{{ end }}
+    {{ if .SkipURL }}<a href="{{ .SkipURL }}">Skip for now</a>{{ end }}
+</section>
+{{ end }}

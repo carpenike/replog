@@ -229,7 +229,7 @@ func TestDeleteWebAuthnCredential(t *testing.T) {
 	}
 
 	t.Run("delete existing", func(t *testing.T) {
-		if err := DeleteWebAuthnCredential(db, wc.ID); err != nil {
+		if err := DeleteWebAuthnCredential(db, wc.ID, user.ID); err != nil {
 			t.Fatalf("delete credential: %v", err)
 		}
 		creds, _ := ListWebAuthnCredentialsByUser(db, user.ID)
@@ -239,7 +239,7 @@ func TestDeleteWebAuthnCredential(t *testing.T) {
 	})
 
 	t.Run("delete nonexistent", func(t *testing.T) {
-		err := DeleteWebAuthnCredential(db, 99999)
+		err := DeleteWebAuthnCredential(db, 99999, user.ID)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}

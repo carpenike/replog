@@ -241,8 +241,8 @@ func (h *Passkeys) DeleteCredential(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteWebAuthnCredential(h.DB, credID); err != nil {
-		log.Printf("handlers: delete webauthn credential %d: %v", credID, err)
+	if err := models.DeleteWebAuthnCredential(h.DB, credID, userID); err != nil {
+		log.Printf("handlers: delete webauthn credential %d for user %d: %v", credID, userID, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

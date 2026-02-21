@@ -19,6 +19,7 @@ type LoginTokens struct {
 	Sessions  *scs.SessionManager
 	Templates TemplateCache
 	BaseURL   string // External base URL (e.g. https://replog.example.com). If empty, inferred from request.
+	Setup     *Setup // Wizard handler for post-login passkey enrollment check. May be nil.
 }
 
 // TokenLogin handles passwordless login via a magic token URL.
@@ -54,6 +55,14 @@ func (h *LoginTokens) TokenLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("handlers: token login success for user %q (id=%d)", user.Username, user.ID)
+
+	// Redirect to passkey enrollment wizard if the user has no registered
+	// passkeys. This nudges magic-link users toward stronger auth.
+	if h.Setup != nil && h.Setup.NeedsPasskeySetup(r, user.ID) {
+		http.Redirect(w, r, "/setup/passkey", http.StatusSeeOther)
+		return
+	}
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -61,7 +70,7 @@ func (h *LoginTokens) TokenLogin(w http.ResponseWriter, r *http.Request) {
 // POST /users/{id}/tokens
 func (h *LoginTokens) GenerateToken(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
-	if !authUser.IsCoach {
+	if !authUser.IsAdmin {
 		h.Templates.Forbidden(w, r)
 		return
 	}
@@ -133,7 +142,7 @@ func (h *LoginTokens) GenerateToken(w http.ResponseWriter, r *http.Request) {
 // POST /users/{id}/tokens/{tokenID}/delete
 func (h *LoginTokens) DeleteToken(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
-	if !authUser.IsCoach {
+	if !authUser.IsAdmin {
 		h.Templates.Forbidden(w, r)
 		return
 	}
@@ -150,8 +159,8 @@ func (h *LoginTokens) DeleteToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteLoginToken(h.DB, tokenID); err != nil {
-		log.Printf("handlers: delete login token %d: %v", tokenID, err)
+	if err := models.DeleteLoginToken(h.DB, tokenID, userID); err != nil {
+		log.Printf("handlers: delete login token %d for user %d: %v", tokenID, userID, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

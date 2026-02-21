@@ -212,6 +212,11 @@ func main() {
 		DB:        db,
 		Templates: tc,
 	}
+	setup := &handlers.Setup{
+		DB:        db,
+		Sessions:  sessionManager,
+		Templates: tc,
+	}
 
 	// Configure WebAuthn for passkey support.
 	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
@@ -247,11 +252,17 @@ func main() {
 		log.Printf("WebAuthn disabled: set REPLOG_WEBAUTHN_RPID and REPLOG_WEBAUTHN_ORIGINS to enable passkeys")
 	}
 
+	// Wire passkey setup redirect into login token handler (if WebAuthn is enabled).
+	if passkeys != nil {
+		loginTokens.Setup = setup
+	}
+
 	// Set up router.
 	r := chi.NewRouter()
 
 	// Global middleware — applied to every request.
 	r.Use(middleware.RequestLogger)
+	r.Use(middleware.SecurityHeaders)
 
 	// Custom error pages for unmatched routes. Wrapped with session loading so
 	// logged-in users still see the sidebar navigation on error pages.
@@ -286,9 +297,13 @@ func main() {
 	r.Get("/health", handleHealth)
 	r.Get("/avatars/{filename}", avatars.Serve)
 
+	// Rate limiter for authentication endpoints — 10 attempts per minute per IP.
+	authLimiter := middleware.NewRateLimiter(10, time.Minute)
+
 	// --- Session-loaded routes — login/logout/token auth ---
 	r.Group(func(r chi.Router) {
 		r.Use(sessionManager.LoadAndSave)
+		r.Use(authLimiter.Limit)
 
 		r.Get("/login", auth.LoginPage)
 		r.Post("/login", auth.LoginSubmit)
@@ -308,6 +323,10 @@ func main() {
 		r.Use(withCSRF)
 
 		r.Get("/", pages.Index)
+
+		// Setup / onboarding wizard routes (authenticated, no coach role needed).
+		r.Get("/setup/passkey", setup.PasskeySetup)
+		r.Post("/setup/passkey/skip", setup.PasskeySetupSkip)
 
 		// User Preferences (self-service — any authenticated user).
 		r.Get("/preferences", preferences.EditForm)

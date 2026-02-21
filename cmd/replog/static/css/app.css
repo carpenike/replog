@@ -3078,3 +3078,139 @@ a.notification-item__title:hover {
 .text-muted {
     color: var(--pico-muted-color);
 }
+
+/* ---- Wizard / setup flow layout ---- */
+.wizard-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--bg-0);
+}
+.wizard-card {
+    max-width: 28rem;
+    width: 100%;
+    background: var(--bg-1);
+    padding: var(--space-lg);
+    border-radius: var(--pico-border-radius);
+}
+.wizard-header {
+    margin-bottom: var(--space-lg);
+}
+.wizard-brand-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: var(--space-xs);
+}
+.wizard-brand {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+/* Step indicator */
+.wizard-steps {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-sm);
+}
+.wizard-step {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--pico-muted-color);
+    white-space: nowrap;
+}
+.wizard-step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    border: 2px solid var(--pico-muted-color);
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.wizard-step--active {
+    color: var(--pico-primary);
+}
+.wizard-step--active .wizard-step-number {
+    border-color: var(--pico-primary);
+    background: var(--pico-primary);
+    color: var(--pico-primary-inverse);
+}
+.wizard-step--done {
+    color: var(--pico-primary);
+}
+.wizard-step--done .wizard-step-number {
+    border-color: var(--pico-primary);
+    color: var(--pico-primary);
+    font-size: 0.85rem;
+}
+.wizard-step-label {
+    display: none;
+}
+@media (min-width: 480px) {
+    .wizard-step-label {
+        display: inline;
+    }
+}
+
+/* Wizard content areas */
+.wizard-content hgroup {
+    margin-bottom: var(--space-md);
+}
+.wizard-content hgroup h3 {
+    margin-bottom: 0.25rem;
+}
+.wizard-passkey-explainer {
+    text-align: center;
+    margin-bottom: var(--space-md);
+    padding: var(--space-md);
+    background: var(--bg-0);
+    border-radius: var(--pico-border-radius);
+}
+.wizard-passkey-icon {
+    margin-bottom: var(--space-sm);
+    color: var(--pico-primary);
+}
+.wizard-passkey-icon svg {
+    width: 3rem;
+    height: 3rem;
+}
+.wizard-form-group {
+    margin-bottom: var(--space-md);
+}
+.wizard-actions {
+    margin-bottom: var(--space-md);
+}
+.wizard-actions button,
+.wizard-actions a[role="button"] {
+    width: 100%;
+}
+.wizard-skip {
+    text-align: center;
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--pico-muted-border-color);
+}
+.wizard-skip small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--pico-muted-color);
+}
+
+/* Passkey nudge on preferences page */
+.passkey-nudge {
+    border-left: 3px solid var(--pico-primary);
+}
+.passkey-nudge hgroup h4 {
+    margin-bottom: 0.25rem;
+}
+.passkey-nudge hgroup p {
+    margin-bottom: 0;
+}
