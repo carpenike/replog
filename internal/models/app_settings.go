@@ -269,8 +269,13 @@ func GetAppName(db *sql.DB) string {
 // The key is stored in plaintext in app_settings (since it IS the encryption key).
 // Returns the key and sets it as an env var so the rest of the code can use it.
 func GetOrCreateSecretKey(db *sql.DB) (string, error) {
-	// 1. Check env var.
+	// 1. Check env var — if provided, persist to DB so the key survives
+	//    even if the env var is later removed.
 	if key := os.Getenv("REPLOG_SECRET_KEY"); key != "" {
+		_, _ = db.Exec(
+			`INSERT INTO app_settings (key, value) VALUES ('_internal.secret_key', ?)
+			 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key,
+		)
 		return key, nil
 	}
 
