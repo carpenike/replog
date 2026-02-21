@@ -101,17 +101,15 @@ func (h *LoginTokens) GenerateToken(w http.ResponseWriter, r *http.Request) {
 		loginURL = fmt.Sprintf("%s://%s/auth/token/%s", scheme, r.Host, lt.Token)
 	}
 
-	// Deliver the login link via external notification channels (fire-and-forget).
-	user, err := models.GetUserByID(h.DB, id)
-	if err == nil {
-		msg := fmt.Sprintf("Login link for %s: %s", user.Username, loginURL)
-		notify.SendDirect(h.DB, msg)
+	// Deliver the login link to the target user's email (fire-and-forget).
+	appName := models.GetAppName(h.DB)
+	emailBody := fmt.Sprintf("Your login link for %s:\n\n%s\n\nThis link will expire — use it soon.", appName, loginURL)
+	notify.SendToUser(h.DB, id, appName+" — Login Link", emailBody)
 
-		// Also create an in-app notification for the target user.
-		_, _ = models.CreateNotification(h.DB, id, models.NotifyMagicLinkSent,
-			"Login Link Generated", "A new login link has been created for your account.",
-			loginURL, sql.NullInt64{})
-	}
+	// Also create an in-app notification for the target user.
+	_, _ = models.CreateNotification(h.DB, id, models.NotifyMagicLinkSent,
+		"Login Link Generated", "A new login link has been created for your account.",
+		loginURL, sql.NullInt64{})
 
 	// Render the token list with the new token URL highlighted.
 	tokens, err := models.ListLoginTokensByUser(h.DB, id)

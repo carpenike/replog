@@ -74,8 +74,33 @@ var SettingsRegistry = []SettingDefinition{
 	},
 	// --- Notifications ---
 	{
+		Key: "smtp.host", EnvVar: "REPLOG_SMTP_HOST", Default: "",
+		Label: "SMTP Host", Description: "SMTP server hostname (e.g. smtp.gmail.com, smtp.mailgun.org)",
+		FieldType: "text", Category: "Notifications",
+	},
+	{
+		Key: "smtp.port", EnvVar: "REPLOG_SMTP_PORT", Default: "587",
+		Label: "SMTP Port", Description: "SMTP server port (587 for STARTTLS, 465 for SSL)",
+		FieldType: "number", Category: "Notifications",
+	},
+	{
+		Key: "smtp.username", EnvVar: "REPLOG_SMTP_USERNAME", Default: "",
+		Label: "SMTP Username", Description: "SMTP authentication username",
+		FieldType: "text", Category: "Notifications",
+	},
+	{
+		Key: "smtp.password", EnvVar: "REPLOG_SMTP_PASSWORD", Default: "",
+		Label: "SMTP Password", Description: "SMTP authentication password or app-specific password",
+		FieldType: "password", Category: "Notifications", Sensitive: true,
+	},
+	{
+		Key: "smtp.from", EnvVar: "REPLOG_SMTP_FROM", Default: "",
+		Label: "From Address", Description: "Sender email address (e.g. replog@yourdomain.com)",
+		FieldType: "text", Category: "Notifications",
+	},
+	{
 		Key: "notify.urls", EnvVar: "REPLOG_NOTIFY_URLS", Default: "",
-		Label: "Notification URLs", Description: "Shoutrrr URLs for external notifications. One per line. See https://containrrr.dev/shoutrrr/services/overview/",
+		Label: "Broadcast URLs", Description: "Shoutrrr URLs for broadcast notifications (ntfy, Discord, etc). One per line. Not per-user — use SMTP for per-user delivery.",
 		FieldType: "textarea", Category: "Notifications",
 	},
 	// --- AI Coach ---
