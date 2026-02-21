@@ -540,9 +540,11 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Look up exercise rest time for the timer.
-	restSeconds := models.DefaultRestSeconds
+	restSeconds := models.GetDefaultRestSeconds(h.DB)
 	if ex, exErr := models.GetExerciseByID(h.DB, exerciseID); exErr == nil {
-		restSeconds = ex.EffectiveRestSeconds()
+		if ex.RestSeconds.Valid {
+			restSeconds = int(ex.RestSeconds.Int64)
+		}
 	}
 
 	// Include exercise_id in redirect for sticky exercise selection.

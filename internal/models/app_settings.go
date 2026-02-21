@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"golang.org/x/crypto/hkdf"
@@ -37,8 +38,41 @@ type SettingValue struct {
 	ReadOnly bool   // True if set via env var (not editable in UI)
 }
 
+// CategoryOrder defines the display order for setting categories in the admin UI.
+var CategoryOrder = []string{"General", "Defaults", "AI Coach"}
+
 // SettingsRegistry defines all known application settings.
 var SettingsRegistry = []SettingDefinition{
+	// --- General ---
+	{
+		Key: "app.name", EnvVar: "REPLOG_APP_NAME", Default: "RepLog",
+		Label: "Application Name", Description: "Custom name shown in page titles and navigation",
+		FieldType: "text", Category: "General",
+	},
+	// --- Defaults ---
+	{
+		Key: "defaults.weight_unit", EnvVar: "", Default: "lbs",
+		Label: "Default Weight Unit", Description: "Default weight unit for new users (lbs or kg)",
+		FieldType: "select", Options: []string{"lbs", "kg"},
+		Category: "Defaults",
+	},
+	{
+		Key: "defaults.timezone", EnvVar: "", Default: "America/New_York",
+		Label: "Default Timezone", Description: "Default timezone for new users (e.g. America/Chicago, Europe/London)",
+		FieldType: "text", Category: "Defaults",
+	},
+	{
+		Key: "defaults.date_format", EnvVar: "", Default: "Jan 2, 2006",
+		Label: "Default Date Format", Description: "Default date display format for new users",
+		FieldType: "select", Options: []string{"Jan 2, 2006", "2006-01-02", "02/01/2006", "01/02/2006", "2 Jan 2006", "Monday, Jan 2"},
+		Category: "Defaults",
+	},
+	{
+		Key: "defaults.rest_seconds", EnvVar: "", Default: "90",
+		Label: "Default Rest Timer", Description: "Default rest time in seconds when an exercise doesn't specify one (e.g. 60, 90, 120)",
+		FieldType: "number", Category: "Defaults",
+	},
+	// --- AI Coach ---
 	{
 		Key: "llm.provider", EnvVar: "REPLOG_LLM_PROVIDER", Default: "",
 		Label: "Provider", Description: "AI provider for program generation",
@@ -185,6 +219,113 @@ func GetSettingValue(db *sql.DB, key string) SettingValue {
 // IsAICoachConfigured returns true if an AI Coach provider is configured.
 func IsAICoachConfigured(db *sql.DB) bool {
 	return GetSetting(db, "llm.provider") != ""
+}
+
+// GetDefaultWeightUnit returns the configured default weight unit from app settings,
+// falling back to the hardcoded constant.
+func GetDefaultWeightUnit(db *sql.DB) string {
+	if v := GetSetting(db, "defaults.weight_unit"); v != "" {
+		return v
+	}
+	return "lbs"
+}
+
+// GetDefaultTimezone returns the configured default timezone from app settings.
+func GetDefaultTimezone(db *sql.DB) string {
+	if v := GetSetting(db, "defaults.timezone"); v != "" {
+		return v
+	}
+	return "America/New_York"
+}
+
+// GetDefaultDateFormat returns the configured default date format from app settings.
+func GetDefaultDateFormat(db *sql.DB) string {
+	if v := GetSetting(db, "defaults.date_format"); v != "" {
+		return v
+	}
+	return "Jan 2, 2006"
+}
+
+// GetDefaultRestSeconds returns the configured default rest seconds from app settings.
+func GetDefaultRestSeconds(db *sql.DB) int {
+	if v := GetSetting(db, "defaults.rest_seconds"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 90
+}
+
+// GetAppName returns the configured application name from app settings.
+func GetAppName(db *sql.DB) string {
+	if v := GetSetting(db, "app.name"); v != "" {
+		return v
+	}
+	return "RepLog"
+}
+
+// GetOrCreateSecretKey ensures a secret key exists for encrypting sensitive settings.
+// Resolution: REPLOG_SECRET_KEY env var → _internal.secret_key DB row → auto-generate.
+// The key is stored in plaintext in app_settings (since it IS the encryption key).
+// Returns the key and sets it as an env var so the rest of the code can use it.
+func GetOrCreateSecretKey(db *sql.DB) (string, error) {
+	// 1. Check env var.
+	if key := os.Getenv("REPLOG_SECRET_KEY"); key != "" {
+		return key, nil
+	}
+
+	// 2. Check DB for previously generated key.
+	var key string
+	err := db.QueryRow(`SELECT value FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&key)
+	if err == nil && key != "" {
+		os.Setenv("REPLOG_SECRET_KEY", key)
+		return key, nil
+	}
+
+	// 3. Generate a new key.
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("models: generate secret key: %w", err)
+	}
+	key = base64.StdEncoding.EncodeToString(buf)
+
+	_, err = db.Exec(
+		`INSERT INTO app_settings (key, value) VALUES ('_internal.secret_key', ?)
+		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key,
+	)
+	if err != nil {
+		return "", fmt.Errorf("models: store secret key: %w", err)
+	}
+
+	os.Setenv("REPLOG_SECRET_KEY", key)
+	return key, nil
+}
+
+// ListSettingsByCategoryOrdered returns settings grouped by category in the
+// order defined by CategoryOrder.
+func ListSettingsByCategoryOrdered(db *sql.DB) []CategoryGroup {
+	groups := ListSettingsByCategory(db)
+	var ordered []CategoryGroup
+	seen := make(map[string]bool)
+	for _, cat := range CategoryOrder {
+		if settings, ok := groups[cat]; ok {
+			ordered = append(ordered, CategoryGroup{Name: cat, Settings: settings})
+			seen[cat] = true
+		}
+	}
+	// Append any categories not in CategoryOrder (future-proofing).
+	for cat, settings := range groups {
+		if !seen[cat] {
+			ordered = append(ordered, CategoryGroup{Name: cat, Settings: settings})
+		}
+	}
+	return ordered
+}
+
+// CategoryGroup holds settings for a single category, for ordered rendering.
+type CategoryGroup struct {
+	Name     string
+	Settings []SettingValue
 }
 
 // --- Internal helpers ---

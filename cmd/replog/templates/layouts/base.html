@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
-    <title>{{ block "title" . }}RepLog{{ end }}</title>
+    <title>{{ block "title" . }}{{ appName }}{{ end }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -143,7 +143,7 @@
         <div class="sidebar-header">
             <a href="/" class="sidebar-brand">
                 <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M8 8h8M8 16h8"/></svg>
-                <span class="sidebar-brand-text">RepLog</span>
+                <span class="sidebar-brand-text">{{ appName }}</span>
             </a>
             <button class="sidebar-collapse-btn" data-action="collapse-sidebar" type="button" aria-label="Collapse sidebar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
@@ -257,7 +257,7 @@
             {{ block "content" . }}{{ end }}
         </div>
         <footer class="content-footer">
-            <small>RepLog — workout tracking for the family</small>
+            <small>{{ appName }} — workout tracking for the family</small>
         </footer>
     </main>
 
@@ -311,7 +311,7 @@
         {{ block "content" . }}{{ end }}
     </main>
     <footer class="container">
-        <small>RepLog — workout tracking for the family</small>
+        <small>{{ appName }} — workout tracking for the family</small>
     </footer>
     {{ end }}
 </body>

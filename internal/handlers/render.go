@@ -7,14 +7,48 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
 
+// cachedAppName holds the application name, set at startup and refreshed
+// when admin settings are saved. Safe for concurrent reads.
+var cachedAppName atomic.Value
+
+func init() {
+	cachedAppName.Store("RepLog")
+}
+
+// InitAppName reads the app name from settings and caches it.
+func InitAppName(name string) {
+	if name != "" {
+		cachedAppName.Store(name)
+	}
+}
+
+// RefreshAppName re-reads the app name from settings and updates the cache.
+func RefreshAppName(name string) {
+	if name != "" {
+		cachedAppName.Store(name)
+	} else {
+		cachedAppName.Store("RepLog")
+	}
+}
+
+// AppName returns the current cached application name.
+func AppName() string {
+	return cachedAppName.Load().(string)
+}
+
 // templateFuncs contains custom template helper functions.
 var templateFuncs = template.FuncMap{
+	// appName returns the current application name (configurable via Settings).
+	"appName": func() string {
+		return AppName()
+	},
 	"userInitials": func(username string) string {
 		if username == "" {
 			return "?"

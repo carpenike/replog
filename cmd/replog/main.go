@@ -64,6 +64,12 @@ func main() {
 
 	log.Printf("Database ready: %s", filepath.Clean(dbPath))
 
+	// Bootstrap secret key for encrypting sensitive settings.
+	// Generates and stores a key automatically if REPLOG_SECRET_KEY is not set.
+	if _, err := models.GetOrCreateSecretKey(db); err != nil {
+		log.Printf("Warning: secret key not available — sensitive settings will not be encrypted: %v", err)
+	}
+
 	// Bootstrap admin user if no users exist.
 	if err := bootstrapAdmin(db); err != nil {
 		log.Fatalf("Failed to bootstrap admin: %v", err)
@@ -79,6 +85,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to parse templates: %v", err)
 	}
+
+	// Initialize cached app name from settings.
+	handlers.InitAppName(models.GetAppName(db))
 
 	// Determine base URL for generating absolute URLs (e.g. login token links).
 	// When behind a reverse proxy, set this to the external URL (e.g. https://replog.example.com).

@@ -51,12 +51,12 @@ func GetUserPreferences(db *sql.DB, userID int64) (*UserPreferences, error) {
 		 FROM user_preferences WHERE user_id = ?`, userID,
 	).Scan(&p.ID, &p.UserID, &p.WeightUnit, &p.Timezone, &p.DateFormat, &p.CreatedAt, &p.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		// Return sensible defaults when no row exists.
+		// Return defaults from app settings (or hardcoded fallback).
 		return &UserPreferences{
 			UserID:     userID,
-			WeightUnit: DefaultWeightUnit,
-			Timezone:   DefaultTimezone,
-			DateFormat: DefaultDateFormat,
+			WeightUnit: GetDefaultWeightUnit(db),
+			Timezone:   GetDefaultTimezone(db),
+			DateFormat: GetDefaultDateFormat(db),
 		}, nil
 	}
 	if err != nil {

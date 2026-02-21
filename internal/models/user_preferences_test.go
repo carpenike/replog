@@ -28,6 +28,41 @@ func TestGetUserPreferences_defaults(t *testing.T) {
 	}
 }
 
+func TestGetUserPreferences_settingsOverrideDefaults(t *testing.T) {
+	db := testDB(t)
+
+	// Configure non-default values via app_settings.
+	if err := SetSetting(db, "defaults.weight_unit", "kg"); err != nil {
+		t.Fatalf("set weight_unit: %v", err)
+	}
+	if err := SetSetting(db, "defaults.timezone", "Europe/Berlin"); err != nil {
+		t.Fatalf("set timezone: %v", err)
+	}
+	if err := SetSetting(db, "defaults.date_format", "2006-01-02"); err != nil {
+		t.Fatalf("set date_format: %v", err)
+	}
+
+	u, err := CreateUser(db, "euuser", "", "password123", "", false, false, sql.NullInt64{})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	// User with no preferences row should get settings-based defaults.
+	prefs, err := GetUserPreferences(db, u.ID)
+	if err != nil {
+		t.Fatalf("get preferences: %v", err)
+	}
+	if prefs.WeightUnit != "kg" {
+		t.Errorf("weight_unit = %q, want 'kg'", prefs.WeightUnit)
+	}
+	if prefs.Timezone != "Europe/Berlin" {
+		t.Errorf("timezone = %q, want 'Europe/Berlin'", prefs.Timezone)
+	}
+	if prefs.DateFormat != "2006-01-02" {
+		t.Errorf("date_format = %q, want '2006-01-02'", prefs.DateFormat)
+	}
+}
+
 func TestUpsertUserPreferences(t *testing.T) {
 	db := testDB(t)
 

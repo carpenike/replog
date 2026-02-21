@@ -20,7 +20,7 @@ type Settings struct {
 
 // Show renders the settings page grouped by category.
 func (h *Settings) Show(w http.ResponseWriter, r *http.Request) {
-	groups := models.ListSettingsByCategory(h.DB)
+	groups := models.ListSettingsByCategoryOrdered(h.DB)
 
 	data := map[string]any{
 		"SettingGroups": groups,
@@ -82,7 +82,7 @@ func (h *Settings) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	groups := models.ListSettingsByCategory(h.DB)
+	groups := models.ListSettingsByCategoryOrdered(h.DB)
 	data := map[string]any{
 		"SettingGroups": groups,
 		"Registry":      models.SettingsRegistry,
@@ -91,6 +91,8 @@ func (h *Settings) Update(w http.ResponseWriter, r *http.Request) {
 		data["Error"] = errors[0]
 		w.WriteHeader(http.StatusUnprocessableEntity)
 	} else if updated > 0 {
+		// Refresh cached app name in case it changed.
+		RefreshAppName(models.GetAppName(h.DB))
 		data["Success"] = "Settings saved."
 	} else {
 		data["Success"] = "No changes."
@@ -103,7 +105,7 @@ func (h *Settings) Update(w http.ResponseWriter, r *http.Request) {
 
 // renderError renders the settings page with an error message.
 func (h *Settings) renderError(w http.ResponseWriter, r *http.Request, msg string) {
-	groups := models.ListSettingsByCategory(h.DB)
+	groups := models.ListSettingsByCategoryOrdered(h.DB)
 	data := map[string]any{
 		"SettingGroups": groups,
 		"Registry":      models.SettingsRegistry,

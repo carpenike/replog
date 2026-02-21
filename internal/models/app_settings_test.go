@@ -124,6 +124,14 @@ func TestListSettingsByCategory(t *testing.T) {
 	if len(aiSettings) < 3 {
 		t.Errorf("expected at least 3 AI Coach settings, got %d", len(aiSettings))
 	}
+
+	// Verify new categories exist.
+	if _, ok := groups["General"]; !ok {
+		t.Error("expected 'General' category in settings")
+	}
+	if _, ok := groups["Defaults"]; !ok {
+		t.Error("expected 'Defaults' category in settings")
+	}
 }
 
 func TestSensitiveEncryption(t *testing.T) {
@@ -204,4 +212,145 @@ func TestMaskValue(t *testing.T) {
 
 func hasPrefix(s, prefix string) bool {
 	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+}
+
+func TestGetDefaultWeightUnit(t *testing.T) {
+	db := testDB(t)
+
+	// Default (no setting configured).
+	if got := GetDefaultWeightUnit(db); got != "lbs" {
+		t.Errorf("expected default 'lbs', got %q", got)
+	}
+
+	// Override via app_settings.
+	if err := SetSetting(db, "defaults.weight_unit", "kg"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if got := GetDefaultWeightUnit(db); got != "kg" {
+		t.Errorf("expected 'kg' after override, got %q", got)
+	}
+}
+
+func TestGetDefaultTimezone(t *testing.T) {
+	db := testDB(t)
+
+	if got := GetDefaultTimezone(db); got != "America/New_York" {
+		t.Errorf("expected default 'America/New_York', got %q", got)
+	}
+
+	if err := SetSetting(db, "defaults.timezone", "Europe/London"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if got := GetDefaultTimezone(db); got != "Europe/London" {
+		t.Errorf("expected 'Europe/London', got %q", got)
+	}
+}
+
+func TestGetDefaultDateFormat(t *testing.T) {
+	db := testDB(t)
+
+	if got := GetDefaultDateFormat(db); got != "Jan 2, 2006" {
+		t.Errorf("expected default 'Jan 2, 2006', got %q", got)
+	}
+
+	if err := SetSetting(db, "defaults.date_format", "2006-01-02"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if got := GetDefaultDateFormat(db); got != "2006-01-02" {
+		t.Errorf("expected '2006-01-02', got %q", got)
+	}
+}
+
+func TestGetDefaultRestSeconds(t *testing.T) {
+	db := testDB(t)
+
+	if got := GetDefaultRestSeconds(db); got != 90 {
+		t.Errorf("expected default 90, got %d", got)
+	}
+
+	if err := SetSetting(db, "defaults.rest_seconds", "120"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if got := GetDefaultRestSeconds(db); got != 120 {
+		t.Errorf("expected 120, got %d", got)
+	}
+}
+
+func TestGetAppName(t *testing.T) {
+	db := testDB(t)
+
+	if got := GetAppName(db); got != "RepLog" {
+		t.Errorf("expected default 'RepLog', got %q", got)
+	}
+
+	if err := SetSetting(db, "app.name", "Smith Family Gym"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if got := GetAppName(db); got != "Smith Family Gym" {
+		t.Errorf("expected 'Smith Family Gym', got %q", got)
+	}
+}
+
+func TestGetOrCreateSecretKey(t *testing.T) {
+	db := testDB(t)
+
+	// Clear any env var.
+	t.Setenv("REPLOG_SECRET_KEY", "")
+
+	// First call should generate and store a key.
+	key1, err := GetOrCreateSecretKey(db)
+	if err != nil {
+		t.Fatalf("first call: %v", err)
+	}
+	if key1 == "" {
+		t.Fatal("expected non-empty key")
+	}
+
+	// Verify it was set as env var.
+	if got := os.Getenv("REPLOG_SECRET_KEY"); got != key1 {
+		t.Errorf("expected env var set to %q, got %q", key1, got)
+	}
+
+	// Clear the env var again to test DB retrieval.
+	t.Setenv("REPLOG_SECRET_KEY", "")
+
+	// Second call should retrieve the same key from DB.
+	key2, err := GetOrCreateSecretKey(db)
+	if err != nil {
+		t.Fatalf("second call: %v", err)
+	}
+	if key2 != key1 {
+		t.Errorf("expected same key %q, got %q", key1, key2)
+	}
+
+	// With env var set, should prefer env var.
+	t.Setenv("REPLOG_SECRET_KEY", "explicit-key")
+	key3, err := GetOrCreateSecretKey(db)
+	if err != nil {
+		t.Fatalf("env var call: %v", err)
+	}
+	if key3 != "explicit-key" {
+		t.Errorf("expected 'explicit-key', got %q", key3)
+	}
+}
+
+func TestListSettingsByCategoryOrdered(t *testing.T) {
+	db := testDB(t)
+
+	ordered := ListSettingsByCategoryOrdered(db)
+
+	if len(ordered) < 3 {
+		t.Fatalf("expected at least 3 categories, got %d", len(ordered))
+	}
+
+	// Verify ordering: General, Defaults, AI Coach.
+	expectedOrder := []string{"General", "Defaults", "AI Coach"}
+	for i, expected := range expectedOrder {
+		if i >= len(ordered) {
+			t.Fatalf("missing category at position %d: want %q", i, expected)
+		}
+		if ordered[i].Name != expected {
+			t.Errorf("category[%d] = %q, want %q", i, ordered[i].Name, expected)
+		}
+	}
 }
