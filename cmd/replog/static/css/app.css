@@ -3204,13 +3204,30 @@ a.notification-item__title:hover {
     color: var(--pico-muted-color);
 }
 
-/* Passkey nudge on preferences page */
+/* Passkey nudge on preferences / home page */
 .passkey-nudge {
     border-left: 3px solid var(--pico-primary);
 }
-.passkey-nudge hgroup h4 {
+.passkey-nudge hgroup h4,
+.passkey-nudge h4 {
     margin-bottom: 0.25rem;
 }
-.passkey-nudge hgroup p {
+.passkey-nudge hgroup p,
+.passkey-nudge p {
     margin-bottom: 0;
+}
+.passkey-nudge-content {
+    display: flex;
+    flex-direction: column;
+}
+.passkey-nudge-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+.passkey-nudge-actions a[role="button"],
+.passkey-nudge-actions button {
+    margin-bottom: 0;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
 }

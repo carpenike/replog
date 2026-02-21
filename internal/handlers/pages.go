@@ -14,6 +14,7 @@ import (
 type Pages struct {
 	DB        *sql.DB
 	Templates TemplateCache
+	Setup     *Setup // Wizard handler for passkey suggestion check. May be nil.
 }
 
 // Index renders the home page for an authenticated user.
@@ -29,6 +30,11 @@ func (p *Pages) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{}
+
+	// Suggest passkey registration if user has none and hasn't dismissed.
+	if p.Setup != nil && p.Setup.NeedsPasskeySetup(r, user.ID) {
+		data["ShowPasskeySuggestion"] = true
+	}
 
 	if user.IsCoach || user.IsAdmin {
 		// Coach/admin dashboard — show athletes for quick navigation.

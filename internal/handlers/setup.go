@@ -70,6 +70,12 @@ func (h *Setup) PasskeySetupSkip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.Sessions.Put(r.Context(), "passkey_setup_skipped", true)
+
+	// For htmx requests, return empty 200 so hx-swap="delete" works.
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

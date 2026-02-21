@@ -252,9 +252,10 @@ func main() {
 		log.Printf("WebAuthn disabled: set REPLOG_WEBAUTHN_RPID and REPLOG_WEBAUTHN_ORIGINS to enable passkeys")
 	}
 
-	// Wire passkey setup redirect into login token handler (if WebAuthn is enabled).
+	// Wire passkey setup into handlers that need it (if WebAuthn is enabled).
 	if passkeys != nil {
 		loginTokens.Setup = setup
+		pages.Setup = setup
 	}
 
 	// Set up router.
