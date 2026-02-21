@@ -6,7 +6,7 @@
 
     {{ if .ShowPasskeySuggestion }}
     <div class="passkey-hint" id="passkey-suggestion">
-        <span>Secure your account with a <a href="/setup/passkey">passkey</a> for passwordless sign-in.</span>
+        <span>Secure your account with a <a href="/setup/passkey" hx-boost="false">passkey</a> for passwordless sign-in.</span>
         <form method="POST" action="/setup/passkey/skip"
               hx-post="/setup/passkey/skip"
               hx-target="#passkey-suggestion"

@@ -437,8 +437,13 @@ func (tc TemplateCache) Render(w http.ResponseWriter, r *http.Request, name stri
 		return ts.ExecuteTemplate(w, "content", data)
 	}
 
-	// Wizard pages use the "wizard" template instead of "base".
+	// Wizard pages use a different layout, so boosted htmx requests must
+	// break out to a full-page navigation (the wizard has no sidebar).
 	if strings.HasPrefix(name, "setup_") {
+		if r.Header.Get("HX-Boosted") == "true" {
+			w.Header().Set("HX-Redirect", r.URL.String())
+			return nil
+		}
 		return ts.ExecuteTemplate(w, "wizard", data)
 	}
 
