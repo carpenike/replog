@@ -264,6 +264,14 @@ var templateFuncs = template.FuncMap{
 		}
 		return def.Label
 	},
+	// now returns the current time in RFC3339 format for notification polling.
+	"now": func() string {
+		return time.Now().UTC().Format(time.RFC3339)
+	},
+	// notificationTypeLabel returns the human-readable label for a notification type.
+	"notificationTypeLabel": func(nType string) string {
+		return models.NotificationTypeLabel(nType)
+	},
 }
 
 // TemplateCache maps page filenames to parsed template sets. Each set contains
@@ -407,6 +415,11 @@ func (tc TemplateCache) Render(w http.ResponseWriter, r *http.Request, name stri
 		if token := middleware.CSRFTokenFromContext(r.Context()); token != "" {
 			data["CSRFToken"] = token
 		}
+	}
+
+	// Inject unread notification count for the sidebar badge.
+	if _, exists := data["UnreadCount"]; !exists {
+		data["UnreadCount"] = middleware.UnreadCountFromContext(r.Context())
 	}
 
 	// Non-boosted htmx requests get just the content fragment.

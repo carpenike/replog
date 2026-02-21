@@ -39,7 +39,7 @@ type SettingValue struct {
 }
 
 // CategoryOrder defines the display order for setting categories in the admin UI.
-var CategoryOrder = []string{"General", "Defaults", "AI Coach"}
+var CategoryOrder = []string{"General", "Defaults", "Notifications", "AI Coach"}
 
 // SettingsRegistry defines all known application settings.
 var SettingsRegistry = []SettingDefinition{
@@ -71,6 +71,12 @@ var SettingsRegistry = []SettingDefinition{
 		Key: "defaults.rest_seconds", EnvVar: "", Default: "90",
 		Label: "Default Rest Timer", Description: "Default rest time in seconds when an exercise doesn't specify one (e.g. 60, 90, 120)",
 		FieldType: "number", Category: "Defaults",
+	},
+	// --- Notifications ---
+	{
+		Key: "notify.urls", EnvVar: "REPLOG_NOTIFY_URLS", Default: "",
+		Label: "Notification URLs", Description: "Shoutrrr URLs for external notifications. One per line. See https://containrrr.dev/shoutrrr/services/overview/",
+		FieldType: "textarea", Category: "Notifications",
 	},
 	// --- AI Coach ---
 	{

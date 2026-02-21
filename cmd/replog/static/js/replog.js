@@ -22,6 +22,7 @@
  *   data-select-on-focus            Select the input contents on focus.
  *   data-print                      Trigger window.print().
  *   data-new-athlete-toggle         Toggle new-athlete-fields based on select value.
+ *   data-action="dismiss-toast"     Dismiss a toast notification with animation.
  */
 (function () {
     "use strict";
@@ -218,6 +219,58 @@
             if (msg && !window.confirm(msg)) {
                 e.preventDefault();
             }
+        }
+    });
+
+    // ---- Toast notifications: auto-dismiss and click handling ----
+
+    // Dismiss a toast with slide-out animation.
+    function dismissToast(toast) {
+        if (toast.classList.contains("toast--dismissing")) return;
+        toast.classList.add("toast--dismissing");
+        toast.addEventListener("animationend", function () {
+            toast.remove();
+        });
+    }
+
+    // Auto-dismiss new toasts after 5 seconds.
+    // Uses MutationObserver to catch toasts swapped in by htmx.
+    var toastObserver = new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+            m.addedNodes.forEach(function (node) {
+                if (node.nodeType !== 1) return;
+                var toasts = [];
+                if (node.classList && node.classList.contains("toast")) {
+                    toasts.push(node);
+                } else if (node.querySelectorAll) {
+                    toasts = node.querySelectorAll(".toast");
+                }
+                toasts.forEach(function (t) {
+                    setTimeout(function () { dismissToast(t); }, 5000);
+                });
+            });
+        });
+    });
+    toastObserver.observe(document.body, { childList: true, subtree: true });
+
+    // Click handler for toast dismiss button.
+    document.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-action='dismiss-toast']");
+        if (btn) {
+            var toast = btn.closest(".toast");
+            if (toast) {
+                // Mark as read via htmx if it has an id.
+                var toastId = toast.getAttribute("data-toast-id");
+                if (toastId) {
+                    var token = window.RepLog && RepLog.csrfToken ? RepLog.csrfToken() : "";
+                    fetch("/notifications/" + toastId + "/read", {
+                        method: "POST",
+                        headers: { "X-CSRF-Token": token }
+                    });
+                }
+                dismissToast(toast);
+            }
+            return;
         }
     });
 })();

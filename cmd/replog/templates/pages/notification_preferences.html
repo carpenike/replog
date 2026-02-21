@@ -1,0 +1,55 @@
+{{ define "title" }}{{ appName }} — Notification Preferences{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/">Home</a> &rsaquo; <a href="/notifications">Notifications</a> &rsaquo; Preferences
+        </div>
+
+        <h1>Notification Preferences</h1>
+
+        {{ if .Success }}
+        <div class="alert alert-success" role="alert">{{ .Success }}</div>
+        {{ end }}
+
+        <p>Choose how you want to be notified for each event type.</p>
+
+        <form method="POST" action="/notifications/preferences"
+              hx-post="/notifications/preferences" hx-target="main" hx-swap="innerHTML">
+            {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
+
+            <table class="notification-prefs-table">
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th class="text-center">In-App</th>
+                        <th class="text-center">External{{ if not .ExternalConfigured }} <small>(not configured)</small>{{ end }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range $i, $nt := .NotificationTypes }}
+                    {{ $pref := index $.NotificationPrefs $i }}
+                    <tr>
+                        <td>
+                            <strong>{{ $nt.Label }}</strong>
+                            <br><small class="text-muted">{{ $nt.Description }}</small>
+                        </td>
+                        <td class="text-center">
+                            <input type="checkbox" name="in_app_{{ $nt.Type }}" role="switch"
+                                   {{ if $pref.InApp }}checked{{ end }}>
+                        </td>
+                        <td class="text-center">
+                            <input type="checkbox" name="external_{{ $nt.Type }}" role="switch"
+                                   {{ if $pref.External }}checked{{ end }}
+                                   {{ if not $.ExternalConfigured }}disabled title="Configure notify URLs in Admin Settings first"{{ end }}>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+
+            <div class="form-actions">
+                <button type="submit">Save Preferences</button>
+                <a href="/notifications" class="outline secondary">Cancel</a>
+            </div>
+        </form>
+{{ end }}

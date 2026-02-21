@@ -10,6 +10,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/notify"
 )
 
 // LoginTokens holds dependencies for login token management handlers.
@@ -98,6 +99,18 @@ func (h *LoginTokens) GenerateToken(w http.ResponseWriter, r *http.Request) {
 			scheme = "https"
 		}
 		loginURL = fmt.Sprintf("%s://%s/auth/token/%s", scheme, r.Host, lt.Token)
+	}
+
+	// Deliver the login link via external notification channels (fire-and-forget).
+	user, err := models.GetUserByID(h.DB, id)
+	if err == nil {
+		msg := fmt.Sprintf("Login link for %s: %s", user.Username, loginURL)
+		notify.SendDirect(h.DB, msg)
+
+		// Also create an in-app notification for the target user.
+		_, _ = models.CreateNotification(h.DB, id, models.NotifyMagicLinkSent,
+			"Login Link Generated", "A new login link has been created for your account.",
+			loginURL, sql.NullInt64{})
 	}
 
 	// Render the token list with the new token URL highlighted.

@@ -1,0 +1,73 @@
+{{ define "title" }}{{ appName }} — Notifications{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/">Home</a> &rsaquo; Notifications
+        </div>
+
+        <div class="page-header">
+            <h1>Notifications</h1>
+            <div class="page-actions">
+                <a href="/notifications/preferences" class="outline secondary">Preferences</a>
+                {{ if gt .UnreadCount 0 }}
+                <form method="POST" action="/notifications/read-all" style="display:inline">
+                    {{ if .CSRFToken }}<input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">{{ end }}
+                    <button type="submit" class="outline" hx-post="/notifications/read-all" hx-target="main" hx-swap="innerHTML">Mark All Read</button>
+                </form>
+                {{ end }}
+            </div>
+        </div>
+
+        {{ if not .Notifications }}
+        <div class="empty-state">
+            <p>No notifications yet.</p>
+            <small>You'll see notifications here when coaches review workouts, assign programs, or update training maxes.</small>
+        </div>
+        {{ else }}
+        <div class="notification-list">
+            {{ range .Notifications }}
+            <div class="notification-item{{ if not .Read }} notification-item--unread{{ end }}">
+                <div class="notification-item__icon">
+                    {{ if eq .Type "review_submitted" }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    {{ else if eq .Type "program_assigned" }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    {{ else if eq .Type "tm_updated" }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                    {{ else if eq .Type "workout_logged" }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11M6.5 17.5h11"/><rect x="2" y="4" width="4" height="5" rx="1"/><rect x="18" y="4" width="4" height="5" rx="1"/><rect x="2" y="15" width="4" height="5" rx="1"/><rect x="18" y="15" width="4" height="5" rx="1"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+                    {{ else if eq .Type "note_added" }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    {{ else }}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                    {{ end }}
+                </div>
+                <div class="notification-item__body">
+                    {{ if and .Link.Valid (ne .Link.String "") }}
+                    <a href="{{ .Link.String }}" class="notification-item__title"
+                       hx-post="/notifications/{{ .ID }}/read" hx-swap="none">{{ .Title }}</a>
+                    {{ else }}
+                    <div class="notification-item__title">{{ .Title }}</div>
+                    {{ end }}
+                    {{ if .Message.Valid }}
+                    <div class="notification-item__message">{{ .Message.String }}</div>
+                    {{ end }}
+                    <div class="notification-item__meta">
+                        <span class="notification-item__type">{{ notificationTypeLabel .Type }}</span>
+                        <span class="notification-item__time">{{ formatDateHuman .CreatedAt }}</span>
+                    </div>
+                </div>
+                {{ if not .Read }}
+                <button class="notification-item__mark-read outline secondary"
+                        hx-post="/notifications/{{ .ID }}/read"
+                        hx-swap="outerHTML"
+                        hx-target="closest .notification-item"
+                        aria-label="Mark as read">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </button>
+                {{ end }}
+            </div>
+            {{ end }}
+        </div>
+        {{ end }}
+{{ end }}

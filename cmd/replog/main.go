@@ -208,6 +208,10 @@ func main() {
 		Sessions:  sessionManager,
 		Templates: tc,
 	}
+	notifications := &handlers.Notifications{
+		DB:        db,
+		Templates: tc,
+	}
 
 	// Configure WebAuthn for passkey support.
 	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
@@ -380,6 +384,15 @@ func main() {
 			// Credential management — handler checks ownership internally.
 			r.Post("/users/{id}/passkeys/{credentialID}/delete", passkeys.DeleteCredential)
 		}
+
+		// Notifications — self-service for any authenticated user.
+		r.Get("/notifications", notifications.List)
+		r.Get("/notifications/count", notifications.UnreadCount)
+		r.Get("/notifications/toast", notifications.Toast)
+		r.Post("/notifications/{id}/read", notifications.MarkRead)
+		r.Post("/notifications/read-all", notifications.MarkAllRead)
+		r.Get("/notifications/preferences", notifications.Preferences)
+		r.Post("/notifications/preferences", notifications.UpdatePreferences)
 	})
 
 	// --- Coach-only routes — RequireAuth + CSRF + RequireCoach ---
@@ -511,6 +524,7 @@ func main() {
 		r.Get("/admin/settings", settings.Show)
 		r.Post("/admin/settings", settings.Update)
 		r.Post("/admin/settings/test-llm", settings.TestConnection)
+		r.Post("/admin/settings/test-notify", notifications.TestNotify)
 	})
 
 	// Start server.

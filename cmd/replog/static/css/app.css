@@ -2871,3 +2871,210 @@ table:has(.preview-input) input[type="checkbox"] {
     align-items: center;
     justify-content: center;
 }
+
+/* ==================================================================
+   Toast Notifications
+   ================================================================== */
+
+#toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+    max-width: min(26rem, calc(100vw - 2rem));
+}
+
+.toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--pico-border-radius);
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    box-shadow: var(--pico-box-shadow);
+    animation: toast-slide-in 0.3s ease-out;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.toast--dismissing {
+    animation: toast-slide-out 0.3s ease-in forwards;
+}
+
+.toast__icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.1rem;
+    color: var(--pico-primary);
+}
+
+.toast__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.toast__title {
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.toast__message {
+    color: var(--pico-muted-color);
+    font-size: 0.85rem;
+}
+
+.toast__dismiss {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: var(--pico-muted-color);
+    line-height: 1;
+    font-size: 1.1rem;
+}
+.toast__dismiss:hover {
+    color: var(--pico-color);
+}
+
+@keyframes toast-slide-in {
+    from { opacity: 0; transform: translateX(1rem); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-slide-out {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(1rem); }
+}
+
+/* ---- Notification badge (sidebar bell) ---- */
+
+.notification-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--pico-muted-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-radius: var(--pico-border-radius);
+}
+.notification-link:hover {
+    color: var(--pico-color);
+    background: var(--pico-card-background-color);
+}
+
+.notification-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--pico-primary);
+    color: var(--pico-primary-inverse);
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.notification-badge:empty {
+    display: none;
+}
+
+/* ---- Notification list page ---- */
+
+.notification-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    text-decoration: none;
+}
+.notification-item:last-child {
+    border-bottom: none;
+}
+.notification-item--unread {
+    background: color-mix(in srgb, var(--pico-primary) 5%, transparent);
+}
+
+.notification-item__icon {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-top: 0.15rem;
+    color: var(--pico-primary);
+}
+.notification-item__icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.notification-item__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-item__title {
+    font-weight: 600;
+    color: var(--pico-color);
+    text-decoration: none;
+}
+a.notification-item__title:hover {
+    text-decoration: underline;
+}
+
+.notification-item__message {
+    color: var(--pico-muted-color);
+    font-size: 0.85rem;
+    margin-top: 0.15rem;
+}
+
+.notification-item__meta {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--pico-muted-color);
+}
+
+.notification-item__mark-read {
+    flex-shrink: 0;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    align-self: center;
+}
+.notification-item__mark-read svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* ---- Notification preferences table ---- */
+
+.notification-prefs-table {
+    width: 100%;
+}
+.notification-prefs-table th,
+.notification-prefs-table td {
+    padding: 0.75rem 0.5rem;
+}
+.notification-prefs-table .text-center {
+    text-align: center;
+}
+.text-muted {
+    color: var(--pico-muted-color);
+}

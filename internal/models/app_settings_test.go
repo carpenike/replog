@@ -348,12 +348,12 @@ func TestListSettingsByCategoryOrdered(t *testing.T) {
 
 	ordered := ListSettingsByCategoryOrdered(db)
 
-	if len(ordered) < 3 {
-		t.Fatalf("expected at least 3 categories, got %d", len(ordered))
+	if len(ordered) < 4 {
+		t.Fatalf("expected at least 4 categories, got %d", len(ordered))
 	}
 
-	// Verify ordering: General, Defaults, AI Coach.
-	expectedOrder := []string{"General", "Defaults", "AI Coach"}
+	// Verify ordering: General, Defaults, Notifications, AI Coach.
+	expectedOrder := []string{"General", "Defaults", "Notifications", "AI Coach"}
 	for i, expected := range expectedOrder {
 		if i >= len(ordered) {
 			t.Fatalf("missing category at position %d: want %q", i, expected)

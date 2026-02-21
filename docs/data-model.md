@@ -181,6 +181,29 @@ erDiagram
     exercises ||--o{ exercise_equipment : "requires"
     equipment ||--o{ athlete_equipment : "owned by"
     athletes ||--o{ athlete_equipment : "has"
+    users ||--o{ notifications : "receives"
+    athletes ||--o{ notifications : "related to"
+    users ||--o{ notification_preferences : "configures"
+
+    notifications {
+        INTEGER id PK
+        INTEGER user_id FK
+        TEXT type "NOT NULL"
+        TEXT title "NOT NULL"
+        TEXT message "nullable"
+        TEXT link "nullable"
+        INTEGER read "0 or 1, default 0"
+        INTEGER athlete_id FK "nullable"
+        DATETIME created_at
+    }
+
+    notification_preferences {
+        INTEGER id PK
+        INTEGER user_id FK
+        TEXT type "NOT NULL"
+        INTEGER in_app "0 or 1, default 1"
+        INTEGER external "0 or 1, default 0"
+    }
 
     login_tokens {
         INTEGER id PK
@@ -1125,6 +1148,37 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expiry);
 
+-- Notifications — in-app notifications for users.
+CREATE TABLE IF NOT EXISTS notifications (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type        TEXT    NOT NULL,
+    title       TEXT    NOT NULL,
+    message     TEXT,
+    link        TEXT,
+    read        INTEGER NOT NULL DEFAULT 0 CHECK(read IN (0, 1)),
+    athlete_id  INTEGER REFERENCES athletes(id) ON DELETE CASCADE,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread
+    ON notifications(user_id, read) WHERE read = 0;
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created
+    ON notifications(user_id, created_at DESC);
+
+-- Notification preferences — per-user, per-type opt-in/out for channels.
+CREATE TABLE IF NOT EXISTS notification_preferences (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type     TEXT    NOT NULL,
+    in_app   INTEGER NOT NULL DEFAULT 1 CHECK(in_app IN (0, 1)),
+    external INTEGER NOT NULL DEFAULT 0 CHECK(external IN (0, 1)),
+    UNIQUE(user_id, type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_preferences_user
+    ON notification_preferences(user_id);
+
 -- Application settings — key-value store for runtime configuration.
 CREATE TABLE IF NOT EXISTS app_settings (
     key   TEXT PRIMARY KEY NOT NULL,
@@ -1198,6 +1252,45 @@ INSERT INTO exercises (name, tier, form_notes) VALUES
 - Many-to-many: which equipment an athlete has available.
 - `UNIQUE(athlete_id, equipment_id)` prevents duplicate entries.
 - Deleting an athlete or equipment item cascades to remove the link.
+
+### `notifications`
+
+| Column       | Type         | Constraints                          |
+|-------------|-------------|--------------------------------------|
+| `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `user_id`   | INTEGER      | NOT NULL, FK → users(id) ON DELETE CASCADE |
+| `type`      | TEXT         | NOT NULL                             |
+| `title`     | TEXT         | NOT NULL                             |
+| `message`   | TEXT         | NULL                                 |
+| `link`      | TEXT         | NULL                                 |
+| `read`      | INTEGER      | NOT NULL DEFAULT 0, CHECK(read IN (0, 1)) |
+| `athlete_id`| INTEGER      | NULL, FK → athletes(id) ON DELETE CASCADE |
+| `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- In-app notifications displayed as toast popups and in a notification list.
+- `type` categorizes the notification (e.g. `review_submitted`, `program_assigned`, `tm_updated`, `note_added`, `workout_logged`).
+- `link` is a relative URL the user navigates to on click (e.g. `/athletes/3/workouts/15`).
+- `athlete_id` enables coach-scoping — coaches only see notifications for their assigned athletes.
+- Partial index on `(user_id, read) WHERE read = 0` for fast unread badge count queries.
+- Old read notifications are pruned periodically (90-day retention).
+- Deleting a user cascades to their notifications. Deleting an athlete cascades related notifications.
+
+### `notification_preferences`
+
+| Column     | Type         | Constraints                          |
+|-----------|-------------|--------------------------------------|
+| `id`      | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `user_id` | INTEGER      | NOT NULL, FK → users(id) ON DELETE CASCADE |
+| `type`    | TEXT         | NOT NULL                             |
+| `in_app`  | INTEGER      | NOT NULL DEFAULT 1, CHECK(in_app IN (0, 1)) |
+| `external`| INTEGER      | NOT NULL DEFAULT 0, CHECK(external IN (0, 1)) |
+
+- Per-user, per-notification-type opt-in/out for delivery channels.
+- `in_app = 1` means the notification is inserted into the `notifications` table (toast + list).
+- `external = 1` means the notification is dispatched via Shoutrrr (email, push, webhooks, etc.).
+- `UNIQUE(user_id, type)` — one preference row per user per type.
+- If no preference row exists for a type, defaults are used (in_app = 1, external = 0).
+- Deleting a user cascades to their preferences.
 
 ## Future Considerations (v2+)
 

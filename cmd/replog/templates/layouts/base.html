@@ -208,6 +208,13 @@
             </a>
             {{ end }}
             {{ end }}
+            <!-- Notifications link -->
+            <div class="sidebar-section-label sidebar-section-label--notifications">Notifications</div>
+            <a href="/notifications" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                <span>Notifications</span>
+                {{ if gt .UnreadCount 0 }}<span class="notification-badge" id="notification-badge" hx-get="/notifications/count" hx-trigger="every 30s" hx-swap="outerHTML">{{ .UnreadCount }}</span>{{ else }}<span class="notification-badge notification-badge--empty" id="notification-badge" hx-get="/notifications/count" hx-trigger="every 30s" hx-swap="outerHTML"></span>{{ end }}
+            </a>
         </nav>
 
         <!-- User section at bottom of sidebar -->
@@ -253,6 +260,8 @@
     </header>
 
     <main class="main-content" hx-indicator="#global-indicator">
+        <!-- Toast notification container — polled via htmx -->
+        <div id="toast-container" hx-get="/notifications/toast?since={{ now }}" hx-trigger="every 30s" hx-swap="outerHTML"></div>
         <div class="content-container">
             {{ block "content" . }}{{ end }}
         </div>

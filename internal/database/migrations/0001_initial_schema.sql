@@ -440,6 +440,37 @@ BEGIN
 END;
 -- +goose StatementEnd
 
+-- Notifications — in-app notifications for users.
+CREATE TABLE IF NOT EXISTS notifications (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type        TEXT    NOT NULL,
+    title       TEXT    NOT NULL,
+    message     TEXT,
+    link        TEXT,
+    read        INTEGER NOT NULL DEFAULT 0 CHECK(read IN (0, 1)),
+    athlete_id  INTEGER REFERENCES athletes(id) ON DELETE CASCADE,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread
+    ON notifications(user_id, read) WHERE read = 0;
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created
+    ON notifications(user_id, created_at DESC);
+
+-- Notification preferences — per-user, per-type opt-in/out for channels.
+CREATE TABLE IF NOT EXISTS notification_preferences (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type     TEXT    NOT NULL,
+    in_app   INTEGER NOT NULL DEFAULT 1 CHECK(in_app IN (0, 1)),
+    external INTEGER NOT NULL DEFAULT 0 CHECK(external IN (0, 1)),
+    UNIQUE(user_id, type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_preferences_user
+    ON notification_preferences(user_id);
+
 -- Application settings — key-value store for runtime configuration.
 -- Supports the resolution chain: environment variable → app_settings row → built-in default.
 -- Sensitive values (API keys) are stored encrypted (prefixed with "enc:").
@@ -451,6 +482,11 @@ CREATE TABLE IF NOT EXISTS app_settings (
 -- +goose Down
 
 DROP TABLE IF EXISTS app_settings;
+DROP INDEX IF EXISTS idx_notification_preferences_user;
+DROP TABLE IF EXISTS notification_preferences;
+DROP INDEX IF EXISTS idx_notifications_user_created;
+DROP INDEX IF EXISTS idx_notifications_user_unread;
+DROP TABLE IF EXISTS notifications;
 
 DROP TRIGGER IF EXISTS trigger_equipment_updated_at;
 DROP TRIGGER IF EXISTS trigger_workout_reviews_updated_at;

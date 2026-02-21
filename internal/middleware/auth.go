@@ -19,6 +19,9 @@ const UserContextKey contextKey = "user"
 // PrefsContextKey stores the user's preferences in request context.
 const PrefsContextKey contextKey = "prefs"
 
+// UnreadCountContextKey stores the user's unread notification count in request context.
+const UnreadCountContextKey contextKey = "unreadCount"
+
 // RequireAuth redirects unauthenticated users to the login page.
 func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Handler {
 	return sm.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +55,14 @@ func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Han
 		}
 		ctx = context.WithValue(ctx, PrefsContextKey, prefs)
 
+		// Load unread notification count for the sidebar badge.
+		unreadCount, err := models.GetUnreadCount(db, user.ID)
+		if err != nil {
+			log.Printf("middleware: failed to load unread count for user %d: %v", userID, err)
+			// Non-fatal — default to 0.
+		}
+		ctx = context.WithValue(ctx, UnreadCountContextKey, unreadCount)
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}))
 }
@@ -68,6 +79,13 @@ func UserFromContext(ctx context.Context) *models.User {
 func PrefsFromContext(ctx context.Context) *models.UserPreferences {
 	p, _ := ctx.Value(PrefsContextKey).(*models.UserPreferences)
 	return p
+}
+
+// UnreadCountFromContext retrieves the user's unread notification count from context.
+// Returns 0 if not set.
+func UnreadCountFromContext(ctx context.Context) int {
+	count, _ := ctx.Value(UnreadCountContextKey).(int)
+	return count
 }
 
 // CanAccessAthlete checks whether the authenticated user is allowed to access
