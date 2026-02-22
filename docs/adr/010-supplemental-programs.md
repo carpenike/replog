@@ -78,11 +78,15 @@ CREATE TABLE IF NOT EXISTS workouts (
     updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(athlete_id, date)
 );
+
+CREATE INDEX idx_workouts_assignment_id ON workouts(assignment_id);
 ```
 
-Key change:
+Key changes:
 - **`assignment_id`** — nullable FK to `athlete_programs(id)`. Links a workout to the specific program assignment it was prescribed from. `ON DELETE SET NULL` so deactivating/deleting a program doesn't cascade-delete workout history.
+- **Index on `assignment_id`** — the position-counting query (`COUNT(*) WHERE assignment_id = ?`) runs on every workout page load. Without this index it would full-table-scan `workouts`, which grows unboundedly over time.
 - When a workout is created, the app stamps it with the resolved assignment ID. This makes position tracking unambiguous — count only workouts with matching `assignment_id`.
+- A `NULL` `assignment_id` is valid — it indicates an ad-hoc workout not associated with any program (see "Ad-hoc workouts" below).
 
 #### 3. Keep `accessory_plans` (no change)
 
@@ -104,17 +108,28 @@ Accessories remain lightweight coaching guidance attached to the same workout as
 
 To keep complexity isolated and testable, split the work into two functions:
 
-**`ResolveAssignment(db, athleteID, date) → *AthleteProgram`** — pure routing logic:
+**`ResolveAssignment(db, athleteID, date, userTimezone) → *AthleteProgram`** — pure routing logic:
 
 ```
-func ResolveAssignment(db, athleteID, date) *AthleteProgram:
+func ResolveAssignment(db, athleteID, date, tz) *AthleteProgram:
     1. Load all active assignments for this athlete
-    2. Determine today's ISO weekday (1=Mon … 7=Sun)
+    2. Determine today's ISO weekday (1=Mon … 7=Sun) using the
+       athlete's timezone from user_preferences (critical: the server
+       may run in UTC while the user is in America/New_York — using
+       the wrong timezone near midnight would resolve the wrong program)
     3. Find the matching assignment:
        a. If a supplemental has today's weekday in its schedule → use it
-       b. Otherwise → use the primary (schedule=NULL means "any unscheduled day")
-    4. Return the matched assignment (or nil for rest day)
+       b. If the primary has schedule=NULL (catch-all) → use it
+       c. If the primary has a schedule that includes today → use it
+       d. Otherwise → return nil (rest day)
+    4. Return the matched assignment
 ```
+
+The 4-step resolution is explicit about **every case**:
+- Supplementals always win on their claimed days (step a)
+- A catch-all primary (schedule=NULL) fills all unclaimed days (step b)
+- A primary with a specific schedule (e.g., `[1,3,5]` for M/W/F) only fires on those days (step c)
+- If nothing matches, it's a rest day — no prescription shown (step d)
 
 This function is small, pure, and trivially unit-testable — input: list of assignments + weekday, output: one assignment.
 
@@ -146,8 +161,9 @@ This eliminates all runtime ambiguity. There is never a case where two programs 
 
 #### Handling edge cases
 
-- **Rest day** — if today's weekday isn't in any program's schedule and the primary has a schedule set, no prescription is shown. The athlete can still log an ad-hoc workout (no `assignment_id` stamped).
+- **Rest day** — if today's weekday isn't in any program's schedule and the primary has a schedule set, `ResolveAssignment` returns nil. No prescription is shown. The athlete can still log an ad-hoc workout (no `assignment_id` stamped).
 - **No supplementals** — behavior is identical to today. Primary gets all days, `schedule` is NULL by default, `assignment_id` gets stamped on workout creation.
+- **Primary with explicit schedule** — a primary with `schedule=[1,3,5]` (M/W/F) does NOT act as a catch-all. On Saturday, if no supplemental claims it, `ResolveAssignment` returns nil (rest day). This lets coaches define strict training days for both primary and supplemental programs.
 
 ### Workout creation flow
 
@@ -157,6 +173,13 @@ When an athlete opens the workout page for today:
 2. If creating a new workout: `INSERT INTO workouts (athlete_id, assignment_id, date) VALUES (?, ?, ?)`
 3. Stamp the resolved `assignment_id` so position tracking is correct
 4. **Coach-only override** — coaches see a small "Switch to [other program]" link if multiple programs are active. Non-coach athletes get the scheduled program automatically with no decision required. This keeps the workflow frictionless for kids who just need to follow the plan.
+
+#### Ad-hoc workouts
+
+Any user (coach or athlete) can start an empty workout on any day — even if a program is scheduled. A "Log empty workout" button is always visible. This creates a workout with `assignment_id = NULL`, meaning it doesn't advance any program's position counter. Use cases:
+- Rest day with no scheduled program, athlete wants to log cardio or stretching
+- Athlete wants to do something different than what's prescribed
+- Training while traveling without access to normal equipment
 
 ### UI changes
 
@@ -197,6 +220,7 @@ athlete_programs
 
 workouts
   + assignment_id INTEGER REFERENCES athlete_programs(id) ON DELETE SET NULL
+  + INDEX idx_workouts_assignment_id ON workouts(assignment_id)
 
 accessory_plans
   (no change — kept as-is for lightweight per-day accessory guidance)
@@ -236,9 +260,20 @@ accessory_plans
 Since we haven't released v1, all changes go directly into the initial migration (`0001_initial_schema.sql`). No separate migration needed. Steps:
 
 1. Modify `athlete_programs` DDL — add `role`, `schedule`, change unique index
-2. Modify `workouts` DDL — add `assignment_id`
+2. Modify `workouts` DDL — add `assignment_id` and index
 3. Update `data-model.md` to reflect changes
 4. Update all model functions, handlers, and templates
+
+**Dev data backfill:** Developers with existing local databases should delete and recreate (`rm dev.db*`) since the initial migration is being modified. Alternatively, a one-time backfill can stamp `assignment_id` on historical workouts:
+
+```sql
+UPDATE workouts SET assignment_id = (
+    SELECT id FROM athlete_programs
+    WHERE athlete_programs.athlete_id = workouts.athlete_id
+      AND athlete_programs.active = 1
+    LIMIT 1
+) WHERE assignment_id IS NULL;
+```
 
 ### Implementation order
 
