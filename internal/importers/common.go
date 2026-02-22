@@ -111,6 +111,7 @@ type ParsedWorkoutSet struct {
 	SetNumber int      `json:"set_number"`
 	Reps      int      `json:"reps"`
 	RepType   string   `json:"rep_type"`
+	Category  string   `json:"category,omitempty"`
 	Weight    *float64 `json:"weight"`
 	RPE       *float64 `json:"rpe"`
 	Notes     *string  `json:"notes"`

@@ -400,7 +400,7 @@ func TestWorkouts_UpdateSet_Success(t *testing.T) {
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
 	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
-	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -429,7 +429,7 @@ func TestWorkouts_DeleteSet_Success(t *testing.T) {
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
 	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
-	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -630,7 +630,7 @@ func TestWorkouts_EditSetForm_Success(t *testing.T) {
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
 	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
-	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -653,7 +653,7 @@ func TestWorkouts_EditSetForm_NonCoachOwnAthlete(t *testing.T) {
 	nonCoach := seedNonCoach(t, db, athlete.ID)
 	ex := seedExercise(t, db, "Squat", "")
 	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
-	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -677,7 +677,7 @@ func TestWorkouts_EditSetForm_NonCoachOtherForbidden(t *testing.T) {
 	nonCoach := seedNonCoach(t, db, myAthlete.ID)
 	ex := seedExercise(t, db, "Squat", "")
 	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "")
-	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -701,7 +701,7 @@ func TestWorkouts_EditSetForm_WrongWorkout(t *testing.T) {
 	ex := seedExercise(t, db, "Squat", "")
 	workout1, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
 	workout2, _ := models.CreateWorkout(db, athlete.ID, "2026-02-11", "")
-	set, _ := models.AddSet(db, workout1.ID, ex.ID, 5, 225, 0, "", "")
+	set, _ := models.AddSet(db, workout1.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -726,7 +726,7 @@ func TestWorkouts_EditSetForm_WrongAthlete(t *testing.T) {
 	athlete2 := seedAthlete(t, db, "Bob", "")
 	ex := seedExercise(t, db, "Squat", "")
 	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
-	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "")
+	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
 

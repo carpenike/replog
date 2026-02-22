@@ -1,0 +1,112 @@
+{{ define "title" }}{{ appName }} — {{ .Athlete.Name }} — Accessories{{ end }}
+
+{{ define "content" }}
+        <div class="breadcrumb">
+            <a href="/athletes">Athletes</a> &rsaquo; <a href="/athletes/{{ .Athlete.ID }}">{{ .Athlete.Name }}</a> &rsaquo; Accessories
+        </div>
+
+        <div class="page-header">
+            <h1>{{ .Athlete.Name }} — Accessory Plan</h1>
+        </div>
+
+        {{ if .Error }}
+        <div class="alert alert-error" role="alert">{{ .Error }}</div>
+        {{ end }}
+        {{ if .Success }}
+        <div class="alert alert-success" role="alert">{{ .Success }}</div>
+        {{ end }}
+
+        <!-- Add Accessory Form (coach/admin only) -->
+        {{ if .CanManage }}
+        <details>
+            <summary>Add Accessory</summary>
+            <form method="POST" action="/athletes/{{ .Athlete.ID }}/accessories">
+                <div class="log-set-grid">
+                    <label for="acc_exercise_id">Exercise
+                        <select id="acc_exercise_id" name="exercise_id" required>
+                            <option value="">— Select —</option>
+                            {{ range .Exercises }}
+                            <option value="{{ .ID }}">{{ .Name }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+                    <label for="acc_day" class="field-sm">Day
+                        <input type="number" id="acc_day" name="day" min="1" required value="{{ add .MaxDay 1 }}" inputmode="numeric">
+                    </label>
+                    <label for="acc_target_sets" class="field-sm">Sets
+                        <input type="number" id="acc_target_sets" name="target_sets" min="0" inputmode="numeric" placeholder="e.g. 3">
+                    </label>
+                    <label for="acc_rep_min" class="field-sm">Min Reps
+                        <input type="number" id="acc_rep_min" name="target_rep_min" min="0" inputmode="numeric" placeholder="e.g. 8">
+                    </label>
+                    <label for="acc_rep_max" class="field-sm">Max Reps
+                        <input type="number" id="acc_rep_max" name="target_rep_max" min="0" inputmode="numeric" placeholder="e.g. 12">
+                    </label>
+                    <label for="acc_weight" class="field-sm">Weight
+                        <input type="number" id="acc_weight" name="target_weight" step="0.5" min="0" inputmode="numeric" placeholder="{{ weightUnit .Prefs }}">
+                    </label>
+                </div>
+                <label for="acc_notes">Notes
+                    <input type="text" id="acc_notes" name="notes" placeholder="Optional notes (e.g. 'superset with curls')">
+                </label>
+                <button type="submit">Add Accessory</button>
+            </form>
+        </details>
+        {{ end }}
+
+        <!-- Accessory Plans by Day -->
+        {{ if .Plans }}
+        {{ $dayMap := .DayMap }}
+        {{ $maxDay := .MaxDay }}
+        {{ range $d := seq 1 $maxDay }}
+        {{ $dayPlans := index $dayMap $d }}
+        {{ if $dayPlans }}
+        <section>
+            <h2>Day {{ $d }}</h2>
+            <div class="table-scroll">
+            <table class="striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Exercise</th>
+                        <th scope="col">Prescription</th>
+                        <th scope="col">Weight</th>
+                        <th scope="col">Notes</th>
+                        {{ if $.CanManage }}
+                        <th scope="col">Actions</th>
+                        {{ end }}
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range $dayPlans }}
+                    <tr{{ if not .Active }} class="text-muted"{{ end }}>
+                        <td>{{ .ExerciseName }}{{ if not .Active }} (inactive){{ end }}</td>
+                        <td>{{ .RepRangeLabel }}</td>
+                        <td>{{ if .TargetWeight.Valid }}{{ formatWeight .TargetWeight.Float64 }} {{ weightUnit $.Prefs }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        <td>{{ if .Notes.Valid }}{{ .Notes.String }}{{ else }}<span class="text-muted">—</span>{{ end }}</td>
+                        {{ if $.CanManage }}
+                        <td>
+                            <div class="page-actions">
+                                {{ if .Active }}
+                                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/accessories/{{ .ID }}/deactivate" class="inline">
+                                    <button type="submit" class="outline secondary">Deactivate</button>
+                                </form>
+                                {{ end }}
+                                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/accessories/{{ .ID }}/delete" class="inline"
+                                      hx-confirm="Delete {{ .ExerciseName }} from day {{ $d }}?">
+                                    <button type="submit" class="outline contrast">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                        {{ end }}
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            </div>
+        </section>
+        {{ end }}
+        {{ end }}
+        {{ else }}
+        <p class="text-muted">No accessories configured yet. {{ if .CanManage }}Use the form above to add accessory exercises for each training day.{{ end }}</p>
+        {{ end }}
+{{ end }}

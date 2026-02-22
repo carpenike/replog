@@ -103,8 +103,8 @@ func TestWeeklyStreaks_WithData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
-	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "", "")
-	AddSet(db, w.ID, squat.ID, 5, 225.0, 0, "", "")
+	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "", "", "")
+	AddSet(db, w.ID, squat.ID, 5, 225.0, 0, "", "", "")
 
 	streaks, err := WeeklyStreaks(db, a.ID, 4)
 	if err != nil {
@@ -141,7 +141,7 @@ func TestWeeklyStreaks_PartialCompletion(t *testing.T) {
 	// Log only bench this week using today's date.
 	today := time.Now().Format("2006-01-02")
 	w, _ := CreateWorkout(db, a.ID, today, "")
-	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "", "")
+	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "", "", "")
 
 	streaks, err := WeeklyStreaks(db, a.ID, 1)
 	if err != nil {
@@ -171,8 +171,8 @@ func TestWeeklyStreaks_UnassignedExercisesNotCounted(t *testing.T) {
 	// Log both exercises.
 	today := time.Now().Format("2006-01-02")
 	w, _ := CreateWorkout(db, a.ID, today, "")
-	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "", "")
-	AddSet(db, w.ID, extra.ID, 10, 0, 0, "", "")
+	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "", "", "")
+	AddSet(db, w.ID, extra.ID, 10, 0, 0, "", "", "")
 
 	streaks, err := WeeklyStreaks(db, a.ID, 1)
 	if err != nil {

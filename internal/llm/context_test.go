@@ -87,15 +87,15 @@ func TestBuildAthleteContext_WithWorkouts(t *testing.T) {
 	exID := seedExercise(t, db, "Squat", "sport_performance")
 
 	w1ID := seedWorkout(t, db, athleteID, "2026-01-10")
-	if _, err := models.AddSet(db, w1ID, exID, 5, 135.0, 7.0, "reps", ""); err != nil {
+	if _, err := models.AddSet(db, w1ID, exID, 5, 135.0, 7.0, "reps", "", ""); err != nil {
 		t.Fatalf("add set: %v", err)
 	}
-	if _, err := models.AddSet(db, w1ID, exID, 5, 135.0, 7.5, "reps", ""); err != nil {
+	if _, err := models.AddSet(db, w1ID, exID, 5, 135.0, 7.5, "reps", "", ""); err != nil {
 		t.Fatalf("add set: %v", err)
 	}
 
 	w2ID := seedWorkout(t, db, athleteID, "2026-01-12")
-	if _, err := models.AddSet(db, w2ID, exID, 5, 140.0, 8.0, "reps", ""); err != nil {
+	if _, err := models.AddSet(db, w2ID, exID, 5, 140.0, 8.0, "reps", "", ""); err != nil {
 		t.Fatalf("add set: %v", err)
 	}
 

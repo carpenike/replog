@@ -217,7 +217,7 @@ func TestExercises_Delete_InUseReturnsConflict(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
-	_, err = models.AddSet(db, w.ID, ex.ID, 5, 100, 0, "", "")
+	_, err = models.AddSet(db, w.ID, ex.ID, 5, 100, 0, "", "", "")
 	if err != nil {
 		t.Fatalf("add set: %v", err)
 	}

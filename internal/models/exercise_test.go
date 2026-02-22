@@ -51,7 +51,7 @@ func TestDeleteExercise(t *testing.T) {
 		e2, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
 		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 		w, _ := CreateWorkout(db, a.ID, "2026-01-01", "")
-		_, err := AddSet(db, w.ID, e2.ID, 5, 225, 0, "", "")
+		_, err := AddSet(db, w.ID, e2.ID, 5, 225, 0, "", "", "")
 		if err != nil {
 			t.Fatalf("add set: %v", err)
 		}
@@ -241,8 +241,8 @@ func TestListFeaturedLifts(t *testing.T) {
 
 	t.Run("with logged sets", func(t *testing.T) {
 		w, _ := CreateWorkout(db, athlete.ID, "2026-01-15", "")
-		AddSet(db, w.ID, bench.ID, 5, 225, 0, "", "")
-		AddSet(db, w.ID, bench.ID, 3, 245, 0, "", "")
+		AddSet(db, w.ID, bench.ID, 5, 225, 0, "", "", "")
+		AddSet(db, w.ID, bench.ID, 3, 245, 0, "", "", "")
 
 		lifts, err := ListFeaturedLifts(db, athlete.ID)
 		if err != nil {
@@ -282,7 +282,7 @@ func TestListFeaturedLifts(t *testing.T) {
 	t.Run("single rep set equals weight", func(t *testing.T) {
 		athlete2, _ := CreateAthlete(db, "Single Rep Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 		w, _ := CreateWorkout(db, athlete2.ID, "2026-02-01", "")
-		AddSet(db, w.ID, squat.ID, 1, 405, 0, "", "")
+		AddSet(db, w.ID, squat.ID, 1, 405, 0, "", "", "")
 
 		lifts, err := ListFeaturedLifts(db, athlete2.ID)
 		if err != nil {

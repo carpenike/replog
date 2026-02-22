@@ -239,7 +239,7 @@ func TestExerciseVolumeChart(t *testing.T) {
 		if err != nil {
 			t.Fatalf("create workout: %v", err)
 		}
-		_, err = AddSet(db, w.ID, exercise.ID, 5, 100.0, 0, "", "")
+		_, err = AddSet(db, w.ID, exercise.ID, 5, 100.0, 0, "", "", "")
 		if err != nil {
 			t.Fatalf("add set: %v", err)
 		}
@@ -292,7 +292,7 @@ func TestWorkoutHeatmap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
-	_, err = AddSet(db, w.ID, exercise.ID, 3, 200.0, 0, "", "")
+	_, err = AddSet(db, w.ID, exercise.ID, 3, 200.0, 0, "", "", "")
 	if err != nil {
 		t.Fatalf("add set: %v", err)
 	}

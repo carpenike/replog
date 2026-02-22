@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS workout_sets (
     rep_type    TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds', 'distance')),
     weight      REAL,
     rpe         REAL    CHECK(rpe >= 1 AND rpe <= 10),
+    category    TEXT    NOT NULL DEFAULT 'main' CHECK(category IN ('main', 'supplemental', 'accessory')),
     notes       TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -331,6 +332,27 @@ CREATE INDEX IF NOT EXISTS idx_athlete_equipment_athlete
 CREATE INDEX IF NOT EXISTS idx_athlete_equipment_equipment
     ON athlete_equipment(equipment_id);
 
+-- Accessory plans: per-athlete per-day accessory prescriptions, decoupled from program templates.
+CREATE TABLE IF NOT EXISTS accessory_plans (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id      INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    day             INTEGER NOT NULL,
+    exercise_id     INTEGER NOT NULL REFERENCES exercises(id) ON DELETE RESTRICT,
+    target_sets     INTEGER,
+    target_rep_min  INTEGER,
+    target_rep_max  INTEGER,
+    target_weight   REAL,
+    notes           TEXT,
+    sort_order      INTEGER NOT NULL DEFAULT 0,
+    active          INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(athlete_id, day, exercise_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_accessory_plans_athlete_day
+    ON accessory_plans(athlete_id, day) WHERE active = 1;
+
 -- Session store for alexedwards/scs
 CREATE TABLE IF NOT EXISTS sessions (
     token  TEXT PRIMARY KEY,
@@ -440,6 +462,15 @@ BEGIN
 END;
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE TRIGGER IF NOT EXISTS trigger_accessory_plans_updated_at
+AFTER UPDATE ON accessory_plans FOR EACH ROW
+WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+    UPDATE accessory_plans SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+-- +goose StatementEnd
+
 -- Notifications — in-app notifications for users.
 CREATE TABLE IF NOT EXISTS notifications (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -488,6 +519,7 @@ DROP INDEX IF EXISTS idx_notifications_user_created;
 DROP INDEX IF EXISTS idx_notifications_user_unread;
 DROP TABLE IF EXISTS notifications;
 
+DROP TRIGGER IF EXISTS trigger_accessory_plans_updated_at;
 DROP TRIGGER IF EXISTS trigger_equipment_updated_at;
 DROP TRIGGER IF EXISTS trigger_workout_reviews_updated_at;
 DROP TRIGGER IF EXISTS trigger_athlete_programs_updated_at;
@@ -528,6 +560,8 @@ DROP INDEX IF EXISTS idx_athlete_exercises_athlete_id;
 DROP INDEX IF EXISTS idx_users_unique_athlete_id;
 DROP INDEX IF EXISTS idx_athlete_exercises_unique_active;
 
+DROP TABLE IF EXISTS accessory_plans;
+DROP INDEX IF EXISTS idx_accessory_plans_athlete_day;
 DROP TABLE IF EXISTS athlete_equipment;
 DROP TABLE IF EXISTS exercise_equipment;
 DROP TABLE IF EXISTS equipment;

@@ -17,6 +17,7 @@ type WorkoutSet struct {
 	Weight     sql.NullFloat64
 	RPE        sql.NullFloat64
 	RepType    string // "reps", "each_side", "seconds", or "distance"
+	Category   string // "main", "supplemental", or "accessory"
 	Notes      sql.NullString
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
@@ -42,7 +43,7 @@ func (ws *WorkoutSet) RepsLabel() string {
 // AddSet inserts a new set into a workout. set_number is auto-calculated as the
 // next number for the given workout+exercise. The read-then-write is wrapped in
 // a transaction to prevent duplicate set numbers under concurrent requests.
-func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, rpe float64, repType, notes string) (*WorkoutSet, error) {
+func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, rpe float64, repType, category, notes string) (*WorkoutSet, error) {
 	var weightVal sql.NullFloat64
 	if weight > 0 {
 		weightVal = sql.NullFloat64{Float64: weight, Valid: true}
@@ -57,6 +58,9 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 	}
 	if repType == "" {
 		repType = "reps"
+	}
+	if category == "" {
+		category = "main"
 	}
 
 	tx, err := db.Begin()
@@ -77,8 +81,8 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 
 	var id int64
 	err = tx.QueryRow(
-		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-		workoutID, exerciseID, nextSet, reps, weightVal, rpeVal, repType, notesVal,
+		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		workoutID, exerciseID, nextSet, reps, weightVal, rpeVal, repType, category, notesVal,
 	).Scan(&id)
 	if err != nil {
 		return nil, fmt.Errorf("models: add set to workout %d: %w", workoutID, err)
@@ -94,12 +98,12 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 // AddMultipleSets inserts count identical sets for a workout+exercise in a
 // single transaction. Returns the created sets. Useful for logging e.g.
 // "5×5 @ 135 lbs" in one action.
-func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, weight float64, rpe float64, repType, notes string) ([]*WorkoutSet, error) {
+func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, weight float64, rpe float64, repType, category, notes string) ([]*WorkoutSet, error) {
 	if count <= 0 {
 		return nil, fmt.Errorf("models: set count must be positive, got %d", count)
 	}
 	if count == 1 {
-		s, err := AddSet(db, workoutID, exerciseID, reps, weight, rpe, repType, notes)
+		s, err := AddSet(db, workoutID, exerciseID, reps, weight, rpe, repType, category, notes)
 		if err != nil {
 			return nil, err
 		}
@@ -120,6 +124,9 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 	}
 	if repType == "" {
 		repType = "reps"
+	}
+	if category == "" {
+		category = "main"
 	}
 
 	tx, err := db.Begin()
@@ -142,8 +149,8 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 	for i := 0; i < count; i++ {
 		var id int64
 		err := tx.QueryRow(
-			`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-			workoutID, exerciseID, nextSet+i, reps, weightVal, rpeVal, repType, notesVal,
+			`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+			workoutID, exerciseID, nextSet+i, reps, weightVal, rpeVal, repType, category, notesVal,
 		).Scan(&id)
 		if err != nil {
 			return nil, fmt.Errorf("models: add set %d of %d to workout %d: %w", i+1, count, workoutID, err)
@@ -170,12 +177,12 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 func GetSetByID(db *sql.DB, id int64) (*WorkoutSet, error) {
 	s := &WorkoutSet{}
 	err := db.QueryRow(
-		`SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.notes, ws.created_at, ws.updated_at,
+		`SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.category, ws.notes, ws.created_at, ws.updated_at,
 		        e.name
 		 FROM workout_sets ws
 		 JOIN exercises e ON e.id = ws.exercise_id
 		 WHERE ws.id = ?`, id,
-	).Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.RPE, &s.RepType, &s.Notes, &s.CreatedAt, &s.UpdatedAt, &s.ExerciseName)
+	).Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.RPE, &s.RepType, &s.Category, &s.Notes, &s.CreatedAt, &s.UpdatedAt, &s.ExerciseName)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -292,7 +299,7 @@ type ExerciseGroup struct {
 // ListSetsByWorkout returns all sets for a workout, grouped by exercise.
 func ListSetsByWorkout(db *sql.DB, workoutID int64) ([]*ExerciseGroup, error) {
 	rows, err := db.Query(`
-		SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.notes, ws.created_at, ws.updated_at,
+		SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.category, ws.notes, ws.created_at, ws.updated_at,
 		       e.name
 		FROM workout_sets ws
 		JOIN exercises e ON e.id = ws.exercise_id
@@ -308,7 +315,7 @@ func ListSetsByWorkout(db *sql.DB, workoutID int64) ([]*ExerciseGroup, error) {
 
 	for rows.Next() {
 		s := &WorkoutSet{}
-		if err := rows.Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.RPE, &s.RepType, &s.Notes, &s.CreatedAt, &s.UpdatedAt, &s.ExerciseName); err != nil {
+		if err := rows.Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.RPE, &s.RepType, &s.Category, &s.Notes, &s.CreatedAt, &s.UpdatedAt, &s.ExerciseName); err != nil {
 			return nil, fmt.Errorf("models: scan set: %w", err)
 		}
 
@@ -356,7 +363,7 @@ func ListSetsByWorkoutIDs(db *sql.DB, workoutIDs []int64) (map[int64][]*Exercise
 	}
 
 	rows, err := db.Query(`
-		SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.notes, ws.created_at, ws.updated_at,
+		SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.category, ws.notes, ws.created_at, ws.updated_at,
 		       e.name
 		FROM workout_sets ws
 		JOIN exercises e ON e.id = ws.exercise_id
@@ -376,7 +383,7 @@ func ListSetsByWorkoutIDs(db *sql.DB, workoutIDs []int64) (map[int64][]*Exercise
 
 	for rows.Next() {
 		s := &WorkoutSet{}
-		if err := rows.Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.RPE, &s.RepType, &s.Notes, &s.CreatedAt, &s.UpdatedAt, &s.ExerciseName); err != nil {
+		if err := rows.Scan(&s.ID, &s.WorkoutID, &s.ExerciseID, &s.SetNumber, &s.Reps, &s.Weight, &s.RPE, &s.RepType, &s.Category, &s.Notes, &s.CreatedAt, &s.UpdatedAt, &s.ExerciseName); err != nil {
 			return nil, fmt.Errorf("models: scan set in batch: %w", err)
 		}
 

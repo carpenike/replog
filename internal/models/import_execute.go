@@ -369,7 +369,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			if repType == "" {
 				repType = "reps"
 			}
-			if err := insertSet(tx, workoutID, exID, s.SetNumber, s.Reps, weight, rpe, repType, sNotes); err != nil {
+			if err := insertSet(tx, workoutID, exID, s.SetNumber, s.Reps, weight, rpe, repType, s.Category, sNotes); err != nil {
 				return nil, fmt.Errorf("models: import set: %w", err)
 			}
 			result.SetsCreated++
@@ -586,7 +586,7 @@ func getWorkoutByAthleteDateTx(tx *sql.Tx, athleteID int64, date string) (int64,
 	return id, err
 }
 
-func insertSet(tx *sql.Tx, workoutID, exerciseID int64, setNumber, reps int, weight, rpe float64, repType, notes string) error {
+func insertSet(tx *sql.Tx, workoutID, exerciseID int64, setNumber, reps int, weight, rpe float64, repType, category, notes string) error {
 	var weightVal sql.NullFloat64
 	if weight > 0 {
 		weightVal = sql.NullFloat64{Float64: weight, Valid: true}
@@ -599,9 +599,12 @@ func insertSet(tx *sql.Tx, workoutID, exerciseID int64, setNumber, reps int, wei
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
+	if category == "" {
+		category = "main"
+	}
 	_, err := tx.Exec(
-		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		workoutID, exerciseID, setNumber, reps, weightVal, rpeVal, repType, notesVal,
+		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		workoutID, exerciseID, setNumber, reps, weightVal, rpeVal, repType, category, notesVal,
 	)
 	return err
 }

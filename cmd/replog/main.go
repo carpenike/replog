@@ -189,6 +189,10 @@ func main() {
 		DB:        db,
 		Templates: tc,
 	}
+	accessories := &handlers.Accessories{
+		DB:        db,
+		Templates: tc,
+	}
 	avatars := &handlers.Avatars{
 		DB:        db,
 		Templates: tc,
@@ -352,6 +356,13 @@ func main() {
 		r.Get("/athletes/{id}/equipment", equipmentH.AthleteEquipmentPage)
 		r.Post("/athletes/{id}/equipment", equipmentH.AddAthleteEquipment)
 		r.Post("/athletes/{id}/equipment/{equipmentID}/delete", equipmentH.RemoveAthleteEquipment)
+
+		// Accessory Plans.
+		r.Get("/athletes/{id}/accessories", accessories.List)
+		r.Post("/athletes/{id}/accessories", accessories.Create)
+		r.Post("/athletes/{id}/accessories/{planID}/update", accessories.Update)
+		r.Post("/athletes/{id}/accessories/{planID}/deactivate", accessories.Deactivate)
+		r.Post("/athletes/{id}/accessories/{planID}/delete", accessories.Delete)
 
 		// Training Max history — read access.
 		r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes", trainingMaxes.History)

@@ -83,6 +83,7 @@
                 <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets" class="scaffold-set-form">
                     <input type="hidden" name="exercise_id" value="{{ $line.ExerciseID }}">
                     <input type="hidden" name="rep_type" value="{{ $s.RepType }}">
+                    <input type="hidden" name="category" value="main">
                     <div class="scaffold-grid">
                         <span class="scaffold-target">Set {{ $s.SetNumber }}: {{ $s.RepsLabel }} reps{{ if $s.PercentageLabel }} @ {{ $s.PercentageLabel }}{{ end }}{{ if $s.TargetWeightLabel }}{{ if eq $s.TargetWeightLabel "BW" }} &rarr; BW{{ else }} &rarr; {{ $s.TargetWeightLabel }} {{ weightUnit $.Prefs }}{{ end }}{{ end }}{{ if $s.Notes.Valid }} <span class="text-muted">({{ $s.Notes.String }})</span>{{ end }}</span>
                         <label class="field-sm">Reps
@@ -101,6 +102,42 @@
                 {{ end }}
                 {{ end }}
             </details>
+            {{ end }}
+
+            <!-- Accessory scaffold: one row per planned accessory for today's day -->
+            {{ if .AccessoryPlans }}
+            <h3>Accessories</h3>
+            {{ range $ap := .AccessoryPlans }}
+            {{ $loggedCount := index $.LoggedSetCounts $ap.ExerciseID }}
+            {{ $targetSets := 0 }}{{ if $ap.TargetSets.Valid }}{{ $targetSets = $ap.TargetSets.Int64 }}{{ end }}
+            <details{{ if and (gt $targetSets 0) (lt $loggedCount $targetSets) }} open{{ end }} class="scaffold-exercise">
+                <summary>
+                    <strong>{{ $ap.ExerciseName }}</strong>
+                    <span class="text-muted">{{ $ap.RepRangeLabel }}{{ if $ap.TargetWeight.Valid }} @ {{ formatWeight $ap.TargetWeight.Float64 }} {{ weightUnit $.Prefs }}{{ end }}</span>
+                    {{ if gt $targetSets 0 }}<span class="scaffold-progress{{ if ge $loggedCount $targetSets }} complete{{ end }}">{{ $loggedCount }}/{{ $targetSets }} sets</span>{{ end }}
+                </summary>
+                {{ if $ap.Notes.Valid }}<p class="text-muted">{{ $ap.Notes.String }}</p>{{ end }}
+                <form method="POST" action="/athletes/{{ $.Athlete.ID }}/workouts/{{ $.Workout.ID }}/sets" class="scaffold-set-form">
+                    <input type="hidden" name="exercise_id" value="{{ $ap.ExerciseID }}">
+                    <input type="hidden" name="category" value="accessory">
+                    <div class="scaffold-grid">
+                        <label class="field-sm">Reps
+                            <input type="number" name="reps" min="1" required value="{{ if $ap.TargetRepMin.Valid }}{{ $ap.TargetRepMin.Int64 }}{{ end }}" inputmode="numeric">
+                        </label>
+                        <label class="field-sm">Weight
+                            <input type="number" name="weight" step="0.5" min="0" value="{{ if $ap.TargetWeight.Valid }}{{ formatWeight $ap.TargetWeight.Float64 }}{{ end }}" inputmode="numeric" placeholder="{{ weightUnit $.Prefs }}">
+                        </label>
+                        <label class="field-sm">RPE
+                            <input type="number" name="rpe" step="0.5" min="1" max="10" inputmode="numeric" placeholder="1-10">
+                        </label>
+                        <label class="field-sm">Sets
+                            <input type="number" name="sets" min="1" max="20" value="{{ if $ap.TargetSets.Valid }}{{ $ap.TargetSets.Int64 }}{{ end }}" inputmode="numeric">
+                        </label>
+                        <button type="submit" class="outline secondary scaffold-log-btn" aria-busy="false">Log</button>
+                    </div>
+                </form>
+            </details>
+            {{ end }}
             {{ end }}
 
             <!-- Fallback: add unscripted / accessory sets -->

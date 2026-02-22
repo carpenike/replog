@@ -76,8 +76,8 @@ func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 
 		// On the 5th workout (week 3, day 1 in the cycle), log AMRAP results.
 		if d == "2026-01-09" {
-			AddSet(db, w.ID, squat.ID, 5, 285, 0, "reps", "")  // 5 reps at 95%
-			AddSet(db, w.ID, bench.ID, 3, 190, 0, "reps", "") // 3 reps at 95%
+			AddSet(db, w.ID, squat.ID, 5, 285, 0, "reps", "", "")  // 5 reps at 95%
+			AddSet(db, w.ID, bench.ID, 3, 190, 0, "reps", "", "") // 3 reps at 95%
 		}
 	}
 

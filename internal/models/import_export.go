@@ -108,6 +108,7 @@ type ExportWorkoutSet struct {
 	SetNumber int      `json:"set_number"`
 	Reps      int      `json:"reps"`
 	RepType   string   `json:"rep_type"`
+	Category  string   `json:"category,omitempty"`
 	Weight    *float64 `json:"weight"`
 	RPE       *float64 `json:"rpe"`
 	Notes     *string  `json:"notes"`
@@ -610,6 +611,7 @@ func exportWorkouts(db *sql.DB, athleteID int64) ([]ExportWorkout, error) {
 						SetNumber: s.SetNumber,
 						Reps:      s.Reps,
 						RepType:   s.RepType,
+						Category:  s.Category,
 					}
 					if s.Weight.Valid {
 						w := s.Weight.Float64

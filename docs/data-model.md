@@ -133,6 +133,7 @@ erDiagram
         INTEGER set_number
         INTEGER reps
         TEXT rep_type "reps, each_side, seconds, or distance"
+        TEXT category "main, supplemental, or accessory"
         REAL weight "nullable"
         REAL rpe "nullable, CHECK 1-10"
         TEXT notes "nullable"
@@ -181,6 +182,8 @@ erDiagram
     exercises ||--o{ exercise_equipment : "requires"
     equipment ||--o{ athlete_equipment : "owned by"
     athletes ||--o{ athlete_equipment : "has"
+    athletes ||--o{ accessory_plans : "has"
+    exercises ||--o{ accessory_plans : "used in"
     users ||--o{ notifications : "receives"
     athletes ||--o{ notifications : "related to"
     users ||--o{ notification_preferences : "configures"
@@ -292,6 +295,22 @@ erDiagram
         INTEGER id PK
         INTEGER athlete_id FK
         INTEGER equipment_id FK
+    }
+
+    accessory_plans {
+        INTEGER id PK
+        INTEGER athlete_id FK
+        INTEGER day
+        INTEGER exercise_id FK
+        INTEGER target_sets "nullable"
+        INTEGER target_rep_min "nullable"
+        INTEGER target_rep_max "nullable"
+        REAL target_weight "nullable"
+        TEXT notes "nullable"
+        INTEGER sort_order "default 0"
+        INTEGER active "0 or 1, default 1"
+        DATETIME created_at
+        DATETIME updated_at
     }
 
     workout_reviews {
@@ -502,6 +521,7 @@ erDiagram
 | `reps`      | INTEGER      | NOT NULL                             |
 | `weight`    | REAL         | NULL                                 |
 | `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds', 'distance')) |
+| `category`  | TEXT         | NOT NULL DEFAULT 'main', CHECK(category IN ('main', 'supplemental', 'accessory')) |
 | `rpe`       | REAL         | NULL, CHECK(rpe >= 1 AND rpe <= 10)  |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -510,6 +530,7 @@ erDiagram
 - One row = one set.
 - `weight` is nullable — bodyweight exercises (push-ups, bear crawls) don't need it.
 - `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s", `distance` → "20yd".
+- `category` classifies sets: `main` for programmed lifts, `supplemental` for lighter program work, `accessory` for accessory exercises. Defaults to `main`.
 - `rpe` is rate of perceived exertion (1–10 scale, half-steps allowed). Nullable — only logged when the athlete reports it.
 - `set_number` preserves ordering within exercise within workout.
 - `notes` holds per-set observations ("form broke down on rep 18").
@@ -1252,6 +1273,31 @@ INSERT INTO exercises (name, tier, form_notes) VALUES
 - Many-to-many: which equipment an athlete has available.
 - `UNIQUE(athlete_id, equipment_id)` prevents duplicate entries.
 - Deleting an athlete or equipment item cascades to remove the link.
+
+### `accessory_plans`
+
+| Column          | Type         | Constraints                          |
+|----------------|-------------|--------------------------------------|
+| `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`   | INTEGER      | NOT NULL, FK → athletes(id) ON DELETE CASCADE |
+| `day`          | INTEGER      | NOT NULL                             |
+| `exercise_id`  | INTEGER      | NOT NULL, FK → exercises(id) ON DELETE RESTRICT |
+| `target_sets`  | INTEGER      | NULL                                 |
+| `target_rep_min`| INTEGER     | NULL                                 |
+| `target_rep_max`| INTEGER     | NULL                                 |
+| `target_weight`| REAL         | NULL                                 |
+| `notes`        | TEXT         | NULL                                 |
+| `sort_order`   | INTEGER      | NOT NULL DEFAULT 0                   |
+| `active`       | INTEGER      | NOT NULL DEFAULT 1, CHECK(active IN (0, 1)) |
+| `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+
+- Per-athlete, per-day accessory exercise plans — decoupled from program templates.
+- `day` is a logical program day number (1, 2, 3…), matched to the prescription's `CurrentDay` at workout time.
+- `UNIQUE(athlete_id, day, exercise_id)` prevents duplicate entries — one plan per exercise per day per athlete.
+- `target_sets`, `target_rep_min`, `target_rep_max`, `target_weight` are all optional guidance — the coach sets goals, the athlete logs what they actually do.
+- `active = 0` soft-deactivates a plan without deleting it (preserves history). Partial index on `(athlete_id, day) WHERE active = 1` for fast lookup.
+- Deleting an athlete cascades to their plans. Exercises use RESTRICT to prevent deleting an exercise with plans.
 
 ### `notifications`
 

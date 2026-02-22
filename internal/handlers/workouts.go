@@ -326,6 +326,16 @@ func (h *Workouts) loadWorkoutShowData(user *models.User, athlete *models.Athlet
 		loggedSetCounts[g.ExerciseID] = len(g.Sets)
 	}
 
+	// Load accessory plans for the current program day (if known).
+	var accessoryPlans []*models.AccessoryPlan
+	if prescription != nil && prescription.CurrentDay > 0 {
+		accessoryPlans, err = models.ListAccessoryPlansForDay(h.DB, athleteID, prescription.CurrentDay)
+		if err != nil {
+			log.Printf("handlers: list accessory plans for athlete %d day %d: %v", athleteID, prescription.CurrentDay, err)
+			// Non-fatal — continue without accessories.
+		}
+	}
+
 	// Load review for this workout (if any).
 	var review *models.WorkoutReview
 	rev, revErr := models.GetWorkoutReviewByWorkoutID(h.DB, workoutID)
@@ -346,6 +356,7 @@ func (h *Workouts) loadWorkoutShowData(user *models.User, athlete *models.Athlet
 		"TMByExercise":    tmByExercise,
 		"Prescription":    prescription,
 		"LoggedSetCounts": loggedSetCounts,
+		"AccessoryPlans":  accessoryPlans,
 		"LastSession":     lastSession,
 		"Review":          review,
 		"CanManage":       middleware.CanManageAthlete(user, athlete),
@@ -496,6 +507,7 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 
 	notes := r.FormValue("notes")
 	repType := r.FormValue("rep_type")
+	category := r.FormValue("category")
 
 	var rpe float64
 	if rs := r.FormValue("rpe"); rs != "" {
@@ -521,9 +533,9 @@ func (h *Workouts) AddSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if setCount > 1 {
-		_, err = models.AddMultipleSets(h.DB, workoutID, exerciseID, setCount, reps, weight, rpe, repType, notes)
+		_, err = models.AddMultipleSets(h.DB, workoutID, exerciseID, setCount, reps, weight, rpe, repType, category, notes)
 	} else {
-		_, err = models.AddSet(h.DB, workoutID, exerciseID, reps, weight, rpe, repType, notes)
+		_, err = models.AddSet(h.DB, workoutID, exerciseID, reps, weight, rpe, repType, category, notes)
 	}
 	if err != nil {
 		log.Printf("handlers: add set(s) to workout %d: %v", workoutID, err)
