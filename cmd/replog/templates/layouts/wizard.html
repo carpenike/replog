@@ -18,6 +18,24 @@
             var saved = localStorage.getItem("theme") || "dark";
             document.documentElement.setAttribute("data-theme", saved);
         })();
+
+        // Global CSRF token helper — used by passkeys.js fetch calls.
+        window.RepLog = window.RepLog || {};
+        RepLog.csrfToken = function() {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute("content") : "";
+        };
+
+        // Attach CSRF token to every htmx request.
+        document.addEventListener("htmx:configRequest", function(evt) {
+            var token = RepLog.csrfToken();
+            if (token) {
+                evt.detail.headers["X-CSRF-Token"] = token;
+                if (evt.detail.verb !== "get" && !evt.detail.parameters["csrf_token"]) {
+                    evt.detail.parameters["csrf_token"] = token;
+                }
+            }
+        });
     </script>
 </head>
 <body>
