@@ -19,7 +19,7 @@ This makes it impossible to run two programs concurrently. An athlete must fully
 1. **One active program** — the partial unique index prevents simultaneous assignments
 2. **Positional day numbering** — `GetPrescription()` counts all workouts since `start_date` and computes `position = count % cycleLength`. It doesn't know which program a workout "belongs to," so adding a second program would advance both programs' counters on every workout
 3. **No workout→program link** — the `workouts` table has no `program_id` or `assignment_id` column; the link is computed at runtime
-4. **Accessory plans are too limited** — they lack week dimension, percentage loading, per-set precision, and template backing. They can't serve as a real supplemental programming system
+4. **Accessory plans serve a different purpose** — they provide lightweight per-day hints ("do 3×10 curls") but lack template backing, week dimensions, and position tracking needed for structured supplemental programs like circuits
 
 ### Use case
 
@@ -84,49 +84,79 @@ Key change:
 - **`assignment_id`** — nullable FK to `athlete_programs(id)`. Links a workout to the specific program assignment it was prescribed from. `ON DELETE SET NULL` so deactivating/deleting a program doesn't cascade-delete workout history.
 - When a workout is created, the app stamps it with the resolved assignment ID. This makes position tracking unambiguous — count only workouts with matching `assignment_id`.
 
-#### 3. Drop `accessory_plans` table
+#### 3. Keep `accessory_plans` (no change)
 
-The supplemental programs feature fully subsumes the accessory plan system. Anything a coach currently models as an accessory plan can be expressed as a supplemental program template with `prescribed_sets`. This eliminates a separate, less-capable system and consolidates all programming into one model.
+Supplemental programs and accessory plans serve fundamentally different purposes:
 
-Migrate existing accessory plan data into supplemental program templates as part of the schema change. Since we're pre-v1 with no production data, this is a clean drop.
+| | Accessory Plans | Supplemental Programs |
+|---|---|---|
+| Purpose | Per-day hints alongside main work | Structured programs on dedicated days |
+| Granularity | "Do 3×10 curls" | Full template with weeks, days, prescribed sets |
+| Position tracking | None needed | Yes, per-assignment |
+| Schedule | Same day as main workout | Own dedicated days |
+| Example | Face pulls after bench day | Sarge Circuit A on Tue/Thu |
+
+Accessories remain lightweight coaching guidance attached to the same workout as the primary program. Supplemental programs are full-fledged programs that own entire days. No change to the `accessory_plans` table.
 
 ### Prescription engine changes
 
-#### Program resolution for today
+#### Layered resolution: `ResolveAssignment` + `GetPrescription`
 
-`GetPrescription()` becomes `GetPrescriptions()` (plural) with this logic:
+To keep complexity isolated and testable, split the work into two functions:
+
+**`ResolveAssignment(db, athleteID, date) → *AthleteProgram`** — pure routing logic:
 
 ```
-func GetPrescriptions(db, athleteID, today) []*Prescription:
+func ResolveAssignment(db, athleteID, date) *AthleteProgram:
     1. Load all active assignments for this athlete
     2. Determine today's ISO weekday (1=Mon … 7=Sun)
     3. Find the matching assignment:
        a. If a supplemental has today's weekday in its schedule → use it
        b. Otherwise → use the primary (schedule=NULL means "any unscheduled day")
-       c. If multiple supplementals match today → pick by assignment ID (deterministic)
-    4. For the matched assignment:
-       - Count prior workouts WHERE assignment_id = this_assignment
-       - Compute position = count % cycleLength
-       - Fetch prescribed_sets for (week, day)
-       - Return prescription with assignment context
+    4. Return the matched assignment (or nil for rest day)
 ```
+
+This function is small, pure, and trivially unit-testable — input: list of assignments + weekday, output: one assignment.
+
+**`GetPrescription(db, assignment) → *Prescription`** — unchanged in structure:
+
+```
+func GetPrescription(db, assignment) *Prescription:
+    1. Count prior workouts WHERE assignment_id = assignment.ID
+    2. Compute position = count % cycleLength
+    3. Fetch prescribed_sets for (week, day)
+    4. Resolve TM-based target weights
+    5. Return prescription with assignment context
+```
+
+`GetPrescription()` still operates on a **single assignment** — the only change is that it counts workouts by `assignment_id` instead of all workouts since `start_date`. The routing complexity lives entirely in `ResolveAssignment`.
 
 The key insight: **position advances independently per assignment** because we count only workouts with the matching `assignment_id`, not all workouts.
 
+#### Schedule conflict prevention
+
+Schedule conflicts are **rejected at assignment time**, not resolved at runtime. When a coach assigns a supplemental with a schedule:
+
+1. Load all active assignments for this athlete
+2. Check if any claimed weekdays overlap with the new assignment's schedule
+3. If overlap → reject with a clear error: "Tuesday is already assigned to Sarge Circuit A"
+4. The UI grays out already-claimed days in the day-of-week picker
+
+This eliminates all runtime ambiguity. There is never a case where two programs claim the same day.
+
 #### Handling edge cases
 
-- **Rest day** — if today's weekday isn't in any program's schedule and the primary has a schedule set, no prescription is shown. The athlete can still log an ad-hoc workout.
-- **Schedule overlap** — if the primary's schedule is NULL (any day), supplementals "claim" their specific days first. The primary fills remaining days. If two supplementals claim the same day, the one assigned first (lower `athlete_programs.id`) wins.
+- **Rest day** — if today's weekday isn't in any program's schedule and the primary has a schedule set, no prescription is shown. The athlete can still log an ad-hoc workout (no `assignment_id` stamped).
 - **No supplementals** — behavior is identical to today. Primary gets all days, `schedule` is NULL by default, `assignment_id` gets stamped on workout creation.
 
 ### Workout creation flow
 
 When an athlete opens the workout page for today:
 
-1. Resolve which assignment owns today (logic above)
+1. `ResolveAssignment()` determines which program owns today
 2. If creating a new workout: `INSERT INTO workouts (athlete_id, assignment_id, date) VALUES (?, ?, ?)`
 3. Stamp the resolved `assignment_id` so position tracking is correct
-4. Allow manual override — a dropdown/toggle lets the athlete switch programs if they want to deviate from the schedule (e.g., "I'm doing my circuit today instead of 5/3/1")
+4. **Coach-only override** — coaches see a small "Switch to [other program]" link if multiple programs are active. Non-coach athletes get the scheduled program automatically with no decision required. This keeps the workflow frictionless for kids who just need to follow the plan.
 
 ### UI changes
 
@@ -136,6 +166,7 @@ The existing "Assign Program" page gains:
 - **Role selector** — radio: "Primary program" (default) / "Supplemental program"
 - **Schedule picker** — when supplemental is selected, show day-of-week checkboxes (Mon–Sun). At least one day required for supplementals. Optional for primary.
 - When assigning a supplemental, the primary stays active — no deactivation prompt
+- **Schedule conflict validation** — the UI grays out weekdays already claimed by another active assignment and rejects overlapping schedules on submit
 
 #### Athlete program view
 
@@ -146,8 +177,8 @@ The athlete's program card shows:
 #### Workout detail page
 
 - The prescription scaffold shows which program today's workout comes from: "Today: **5/3/1 for Beginners** — Week 2, Day 3" or "Today: **Sarge Circuit A** — Day 1"
-- A small "Switch program" link allows overriding the auto-resolved program for this day
-- Remove the accessory plan scaffold section — supplemental programs replace it
+- Coaches see a small "Switch to [other program]" link to override the auto-resolved program; non-coach athletes do not
+- Accessory plan section remains for per-day accessory guidance alongside the main prescription
 
 #### AI generation
 
@@ -168,10 +199,7 @@ workouts
   + assignment_id INTEGER REFERENCES athlete_programs(id) ON DELETE SET NULL
 
 accessory_plans
-  - DROPPED (subsumed by supplemental programs)
-
-accessory_plan_exercises (if exists)
-  - DROPPED
+  (no change — kept as-is for lightweight per-day accessory guidance)
 ```
 
 ### Position tracking comparison
@@ -191,17 +219,17 @@ accessory_plan_exercises (if exists)
 - Athletes can mix programming styles (strength + circuit, strength + mobility) on different days of the week
 - Position tracking becomes **explicit and unambiguous** via `workouts.assignment_id` — no more fragile "count all workouts" heuristic
 - Programs advance independently — a missed circuit day doesn't affect the strength program's position
-- Eliminates the accessory_plans table and its separate, less-capable codepath — one unified model for all programmed work
 - The `workout_sets.category` column (`main`, `supplemental`, `accessory`) gains real meaning — sets from a primary program are `main`, sets from a supplemental program are `supplemental`
+- Accessory plans remain for lightweight per-day guidance — no friction increase for simple "do 3×10 curls" coaching notes
 - Coach can assign reference programs (like Sarge circuits) directly as supplementals without AI generation
 - AI generation can target supplemental slots specifically
+- Schedule conflicts are impossible at runtime — validated and rejected at assignment time
+- Non-coach athletes get zero new decision points — the scheduled program loads automatically
 
 ### Negative
 
-- Increases complexity of `GetPrescription()` — must resolve which program owns today before calculating position
-- Schedule conflicts require a resolution strategy (first-assigned wins)
-- The "Switch program" override adds a decision point for athletes who just want to log and go
-- Removing accessory_plans means coaches must convert lightweight "do 3×10 curls" notes into full program templates. This is more rigorous but also more friction for simple accessories.
+- Adds a new `ResolveAssignment()` function (small, isolated, testable — but is new code to maintain)
+- Coaches must understand the primary vs. supplemental distinction when assigning programs
 
 ### Migration path (pre-v1)
 
@@ -209,18 +237,16 @@ Since we haven't released v1, all changes go directly into the initial migration
 
 1. Modify `athlete_programs` DDL — add `role`, `schedule`, change unique index
 2. Modify `workouts` DDL — add `assignment_id`
-3. Drop `accessory_plans` table and its index/trigger
-4. Update `data-model.md` to reflect changes
-5. Update all model functions, handlers, and templates
-6. Update seed catalog documentation
+3. Update `data-model.md` to reflect changes
+4. Update all model functions, handlers, and templates
 
 ### Implementation order
 
 1. **Schema + data-model.md** — modify DDL, update docs
-2. **Models** — update `athlete_program.go` (add role/schedule), `prescription.go` (new resolution logic), `workout.go` (stamp assignment_id). Remove `accessory_plan.go`.
-3. **Handlers** — update assignment flow, workout detail, generate import. Remove accessories handlers.
-4. **Templates** — update assignment form (role/schedule picker), workout detail (program indicator, switch override), remove accessory templates
-5. **Tests** — update all affected test files, add new tests for multi-program scenarios
+2. **Models** — update `athlete_program.go` (add role/schedule, schedule conflict validation), add `ResolveAssignment()` to `prescription.go`, update `GetPrescription()` to count by `assignment_id`, update `workout.go` to stamp `assignment_id`
+3. **Handlers** — update assignment flow (role/schedule picker, conflict validation), workout detail (program indicator, coach-only override), generate import (role/schedule stamping)
+4. **Templates** — update assignment form, workout detail (program header, coach switch link), keep accessory plan templates
+5. **Tests** — update affected tests, add new tests for multi-program resolution, schedule conflict rejection, coach-only override
 6. **LLM context** — update `context.go` to include supplemental program info in athlete context
 
 ### Future considerations
