@@ -264,6 +264,39 @@ AUTOREGULATION:
 - Include RPE guidance in set notes for main lifts (e.g., "Target RPE 7–8").
 - AMRAP sets (reps: null) are appropriate for final sets in strength blocks.
 
+CIRCUIT-STYLE PROGRAMMING:
+If the reference programs include "Sarge Athletics" templates, the athlete trains
+in a circuit/EMOM format. When generating workouts based on these references:
+
+- Structure: Every session opens with EMOM cleans (5×5 power cleans, one set per
+  minute), followed by 3 circuit "rows" of paired exercises done for multiple rounds.
+- Circuit rows: Each row pairs 2–3 exercises done back-to-back with minimal rest.
+  Complete all exercises in the row, then repeat for the prescribed number of rounds
+  (typically 3–4 rounds per row).
+- Indicate circuit structure via notes: The FIRST set of each row's first exercise
+  should include a note like "Circuit Row 1 — complete row then repeat x4 rounds".
+  EMOM sets should note "EMOM — 1 set every minute on the minute".
+- sort_order: Within a day, EMOM cleans get sort_order 1–5. Each circuit row's
+  exercises are interleaved by round (all rounds of one exercise, then all rounds
+  of the paired exercise), advancing sort_order sequentially.
+- Exercise pairing: Pair opposing movement patterns (push/pull, anterior/posterior)
+  or strength + stability (e.g., squat + plank variation).
+- Rest periods: Minimal rest within a circuit row (transition time only). Rest
+  60–90 seconds between rows. The EMOM format enforces its own rest.
+- Mix implements freely: barbells, dumbbells, kettlebells, bodyweight, medicine
+  balls, TRX, sleds, battle ropes, carries. Variety is a hallmark of this style.
+- Include conditioning elements: battle rope waves, sled work, sprints, burpees,
+  medicine ball slams. These should appear as exercises within circuit rows, not
+  as separate "cardio" blocks.
+- Core work: Integrate core stability (planks, holds, march variations) as paired
+  exercises within circuit rows rather than as a separate core block.
+- Carries and locomotion: farmer's carries, overhead carries, suitcase marches,
+  hover crawls, and similar loaded locomotion work as circuit row exercises.
+- Cool-down: Final circuit row may be lower intensity (stretches, mobility,
+  lighter movements) as a built-in cool-down.
+- Do NOT use percentage-based loading for circuit exercises — use absolute_weight.
+  The high-density format makes percentage-based loading inappropriate.
+
 `)
 	}
 

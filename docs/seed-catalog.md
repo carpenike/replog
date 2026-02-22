@@ -18,11 +18,11 @@ When RepLog starts with an empty database, it seeds a baseline catalog of common
 
 | Category | Count | Notes |
 |----------|-------|-------|
-| Equipment | 18 | Common gym equipment, foundational training gear, and sport performance gear |
-| Exercises | 110 | 27 adult strength + 40 foundational (Yessis) + 43 sport performance |
-| Program Templates | 9 | 4 adult programs + 2 youth foundations (Yessis) + 3 sport performance monthly templates |
-| Prescribed Sets | 718 | Full set/rep schemes for all programs |
-| Progression Rules | 72 | Per-exercise increment suggestions |
+| Equipment | 21 | Common gym equipment, foundational training gear, sport performance gear, and circuit conditioning gear |
+| Exercises | 148 | 27 adult strength + 40 foundational (Yessis) + 43 sport performance + 38 circuit/conditioning |
+| Program Templates | 12 | 4 adult programs + 2 youth foundations (Yessis) + 3 sport performance monthly templates + 3 Sarge Athletics circuits |
+| Prescribed Sets | 970 | Full set/rep schemes for all programs |
+| Progression Rules | 80 | Per-exercise increment suggestions |
 
 ---
 
@@ -67,11 +67,21 @@ Additional equipment used in sport performance monthly programs.
 | 17 | Plyo Box | Sturdy box for box jumps and step-ups, various heights |
 | 18 | Furniture Sliders | Low-friction discs for hamstring curls and body saws on smooth floors |
 
+### Circuit Conditioning Equipment
+
+Additional equipment used in Sarge Athletics circuit-style programs.
+
+| # | Name | Description |
+|---|------|-------------|
+| 19 | Sled | Weighted sled for pushes, pulls, and drags |
+| 20 | Battle Rope | Heavy rope anchored at center for conditioning waves and slams |
+| 21 | Weight Plate | Standard or bumper plate used for carries, raises, and loaded mobility |
+
 ---
 
 ## Exercises
 
-110 exercises: 27 adult strength (tier = null), 40 foundational (tier = "foundational"), and 43 sport performance (tier = "sport_performance"). All exercises use `rep_type = "reps"` unless otherwise noted.
+110 exercises: 27 adult strength (tier = null), 40 foundational (tier = "foundational"), and 43 sport performance (tier = "sport_performance"). Plus 38 circuit/conditioning exercises (tier = null) used in Sarge Athletics programs. All exercises use `rep_type = "reps"` unless otherwise noted.
 
 ### Adult Exercises (tier = null)
 
@@ -317,6 +327,83 @@ All foundational exercises use 60-second rest periods (30 seconds for isometrics
 | Plank with Reach | — | 30s | Forearm plank, alternate reaching one arm forward |
 | Body Saw | Furniture Sliders | 60s | Forearm plank, feet on sliders, push body back and forward |
 | Weighted Side Bend | Dumbbells | 60s | Hold dumbbell in one hand, lean to that side |
+
+### Circuit / Conditioning Exercises (tier = null)
+
+38 exercises used in Sarge Athletics circuit-style programs. Mix of strength, conditioning, locomotion, and mobility movements for high-density circuit training.
+
+#### Power / Olympic Variations
+
+| Exercise | Equipment (req) | Rest | Form Notes |
+|----------|----------------|------|------------|
+| Clean Complex | Barbell | 120s | Perform clean variations in sequence without setting bar down |
+| Turkish Getup | Kettlebell | 120s | Keep eyes on kettlebell throughout; move deliberately through each position |
+| Kettlebell Windmill | Kettlebell | 90s | Lock kettlebell overhead, hinge at hips, stack shoulders |
+
+#### Strength — Upper Body
+
+| Exercise | Equipment (req) | Rest | Form Notes |
+|----------|----------------|------|------------|
+| Arnold Press | Dumbbells | 90s | Start palms facing you, rotate outward as pressing |
+| Hammer Curl | Dumbbells | 60s | Neutral grip, elbows pinned, no swing |
+| Supinated Curl | Dumbbells | 60s | Palms facing up, squeeze biceps at top, lower slowly |
+| Tricep Kickback | Dumbbells | 60s | Hinge forward, extend elbow fully squeezing tricep |
+| Overhead Tricep Extension | Dumbbells | 60s | Hold overhead with both hands, lower behind head |
+| Barbell Shrug | Barbell | 60s | Elevate shoulders straight up, squeeze traps, no rolling |
+| Overhead Plate Raise | Weight Plate | 60s | Raise plate in arc to overhead, arms straight |
+| Straight-Arm Pulldown | Cable Machine | 60s | Arms straight, pull bar to thighs squeezing lats |
+| Side Plank Row | Dumbbells | 60s | Row with top arm, maintain stable side plank |
+
+#### Strength — Lower Body
+
+| Exercise | Equipment (req) | Equipment (opt) | Rest | Form Notes |
+|----------|----------------|-----------------|------|------------|
+| Goblet Split Squat | Kettlebell | Dumbbells | 60s | Hold at chest, drive through front heel |
+| Goblet Sumo Squat | Kettlebell | Dumbbells | 60s | Wide stance toes out, elbows inside knees |
+| Suitcase Squat | Kettlebell | Dumbbells | 60s | Hold at side, brace core to resist lean |
+| Eccentric Squat | — | Barbell, Dumbbells | 90s | 3-5 sec lowering to parallel, stand at normal speed |
+| Good Morning | Barbell | — | 90s | Bar on upper back, hinge hips to near parallel |
+
+#### Core / Stability
+
+| Exercise | Equipment (req) | Rest | Form Notes |
+|----------|----------------|------|------------|
+| Copenhagen Plank | Flat Bench | 60s | Top leg on bench, press down engaging adductors |
+| Plank Shoulder Tap | — | 45s | High plank, tap opposite shoulder, resist rotation |
+| Figure-4 Glute Bridge | — | 45s | Ankle on opposite knee, drive through planted heel |
+| TRX Rollout | TRX/Suspension Trainer | 60s | Extend body forward, keep hips level |
+| Sit-up | — | 30s | Engage core to curl torso, avoid pulling neck |
+
+#### Conditioning / Plyometrics
+
+| Exercise | Equipment (req) | Rest | Form Notes |
+|----------|----------------|------|------------|
+| Medicine Ball Slam | Medicine Ball | 45s | Raise overhead, slam to ground using full hip/core power |
+| Medicine Ball Side Slam | Medicine Ball | 45s | Rotate torso, slam to floor on one side |
+| Battle Rope Wave | Battle Rope | 45s | Athletic stance, alternate rapid arm waves |
+| Sled Row | Sled | 90s | Pull hand-over-hand, hips forward, back flat |
+| Lateral Sled Push | Sled | 90s | Drive laterally, hips low, core engaged |
+| Burpee | — | 45s | Squat down, plank, push-up, jump up |
+| Box Jump-Broad Jump | Plyo Box | 90s | Box jump then broad jump; absorb each landing |
+| Skater | — | 45s | Lateral bounds, land softly on one leg |
+
+#### Locomotion / Carries
+
+| Exercise | Equipment (req) | Equipment (opt) | Rest | Form Notes |
+|----------|----------------|-----------------|------|------------|
+| Farmer's Carry | Kettlebell | Dumbbells | 60s | Tall posture, neutral spine, controlled steps |
+| Overhead Plate Carry | Weight Plate | — | 60s | Arms locked overhead, core braced |
+| Suitcase March | Kettlebell | Dumbbells | 45s | Weight one side, march with knees up |
+| Hover Crawl | — | — | 60s | Knees 2" off ground, move opposite hand/foot |
+| Track Sprint | — | — | 120s | Drive knees high, pump arms, balls of feet |
+| Side Shuffle | — | — | 60s | Low athletic stance, push off trailing foot |
+
+#### Mobility / Stretch
+
+| Exercise | Equipment | Rest | Form Notes |
+|----------|-----------|------|------------|
+| Spiderman Stretch | — | 30s | Deep lunge, drop elbow toward ground |
+| Hamstring Stretch | — | 30s | Extend leg, hinge at hips, flat back |
 
 ---
 
@@ -967,6 +1054,75 @@ Strength-return month: back to 5×5 heavy loading with new explosive elements, e
 | Dumbbell Row | +2.5 lbs |
 | Dumbbell Rear-Foot-Elevated Split Squat | +2.5 lbs |
 | Single-Arm DB Romanian Deadlift | +2.5 lbs |
+
+### Sarge Athletics Circuit Programs
+
+Three circuit-style programs based on Sarge Athletics whiteboard workouts. Designed for adult athletes training in a high-density circuit format. Programs are `is_loop = true` with `audience = "adult"` — they serve as reference templates for CoachAI to generate similar circuit workouts.
+
+**Format:** Every session opens with EMOM (Every Minute On the Minute) power cleans (5×5), followed by 3 circuit "rows" of paired exercises done for multiple rounds (3–4 rounds per row). Athletes complete all exercises in a row before repeating that row.
+
+**Circuit notation in prescribed_sets:** The first set of each row's first exercise includes a notes field like `"Circuit Row 1 — complete row then repeat x4 rounds"`. EMOM sets note `"EMOM — 1 set every minute on the minute"`.
+
+### Sarge Athletics — Circuit A
+
+> Clean-based power + upper body accessories + core finishers
+
+| Property | Value |
+|----------|-------|
+| Structure | 1 week × 3 days (looping) |
+| Audience | Adult |
+| Focus | Power cleans + pull/push accessories + med ball conditioning |
+| Sets per cycle | 83 |
+
+| Day | EMOM Opener | Row 1 | Row 2 | Row 3 |
+|-----|-------------|-------|-------|-------|
+| 1 | Power Clean 5×5 | Renegade Row + Goblet Split Squat (×4) | Band Pull-Apart + Plank (×4) | Flutter Kick + Med Ball Slam (×4) |
+| 2 | Clean Complex 5×5 | DB Snatch + Side Plank (×4) | OH Plate Carry + Med Ball Side Slam (×4) | Goblet Sumo Squat + Straight-Arm Pulldown (×3) |
+| 3 | Power Clean 5×5 | Arnold Press + TRX Row (×4) | Hammer Curl + Tricep Kickback (×4) | Palloff Hold + OH Plate Raise (×3) |
+
+### Sarge Athletics — Circuit B
+
+> KB/DB strength + eccentric work + carries and conditioning
+
+| Property | Value |
+|----------|-------|
+| Structure | 1 week × 3 days (looping) |
+| Audience | Adult |
+| Focus | Eccentric squats, Turkish getups, windmills, loaded carries |
+| Sets per cycle | 81 |
+
+| Day | EMOM Opener | Row 1 | Row 2 | Row 3 |
+|-----|-------------|-------|-------|-------|
+| 1 | Power Clean 5×5 | Eccentric Squat + KB Windmill (×4) | Good Morning + Hollow Hold (×4) | Farmer's Carry + Sit-up (×3) |
+| 2 | Power Clean 5×5 | Turkish Getup + Suitcase Squat (×4) | Incline Bench + Copenhagen Plank (×4) | Suitcase March + Plank Shoulder Tap (×3) |
+| 3 | Power Clean 5×5 | Split Squat + KB RDL (×4) | Barbell Shrug + Supinated Curl (×4) | Hover Crawl + Spiderman Stretch (×3) |
+
+### Sarge Athletics — Circuit C
+
+> Sled/sprint conditioning + plyometrics + battle ropes
+
+| Property | Value |
+|----------|-------|
+| Structure | 1 week × 3 days (looping) |
+| Audience | Adult |
+| Focus | Sled work, sprints, battle ropes, plyometrics, loaded locomotion |
+| Sets per cycle | 88 |
+
+| Day | EMOM Opener | Row 1 | Row 2 | Row 3/Finisher |
+|-----|-------------|-------|-------|----------------|
+| 1 | Power Clean 5×5 | Track Sprint + Side Shuffle + Box Jump-Broad Jump (×3) | Goblet Sumo Squat + Side Plank Row + Mountain Climber (×4) | Skater + Hamstring Stretch (×2) |
+| 2 | Clean Complex 5×5 | Lateral Sled Push + Sled Row (×3) | DB Reverse Lunge + Reverse DB Fly + Battle Rope Wave (×4) | Figure-4 Glute Bridge + Russian Twist (×3) |
+| 3 | Power Clean 5×5 | Turkish Getup + Reverse Med Ball Throw (×3) | Bench Press + TRX Rollout + Burpee (×4) | Weighted Side Bend + Palloff Rotation (×3) |
+
+#### Sarge Progression
+
+| Exercise | Increment |
+|----------|-----------|
+| Power Clean | +5 lbs |
+| Clean Complex | +5 lbs |
+| Good Morning | +5 lbs |
+| Incline Bench Press | +5 lbs |
+| Bench Press | +5 lbs |
 
 ---
 
