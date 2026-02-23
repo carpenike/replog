@@ -125,6 +125,14 @@
                     <p>Print-friendly plan</p>
                 </article>
             </a>
+            {{ range .SupplementalPrograms }}
+            <a href="/programs/{{ .TemplateID }}" class="card-link">
+                <article>
+                    <h2>Supplemental</h2>
+                    <p>{{ .TemplateName }}{{ if .ScheduleLabel }} · {{ .ScheduleLabel }}{{ end }}</p>
+                </article>
+            </a>
+            {{ end }}
             {{ else if .CanManage }}
             {{ if .ProgramTemplates }}
             <a href="/athletes/{{ .Athlete.ID }}/program/assign" class="card-link">

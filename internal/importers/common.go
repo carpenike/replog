@@ -122,6 +122,8 @@ type ParsedProgram struct {
 	Template  ParsedProgramTemplate `json:"template"`
 	StartDate string                `json:"start_date"`
 	Active    bool                  `json:"active"`
+	Role      *string               `json:"role,omitempty"`
+	Schedule  *string               `json:"schedule,omitempty"`
 	Notes     *string               `json:"notes"`
 	Goal      *string               `json:"goal"`
 }

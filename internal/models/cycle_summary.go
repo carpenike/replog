@@ -47,22 +47,19 @@ type CycleSummary struct {
 // GetCycleSummary produces TM bump suggestions for an athlete's last completed cycle.
 // It looks at the previous cycle (the one before the current position) and joins
 // progression rules with AMRAP results and current training maxes.
-func GetCycleSummary(db *sql.DB, athleteID int64, today time.Time) (*CycleSummary, error) {
-	program, err := GetActiveProgram(db, athleteID)
-	if err != nil {
-		return nil, err
-	}
+// If program is nil, returns nil.
+func GetCycleSummary(db *sql.DB, program *AthleteProgram, today time.Time) (*CycleSummary, error) {
 	if program == nil {
 		return nil, nil
 	}
 
 	todayStr := today.Format("2006-01-02")
 
-	// Count completed workouts to determine cycle position.
+	// Count completed workouts linked to this assignment.
 	var completedWorkouts int
-	err = db.QueryRow(
-		`SELECT COUNT(*) FROM workouts WHERE athlete_id = ? AND date(date) >= date(?) AND date(date) < date(?)`,
-		athleteID, program.StartDate, todayStr,
+	err := db.QueryRow(
+		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) < date(?)`,
+		program.ID, todayStr,
 	).Scan(&completedWorkouts)
 	if err != nil {
 		return nil, fmt.Errorf("models: count workouts for cycle summary: %w", err)
@@ -96,10 +93,10 @@ func GetCycleSummary(db *sql.DB, athleteID int64, today time.Time) (*CycleSummar
 	// Get workout dates for the reviewed cycle.
 	cycleWorkoutRows, err := db.Query(
 		`SELECT date(date) FROM workouts
-		 WHERE athlete_id = ? AND date(date) >= date(?)
+		 WHERE assignment_id = ?
 		 ORDER BY date(date)
 		 LIMIT ? OFFSET ?`,
-		athleteID, program.StartDate, cycleLength, cycleStartOffset,
+		program.ID, cycleLength, cycleStartOffset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: get cycle workouts: %w", err)
@@ -137,13 +134,13 @@ func GetCycleSummary(db *sql.DB, athleteID int64, today time.Time) (*CycleSummar
 		 JOIN prescribed_sets ps ON ps.exercise_id = ws.exercise_id
 		     AND ps.template_id = ?
 		     AND ps.reps IS NULL
-		 WHERE w.athlete_id = ?
+		 WHERE w.assignment_id = ?
 		   AND date(w.date) >= date(?)
 		   AND date(w.date) <= date(?)
 		   AND ws.weight IS NOT NULL
 		 ORDER BY e.name COLLATE NOCASE, w.date, ws.set_number DESC
 		 LIMIT 100`,
-		program.TemplateID, athleteID, cycleStart, cycleEnd,
+		program.TemplateID, program.ID, cycleStart, cycleEnd,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: get AMRAP results: %w", err)
@@ -202,7 +199,7 @@ func GetCycleSummary(db *sql.DB, athleteID int64, today time.Time) (*CycleSummar
 	}
 
 	// Get current training maxes.
-	tms, err := ListCurrentTrainingMaxes(db, athleteID)
+	tms, err := ListCurrentTrainingMaxes(db, program.AthleteID)
 	if err != nil {
 		return nil, err
 	}

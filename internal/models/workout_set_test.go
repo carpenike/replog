@@ -10,7 +10,7 @@ func TestSetCRUD(t *testing.T) {
 
 	a, _ := CreateAthlete(db, "Set Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	e, _ := CreateExercise(db, "Test Lift", "", "", "", 0)
-	w, _ := CreateWorkout(db, a.ID, "2026-05-01", "")
+	w, _ := CreateWorkout(db, a.ID, "2026-05-01", "", 0)
 
 	t.Run("add sets with auto set_number", func(t *testing.T) {
 		s1, err := AddSet(db, w.ID, e.ID, 5, 135, 0, "", "", "easy")
@@ -49,7 +49,7 @@ func TestUpdateSet(t *testing.T) {
 
 	a, _ := CreateAthlete(db, "Update Set Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	e, _ := CreateExercise(db, "Update Lift", "", "", "", 0)
-	w, _ := CreateWorkout(db, a.ID, "2026-06-01", "")
+	w, _ := CreateWorkout(db, a.ID, "2026-06-01", "", 0)
 	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "", "", "")
 
 	updated, err := UpdateSet(db, s.ID, 8, 110, 0, "form felt better")
@@ -72,7 +72,7 @@ func TestDeleteSet(t *testing.T) {
 
 	a, _ := CreateAthlete(db, "Del Set Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	e, _ := CreateExercise(db, "Del Lift", "", "", "", 0)
-	w, _ := CreateWorkout(db, a.ID, "2026-07-01", "")
+	w, _ := CreateWorkout(db, a.ID, "2026-07-01", "", 0)
 	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "", "", "")
 
 	if err := DeleteSet(db, s.ID); err != nil {
@@ -90,7 +90,7 @@ func TestListSetsByWorkout(t *testing.T) {
 	a, _ := CreateAthlete(db, "Group Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	e1, _ := CreateExercise(db, "Lift A", "", "", "", 0)
 	e2, _ := CreateExercise(db, "Lift B", "", "", "", 0)
-	w, _ := CreateWorkout(db, a.ID, "2026-08-01", "")
+	w, _ := CreateWorkout(db, a.ID, "2026-08-01", "", 0)
 
 	AddSet(db, w.ID, e1.ID, 5, 100, 0, "", "", "")
 	AddSet(db, w.ID, e1.ID, 5, 110, 0, "", "", "")
@@ -110,7 +110,7 @@ func TestDeleteSet_Renumbers(t *testing.T) {
 
 	a, _ := CreateAthlete(db, "Renum Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	e, _ := CreateExercise(db, "Renum Lift", "", "", "", 0)
-	w, _ := CreateWorkout(db, a.ID, "2026-09-01", "")
+	w, _ := CreateWorkout(db, a.ID, "2026-09-01", "", 0)
 
 	s1, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "", "", "")
 	s2, _ := AddSet(db, w.ID, e.ID, 5, 110, 0, "", "", "")
@@ -146,7 +146,7 @@ func TestAddMultipleSets(t *testing.T) {
 
 	a, _ := CreateAthlete(db, "Multi Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	e, _ := CreateExercise(db, "Multi Lift", "", "", "", 0)
-	w, _ := CreateWorkout(db, a.ID, "2026-10-01", "")
+	w, _ := CreateWorkout(db, a.ID, "2026-10-01", "", 0)
 
 	t.Run("creates correct number of sets", func(t *testing.T) {
 		sets, err := AddMultipleSets(db, w.ID, e.ID, 5, 5, 135, 0, "", "", "")
@@ -241,11 +241,11 @@ func TestListExerciseHistory(t *testing.T) {
 	})
 
 	// Create some workouts with sets.
-	w1, _ := CreateWorkout(db, a.ID, "2026-01-01", "")
+	w1, _ := CreateWorkout(db, a.ID, "2026-01-01", "", 0)
 	AddSet(db, w1.ID, e.ID, 5, 100, 0, "", "", "")
 	AddSet(db, w1.ID, e.ID, 5, 110, 0, "", "", "")
 
-	w2, _ := CreateWorkout(db, a.ID, "2026-01-02", "")
+	w2, _ := CreateWorkout(db, a.ID, "2026-01-02", "", 0)
 	AddSet(db, w2.ID, e.ID, 3, 130, 0, "", "", "")
 
 	t.Run("with data", func(t *testing.T) {
@@ -287,10 +287,10 @@ func TestListRecentSetsForExercise(t *testing.T) {
 	a2, _ := CreateAthlete(db, "Athlete B", "", "", "", "", "", "", sql.NullInt64{}, true)
 	e, _ := CreateExercise(db, "Shared Lift", "", "", "", 0)
 
-	w1, _ := CreateWorkout(db, a1.ID, "2026-01-01", "")
+	w1, _ := CreateWorkout(db, a1.ID, "2026-01-01", "", 0)
 	AddSet(db, w1.ID, e.ID, 5, 135, 0, "", "", "")
 
-	w2, _ := CreateWorkout(db, a2.ID, "2026-01-02", "")
+	w2, _ := CreateWorkout(db, a2.ID, "2026-01-02", "", 0)
 	AddSet(db, w2.ID, e.ID, 8, 95, 0, "", "", "")
 
 	sets, err := ListRecentSetsForExercise(db, e.ID)

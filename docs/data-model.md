@@ -26,7 +26,7 @@ These were resolved interactively before schema design:
 
 10. **Three-tier access control: admin, coach, athlete.** Admins see and manage all athletes and users. Coaches see only athletes assigned to them (`coach_id`). Non-coach users (athletes) are linked to exactly one athlete and can only view/log/edit their own workouts. Roles overlap — an admin can also be a coach, and an athlete can also be a coach. The `is_admin` and `is_coach` flags on the users table control permissions.
 
-11. **Program templates are separate from the logbook.** The app's core is a logbook — it records what happened. Program templates layer on a prescription engine: coaches define templates (weeks × days × prescribed sets with percentages), assign them to athletes, and the app calculates today's target weights from training maxes. Position advances by counting completed workouts since assignment start, and cycles repeat automatically.
+11. **Program templates are separate from the logbook.** The app's core is a logbook — it records what happened. Program templates layer on a prescription engine: coaches define templates (weeks × days × prescribed sets with percentages), assign them to athletes, and the app calculates today's target weights from training maxes. Each athlete can have one active primary program and any number of active supplemental programs, each with a day-of-week schedule. Position advances independently per program by counting completed workouts with the matching `assignment_id`. Cycles repeat automatically when all weeks × days are exhausted.
 
 12. **Foreign key delete behaviors are intentional.** Deleting an athlete cascades to their workouts, assignments, and training maxes. Deleting a user only unlinks their athlete profile (`SET NULL`). Deleting an exercise is restricted (`RESTRICT`) if it has been logged in any workout — prevents orphaned history.
 
@@ -120,6 +120,7 @@ erDiagram
     workouts {
         INTEGER id PK
         INTEGER athlete_id FK
+        INTEGER assignment_id FK "nullable"
         DATE date
         TEXT notes "nullable"
         DATETIME created_at
@@ -158,6 +159,7 @@ erDiagram
     athletes ||--o{ training_maxes : "has"
     exercises ||--o{ training_maxes : "for"
     athletes ||--o{ workouts : "logs"
+    athlete_programs ||--o{ workouts : "prescribes"
     workouts ||--o{ workout_sets : "contains"
     exercises ||--o{ workout_sets : "performed"
     athletes ||--o{ body_weights : "tracks"
@@ -357,6 +359,8 @@ erDiagram
         INTEGER template_id FK
         DATE start_date
         INTEGER active "0 or 1"
+        TEXT role "primary or supplemental"
+        TEXT schedule "nullable, JSON weekday array"
         TEXT notes "nullable"
         TEXT goal "nullable"
         DATETIME created_at
@@ -501,14 +505,17 @@ erDiagram
 |-------------|-------------|--------------------------------------|
 | `id`        | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
 | `athlete_id`| INTEGER      | NOT NULL, FK → athletes(id)          |
+| `assignment_id`| INTEGER   | NULL, FK → athlete_programs(id) ON DELETE SET NULL |
 | `date`      | DATE         | NOT NULL                             |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - One row per training session.
+- `assignment_id` links the workout to the program assignment it was prescribed from. NULL for ad-hoc workouts.
 - `notes` holds session-level observations ("knee was bothering her today").
 - UNIQUE(athlete_id, date) — one workout per athlete per day for v1.
+- Index on `assignment_id` for position-counting queries.
 
 ### `workout_sets`
 
@@ -687,15 +694,20 @@ erDiagram
 | `template_id`| INTEGER     | NOT NULL, FK → program_templates(id) |
 | `start_date`| DATE         | NOT NULL                             |
 | `active`    | INTEGER      | NOT NULL DEFAULT 1, CHECK(0 or 1)    |
+| `role`      | TEXT         | NOT NULL DEFAULT 'primary', CHECK('primary', 'supplemental') |
+| `schedule`  | TEXT         | NULL — JSON array of ISO weekday numbers e.g. '[2,4]' |
 | `notes`     | TEXT         | NULL                                 |
 | `goal`      | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - Links an athlete to a program template.
-- Partial unique index enforces one active program per athlete.
+- `role` distinguishes primary programs (one active allowed) from supplemental programs (unlimited active).
+- `schedule` is a JSON array of ISO weekday numbers (1=Monday through 7=Sunday). NULL means "any day not claimed by another program" (default for primary). Supplementals must have a schedule.
+- Partial unique index enforces one active primary program per athlete: `WHERE active = 1 AND role = 'primary'`.
+- Schedule conflicts are validated at assignment time — no two active programs may claim the same weekday.
 - Deactivation sets `active = 0`; reassignment creates a new row.
-- `start_date` is the reference point for calculating program position — position advances by counting completed workouts since start.
+- `start_date` is the reference point for program position. Position advances by counting completed workouts with matching `assignment_id` on the `workouts` table.
 - `goal` holds a cycle-specific training goal ("increase squat TM by 10 lbs"). Nullable.
 - Program cycles repeat automatically when all weeks × days are exhausted.
 
@@ -865,14 +877,18 @@ CREATE TABLE IF NOT EXISTS training_maxes (
 );
 
 CREATE TABLE IF NOT EXISTS workouts (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    athlete_id  INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
-    date        DATE    NOT NULL,
-    notes       TEXT,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id    INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    assignment_id INTEGER REFERENCES athlete_programs(id) ON DELETE SET NULL,
+    date          DATE    NOT NULL,
+    notes         TEXT,
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(athlete_id, date)
 );
+
+CREATE INDEX IF NOT EXISTS idx_workouts_assignment_id
+    ON workouts(assignment_id);
 
 CREATE TABLE IF NOT EXISTS workout_sets (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1051,14 +1067,16 @@ CREATE TABLE IF NOT EXISTS athlete_programs (
     template_id  INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE RESTRICT,
     start_date   DATE    NOT NULL,
     active       INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+    role         TEXT    NOT NULL DEFAULT 'primary' CHECK(role IN ('primary', 'supplemental')),
+    schedule     TEXT,
     notes        TEXT,
     goal         TEXT,
     created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_programs_active
-    ON athlete_programs(athlete_id) WHERE active = 1;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_programs_active_primary
+    ON athlete_programs(athlete_id) WHERE active = 1 AND role = 'primary';
 
 CREATE TABLE IF NOT EXISTS progression_rules (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,

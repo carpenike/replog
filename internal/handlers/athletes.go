@@ -239,9 +239,22 @@ func (h *Athletes) loadAthleteShowData(user *models.User, athlete *models.Athlet
 		// Non-fatal — continue without program data.
 	}
 
+	// Load all active program assignments (primary + supplementals).
+	var supplementalPrograms []*models.AthleteProgram
+	allActivePrograms, err := models.ListActiveProgramAssignments(h.DB, id)
+	if err != nil {
+		log.Printf("handlers: list active programs for athlete %d: %v", id, err)
+	} else {
+		for _, ap := range allActivePrograms {
+			if ap.Role == "supplemental" {
+				supplementalPrograms = append(supplementalPrograms, ap)
+			}
+		}
+	}
+
 	var prescription *models.Prescription
 	if activeProgram != nil {
-		prescription, err = models.GetPrescription(h.DB, id, time.Now())
+		prescription, err = models.GetPrescription(h.DB, activeProgram, time.Now())
 		if err != nil {
 			log.Printf("handlers: prescription for athlete %d: %v", id, err)
 			// Non-fatal — continue without prescription data.
@@ -297,6 +310,7 @@ func (h *Athletes) loadAthleteShowData(user *models.User, athlete *models.Athlet
 		"Streaks":            streaks,
 		"Heatmap":            heatmap,
 		"ActiveProgram":      activeProgram,
+		"SupplementalPrograms": supplementalPrograms,
 		"Prescription":       prescription,
 		"ProgramTemplates":   programTemplates,
 		"FeaturedLifts":      featuredLifts,

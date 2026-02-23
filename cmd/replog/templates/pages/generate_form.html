@@ -119,19 +119,29 @@
                 <p><em>No equipment assigned &mdash; only bodyweight exercises will be used.</em></p>
                 {{ end }}
 
-                {{/* --- Current Program --- */}}
-                <h4>Current Program</h4>
-                {{ if .Context.CurrentProgram }}
+                {{/* --- Current Programs --- */}}
+                <h4>Active Programs</h4>
+                {{ if .Context.CurrentPrograms }}
+                <div class="table-scroll">
                 <table>
+                    <thead>
+                        <tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Structure</th><th scope="col">Schedule</th><th scope="col">Start Date</th></tr>
+                    </thead>
                     <tbody>
-                        <tr><th scope="row">Name</th><td>{{ .Context.CurrentProgram.Name }}</td></tr>
-                        <tr><th scope="row">Structure</th><td>{{ .Context.CurrentProgram.NumWeeks }} weeks &times; {{ .Context.CurrentProgram.NumDays }} days{{ if .Context.CurrentProgram.IsLoop }} (looping){{ end }}</td></tr>
-                        <tr><th scope="row">Start Date</th><td>{{ .Context.CurrentProgram.StartDate }}</td></tr>
-                        <tr><th scope="row">Active</th><td>{{ if .Context.CurrentProgram.Active }}Yes{{ else }}No{{ end }}</td></tr>
+                        {{ range .Context.CurrentPrograms }}
+                        <tr>
+                            <td>{{ .Name }}</td>
+                            <td>{{ .Role }}</td>
+                            <td>{{ .NumWeeks }}w &times; {{ .NumDays }}d{{ if .IsLoop }} (loop){{ end }}</td>
+                            <td>{{ if .Schedule }}{{ derefStr .Schedule }}{{ else }}&mdash;{{ end }}</td>
+                            <td>{{ .StartDate }}</td>
+                        </tr>
+                        {{ end }}
                     </tbody>
                 </table>
+                </div>
                 {{ else }}
-                <p><em>No current program.</em></p>
+                <p><em>No active programs.</em></p>
                 {{ end }}
 
                 {{/* --- Program History --- */}}
@@ -140,12 +150,13 @@
                 <div class="table-scroll">
                 <table>
                     <thead>
-                        <tr><th scope="col">Name</th><th scope="col">Start Date</th><th scope="col">Structure</th><th scope="col">Status</th><th scope="col">Goal</th></tr>
+                        <tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Start Date</th><th scope="col">Structure</th><th scope="col">Status</th><th scope="col">Goal</th></tr>
                     </thead>
                     <tbody>
                         {{ range .Context.ProgramHistory }}
                         <tr>
                             <td>{{ .Name }}</td>
+                            <td>{{ .Role }}</td>
                             <td>{{ .StartDate }}</td>
                             <td>{{ .NumWeeks }}w &times; {{ .NumDays }}d{{ if .IsLoop }} (loop){{ end }}</td>
                             <td>{{ if .Active }}Active{{ else }}Completed{{ end }}</td>

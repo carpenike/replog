@@ -42,6 +42,28 @@
                 <textarea id="goal" name="goal" rows="2" placeholder="Goal for this program cycle"></textarea>
             </label>
 
+            <label for="role">Role
+                <select id="role" name="role" data-role-schedule-toggle>
+                    <option value="primary" selected>Primary</option>
+                    <option value="supplemental">Supplemental</option>
+                </select>
+            </label>
+
+            <fieldset id="schedule-days" hidden>
+                <legend>Schedule (which days?)</legend>
+                <p class="text-muted">Select the days this supplemental program should run.</p>
+                <div class="schedule-day-checks">
+                    <label><input type="checkbox" name="day" value="1"> Mon</label>
+                    <label><input type="checkbox" name="day" value="2"> Tue</label>
+                    <label><input type="checkbox" name="day" value="3"> Wed</label>
+                    <label><input type="checkbox" name="day" value="4"> Thu</label>
+                    <label><input type="checkbox" name="day" value="5"> Fri</label>
+                    <label><input type="checkbox" name="day" value="6"> Sat</label>
+                    <label><input type="checkbox" name="day" value="7"> Sun</label>
+                </div>
+                <input type="hidden" id="schedule" name="schedule" value="">
+            </fieldset>
+
             <div class="form-actions">
                 <button type="submit">Assign Program</button>
                 <a href="/athletes/{{ .Athlete.ID }}" role="button" class="secondary">Cancel</a>

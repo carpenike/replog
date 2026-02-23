@@ -337,7 +337,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			notes = *w.Notes
 		}
 
-		workoutID, err := insertWorkout(tx, athleteID, date, notes)
+		workoutID, err := insertWorkout(tx, athleteID, date, notes, 0)
 		if err != nil {
 			if isUniqueViolation(err) {
 				result.WorkoutsSkipped++
@@ -446,8 +446,16 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 		if prog.Goal != nil {
 			goal = *prog.Goal
 		}
+		role := ""
+		if prog.Role != nil {
+			role = *prog.Role
+		}
+		schedule := ""
+		if prog.Schedule != nil {
+			schedule = *prog.Schedule
+		}
 		startDate := normalizeDate(prog.StartDate)
-		if err := insertAthleteProgram(tx, athleteID, templateID, startDate, notes, goal, prog.Active); err != nil {
+		if err := insertAthleteProgram(tx, athleteID, templateID, startDate, notes, goal, role, schedule, prog.Active); err != nil {
 			if !isUniqueViolation(err) {
 				return nil, fmt.Errorf("models: import athlete program: %w", err)
 			}
@@ -561,15 +569,19 @@ func insertBodyWeight(tx *sql.Tx, athleteID int64, date string, weight float64, 
 	return err
 }
 
-func insertWorkout(tx *sql.Tx, athleteID int64, date, notes string) (int64, error) {
+func insertWorkout(tx *sql.Tx, athleteID int64, date, notes string, assignmentID int64) (int64, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
+	var assignVal sql.NullInt64
+	if assignmentID > 0 {
+		assignVal = sql.NullInt64{Int64: assignmentID, Valid: true}
+	}
 	var id int64
 	err := tx.QueryRow(
-		`INSERT INTO workouts (athlete_id, date, notes) VALUES (?, ?, ?) RETURNING id`,
-		athleteID, date, notesVal,
+		`INSERT INTO workouts (athlete_id, date, assignment_id, notes) VALUES (?, ?, ?, ?) RETURNING id`,
+		athleteID, date, assignVal, notesVal,
 	).Scan(&id)
 	if err != nil {
 		return 0, err
@@ -681,7 +693,7 @@ func insertProgressionRule(tx *sql.Tx, templateID, exerciseID int64, increment f
 	return err
 }
 
-func insertAthleteProgram(tx *sql.Tx, athleteID, templateID int64, startDate, notes, goal string, active bool) error {
+func insertAthleteProgram(tx *sql.Tx, athleteID, templateID int64, startDate, notes, goal, role, schedule string, active bool) error {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
@@ -690,9 +702,16 @@ func insertAthleteProgram(tx *sql.Tx, athleteID, templateID int64, startDate, no
 	if goal != "" {
 		goalVal = sql.NullString{String: goal, Valid: true}
 	}
+	if role == "" {
+		role = "primary"
+	}
+	var scheduleVal sql.NullString
+	if schedule != "" {
+		scheduleVal = sql.NullString{String: schedule, Valid: true}
+	}
 	_, err := tx.Exec(
-		`INSERT INTO athlete_programs (athlete_id, template_id, start_date, active, notes, goal) VALUES (?, ?, ?, ?, ?, ?)`,
-		athleteID, templateID, startDate, active, notesVal, goalVal,
+		`INSERT INTO athlete_programs (athlete_id, template_id, start_date, role, schedule, active, notes, goal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		athleteID, templateID, startDate, role, scheduleVal, active, notesVal, goalVal,
 	)
 	return err
 }
@@ -888,11 +907,11 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 
 		// Assign the program to the athlete when scoped to one.
 		if athleteID != nil {
-			// Deactivate any currently active program first (unique index enforces one active).
-			_, _ = tx.Exec(`UPDATE athlete_programs SET active = 0 WHERE athlete_id = ? AND active = 1`, *athleteID)
+			// Deactivate any currently active primary program first (unique index enforces one active primary).
+			_, _ = tx.Exec(`UPDATE athlete_programs SET active = 0 WHERE athlete_id = ? AND active = 1 AND role = 'primary'`, *athleteID)
 
 			startDate := time.Now().Format("2006-01-02")
-			if err := insertAthleteProgram(tx, *athleteID, templateID, startDate, "", "", true); err != nil {
+			if err := insertAthleteProgram(tx, *athleteID, templateID, startDate, "", "", "primary", "", true); err != nil {
 				return nil, fmt.Errorf("models: catalog import assign program %q to athlete %d: %w", pt.Name, *athleteID, err)
 			}
 			result.ProgramsAssigned++

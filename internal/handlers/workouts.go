@@ -136,7 +136,13 @@ func (h *Workouts) Create(w http.ResponseWriter, r *http.Request) {
 
 	notes := r.FormValue("notes")
 
-	workout, err := models.CreateWorkout(h.DB, athleteID, date, notes)
+	// Parse optional assignment_id (0 means ad-hoc workout).
+	var assignmentID int64
+	if aidStr := r.FormValue("assignment_id"); aidStr != "" {
+		assignmentID, _ = strconv.ParseInt(aidStr, 10, 64)
+	}
+
+	workout, err := models.CreateWorkout(h.DB, athleteID, date, notes, assignmentID)
 	if errors.Is(err, models.ErrWorkoutExists) {
 		// Redirect to the existing workout for that date.
 		existing, getErr := models.GetWorkoutByAthleteDate(h.DB, athleteID, date)
@@ -300,7 +306,14 @@ func (h *Workouts) loadWorkoutShowData(user *models.User, athlete *models.Athlet
 		workoutDate, parseErr = time.Parse(time.RFC3339, workout.Date)
 	}
 	if parseErr == nil {
-		prescription, err = models.GetPrescription(h.DB, athleteID, workoutDate)
+		// Use the workout's assignment if present, otherwise fall back to active primary.
+		var program *models.AthleteProgram
+		if workout.AssignmentID.Valid {
+			program, _ = models.GetAthleteProgramByID(h.DB, workout.AssignmentID.Int64)
+		} else {
+			program, _ = models.GetActiveProgram(h.DB, athleteID)
+		}
+		prescription, err = models.GetPrescription(h.DB, program, workoutDate)
 		if err != nil {
 			log.Printf("handlers: get prescription for athlete %d on %s: %v", athleteID, workout.Date, err)
 			// Non-fatal — continue without prescription data.

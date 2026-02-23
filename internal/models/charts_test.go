@@ -235,7 +235,7 @@ func TestExerciseVolumeChart(t *testing.T) {
 	// Create workouts with sets.
 	dates := []string{"2025-01-01", "2025-01-03"}
 	for _, date := range dates {
-		w, err := CreateWorkout(db, athlete.ID, date, "")
+		w, err := CreateWorkout(db, athlete.ID, date, "", 0)
 		if err != nil {
 			t.Fatalf("create workout: %v", err)
 		}
@@ -288,7 +288,7 @@ func TestWorkoutHeatmap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
-	w, err := CreateWorkout(db, athlete.ID, "2025-06-01", "")
+	w, err := CreateWorkout(db, athlete.ID, "2025-06-01", "", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}

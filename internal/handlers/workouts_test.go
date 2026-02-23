@@ -91,7 +91,7 @@ func TestWorkouts_Create_DuplicateDate(t *testing.T) {
 	athlete := seedAthlete(t, db, "Alice", "")
 
 	// Create first workout.
-	_, err := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	_, err := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestWorkouts_Show_Success(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	workout, err := models.CreateWorkout(db, athlete.ID, "2026-02-10", "test")
+	workout, err := models.CreateWorkout(db, athlete.ID, "2026-02-10", "test", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestWorkouts_UpdateNotes(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -168,7 +168,7 @@ func TestWorkouts_Delete_CoachOnly(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -189,7 +189,7 @@ func TestWorkouts_Delete_NonCoachForbidden(t *testing.T) {
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
 	otherAthlete := seedAthlete(t, db, "Other", "")
-	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -215,7 +215,7 @@ func TestWorkouts_Delete_OwnAthlete(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -242,7 +242,7 @@ func TestWorkouts_AddSet_Success(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -269,7 +269,7 @@ func TestWorkouts_AddSet_InvalidReps(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -298,7 +298,7 @@ func TestWorkouts_AddSet_BulkSets(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Bench Press", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-12", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-12", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -337,7 +337,7 @@ func TestWorkouts_AddSet_BulkTooMany(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-13", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-13", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -368,7 +368,7 @@ func TestWorkouts_AddSet_StickyExercise(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-14", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-14", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -399,7 +399,7 @@ func TestWorkouts_UpdateSet_Success(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
@@ -428,7 +428,7 @@ func TestWorkouts_DeleteSet_Success(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
@@ -459,7 +459,7 @@ func TestWorkouts_Show_WrongAthlete(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete1 := seedAthlete(t, db, "Alice", "")
 	athlete2 := seedAthlete(t, db, "Bob", "")
-	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -481,7 +481,7 @@ func TestWorkouts_UpdateNotes_WrongAthlete(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete1 := seedAthlete(t, db, "Alice", "")
 	athlete2 := seedAthlete(t, db, "Bob", "")
-	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -503,7 +503,7 @@ func TestWorkouts_Delete_WrongAthlete(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete1 := seedAthlete(t, db, "Alice", "")
 	athlete2 := seedAthlete(t, db, "Bob", "")
-	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -531,7 +531,7 @@ func TestWorkouts_AddSet_WrongAthlete(t *testing.T) {
 	athlete1 := seedAthlete(t, db, "Alice", "")
 	athlete2 := seedAthlete(t, db, "Bob", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -629,7 +629,7 @@ func TestWorkouts_EditSetForm_Success(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
@@ -652,7 +652,7 @@ func TestWorkouts_EditSetForm_NonCoachOwnAthlete(t *testing.T) {
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
 	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
@@ -676,7 +676,7 @@ func TestWorkouts_EditSetForm_NonCoachOtherForbidden(t *testing.T) {
 	otherAthlete := seedAthlete(t, db, "Other", "")
 	nonCoach := seedNonCoach(t, db, myAthlete.ID)
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "", 0)
 	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
@@ -699,8 +699,8 @@ func TestWorkouts_EditSetForm_WrongWorkout(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Alice", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout1, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
-	workout2, _ := models.CreateWorkout(db, athlete.ID, "2026-02-11", "")
+	workout1, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
+	workout2, _ := models.CreateWorkout(db, athlete.ID, "2026-02-11", "", 0)
 	set, _ := models.AddSet(db, workout1.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
@@ -725,7 +725,7 @@ func TestWorkouts_EditSetForm_WrongAthlete(t *testing.T) {
 	athlete1 := seedAthlete(t, db, "Alice", "")
 	athlete2 := seedAthlete(t, db, "Bob", "")
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-10", "", 0)
 	set, _ := models.AddSet(db, workout.ID, ex.ID, 5, 225, 0, "", "", "")
 
 	h := &Workouts{DB: db, Templates: tc}
@@ -768,7 +768,7 @@ func TestWorkouts_UpdateNotes_NonCoachForbiddenOther(t *testing.T) {
 	myAthlete := seedAthlete(t, db, "Kid", "")
 	otherAthlete := seedAthlete(t, db, "Other", "")
 	nonCoach := seedNonCoach(t, db, myAthlete.ID)
-	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -791,7 +791,7 @@ func TestWorkouts_AddSet_NonCoachForbiddenOther(t *testing.T) {
 	otherAthlete := seedAthlete(t, db, "Other", "")
 	nonCoach := seedNonCoach(t, db, myAthlete.ID)
 	ex := seedExercise(t, db, "Squat", "")
-	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "")
+	workout, _ := models.CreateWorkout(db, otherAthlete.ID, "2026-02-10", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 
@@ -827,7 +827,7 @@ func TestWorkouts_Show_WithPrescription(t *testing.T) {
 	}
 
 	// Assign program to athlete.
-	_, err = models.AssignProgram(db, athlete.ID, tmpl.ID, "2026-02-01", "", "")
+	_, err = models.AssignProgram(db, athlete.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
 	if err != nil {
 		t.Fatalf("assign program: %v", err)
 	}
@@ -839,7 +839,7 @@ func TestWorkouts_Show_WithPrescription(t *testing.T) {
 	}
 
 	// Create a workout on the program start date (day 1).
-	workout, err := models.CreateWorkout(db, athlete.ID, "2026-02-01", "")
+	workout, err := models.CreateWorkout(db, athlete.ID, "2026-02-01", "", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
@@ -929,7 +929,7 @@ func TestWorkouts_AddSet_CoachAutoApproves(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "AddSetApproveKid", "")
 	ex := seedExercise(t, db, "Deadlift", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-03-17", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-03-17", "", 0)
 
 	h := &Workouts{DB: db, Templates: tc}
 

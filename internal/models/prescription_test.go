@@ -184,17 +184,17 @@ func TestGetPrescription_CycleWraparound(t *testing.T) {
 
 	a, _ := CreateAthlete(db, "Cycle Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	SetTrainingMax(db, a.ID, bench.ID, 200, "2026-01-01", "")
-	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
+	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
 
-	// Log 4 workouts (one full cycle), then 1 more.
+	// Log 4 workouts (one full cycle), then 1 more — all linked to the assignment.
 	for i := 1; i <= 5; i++ {
 		date := mustParseDate("2026-02-01").AddDate(0, 0, i-1).Format("2006-01-02")
-		CreateWorkout(db, a.ID, date, "")
+		CreateWorkout(db, a.ID, date, "", ap.ID)
 	}
 
 	// 5 workouts completed. 5 % 4 = position 1 → W1D2.
 	today := mustParseDate("2026-02-06")
-	rx, err := GetPrescription(db, a.ID, today)
+	rx, err := GetPrescription(db, ap, today)
 	if err != nil {
 		t.Fatalf("get prescription: %v", err)
 	}
@@ -221,10 +221,10 @@ func TestGetPrescription_NoTrainingMax(t *testing.T) {
 
 	a, _ := CreateAthlete(db, "No TM Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	// Deliberately do NOT set a training max.
-	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
+	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
 
 	today := mustParseDate("2026-02-01")
-	rx, err := GetPrescription(db, a.ID, today)
+	rx, err := GetPrescription(db, ap, today)
 	if err != nil {
 		t.Fatalf("get prescription: %v", err)
 	}
@@ -257,19 +257,19 @@ func TestGetPrescription_HasWorkoutToday(t *testing.T) {
 	CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, 1, &reps, nil, nil, 0, "", "")
 
 	a, _ := CreateAthlete(db, "Today Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
+	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
 
 	today := mustParseDate("2026-02-01")
 
 	// Before workout.
-	rx, _ := GetPrescription(db, a.ID, today)
+	rx, _ := GetPrescription(db, ap, today)
 	if rx.HasWorkout {
 		t.Error("expected HasWorkout = false before logging")
 	}
 
 	// Log workout today.
-	CreateWorkout(db, a.ID, "2026-02-01", "")
-	rx, _ = GetPrescription(db, a.ID, today)
+	CreateWorkout(db, a.ID, "2026-02-01", "", ap.ID)
+	rx, _ = GetPrescription(db, ap, today)
 	if !rx.HasWorkout {
 		t.Error("expected HasWorkout = true after logging")
 	}

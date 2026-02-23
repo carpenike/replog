@@ -20,7 +20,7 @@ import (
 type AthleteContext struct {
 	Athlete           AthleteProfile     `json:"athlete"`
 	Equipment         []string           `json:"available_equipment"`
-	CurrentProgram    *ProgramSummary    `json:"current_program"`
+	CurrentPrograms   []ProgramSummary   `json:"current_programs"`
 	ProgramHistory    []ProgramHistoryEntry `json:"program_history"`
 	Performance       PerformanceData    `json:"performance"`
 	CoachNotes        []NoteEntry        `json:"coach_notes"`
@@ -45,19 +45,23 @@ type AthleteProfile struct {
 	LatestBW       *float64 `json:"latest_body_weight,omitempty"`
 }
 
-// ProgramSummary describes the athlete's current or prior program.
+// ProgramSummary describes one of the athlete's currently active programs.
 type ProgramSummary struct {
-	Name      string `json:"name"`
-	NumWeeks  int    `json:"num_weeks"`
-	NumDays   int    `json:"num_days"`
-	IsLoop    bool   `json:"is_loop"`
-	StartDate string `json:"start_date"`
-	Active    bool   `json:"active"`
+	Name      string  `json:"name"`
+	Role      string  `json:"role"`
+	Schedule  *string `json:"schedule,omitempty"`
+	NumWeeks  int     `json:"num_weeks"`
+	NumDays   int     `json:"num_days"`
+	IsLoop    bool    `json:"is_loop"`
+	StartDate string  `json:"start_date"`
+	Active    bool    `json:"active"`
 }
 
 // ProgramHistoryEntry describes one program assignment (active or past).
 type ProgramHistoryEntry struct {
 	Name      string  `json:"name"`
+	Role      string  `json:"role"`
+	Schedule  *string `json:"schedule,omitempty"`
 	NumWeeks  int     `json:"num_weeks"`
 	NumDays   int     `json:"num_days"`
 	IsLoop    bool    `json:"is_loop"`
@@ -197,12 +201,12 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTe
 	}
 	ctx.Equipment = equip
 
-	// Current program.
-	prog, err := buildCurrentProgram(db, athleteID)
+	// Current programs (primary + supplementals).
+	currentProgs, err := buildCurrentPrograms(db, athleteID)
 	if err != nil {
-		return nil, fmt.Errorf("llm: build program: %w", err)
+		return nil, fmt.Errorf("llm: build programs: %w", err)
 	}
-	ctx.CurrentProgram = prog
+	ctx.CurrentPrograms = currentProgs
 
 	// Program history (all assignments, active + past).
 	history, err := buildProgramHistory(db, athleteID)
@@ -350,23 +354,31 @@ func buildEquipmentList(db *sql.DB, athleteID int64) ([]string, error) {
 	return names, nil
 }
 
-// buildCurrentProgram returns the athlete's active program, or nil if none.
-func buildCurrentProgram(db *sql.DB, athleteID int64) (*ProgramSummary, error) {
-	prog, err := models.GetActiveProgram(db, athleteID)
+// buildCurrentPrograms returns all of the athlete's active programs (primary + supplementals).
+func buildCurrentPrograms(db *sql.DB, athleteID int64) ([]ProgramSummary, error) {
+	programs, err := models.ListActiveProgramAssignments(db, athleteID)
 	if err != nil {
 		return nil, err
 	}
-	if prog == nil {
+	if len(programs) == 0 {
 		return nil, nil
 	}
-	return &ProgramSummary{
-		Name:      prog.TemplateName,
-		NumWeeks:  prog.NumWeeks,
-		NumDays:   prog.NumDays,
-		IsLoop:    prog.IsLoop,
-		StartDate: prog.StartDate,
-		Active:    prog.Active,
-	}, nil
+	result := make([]ProgramSummary, len(programs))
+	for i, p := range programs {
+		result[i] = ProgramSummary{
+			Name:      p.TemplateName,
+			Role:      p.Role,
+			NumWeeks:  p.NumWeeks,
+			NumDays:   p.NumDays,
+			IsLoop:    p.IsLoop,
+			StartDate: p.StartDate,
+			Active:    p.Active,
+		}
+		if p.Schedule.Valid {
+			result[i].Schedule = &p.Schedule.String
+		}
+	}
+	return result, nil
 }
 
 // buildTrainingMaxes returns the athlete's current training maxes.
@@ -615,11 +627,15 @@ func buildProgramHistory(db *sql.DB, athleteID int64) ([]ProgramHistoryEntry, er
 	for i, p := range programs {
 		entries[i] = ProgramHistoryEntry{
 			Name:      p.TemplateName,
+			Role:      p.Role,
 			NumWeeks:  p.NumWeeks,
 			NumDays:   p.NumDays,
 			IsLoop:    p.IsLoop,
 			StartDate: p.StartDate,
 			Active:    p.Active,
+		}
+		if p.Schedule.Valid {
+			entries[i].Schedule = &p.Schedule.String
 		}
 		if p.Notes.Valid {
 			entries[i].Notes = &p.Notes.String

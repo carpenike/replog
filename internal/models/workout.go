@@ -12,30 +12,37 @@ var ErrWorkoutExists = errors.New("workout already exists for this date")
 
 // Workout represents a training session for one athlete on one date.
 type Workout struct {
-	ID        int64
-	AthleteID int64
-	Date      string // DATE as string (YYYY-MM-DD)
-	Notes     sql.NullString
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID           int64
+	AthleteID    int64
+	Date         string // DATE as string (YYYY-MM-DD)
+	AssignmentID sql.NullInt64  // FK to athlete_programs — which assignment prescribed this workout
+	Notes        sql.NullString
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 
 	// Joined fields populated by list queries.
 	AthleteName  string
 	SetCount     int
 	ReviewStatus sql.NullString // NULL = unreviewed, "approved", "needs_work"
+	ProgramName  string         // Joined from athlete_programs → program_templates
 }
 
 // CreateWorkout starts a new workout for an athlete on a date.
-func CreateWorkout(db *sql.DB, athleteID int64, date, notes string) (*Workout, error) {
+// assignmentID links the workout to the athlete_program that prescribed it (0 for ad-hoc).
+func CreateWorkout(db *sql.DB, athleteID int64, date, notes string, assignmentID int64) (*Workout, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
+	var assignVal sql.NullInt64
+	if assignmentID > 0 {
+		assignVal = sql.NullInt64{Int64: assignmentID, Valid: true}
+	}
 
 	var id int64
 	err := db.QueryRow(
-		`INSERT INTO workouts (athlete_id, date, notes) VALUES (?, ?, ?) RETURNING id`,
-		athleteID, date, notesVal,
+		`INSERT INTO workouts (athlete_id, date, assignment_id, notes) VALUES (?, ?, ?, ?) RETURNING id`,
+		athleteID, date, assignVal, notesVal,
 	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -50,13 +57,18 @@ func CreateWorkout(db *sql.DB, athleteID int64, date, notes string) (*Workout, e
 // GetWorkoutByID retrieves a workout by primary key.
 func GetWorkoutByID(db *sql.DB, id int64) (*Workout, error) {
 	w := &Workout{}
+	var programName sql.NullString
 	err := db.QueryRow(
-		`SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, w.updated_at, a.name,
-		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
+		`SELECT w.id, w.athlete_id, w.date, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
+		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
+		        COALESCE(pt.name, '')
 		 FROM workouts w
 		 JOIN athletes a ON a.id = w.athlete_id
+		 LEFT JOIN athlete_programs ap ON ap.id = w.assignment_id
+		 LEFT JOIN program_templates pt ON pt.id = ap.template_id
 		 WHERE w.id = ?`, id,
-	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount)
+	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.AssignmentID, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &programName)
+	w.ProgramName = programName.String
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -69,13 +81,18 @@ func GetWorkoutByID(db *sql.DB, id int64) (*Workout, error) {
 // GetWorkoutByAthleteDate retrieves a workout for an athlete on a specific date.
 func GetWorkoutByAthleteDate(db *sql.DB, athleteID int64, date string) (*Workout, error) {
 	w := &Workout{}
+	var programName sql.NullString
 	err := db.QueryRow(
-		`SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, w.updated_at, a.name,
-		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
+		`SELECT w.id, w.athlete_id, w.date, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
+		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
+		        COALESCE(pt.name, '')
 		 FROM workouts w
 		 JOIN athletes a ON a.id = w.athlete_id
+		 LEFT JOIN athlete_programs ap ON ap.id = w.assignment_id
+		 LEFT JOIN program_templates pt ON pt.id = ap.template_id
 		 WHERE w.athlete_id = ? AND w.date = ?`, athleteID, date,
-	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount)
+	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.AssignmentID, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &programName)
+	w.ProgramName = programName.String
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -130,12 +147,14 @@ type WorkoutPage struct {
 // sets HasMore if additional rows exist beyond the current page.
 func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error) {
 	rows, err := db.Query(`
-		SELECT w.id, w.athlete_id, w.date, w.notes, w.created_at, w.updated_at, a.name,
+		SELECT w.id, w.athlete_id, w.date, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
 		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
-		       wr.status
+		       wr.status, COALESCE(pt.name, '')
 		FROM workouts w
 		JOIN athletes a ON a.id = w.athlete_id
 		LEFT JOIN workout_reviews wr ON wr.workout_id = w.id
+		LEFT JOIN athlete_programs ap ON ap.id = w.assignment_id
+		LEFT JOIN program_templates pt ON pt.id = ap.template_id
 		WHERE w.athlete_id = ?
 		ORDER BY w.date DESC
 		LIMIT ? OFFSET ?`, athleteID, WorkoutPageSize+1, offset)
@@ -147,9 +166,11 @@ func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error)
 	var workouts []*Workout
 	for rows.Next() {
 		w := &Workout{}
-		if err := rows.Scan(&w.ID, &w.AthleteID, &w.Date, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &w.ReviewStatus); err != nil {
+		var programName sql.NullString
+		if err := rows.Scan(&w.ID, &w.AthleteID, &w.Date, &w.AssignmentID, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &w.ReviewStatus, &programName); err != nil {
 			return nil, fmt.Errorf("models: scan workout: %w", err)
 		}
+		w.ProgramName = programName.String
 		workouts = append(workouts, w)
 	}
 	if err := rows.Err(); err != nil {

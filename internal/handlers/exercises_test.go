@@ -213,7 +213,7 @@ func TestExercises_Delete_InUseReturnsConflict(t *testing.T) {
 	athlete := seedAthlete(t, db, "Alice", "")
 
 	// Create a workout and log a set to make the exercise "in use".
-	w, err := models.CreateWorkout(db, athlete.ID, "2026-01-01", "")
+	w, err := models.CreateWorkout(db, athlete.ID, "2026-01-01", "", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}

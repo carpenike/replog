@@ -73,14 +73,18 @@ CREATE TABLE IF NOT EXISTS training_maxes (
 );
 
 CREATE TABLE IF NOT EXISTS workouts (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    athlete_id  INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
-    date        DATE    NOT NULL,
-    notes       TEXT,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    athlete_id    INTEGER NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
+    assignment_id INTEGER REFERENCES athlete_programs(id) ON DELETE SET NULL,
+    date          DATE    NOT NULL,
+    notes         TEXT,
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(athlete_id, date)
 );
+
+CREATE INDEX IF NOT EXISTS idx_workouts_assignment_id
+    ON workouts(assignment_id);
 
 CREATE TABLE IF NOT EXISTS workout_sets (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -238,14 +242,16 @@ CREATE TABLE IF NOT EXISTS athlete_programs (
     template_id INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE RESTRICT,
     start_date  DATE    NOT NULL,
     active      INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+    role        TEXT    NOT NULL DEFAULT 'primary' CHECK(role IN ('primary', 'supplemental')),
+    schedule    TEXT,
     notes       TEXT,
     goal        TEXT,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_programs_active
-    ON athlete_programs(athlete_id) WHERE active = 1;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_athlete_programs_active_primary
+    ON athlete_programs(athlete_id) WHERE active = 1 AND role = 'primary';
 
 -- Per-exercise TM increment rules for a program template.
 -- Defines how much to suggest bumping the training max after a cycle completes.
@@ -547,7 +553,8 @@ DROP INDEX IF EXISTS idx_progression_rules_template;
 DROP INDEX IF EXISTS idx_program_templates_athlete;
 DROP INDEX IF EXISTS idx_program_templates_name_athlete;
 DROP INDEX IF EXISTS idx_program_templates_name_global;
-DROP INDEX IF EXISTS idx_athlete_programs_active;
+DROP INDEX IF EXISTS idx_athlete_programs_active_primary;
+DROP INDEX IF EXISTS idx_workouts_assignment_id;
 DROP INDEX IF EXISTS idx_prescribed_sets_template;
 DROP TRIGGER IF EXISTS trigger_athlete_notes_updated_at;
 

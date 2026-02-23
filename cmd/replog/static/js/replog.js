@@ -22,6 +22,7 @@
  *   data-select-on-focus            Select the input contents on focus.
  *   data-print                      Trigger window.print().
  *   data-new-athlete-toggle         Toggle new-athlete-fields based on select value.
+ *   data-role-schedule-toggle        Toggle schedule-days fieldset based on role select value.
  *   data-action="dismiss-toast"     Dismiss a toast notification with animation.
  */
 (function () {
@@ -168,6 +169,12 @@
                 fields.hidden = e.target.value !== "__new__";
             }
         }
+        if (e.target.hasAttribute("data-role-schedule-toggle")) {
+            var days = document.getElementById("schedule-days");
+            if (days) {
+                days.hidden = e.target.value !== "supplemental";
+            }
+        }
         if (e.target.hasAttribute("data-auto-submit")) {
             var form = e.target.closest("form");
             if (form) form.submit();
@@ -191,6 +198,17 @@
 
     // ---- Submit delegation for long-running forms ----
     document.addEventListener("submit", function (e) {
+        // Schedule serialization: collect checked day checkboxes into hidden field.
+        var scheduleDays = e.target.querySelector("#schedule-days");
+        if (scheduleDays && !scheduleDays.hidden) {
+            var checked = Array.prototype.slice.call(
+                scheduleDays.querySelectorAll("input[name='day']:checked")
+            );
+            var days = checked.map(function (cb) { return parseInt(cb.value, 10); });
+            var hidden = scheduleDays.querySelector("#schedule");
+            if (hidden) hidden.value = JSON.stringify(days);
+        }
+
         // Generate form: show busy indicator when submitting.
         var form = e.target.closest("[data-generate-submit]");
         if (form) {

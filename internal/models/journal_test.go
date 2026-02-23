@@ -12,7 +12,7 @@ func TestListJournalEntries(t *testing.T) {
 	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "Build strength", "", "", "", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
 
 	// Seed some data across multiple tables.
-	w, _ := CreateWorkout(db, a.ID, "2026-02-10", "Felt strong today")
+	w, _ := CreateWorkout(db, a.ID, "2026-02-10", "Felt strong today", 0)
 	e, _ := CreateExercise(db, "Squat", "", "", "", 0)
 	e2, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
 	AddSet(db, w.ID, e.ID, 5, 225, 0, "reps", "", "")

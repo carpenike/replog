@@ -119,6 +119,8 @@ type ExportProgram struct {
 	Template  ExportProgramTemplate `json:"template"`
 	StartDate string                `json:"start_date"`
 	Active    bool                  `json:"active"`
+	Role      *string               `json:"role,omitempty"`
+	Schedule  *string               `json:"schedule,omitempty"`
 	Notes     *string               `json:"notes"`
 	Goal      *string               `json:"goal"`
 }
@@ -642,7 +644,7 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 	// Collect row data first, then close rows before running secondary queries
 	// (SQLite single-connection deadlock with MaxOpenConns(1)).
 	rows, err := db.Query(`
-		SELECT ap.id, ap.template_id, ap.start_date, ap.active, ap.notes, ap.goal,
+		SELECT ap.id, ap.template_id, ap.start_date, ap.active, ap.role, ap.schedule, ap.notes, ap.goal,
 		       pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop
 		FROM athlete_programs ap
 		JOIN program_templates pt ON pt.id = ap.template_id
@@ -663,12 +665,14 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 			templateID                   int64
 			startDate                    string
 			active                       bool
+			role                         string
+			schedule                     sql.NullString
 			notes, goal, desc            sql.NullString
 			name                         string
 			numWeeks, numDays            int
 			isLoop                       bool
 		)
-		if err := rows.Scan(&apID, &templateID, &startDate, &active, &notes, &goal, &name, &desc, &numWeeks, &numDays, &isLoop); err != nil {
+		if err := rows.Scan(&apID, &templateID, &startDate, &active, &role, &schedule, &notes, &goal, &name, &desc, &numWeeks, &numDays, &isLoop); err != nil {
 			rows.Close()
 			return nil, fmt.Errorf("models: scan export program: %w", err)
 		}
@@ -678,6 +682,8 @@ func exportPrograms(db *sql.DB, athleteID int64) ([]ExportProgram, error) {
 			program: ExportProgram{
 				StartDate: startDate,
 				Active:    active,
+				Role:      stringPtr(role),
+				Schedule:  nullStringPtr(schedule),
 				Notes:     nullStringPtr(notes),
 				Goal:      nullStringPtr(goal),
 				Template: ExportProgramTemplate{
@@ -771,6 +777,10 @@ func nullStringPtr(ns sql.NullString) *string {
 		return &ns.String
 	}
 	return nil
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
 
 // --- Catalog Export ---

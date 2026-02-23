@@ -27,7 +27,7 @@ func TestWorkoutReviewCRUD(t *testing.T) {
 
 	athlete, _ := CreateAthlete(db, "Review Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-02-15", "test workout")
+	workout, _ := CreateWorkout(db, athlete.ID, "2026-02-15", "test workout", 0)
 
 	t.Run("create review", func(t *testing.T) {
 		rev, err := CreateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusApproved, "Great job!")
@@ -128,7 +128,7 @@ func TestCreateOrUpdateWorkoutReview(t *testing.T) {
 
 	athlete, _ := CreateAthlete(db, "Upsert Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-03-01", "")
+	workout, _ := CreateWorkout(db, athlete.ID, "2026-03-01", "", 0)
 
 	t.Run("creates when none exists", func(t *testing.T) {
 		rev, err := CreateOrUpdateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusApproved, "Looks good")
@@ -160,9 +160,9 @@ func TestListUnreviewedWorkouts(t *testing.T) {
 	athlete, _ := CreateAthlete(db, "Unreviewed Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
 
-	w1, _ := CreateWorkout(db, athlete.ID, "2026-02-10", "")
-	w2, _ := CreateWorkout(db, athlete.ID, "2026-02-11", "")
-	CreateWorkout(db, athlete.ID, "2026-02-12", "")
+	w1, _ := CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
+	w2, _ := CreateWorkout(db, athlete.ID, "2026-02-11", "", 0)
+	CreateWorkout(db, athlete.ID, "2026-02-12", "", 0)
 
 	// Review w1 only.
 	CreateWorkoutReview(db, w1.ID, coach.ID, ReviewStatusApproved, "")
@@ -198,9 +198,9 @@ func TestGetReviewStats(t *testing.T) {
 	athlete, _ := CreateAthlete(db, "Stats Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
 
-	w1, _ := CreateWorkout(db, athlete.ID, "2026-02-01", "")
-	w2, _ := CreateWorkout(db, athlete.ID, "2026-02-02", "")
-	CreateWorkout(db, athlete.ID, "2026-02-03", "") // unreviewed
+	w1, _ := CreateWorkout(db, athlete.ID, "2026-02-01", "", 0)
+	w2, _ := CreateWorkout(db, athlete.ID, "2026-02-02", "", 0)
+	CreateWorkout(db, athlete.ID, "2026-02-03", "", 0) // unreviewed
 
 	CreateWorkoutReview(db, w1.ID, coach.ID, ReviewStatusApproved, "")
 	CreateWorkoutReview(db, w2.ID, coach.ID, ReviewStatusNeedsWork, "Fix form")
@@ -226,7 +226,7 @@ func TestDeleteCoachPreservesReview(t *testing.T) {
 
 	athlete, _ := CreateAthlete(db, "Preserved Review Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-03-10", "")
+	workout, _ := CreateWorkout(db, athlete.ID, "2026-03-10", "", 0)
 
 	// Coach reviews the workout.
 	rev, err := CreateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusApproved, "Solid work")
@@ -263,7 +263,7 @@ func TestAutoApproveWorkout(t *testing.T) {
 
 	athlete, _ := CreateAthlete(db, "Auto-Approve Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-04-01", "")
+	workout, _ := CreateWorkout(db, athlete.ID, "2026-04-01", "", 0)
 
 	// Auto-approve should create a review.
 	if err := AutoApproveWorkout(db, workout.ID, coach.ID); err != nil {
@@ -299,7 +299,7 @@ func TestAutoApproveWorkout_SkipsExistingReview(t *testing.T) {
 
 	athlete, _ := CreateAthlete(db, "Skip Approve Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-04-02", "")
+	workout, _ := CreateWorkout(db, athlete.ID, "2026-04-02", "", 0)
 
 	// Manually mark as needs_work.
 	_, err := CreateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusNeedsWork, "Fix your form")

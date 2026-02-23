@@ -43,7 +43,7 @@ func seedExercise(t testing.TB, db *sql.DB, name, tier string) int64 {
 
 func seedWorkout(t testing.TB, db *sql.DB, athleteID int64, date string) int64 {
 	t.Helper()
-	w, err := models.CreateWorkout(db, athleteID, date, "")
+	w, err := models.CreateWorkout(db, athleteID, date, "", 0)
 	if err != nil {
 		t.Fatalf("seed workout: %v", err)
 	}
@@ -70,8 +70,8 @@ func TestBuildAthleteContext_Empty(t *testing.T) {
 	if ctx.Athlete.TotalWorkouts != 0 {
 		t.Errorf("total workouts = %d, want 0", ctx.Athlete.TotalWorkouts)
 	}
-	if ctx.CurrentProgram != nil {
-		t.Errorf("current program should be nil, got %+v", ctx.CurrentProgram)
+	if len(ctx.CurrentPrograms) != 0 {
+		t.Errorf("current programs should be empty, got %+v", ctx.CurrentPrograms)
 	}
 	if len(ctx.Equipment) != 0 {
 		t.Errorf("equipment should be empty, got %v", ctx.Equipment)
@@ -477,7 +477,7 @@ func TestBuildAthleteContext_ProgramHistory(t *testing.T) {
 	}
 
 	// Assign first program, then deactivate it.
-	ap1, err := models.AssignProgram(db, athleteID, pt1.ID, "2026-01-01", "starting out", "build base")
+	ap1, err := models.AssignProgram(db, athleteID, pt1.ID, "2026-01-01", "starting out", "build base", "primary", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -486,7 +486,7 @@ func TestBuildAthleteContext_ProgramHistory(t *testing.T) {
 	}
 
 	// Assign second (now active).
-	_, err = models.AssignProgram(db, athleteID, pt2.ID, "2026-02-01", "", "increase volume")
+	_, err = models.AssignProgram(db, athleteID, pt2.ID, "2026-02-01", "", "increase volume", "primary", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -544,7 +544,7 @@ func TestListAthletePrograms(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ap, err := models.AssignProgram(db, athleteID, pt.ID, "2026-01-15", "notes here", "get strong")
+	ap, err := models.AssignProgram(db, athleteID, pt.ID, "2026-01-15", "notes here", "get strong", "primary", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -580,7 +580,7 @@ func TestListAthletePrograms(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := models.AssignProgram(db, athleteID, pt2.ID, "2026-02-15", "", ""); err != nil {
+	if _, err := models.AssignProgram(db, athleteID, pt2.ID, "2026-02-15", "", "", "primary", ""); err != nil {
 		t.Fatal(err)
 	}
 

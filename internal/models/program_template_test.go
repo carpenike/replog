@@ -280,7 +280,7 @@ func TestDeleteProgramTemplate(t *testing.T) {
 	t.Run("delete in use", func(t *testing.T) {
 		tmpl, _ := CreateProgramTemplate(db, nil, "In Use", "", 1, 1, false, "")
 		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
+		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
 		if err != nil {
 			t.Fatalf("assign program: %v", err)
 		}
@@ -366,7 +366,7 @@ func TestAthleteProgram(t *testing.T) {
 	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("assign program", func(t *testing.T) {
-		ap, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "Starting cycle", "")
+		ap, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "Starting cycle", "", "primary", "")
 		if err != nil {
 			t.Fatalf("assign: %v", err)
 		}
@@ -379,7 +379,7 @@ func TestAthleteProgram(t *testing.T) {
 	})
 
 	t.Run("duplicate active", func(t *testing.T) {
-		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-15", "", "")
+		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-15", "", "", "primary", "")
 		if err != ErrProgramAlreadyActive {
 			t.Errorf("err = %v, want ErrProgramAlreadyActive", err)
 		}
@@ -410,7 +410,7 @@ func TestAthleteProgram(t *testing.T) {
 		}
 
 		// Should be able to assign again.
-		_, err = AssignProgram(db, a.ID, tmpl.ID, "2026-03-01", "", "")
+		_, err = AssignProgram(db, a.ID, tmpl.ID, "2026-03-01", "", "", "primary", "")
 		if err != nil {
 			t.Fatalf("reassign: %v", err)
 		}
@@ -447,12 +447,12 @@ func TestGetPrescription(t *testing.T) {
 	SetTrainingMax(db, a.ID, squat.ID, 300, "2026-01-01", "")
 
 	// Assign program starting Feb 1.
-	AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "")
+	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
 
 	t.Run("first workout (W1D1)", func(t *testing.T) {
 		// Parse a fixed date for repeatable tests.
 		today := mustParseDate("2026-02-01")
-		rx, err := GetPrescription(db, a.ID, today)
+		rx, err := GetPrescription(db, ap, today)
 		if err != nil {
 			t.Fatalf("get prescription: %v", err)
 		}
@@ -490,11 +490,11 @@ func TestGetPrescription(t *testing.T) {
 	})
 
 	t.Run("after one workout (W1D2)", func(t *testing.T) {
-		// Log one workout to advance to next day.
-		CreateWorkout(db, a.ID, "2026-02-01", "")
+		// Log one workout linked to the assignment to advance to next day.
+		CreateWorkout(db, a.ID, "2026-02-01", "", ap.ID)
 
 		today := mustParseDate("2026-02-02")
-		rx, err := GetPrescription(db, a.ID, today)
+		rx, err := GetPrescription(db, ap, today)
 		if err != nil {
 			t.Fatalf("get prescription: %v", err)
 		}
@@ -507,8 +507,7 @@ func TestGetPrescription(t *testing.T) {
 	})
 
 	t.Run("no active program", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "No Program", "", "", "", "", "", "", sql.NullInt64{}, true)
-		rx, err := GetPrescription(db, a2.ID, mustParseDate("2026-02-01"))
+		rx, err := GetPrescription(db, nil, mustParseDate("2026-02-01"))
 		if err != nil {
 			t.Fatalf("get prescription: %v", err)
 		}

@@ -12,7 +12,7 @@ func TestWorkoutCRUD(t *testing.T) {
 	a, _ := CreateAthlete(db, "Workout Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("create workout", func(t *testing.T) {
-		w, err := CreateWorkout(db, a.ID, "2026-02-01", "leg day")
+		w, err := CreateWorkout(db, a.ID, "2026-02-01", "leg day", 0)
 		if err != nil {
 			t.Fatalf("create workout: %v", err)
 		}
@@ -25,14 +25,14 @@ func TestWorkoutCRUD(t *testing.T) {
 	})
 
 	t.Run("one workout per day", func(t *testing.T) {
-		_, err := CreateWorkout(db, a.ID, "2026-02-01", "")
+		_, err := CreateWorkout(db, a.ID, "2026-02-01", "", 0)
 		if err != ErrWorkoutExists {
 			t.Errorf("err = %v, want ErrWorkoutExists", err)
 		}
 	})
 
 	t.Run("different dates ok", func(t *testing.T) {
-		_, err := CreateWorkout(db, a.ID, "2026-02-02", "")
+		_, err := CreateWorkout(db, a.ID, "2026-02-02", "", 0)
 		if err != nil {
 			t.Fatalf("create workout: %v", err)
 		}
@@ -43,7 +43,7 @@ func TestUpdateWorkoutNotes(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Notes Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	w, _ := CreateWorkout(db, a.ID, "2026-03-01", "")
+	w, _ := CreateWorkout(db, a.ID, "2026-03-01", "", 0)
 
 	if err := UpdateWorkoutNotes(db, w.ID, "updated notes"); err != nil {
 		t.Fatalf("update notes: %v", err)
@@ -59,7 +59,7 @@ func TestDeleteWorkout(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Del Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	w, _ := CreateWorkout(db, a.ID, "2026-04-01", "")
+	w, _ := CreateWorkout(db, a.ID, "2026-04-01", "", 0)
 
 	if err := DeleteWorkout(db, w.ID); err != nil {
 		t.Fatalf("delete workout: %v", err)
@@ -74,9 +74,9 @@ func TestListWorkouts(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "List Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	CreateWorkout(db, a.ID, "2026-01-01", "")
-	CreateWorkout(db, a.ID, "2026-01-15", "")
-	CreateWorkout(db, a.ID, "2026-01-10", "")
+	CreateWorkout(db, a.ID, "2026-01-01", "", 0)
+	CreateWorkout(db, a.ID, "2026-01-15", "", 0)
+	CreateWorkout(db, a.ID, "2026-01-10", "", 0)
 
 	workouts, err := ListWorkouts(db, a.ID, 0)
 	if err != nil {
@@ -95,7 +95,7 @@ func TestGetWorkoutByAthleteDate(t *testing.T) {
 	db := testDB(t)
 
 	a, _ := CreateAthlete(db, "Date Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	w, _ := CreateWorkout(db, a.ID, "2026-03-15", "found me")
+	w, _ := CreateWorkout(db, a.ID, "2026-03-15", "found me", 0)
 
 	t.Run("found", func(t *testing.T) {
 		got, err := GetWorkoutByAthleteDate(db, a.ID, "2026-03-15")

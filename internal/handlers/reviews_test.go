@@ -14,7 +14,7 @@ func TestReviews_SubmitReview_CoachCanReview(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "ReviewKid", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "", 0)
 
 	h := &Reviews{DB: db, Templates: tc}
 
@@ -50,7 +50,7 @@ func TestReviews_SubmitReview_NonCoachForbidden(t *testing.T) {
 	tc := testTemplateCache(t)
 	athlete := seedAthlete(t, db, "Kid", "")
 	nonCoach := seedNonCoach(t, db, athlete.ID)
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "", 0)
 
 	h := &Reviews{DB: db, Templates: tc}
 
@@ -73,7 +73,7 @@ func TestReviews_SubmitReview_InvalidStatus(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Kid", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "", 0)
 
 	h := &Reviews{DB: db, Templates: tc}
 
@@ -96,7 +96,7 @@ func TestReviews_SubmitReview_UpdateExisting(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Kid", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "", 0)
 
 	// Create initial review.
 	models.CreateWorkoutReview(db, workout.ID, coach.ID, models.ReviewStatusApproved, "Good")
@@ -132,7 +132,7 @@ func TestReviews_SubmitReview_WrongAthlete(t *testing.T) {
 	coach := seedCoach(t, db)
 	athlete1 := seedAthlete(t, db, "Kid1", "")
 	athlete2 := seedAthlete(t, db, "Kid2", "")
-	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-15", "")
+	workout, _ := models.CreateWorkout(db, athlete1.ID, "2026-02-15", "", 0)
 
 	h := &Reviews{DB: db, Templates: tc}
 
@@ -156,7 +156,7 @@ func TestReviews_DeleteReview(t *testing.T) {
 	tc := testTemplateCache(t)
 	coach := seedCoach(t, db)
 	athlete := seedAthlete(t, db, "Kid", "")
-	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "")
+	workout, _ := models.CreateWorkout(db, athlete.ID, "2026-02-15", "", 0)
 
 	models.CreateWorkoutReview(db, workout.ID, coach.ID, models.ReviewStatusApproved, "")
 
@@ -205,8 +205,8 @@ func TestReviews_PendingReviews(t *testing.T) {
 	athlete := seedAthlete(t, db, "Kid", "")
 
 	// Create some workouts.
-	w1, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "")
-	models.CreateWorkout(db, athlete.ID, "2026-02-11", "")
+	w1, _ := models.CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
+	models.CreateWorkout(db, athlete.ID, "2026-02-11", "", 0)
 
 	// Review one.
 	models.CreateWorkoutReview(db, w1.ID, coach.ID, models.ReviewStatusApproved, "")

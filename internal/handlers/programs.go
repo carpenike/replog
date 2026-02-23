@@ -531,10 +531,19 @@ func (h *Programs) AssignProgram(w http.ResponseWriter, r *http.Request) {
 	}
 	notes := r.FormValue("notes")
 	goal := r.FormValue("goal")
+	role := r.FormValue("role")
+	if role == "" {
+		role = "primary"
+	}
+	schedule := r.FormValue("schedule")
 
-	_, err = models.AssignProgram(h.DB, athleteID, templateID, startDate, notes, goal)
+	_, err = models.AssignProgram(h.DB, athleteID, templateID, startDate, notes, goal, role, schedule)
 	if errors.Is(err, models.ErrProgramAlreadyActive) {
-		http.Error(w, "Athlete already has an active program. Deactivate it first.", http.StatusConflict)
+		http.Error(w, "Athlete already has an active primary program. Deactivate it first.", http.StatusConflict)
+		return
+	}
+	if errors.Is(err, models.ErrScheduleConflict) {
+		http.Error(w, "Schedule conflicts with an existing active program.", http.StatusConflict)
 		return
 	}
 	if err != nil {
@@ -686,7 +695,15 @@ func (h *Programs) Prescription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prescription, err := models.GetPrescription(h.DB, athleteID, time.Now())
+	// Resolve the primary program for prescription display.
+	program, err := models.GetActiveProgram(h.DB, athleteID)
+	if err != nil {
+		log.Printf("handlers: get active program for athlete %d: %v", athleteID, err)
+		http.Error(w, "Failed to load program", http.StatusInternalServerError)
+		return
+	}
+
+	prescription, err := models.GetPrescription(h.DB, program, time.Now())
 	if err != nil {
 		log.Printf("handlers: get prescription for athlete %d: %v", athleteID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -802,7 +819,14 @@ func (h *Programs) CycleReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	report, err := models.GetCycleReport(h.DB, athleteID, time.Now())
+	program, err := models.GetActiveProgram(h.DB, athleteID)
+	if err != nil {
+		log.Printf("handlers: get active program for athlete %d: %v", athleteID, err)
+		http.Error(w, "Failed to load program", http.StatusInternalServerError)
+		return
+	}
+
+	report, err := models.GetCycleReport(h.DB, program, time.Now())
 	if err != nil {
 		log.Printf("handlers: get cycle report for athlete %d: %v", athleteID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -907,7 +931,14 @@ func (h *Programs) CycleReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary, err := models.GetCycleSummary(h.DB, athleteID, time.Now())
+	program, err := models.GetActiveProgram(h.DB, athleteID)
+	if err != nil {
+		log.Printf("handlers: get active program for athlete %d: %v", athleteID, err)
+		http.Error(w, "Failed to load program", http.StatusInternalServerError)
+		return
+	}
+
+	summary, err := models.GetCycleSummary(h.DB, program, time.Now())
 	if err != nil {
 		log.Printf("handlers: get cycle summary for athlete %d: %v", athleteID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

@@ -261,7 +261,7 @@ func TestCatalogImport_DeactivatesPriorProgram(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
-	_, err = AssignProgram(db, athlete.ID, tmpl.ID, "2025-01-01", "", "")
+	_, err = AssignProgram(db, athlete.ID, tmpl.ID, "2025-01-01", "", "", "primary", "")
 	if err != nil {
 		t.Fatalf("assign program: %v", err)
 	}

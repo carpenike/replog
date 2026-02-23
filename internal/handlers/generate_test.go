@@ -75,7 +75,7 @@ func TestGenerate_Form(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = models.AssignProgram(db, athlete.ID, pt.ID, "2026-01-15", "", "")
+		_, err = models.AssignProgram(db, athlete.ID, pt.ID, "2026-01-15", "", "", "primary", "")
 		if err != nil {
 			t.Fatal(err)
 		}

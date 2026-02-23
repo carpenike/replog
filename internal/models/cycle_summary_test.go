@@ -9,9 +9,9 @@ import (
 func TestGetCycleSummary_NoProgramReturnsNil(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
+	_, _ = CreateAthlete(db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
 
-	summary, err := GetCycleSummary(db, a.ID, time.Now())
+	summary, err := GetCycleSummary(db, nil, time.Now())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -25,10 +25,10 @@ func TestGetCycleSummary_NoCycleCompletedReturnsNil(t *testing.T) {
 
 	a, _ := CreateAthlete(db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
 	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 3, 4, false, "")
-	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
+	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "", "primary", "")
 
 	// No workouts logged — still in cycle 1.
-	summary, err := GetCycleSummary(db, a.ID, mustParseDate("2026-02-01"))
+	summary, err := GetCycleSummary(db, ap, mustParseDate("2026-02-01"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 
 	// Create a 3-week × 2-day program (6 workouts per cycle).
 	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 3, 2, false, "")
-	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
+	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "", "primary", "")
 
 	// Add AMRAP prescribed sets (reps=NULL) on week 3 day 1.
 	CreatePrescribedSet(db, tmpl.ID, squat.ID, 3, 1, 1, nil, ptrFloat(95), nil, 0, "", "")
@@ -69,7 +69,7 @@ func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 		"2026-01-02", "2026-01-03", "2026-01-06", "2026-01-07", "2026-01-09", "2026-01-10",
 	}
 	for _, d := range dates {
-		w, err := CreateWorkout(db, a.ID, d, "")
+		w, err := CreateWorkout(db, a.ID, d, "", ap.ID)
 		if err != nil {
 			t.Fatalf("create workout %s: %v", d, err)
 		}
@@ -82,7 +82,7 @@ func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 	}
 
 	// Get cycle summary — should show the completed first cycle.
-	summary, err := GetCycleSummary(db, a.ID, mustParseDate("2026-01-15"))
+	summary, err := GetCycleSummary(db, ap, mustParseDate("2026-01-15"))
 	if err != nil {
 		t.Fatalf("get cycle summary: %v", err)
 	}
@@ -138,16 +138,16 @@ func TestGetCycleSummary_NoTMSkipsExercise(t *testing.T) {
 	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
 
 	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 1, 2, false, "")
-	AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "")
+	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "", "primary", "")
 
 	// Progression rule but no TM set.
 	SetProgressionRule(db, tmpl.ID, squat.ID, 10.0)
 
 	// Complete one cycle (2 workouts).
-	CreateWorkout(db, a.ID, "2026-01-02", "")
-	CreateWorkout(db, a.ID, "2026-01-03", "")
+	CreateWorkout(db, a.ID, "2026-01-02", "", ap.ID)
+	CreateWorkout(db, a.ID, "2026-01-03", "", ap.ID)
 
-	summary, err := GetCycleSummary(db, a.ID, mustParseDate("2026-01-10"))
+	summary, err := GetCycleSummary(db, ap, mustParseDate("2026-01-10"))
 	if err != nil {
 		t.Fatalf("get cycle summary: %v", err)
 	}

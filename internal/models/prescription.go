@@ -7,6 +7,54 @@ import (
 	"time"
 )
 
+// ResolveAssignment determines which active program assignment applies for the given
+// athlete on the given date, using timezone-aware weekday resolution.
+//
+// Resolution order (first match wins):
+//  1. Supplemental with schedule that includes today's weekday.
+//  2. Primary with schedule that includes today's weekday.
+//  3. Primary with no schedule (catch-all).
+//  4. nil — no assignment matches (ad-hoc workout day).
+func ResolveAssignment(db *sql.DB, athleteID int64, date time.Time, tz string) (*AthleteProgram, error) {
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return nil, fmt.Errorf("models: resolve assignment: invalid timezone %q: %w", tz, err)
+	}
+
+	// Determine ISO weekday (1=Mon..7=Sun) in the athlete's local timezone.
+	localDate := date.In(loc)
+	goWeekday := localDate.Weekday() // Sunday=0, Monday=1, ..., Saturday=6
+	isoWeekday := int(goWeekday)
+	if isoWeekday == 0 {
+		isoWeekday = 7 // Sunday → 7
+	}
+
+	assignments, err := ListActiveProgramAssignments(db, athleteID)
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryCatchAll *AthleteProgram
+	for _, ap := range assignments {
+		days := ap.ScheduleDays()
+		if days == nil {
+			// No schedule — this is a catch-all. Only primaries can be catch-all.
+			if ap.Role == "primary" {
+				primaryCatchAll = ap
+			}
+			continue
+		}
+		for _, d := range days {
+			if d == isoWeekday {
+				return ap, nil // First scheduled match wins (supplementals come first).
+			}
+		}
+	}
+
+	// No scheduled match — fall back to catch-all primary.
+	return primaryCatchAll, nil
+}
+
 // PrescriptionLine represents one exercise's prescription for today,
 // with sets collapsed into a summary and target weight calculated from TM.
 type PrescriptionLine struct {
@@ -90,37 +138,32 @@ type Prescription struct {
 	CycleComplete bool
 }
 
-// GetPrescription calculates today's training prescription for an athlete.
-// Position in the program is determined by counting completed workouts since start_date.
+// GetPrescription calculates training prescription for an athlete using a specific assignment.
+// Position in the program is determined by counting completed workouts with the same assignment_id.
 // The cycle repeats automatically when all weeks×days are exhausted.
-func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescription, error) {
-	// Get the athlete's active program.
-	program, err := GetActiveProgram(db, athleteID)
-	if err != nil {
-		return nil, err
-	}
+// If program is nil, returns nil (no prescription).
+func GetPrescription(db *sql.DB, program *AthleteProgram, today time.Time) (*Prescription, error) {
 	if program == nil {
-		return nil, nil // No active program.
+		return nil, nil // No assignment resolved.
 	}
 
 	todayStr := today.Format("2006-01-02")
 
-	// Count workouts since program start (not including today).
-	// Use date() to normalize stored timestamps (modernc.org/sqlite stores DATE as Julian day reals).
+	// Count workouts linked to this assignment (not including today).
 	var completedWorkouts int
-	err = db.QueryRow(
-		`SELECT COUNT(*) FROM workouts WHERE athlete_id = ? AND date(date) >= date(?) AND date(date) < date(?)`,
-		athleteID, program.StartDate, todayStr,
+	err := db.QueryRow(
+		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) < date(?)`,
+		program.ID, todayStr,
 	).Scan(&completedWorkouts)
 	if err != nil {
 		return nil, fmt.Errorf("models: count workouts for prescription: %w", err)
 	}
 
-	// Check if there's a workout today.
+	// Check if there's a workout today for this assignment.
 	var todayCount int
 	err = db.QueryRow(
-		`SELECT COUNT(*) FROM workouts WHERE athlete_id = ? AND date(date) = date(?)`,
-		athleteID, todayStr,
+		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) = date(?)`,
+		program.ID, todayStr,
 	).Scan(&todayCount)
 	if err != nil {
 		return nil, fmt.Errorf("models: check today workout: %w", err)
@@ -155,7 +198,7 @@ func GetPrescription(db *sql.DB, athleteID int64, today time.Time) (*Prescriptio
 	}
 
 	// Get current training maxes for the athlete.
-	tms, err := ListCurrentTrainingMaxes(db, athleteID)
+	tms, err := ListCurrentTrainingMaxes(db, program.AthleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -256,22 +299,19 @@ type CycleReport struct {
 }
 
 // GetCycleReport generates the full prescription for every day in the current cycle.
-func GetCycleReport(db *sql.DB, athleteID int64, today time.Time) (*CycleReport, error) {
-	program, err := GetActiveProgram(db, athleteID)
-	if err != nil {
-		return nil, err
-	}
+// If program is nil, returns nil.
+func GetCycleReport(db *sql.DB, program *AthleteProgram, today time.Time) (*CycleReport, error) {
 	if program == nil {
 		return nil, nil
 	}
 
 	todayStr := today.Format("2006-01-02")
 
-	// Count completed workouts to determine current cycle number.
+	// Count completed workouts linked to this assignment to determine current cycle number.
 	var completedWorkouts int
-	err = db.QueryRow(
-		`SELECT COUNT(*) FROM workouts WHERE athlete_id = ? AND date(date) >= date(?) AND date(date) < date(?)`,
-		athleteID, program.StartDate, todayStr,
+	err := db.QueryRow(
+		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) < date(?)`,
+		program.ID, todayStr,
 	).Scan(&completedWorkouts)
 	if err != nil {
 		return nil, fmt.Errorf("models: count workouts for cycle report: %w", err)
@@ -284,7 +324,7 @@ func GetCycleReport(db *sql.DB, athleteID int64, today time.Time) (*CycleReport,
 	cycleNumber := (completedWorkouts / cycleLength) + 1
 
 	// Get training maxes.
-	tms, err := ListCurrentTrainingMaxes(db, athleteID)
+	tms, err := ListCurrentTrainingMaxes(db, program.AthleteID)
 	if err != nil {
 		return nil, err
 	}
