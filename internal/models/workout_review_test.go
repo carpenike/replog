@@ -178,8 +178,8 @@ func TestListUnreviewedWorkouts(t *testing.T) {
 	}
 
 	// Should be ordered by date DESC.
-	if unreviewed[0].WorkoutID != unreviewed[0].WorkoutID {
-		// Sanity check — just verify they are valid workout IDs.
+	if len(unreviewed) >= 2 && unreviewed[0].WorkoutID == unreviewed[1].WorkoutID {
+		t.Error("unreviewed entries should have different workout IDs")
 	}
 
 	// Verify none of them are w1 (which was reviewed).

@@ -56,12 +56,7 @@ func ParseRepLogJSON(r io.Reader) (*ParsedFile, error) {
 
 	// Convert workouts.
 	for _, wj := range rj.Workouts {
-		pw := ParsedWorkout{
-			Date:   wj.Date,
-			Notes:  wj.Notes,
-			Review: wj.Review,
-			Sets:   wj.Sets,
-		}
+		pw := ParsedWorkout(wj)
 		// Default rep_type if not specified.
 		for i := range pw.Sets {
 			if pw.Sets[i].RepType == "" {

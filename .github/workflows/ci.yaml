@@ -49,7 +49,6 @@ jobs:
           go-version-file: go.mod
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          install-mode: goinstall
-          version: v1.64.8
+          version: v2.6.2

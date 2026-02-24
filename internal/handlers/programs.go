@@ -990,7 +990,7 @@ func (h *Programs) ApplyTMBumps(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		notes := fmt.Sprintf("Cycle progression bump")
+		notes := "Cycle progression bump"
 		_, err = models.SetTrainingMax(h.DB, athleteID, exerciseID, newTM, today, notes)
 		if err != nil {
 			log.Printf("handlers: apply TM bump (athlete=%d, exercise=%d): %v", athleteID, exerciseID, err)

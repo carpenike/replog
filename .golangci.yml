@@ -1,0 +1,39 @@
+version: "2"
+
+linters:
+  default: standard
+  settings:
+    errcheck:
+      # Don't check error returns for common safe-to-ignore patterns.
+      exclude-functions:
+        # HTTP response writes — errors here mean the client disconnected;
+        # nothing useful to do in the handler.
+        - (net/http.ResponseWriter).Write
+        - (*encoding/json.Encoder).Encode
+        - fmt.Fprintf
+        - fmt.Fprintln
+        # Deferred cleanup — errors on close after successful operations
+        # are almost always harmless and clutter the main error path.
+        - (*os.File).Close
+        - (*database/sql.DB).Close
+        - (*database/sql.Tx).Rollback
+        - (*database/sql.Rows).Close
+        - (*database/sql.Stmt).Close
+        # Best-effort file cleanup.
+        - os.Remove
+        # Template rendering in error/validation fallback paths — the HTTP
+        # status is already set; if rendering also fails there is nothing
+        # useful the handler can do.
+        - (github.com/carpenike/replog/internal/handlers.TemplateCache).Render
+        - (*html/template.Template).ExecuteTemplate
+        # Session destroy before redirect — best-effort cleanup.
+        - (*github.com/alexedwards/scs/v2.SessionManager).Destroy
+  exclusions:
+    presets:
+      - std-error-handling
+    rules:
+      # Test files: don't enforce errcheck on test setup/helper calls
+      # (seeding data, etc.). Actual assertions use t.Fatal/t.Error.
+      - path: _test\.go
+        linters:
+          - errcheck
