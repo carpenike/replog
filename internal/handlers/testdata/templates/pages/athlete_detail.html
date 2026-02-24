@@ -7,9 +7,7 @@
 
         <div class="page-header">
             <hgroup>
-                <h1>{{ .Athlete.Name }}
-                    {{ if .Athlete.Tier.Valid }}<span class="tier-badge" data-tier="{{ .Athlete.Tier.String }}">{{ tierLabel .Athlete.Tier.String }}</span>{{ else }}<span class="tier-badge" data-tier="none">No Tier</span>{{ end }}
-                </h1>
+                <h1>{{ .Athlete.Name }}</h1>
             </hgroup>
             {{ if .User.IsCoach }}
             <div class="page-actions">
@@ -31,6 +29,13 @@
         {{ if .Athlete.Notes.Valid }}
         <blockquote>{{ .Athlete.Notes.String }}</blockquote>
         {{ end }}
+
+        <div class="demographic-pills">
+            {{ if .Athlete.Tier.Valid }}<span class="tier-badge" data-tier="{{ .Athlete.Tier.String }}">{{ tierLabel .Athlete.Tier.String }}</span>{{ else }}<span class="tier-badge" data-tier="none">No Tier</span>{{ end }}
+            {{ if .Athlete.DateOfBirth.Valid }}<span class="demo-pill">🎂 Age {{ ageFromDOB .Athlete.DateOfBirth.String }}</span>{{ end }}
+            {{ if .Athlete.Grade.Valid }}<span class="demo-pill">🎓 {{ .Athlete.Grade.String }}</span>{{ end }}
+            {{ if .Athlete.Gender.Valid }}<span class="demo-pill">{{ if eq .Athlete.Gender.String "male" }}Male{{ else if eq .Athlete.Gender.String "female" }}Female{{ else }}{{ .Athlete.Gender.String }}{{ end }}</span>{{ end }}
+        </div>
 
         <!-- Hub Cards -->
         <div class="dashboard-grid">

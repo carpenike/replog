@@ -175,6 +175,26 @@ var templateFuncs = template.FuncMap{
 		}
 		return s
 	},
+	// ageFromDOB calculates age in years from a YYYY-MM-DD date-of-birth string.
+	// Call as {{ ageFromDOB "2012-03-15" }}.
+	"ageFromDOB": func(dateStr string) int {
+		if dateStr == "" {
+			return 0
+		}
+		t, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			t, err = time.Parse(time.RFC3339, dateStr)
+		}
+		if err != nil {
+			return 0
+		}
+		now := time.Now()
+		age := now.Year() - t.Year()
+		if now.YearDay() < t.YearDay() {
+			age--
+		}
+		return age
+	},
 	// formatDateStr formats a YYYY-MM-DD date string using the user's preferred
 	// date format. Call as {{ formatDateStr .Prefs "2025-01-15" }}.
 	"formatDateStr": func(prefs *models.UserPreferences, dateStr string) string {

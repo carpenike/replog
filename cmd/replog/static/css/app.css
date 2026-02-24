@@ -1214,11 +1214,16 @@ main.container {
 
 .page-actions button,
 .page-actions [role="button"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: auto;
     margin-bottom: 0;
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
     line-height: 1.5;
+    text-decoration: none;
+    box-sizing: border-box;
 }
 
 /* ---- Breadcrumbs — subtle, understated ---- */
@@ -1834,6 +1839,11 @@ form.inline {
 
 form.inline button {
     margin: 0;
+}
+
+.page-actions form.inline {
+    display: inline-flex;
+    align-items: center;
 }
 
 .action-buttons {
