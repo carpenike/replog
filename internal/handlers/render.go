@@ -292,6 +292,36 @@ var templateFuncs = template.FuncMap{
 	"notificationTypeLabel": func(nType string) string {
 		return models.NotificationTypeLabel(nType)
 	},
+	// timeAgo returns a human-readable relative time string (e.g., "5 minutes ago").
+	// Returns "never" for zero time values.
+	"timeAgo": func(t time.Time) string {
+		if t.IsZero() {
+			return "never"
+		}
+		d := time.Since(t)
+		switch {
+		case d < time.Minute:
+			return "just now"
+		case d < time.Hour:
+			m := int(d.Minutes())
+			if m == 1 {
+				return "1 minute ago"
+			}
+			return fmt.Sprintf("%d minutes ago", m)
+		case d < 24*time.Hour:
+			h := int(d.Hours())
+			if h == 1 {
+				return "1 hour ago"
+			}
+			return fmt.Sprintf("%d hours ago", h)
+		default:
+			days := int(d.Hours() / 24)
+			if days == 1 {
+				return "1 day ago"
+			}
+			return fmt.Sprintf("%d days ago", days)
+		}
+	},
 }
 
 // TemplateCache maps page filenames to parsed template sets. Each set contains

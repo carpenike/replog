@@ -148,6 +148,7 @@ func main() {
 	pages := &handlers.Pages{
 		DB:        db,
 		Templates: tc,
+		Scheduler: maintenance,
 	}
 	athletes := &handlers.Athletes{
 		DB:        db,

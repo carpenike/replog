@@ -348,12 +348,12 @@ func TestListSettingsByCategoryOrdered(t *testing.T) {
 
 	ordered := ListSettingsByCategoryOrdered(db)
 
-	if len(ordered) < 4 {
-		t.Fatalf("expected at least 4 categories, got %d", len(ordered))
+	if len(ordered) < 5 {
+		t.Fatalf("expected at least 5 categories, got %d", len(ordered))
 	}
 
-	// Verify ordering: General, Defaults, Notifications, AI Coach.
-	expectedOrder := []string{"General", "Defaults", "Notifications", "AI Coach"}
+	// Verify ordering: General, Defaults, Notifications, AI Coach, Maintenance.
+	expectedOrder := []string{"General", "Defaults", "Notifications", "AI Coach", "Maintenance"}
 	for i, expected := range expectedOrder {
 		if i >= len(ordered) {
 			t.Fatalf("missing category at position %d: want %q", i, expected)
@@ -361,5 +361,46 @@ func TestListSettingsByCategoryOrdered(t *testing.T) {
 		if ordered[i].Name != expected {
 			t.Errorf("category[%d] = %q, want %q", i, ordered[i].Name, expected)
 		}
+	}
+}
+func TestGetMaintenanceIntervalHours(t *testing.T) {
+	db := testDB(t)
+
+	// Default should be 24.
+	if got := GetMaintenanceIntervalHours(db); got != 24 {
+		t.Errorf("default interval = %d, want 24", got)
+	}
+
+	// Override to 48.
+	SetSetting(db, "maintenance.interval_hours", "48")
+	if got := GetMaintenanceIntervalHours(db); got != 48 {
+		t.Errorf("overridden interval = %d, want 48", got)
+	}
+
+	// Invalid value should fall back to default.
+	SetSetting(db, "maintenance.interval_hours", "0")
+	if got := GetMaintenanceIntervalHours(db); got != 24 {
+		t.Errorf("invalid interval fallback = %d, want 24", got)
+	}
+}
+
+func TestGetMaintenanceRetentionDays(t *testing.T) {
+	db := testDB(t)
+
+	// Default should be 90.
+	if got := GetMaintenanceRetentionDays(db); got != 90 {
+		t.Errorf("default retention = %d, want 90", got)
+	}
+
+	// Override to 30.
+	SetSetting(db, "maintenance.retention_days", "30")
+	if got := GetMaintenanceRetentionDays(db); got != 30 {
+		t.Errorf("overridden retention = %d, want 30", got)
+	}
+
+	// Value above max should fall back to default.
+	SetSetting(db, "maintenance.retention_days", "999")
+	if got := GetMaintenanceRetentionDays(db); got != 90 {
+		t.Errorf("invalid retention fallback = %d, want 90", got)
 	}
 }

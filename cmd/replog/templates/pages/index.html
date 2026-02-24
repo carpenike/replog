@@ -97,6 +97,39 @@
     </section>
     {{ end }}
 
+    {{ if .MaintenanceStatus }}
+    <section>
+        <h2>System Maintenance</h2>
+        <div class="overflow-auto">
+        <table>
+            <tbody>
+                <tr>
+                    <th scope="row">Last Run</th>
+                    <td>{{ timeAgo .MaintenanceStatus.LastRun }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">Next Run</th>
+                    <td>{{ timeAgo .MaintenanceStatus.NextRun }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">Tokens Cleaned</th>
+                    <td>{{ .MaintenanceStatus.TokensDeleted }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">Notifications Pruned</th>
+                    <td>{{ .MaintenanceStatus.NotificationsPruned }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">Schedule</th>
+                    <td>Every {{ .MaintenanceStatus.IntervalHours }}h · Retain {{ .MaintenanceStatus.RetentionDays }}d</td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+        <p><small><a href="/settings">Configure maintenance settings →</a></small></p>
+    </section>
+    {{ end }}
+
     {{ else }}
     {{/* Non-coach without linked athlete (linked non-coaches are redirected by handler) */}}
     <article class="empty-state">

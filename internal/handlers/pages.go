@@ -8,13 +8,15 @@ import (
 
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/scheduler"
 )
 
 // Pages holds dependencies for page handlers.
 type Pages struct {
 	DB        *sql.DB
 	Templates TemplateCache
-	Setup     *Setup // Wizard handler for passkey suggestion check. May be nil.
+	Setup     *Setup              // Wizard handler for passkey suggestion check. May be nil.
+	Scheduler *scheduler.Scheduler // Background maintenance scheduler. May be nil.
 }
 
 // Index renders the home page for an authenticated user.
@@ -60,6 +62,11 @@ func (p *Pages) Index(w http.ResponseWriter, r *http.Request) {
 			log.Printf("handlers: review stats: %v", err)
 		} else {
 			data["ReviewStats"] = reviewStats
+		}
+
+		// Admin-only: show maintenance status.
+		if user.IsAdmin && p.Scheduler != nil {
+			data["MaintenanceStatus"] = p.Scheduler.Status()
 		}
 	}
 

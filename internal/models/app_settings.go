@@ -39,7 +39,7 @@ type SettingValue struct {
 }
 
 // CategoryOrder defines the display order for setting categories in the admin UI.
-var CategoryOrder = []string{"General", "Defaults", "Notifications", "AI Coach"}
+var CategoryOrder = []string{"General", "Defaults", "Notifications", "AI Coach", "Maintenance"}
 
 // SettingsRegistry defines all known application settings.
 var SettingsRegistry = []SettingDefinition{
@@ -139,6 +139,17 @@ var SettingsRegistry = []SettingDefinition{
 		Key: "llm.system_prompt_override", EnvVar: "", Default: "",
 		Label: "System Prompt Override", Description: "Replace the default system prompt (leave empty to use built-in prompt)",
 		FieldType: "textarea", Category: "AI Coach",
+	},
+	// --- Maintenance ---
+	{
+		Key: "maintenance.interval_hours", EnvVar: "", Default: "24",
+		Label: "Schedule Interval (hours)", Description: "How often background maintenance runs (1–168 hours)",
+		FieldType: "number", Category: "Maintenance",
+	},
+	{
+		Key: "maintenance.retention_days", EnvVar: "", Default: "90",
+		Label: "Notification Retention (days)", Description: "Read notifications older than this are pruned (1–365 days)",
+		FieldType: "number", Category: "Maintenance",
 	},
 }
 
@@ -293,6 +304,26 @@ func GetAppName(db *sql.DB) string {
 		return v
 	}
 	return "RepLog"
+}
+
+// GetMaintenanceIntervalHours returns the scheduler interval from app settings.
+func GetMaintenanceIntervalHours(db *sql.DB) int {
+	if v := GetSetting(db, "maintenance.interval_hours"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 168 {
+			return n
+		}
+	}
+	return 24
+}
+
+// GetMaintenanceRetentionDays returns the notification retention period from app settings.
+func GetMaintenanceRetentionDays(db *sql.DB) int {
+	if v := GetSetting(db, "maintenance.retention_days"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 365 {
+			return n
+		}
+	}
+	return 90
 }
 
 // GetOrCreateSecretKey ensures a secret key exists for encrypting sensitive settings.
