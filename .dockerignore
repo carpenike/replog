@@ -1,0 +1,13 @@
+# .dockerignore — exclude files that should not be sent to the Docker build context.
+*.db
+*.db-wal
+*.db-shm
+avatars/*
+docs/references
+.env
+.git
+.github
+.beads
+.vscode
+__debug_bin*
+result

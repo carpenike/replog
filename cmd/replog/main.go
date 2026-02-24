@@ -2,15 +2,19 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/alexedwards/scs/sqlite3store"
@@ -31,6 +35,13 @@ var templateFS embed.FS
 
 //go:embed all:static
 var staticFS embed.FS
+
+// Build-time variables injected via ldflags (e.g., by GoReleaser).
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
 
 func main() {
 	// Determine database path — default to ./replog.db, override with REPLOG_DB_PATH.
@@ -299,11 +310,24 @@ func main() {
 
 	// --- Public routes — no auth required ---
 	r.Handle("/static/*", staticCacheControl(http.FileServerFS(staticFS)))
-	r.Get("/health", handleHealth)
+	r.Get("/health", handleHealthz)
+	r.Get("/healthz", handleHealthz)
+	r.Get("/readyz", handleReadyz(db))
 	r.Get("/avatars/{filename}", avatars.Serve)
 
 	// Rate limiter for authentication endpoints — 10 attempts per minute per IP.
-	authLimiter := middleware.NewRateLimiter(10, time.Minute)
+	// REPLOG_TRUSTED_PROXIES is a comma-separated list of CIDRs or IPs whose
+	// X-Forwarded-For headers should be trusted (e.g., "127.0.0.1,10.0.0.0/8").
+	var trustedProxies []string
+	if tp := os.Getenv("REPLOG_TRUSTED_PROXIES"); tp != "" {
+		for _, p := range strings.Split(tp, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				trustedProxies = append(trustedProxies, p)
+			}
+		}
+		log.Printf("Trusted proxies: %v", trustedProxies)
+	}
+	authLimiter := middleware.NewRateLimiter(10, time.Minute, trustedProxies...)
 
 	// --- Session-loaded routes — login/logout/token auth ---
 	r.Group(func(r chi.Router) {
@@ -558,11 +582,39 @@ func main() {
 		r.Post("/admin/settings/test-notify", notifications.TestNotify)
 	})
 
-	// Start server.
-	log.Printf("RepLog listening on %s", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
-		log.Fatalf("Server failed: %v", err)
+	// Start server with graceful shutdown.
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
 	}
+
+	// Listen for OS signals to trigger graceful shutdown.
+	shutdownCh := make(chan os.Signal, 1)
+	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		log.Printf("RepLog %s (%s, %s) listening on %s", version, commit, date, addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Server failed: %v", err)
+		}
+	}()
+
+	// Block until we receive a shutdown signal.
+	sig := <-shutdownCh
+	log.Printf("Received %s, shutting down gracefully...", sig)
+
+	// Stop background goroutines.
+	authLimiter.Stop()
+
+	// Give in-flight requests up to 30 seconds to complete.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Forced shutdown: %v", err)
+	}
+
+	log.Println("Server stopped")
 }
 
 // bootstrapAdmin creates the initial admin user from environment variables
@@ -644,9 +696,23 @@ func bootstrapCatalog(db *sql.DB) error {
 	return nil
 }
 
-func handleHealth(w http.ResponseWriter, r *http.Request) {
+// handleHealthz is a liveness probe — always returns 200 if the process is running.
+func handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintln(w, "ok")
+}
+
+// handleReadyz is a readiness probe — checks database connectivity.
+func handleReadyz(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		if err := db.PingContext(r.Context()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, "not ready: %v\n", err)
+			return
+		}
+		fmt.Fprintln(w, "ok")
+	}
 }
 
 // staticCacheControl wraps a handler to set Cache-Control headers on static assets.

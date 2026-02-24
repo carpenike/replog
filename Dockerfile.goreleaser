@@ -1,0 +1,13 @@
+# Dockerfile.goreleaser — used by GoReleaser to package a pre-built binary.
+FROM gcr.io/distroless/static-debian12
+
+COPY replog /replog
+
+EXPOSE 8080
+VOLUME ["/data"]
+
+ENV REPLOG_DB_PATH=/data/replog.db
+ENV REPLOG_AVATAR_DIR=/data/avatars
+ENV REPLOG_ADDR=:8080
+
+ENTRYPOINT ["/replog"]

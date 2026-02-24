@@ -7,6 +7,7 @@
 /replog
 /result
 __debug_bin*
+/dist/
 
 # IDE — VS Code configs are committed, but local overrides are not
 .vscode/*.log
@@ -19,3 +20,10 @@ avatars/*
 
 # ignore env
 .env
+
+# Test/profiling artifacts
+coverage.out
+*.prof
+*.test
+cpu.out
+mem.out

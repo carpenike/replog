@@ -1,0 +1,85 @@
+version: 2
+
+project_name: replog
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+    - go test -count=1 ./...
+
+builds:
+  - main: ./cmd/replog
+    binary: replog
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    flags:
+      - -trimpath
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE*
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+
+dockers:
+  - image_templates:
+      - "ghcr.io/carpenike/replog:{{ .Version }}-amd64"
+      - "ghcr.io/carpenike/replog:latest-amd64"
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/amd64"
+    goos: linux
+    goarch: amd64
+
+  - image_templates:
+      - "ghcr.io/carpenike/replog:{{ .Version }}-arm64"
+      - "ghcr.io/carpenike/replog:latest-arm64"
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/arm64"
+    goos: linux
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "ghcr.io/carpenike/replog:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/carpenike/replog:{{ .Version }}-amd64"
+      - "ghcr.io/carpenike/replog:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/carpenike/replog:latest"
+    image_templates:
+      - "ghcr.io/carpenike/replog:latest-amd64"
+      - "ghcr.io/carpenike/replog:latest-arm64"
+
+release:
+  github:
+    owner: carpenike
+    name: replog
+  draft: false
+  prerelease: auto
