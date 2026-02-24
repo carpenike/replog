@@ -159,3 +159,16 @@ func DeleteLoginTokensByUser(db *sql.DB, userID int64) error {
 	}
 	return nil
 }
+
+// DeleteExpiredLoginTokens removes all login tokens whose expiry date has passed.
+// Returns the number of tokens deleted.
+func DeleteExpiredLoginTokens(db *sql.DB) (int64, error) {
+	result, err := db.Exec(
+		`DELETE FROM login_tokens WHERE expires_at IS NOT NULL AND expires_at < ?`,
+		time.Now(),
+	)
+	if err != nil {
+		return 0, fmt.Errorf("models: delete expired login tokens: %w", err)
+	}
+	return result.RowsAffected()
+}

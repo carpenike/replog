@@ -28,6 +28,7 @@ import (
 	"github.com/carpenike/replog/internal/importers"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/scheduler"
 )
 
 //go:embed all:templates
@@ -99,6 +100,10 @@ func main() {
 	if err := bootstrapCatalog(db); err != nil {
 		log.Fatalf("Failed to bootstrap seed catalog: %v", err)
 	}
+
+	// Start background maintenance scheduler (daily: expired tokens, old notifications).
+	maintenance := scheduler.New(db)
+	maintenance.Start()
 
 	// Parse templates once at startup.
 	tc, err := handlers.NewTemplateCache(templateFS)
@@ -605,6 +610,7 @@ func main() {
 
 	// Stop background goroutines.
 	authLimiter.Stop()
+	maintenance.Stop()
 
 	// Give in-flight requests up to 30 seconds to complete.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -612,6 +618,12 @@ func main() {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Forced shutdown: %v", err)
+	}
+
+	// Run SQLite optimize on shutdown — updates query planner statistics
+	// so the next startup benefits from accurate stats.
+	if _, err := db.Exec("PRAGMA optimize"); err != nil {
+		log.Printf("Warning: PRAGMA optimize failed: %v", err)
 	}
 
 	log.Println("Server stopped")

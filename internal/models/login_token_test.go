@@ -233,3 +233,51 @@ func TestLoginTokenCascadeDelete(t *testing.T) {
 		t.Errorf("len = %d, want 0 after user delete cascade", len(tokens))
 	}
 }
+
+func TestDeleteExpiredLoginTokens(t *testing.T) {
+	db := testDB(t)
+	user, _ := CreateUser(db, "kid7", "", "password123", "", false, false, sql.NullInt64{})
+
+	// Create an expired token (1 hour in the past).
+	past := time.Now().Add(-1 * time.Hour)
+	CreateLoginToken(db, user.ID, "expired1", &past)
+
+	// Create a second expired token.
+	pastMore := time.Now().Add(-2 * time.Hour)
+	CreateLoginToken(db, user.ID, "expired2", &pastMore)
+
+	// Create a valid token (1 hour in the future).
+	future := time.Now().Add(1 * time.Hour)
+	validToken, _ := CreateLoginToken(db, user.ID, "valid", &future)
+
+	// Run cleanup.
+	deleted, err := DeleteExpiredLoginTokens(db)
+	if err != nil {
+		t.Fatalf("delete expired tokens: %v", err)
+	}
+	if deleted != 2 {
+		t.Errorf("deleted = %d, want 2", deleted)
+	}
+
+	// The valid token should still exist.
+	remaining, _ := ListLoginTokensByUser(db, user.ID)
+	if len(remaining) != 1 {
+		t.Fatalf("remaining = %d, want 1", len(remaining))
+	}
+	if remaining[0].ID != validToken.ID {
+		t.Errorf("remaining token id = %d, want %d", remaining[0].ID, validToken.ID)
+	}
+}
+
+func TestDeleteExpiredLoginTokensNoop(t *testing.T) {
+	db := testDB(t)
+
+	// No tokens at all — should succeed with 0 deleted.
+	deleted, err := DeleteExpiredLoginTokens(db)
+	if err != nil {
+		t.Fatalf("delete expired tokens: %v", err)
+	}
+	if deleted != 0 {
+		t.Errorf("deleted = %d, want 0", deleted)
+	}
+}
