@@ -6,7 +6,7 @@ applyTo: "**/*.go"
 
 ## General
 
-- Target Go 1.24+ — use `chi` router (`github.com/go-chi/chi/v5`) for routing with group-based middleware
+- Target Go 1.25+ — use `chi` router (`github.com/go-chi/chi/v5`) for routing with group-based middleware
 - Module path: `github.com/carpenike/replog`
 - All application code lives under `internal/` — it is not importable externally
 

@@ -8,11 +8,15 @@ RepLog is a self-hosted web app for tracking resistance training workouts. It se
 
 ## Tech Stack
 
-- **Go** (1.24+) with `html/template` — server-side rendering, no frontend framework
+- **Go** (1.25+) with `html/template` — server-side rendering, no frontend framework
 - **htmx** — all interactivity via `hx-get`, `hx-post`, `hx-swap` attributes; no JS build step
 - **SQLite** (WAL mode) via `modernc.org/sqlite` — pure Go driver, no CGO
+- **chi** — HTTP router with group-based middleware (`github.com/go-chi/chi/v5`)
+- **Pico CSS** — classless CSS framework for semantic HTML styling
 - **pressly/goose** — SQL migrations embedded in binary via `embed.FS`
-- **alexedwards/scs** — session management (SQLite or signed cookie store)
+- **alexedwards/scs** — session management (SQLite store)
+- **go-webauthn/webauthn** — passkey / WebAuthn authentication
+- **containrrr/shoutrrr** — external notification dispatch (Slack, Discord, email, etc.)
 - **bcrypt** via `golang.org/x/crypto/bcrypt` — password hashing
 - **Nix flake** — builds a single static binary for NixOS deployment
 
@@ -21,6 +25,13 @@ RepLog is a self-hosted web app for tracking resistance training workouts. It se
 ```
 cmd/replog/
   main.go                     # Entrypoint: DB init, migrations, router, server start
+  templates/                  # html/template files (embedded via embed.FS)
+    layouts/                  # Base layouts
+    pages/                    # Full page templates
+    partials/                 # Reusable fragments for htmx
+  static/                     # Static assets (embedded via embed.FS)
+    css/                      # app.css, pico.min.css, print.css
+    js/                       # replog.js, htmx.min.js, rest-timer.js, passkeys.js
 
 internal/
   database/
@@ -28,17 +39,22 @@ internal/
       0001_initial_schema.sql # DDL from docs/data-model.md
     migrate.go                # embed.FS + goose RunMigrations()
     db.go                     # Open DB, set PRAGMAs, return *sql.DB
+    seed.go                   # Exercise catalog seeding from JSON
   handlers/                   # HTTP handlers grouped by domain
-  middleware/                  # Auth, logging, etc.
+  importers/                  # Workout import parsers (Hevy, Strong, RepLog JSON, catalog)
+  llm/                        # LLM integration (Anthropic, OpenAI, Ollama providers)
+  middleware/                 # Auth, CSRF, logging, rate limiting, security headers
   models/                     # Data access layer (queries, not ORM)
-  templates/                  # html/template files
+  notify/                     # Notification dispatch (in-app + external via shoutrrr)
 
-static/                       # htmx script, CSS, static assets
+avatars/                      # Avatar file storage (runtime, not embedded)
 
 docs/
-  data-model.md               # Schema source of truth (21 tables, DDL, ERD)
+  data-model.md               # Schema source of truth (27 tables, DDL, ERD)
   requirements.md             # v1.0 user stories and acceptance criteria
-  adr/                        # Architecture decision records
+  ui-design.md                # Design system and component patterns
+  seed-catalog.md             # Exercise seed data format
+  adr/                        # Architecture decision records (10 ADRs)
 
 flake.nix                     # Nix build (buildGoModule)
 ```
@@ -50,10 +66,17 @@ Read the ADRs before making changes that affect these areas:
 - [ADR 001](docs/adr/001-tech-stack.md) — Go + SQLite + htmx rationale
 - [ADR 002](docs/adr/002-migrations.md) — Goose migrations with embed.FS, auto-run on startup
 - [ADR 003](docs/adr/003-auth-sessions.md) — bcrypt + scs, env var bootstrap, coach vs non-coach access
+- [ADR 004](docs/adr/004-ui-pico-css.md) — UI framework: Pico CSS v2
+- [ADR 005](docs/adr/005-chi-router.md) — Adopt chi router for group-based middleware
+- [ADR 006](docs/adr/006-import-export.md) — Workout import / export
+- [ADR 007](docs/adr/007-llm-coach.md) — LLM-assisted program generation
+- [ADR 008](docs/adr/008-notifications.md) — Notification system
+- [ADR 009](docs/adr/009-wizard-framework.md) — Wizard framework for setup flows
+- [ADR 010](docs/adr/010-supplemental-programs.md) — Supplemental programs: multiple active programs per athlete
 
 ## Database Schema
 
-21 tables: `athletes`, `users`, `user_preferences`, `exercises`, `athlete_exercises`, `training_maxes`, `workouts`, `workout_sets`, `body_weights`, `workout_reviews`, `program_templates`, `prescribed_sets`, `athlete_programs`, `progression_rules`, `login_tokens`, `webauthn_credentials`, `equipment`, `exercise_equipment`, `athlete_equipment`, `sessions`, `app_settings`.
+27 tables: `athletes`, `users`, `user_preferences`, `exercises`, `athlete_exercises`, `training_maxes`, `workouts`, `workout_sets`, `body_weights`, `goal_history`, `tier_history`, `athlete_notes`, `workout_reviews`, `program_templates`, `prescribed_sets`, `athlete_programs`, `progression_rules`, `accessory_plans`, `login_tokens`, `webauthn_credentials`, `equipment`, `exercise_equipment`, `athlete_equipment`, `notifications`, `notification_preferences`, `sessions`, `app_settings`.
 
 Full DDL, constraints, indexes, and triggers are in `docs/data-model.md` — that file is the source of truth.
 
@@ -111,6 +134,7 @@ Key patterns:
 go run ./cmd/replog            # Run locally
 go build -o replog ./cmd/replog # Build binary
 go test ./...                  # Run tests
+go vet ./...                   # Static analysis
 nix build                     # Build via Nix flake
 ```
 
@@ -150,4 +174,6 @@ When ending a work session, complete ALL steps. Work is NOT complete until `git 
 
 - `docs/data-model.md` — complete schema, ERD, DDL, seed data, operational notes
 - `docs/requirements.md` — all v1.0 user stories with acceptance criteria
-- `docs/adr/` — architecture decision records
+- `docs/ui-design.md` — design system and component patterns
+- `docs/seed-catalog.md` — exercise seed data format
+- `docs/adr/` — architecture decision records (10 ADRs)
