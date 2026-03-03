@@ -126,7 +126,8 @@ func main() {
 
 	// Set up session manager with SQLite store.
 	sessionManager := scs.New()
-	sessionManager.Store = sqlite3store.New(db)
+	sessionStore := sqlite3store.New(db)
+	sessionManager.Store = sessionStore
 	sessionManager.Lifetime = 30 * 24 * time.Hour // 30 days
 	sessionManager.Cookie.HttpOnly = true
 	sessionManager.Cookie.SameSite = http.SameSiteLaxMode
@@ -590,8 +591,12 @@ func main() {
 
 	// Start server with graceful shutdown.
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	// Listen for OS signals to trigger graceful shutdown.
@@ -612,6 +617,7 @@ func main() {
 	// Stop background goroutines.
 	authLimiter.Stop()
 	maintenance.Stop()
+	sessionStore.StopCleanup()
 
 	// Give in-flight requests up to 30 seconds to complete.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

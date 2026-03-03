@@ -97,6 +97,7 @@ All configuration is via environment variables:
 | `REPLOG_ADMIN_USER` | | Initial admin username (required on first run) |
 | `REPLOG_ADMIN_PASS` | | Initial admin password (required on first run) |
 | `REPLOG_ADMIN_EMAIL` | | Initial admin email |
+| `REPLOG_TRUSTED_PROXIES` | | Comma-separated CIDRs or IPs whose `X-Forwarded-For` headers are trusted for rate limiting (e.g. `127.0.0.1,10.0.0.0/8`) |
 | `REPLOG_WEBAUTHN_RPID` | | WebAuthn Relying Party ID (e.g. `replog.example.com`) |
 | `REPLOG_WEBAUTHN_ORIGINS` | | Comma-separated WebAuthn origins (e.g. `https://replog.example.com`) |
 

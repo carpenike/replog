@@ -17,6 +17,7 @@ func Open(dbPath string) (*sql.DB, error) {
 
 	// SQLite is single-writer — one connection avoids SQLITE_BUSY contention.
 	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 
 	// Set required PRAGMAs on the connection.
 	pragmas := []string{
