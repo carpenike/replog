@@ -92,12 +92,27 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
+        # Build the React frontend first, then embed into the Go binary.
+        frontend = pkgs.buildNpmPackage {
+          pname = "replog-frontend";
+          version = "0.1.0";
+          src = ./web;
+          npmDepsHash = "";  # TODO: set after first successful build with `nix build`
+          installPhase = ''
+            cp -r dist $out
+          '';
+        };
+
         packages.default = pkgs.buildGoModule {
           pname = "replog";
           version = "0.1.0";
           src = ./.;
           vendorHash = "sha256-DI5kP09H/IrMMioqtCA3E5Wv9gqY0GoNchalBpYP8AU=";
           subPackages = [ "cmd/replog" ];
+
+          preBuild = ''
+            cp -r ${frontend} web/dist
+          '';
 
           meta = with pkgs.lib; {
             description = "Self-hosted workout tracking";
@@ -113,6 +128,7 @@
             gotools
             goreleaser
             sqlite
+            nodejs_22
           ];
         };
       }

@@ -1,0 +1,156 @@
+// API types matching the Go internal/api package DTOs.
+
+export interface Athlete {
+  id: number;
+  name: string;
+  tier?: string | null;
+  notes?: string | null;
+  goal?: string | null;
+  date_of_birth?: string | null;
+  grade?: string | null;
+  gender?: string | null;
+  coach_id?: number | null;
+  track_body_weight: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AthleteCard {
+  id: number;
+  name: string;
+  tier?: string | null;
+  active_assignments: number;
+  last_workout_date?: string | null;
+  week_streak: number;
+  bw_trend?: string;
+  track_body_weight: boolean;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  name?: string | null;
+  email?: string | null;
+  athlete_id?: number | null;
+  is_coach: boolean;
+  is_admin: boolean;
+  avatar_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Exercise {
+  id: number;
+  name: string;
+  tier?: string | null;
+  form_notes?: string | null;
+  demo_url?: string | null;
+  rest_seconds?: number | null;
+  featured: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Workout {
+  id: number;
+  athlete_id: number;
+  date: string;
+  assignment_id?: number | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  athlete_name?: string;
+  set_count: number;
+  review_status?: string | null;
+  program_name?: string;
+}
+
+export interface WorkoutPage {
+  workouts: Workout[];
+  has_more: boolean;
+}
+
+export interface WorkoutSet {
+  id: number;
+  workout_id: number;
+  exercise_id: number;
+  set_number: number;
+  reps: number;
+  weight?: number | null;
+  rpe?: number | null;
+  rep_type: string;
+  category: string;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  exercise_name?: string;
+  reps_label?: string;
+}
+
+export interface TrainingMax {
+  id: number;
+  athlete_id: number;
+  exercise_id: number;
+  weight: number;
+  effective_date: string;
+  notes?: string | null;
+  created_at: string;
+  exercise_name?: string;
+}
+
+export interface BodyWeight {
+  id: number;
+  athlete_id: number;
+  date: string;
+  weight: number;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface BodyWeightPage {
+  entries: BodyWeight[];
+  has_more: boolean;
+}
+
+export interface ProgramTemplate {
+  id: number;
+  athlete_id?: number | null;
+  name: string;
+  description?: string | null;
+  num_weeks: number;
+  num_days: number;
+  is_loop: boolean;
+  audience?: string | null;
+  created_at: string;
+  updated_at: string;
+  athlete_count?: number;
+  athlete_name?: string;
+}
+
+export interface Notification {
+  id: number;
+  user_id: number;
+  type: string;
+  title: string;
+  message?: string | null;
+  link?: string | null;
+  read: boolean;
+  athlete_id?: number | null;
+  created_at: string;
+}
+
+export interface APIError {
+  error: string;
+  code: number;
+  details?: Record<string, string>;
+}
+
+export interface UserPreferences {
+  id: number;
+  user_id: number;
+  weight_unit: string;
+  timezone: string;
+  date_format: string;
+  created_at: string;
+  updated_at: string;
+}

@@ -7,6 +7,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
@@ -23,12 +24,14 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 
+	"github.com/carpenike/replog/internal/api"
 	"github.com/carpenike/replog/internal/database"
 	"github.com/carpenike/replog/internal/handlers"
 	"github.com/carpenike/replog/internal/importers"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 	"github.com/carpenike/replog/internal/scheduler"
+	frontend "github.com/carpenike/replog/web"
 )
 
 //go:embed all:templates
@@ -280,6 +283,12 @@ func main() {
 		pages.Setup = setup
 	}
 
+	// Initialize API handlers.
+	apiHandlers := &api.Handlers{
+		DB:       db,
+		Sessions: sessionManager,
+	}
+
 	// Set up router.
 	r := chi.NewRouter()
 
@@ -287,11 +296,14 @@ func main() {
 	r.Use(middleware.RequestLogger)
 	r.Use(middleware.SecurityHeaders)
 
-	// Custom error pages for unmatched routes. Wrapped with session loading so
+	// CORS middleware for development (Vite dev server on different port).
+	if corsCfg := middleware.CORSFromEnv(os.Getenv("REPLOG_CORS_ORIGINS")); corsCfg != nil {
+		r.Use(middleware.CORS(*corsCfg))
+		log.Printf("CORS enabled for origins: %v", corsCfg.AllowedOrigins)
+	}
+
+	// Custom error page for method-not-allowed. Wrapped with session loading so
 	// logged-in users still see the sidebar navigation on error pages.
-	r.NotFound(sessionManager.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tc.NotFound(w, r)
-	})).ServeHTTP)
 	r.MethodNotAllowed(sessionManager.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tc.RenderErrorPage(w, r, http.StatusMethodNotAllowed, "Method Not Allowed",
 			"The requested method is not supported for this URL.")
@@ -589,6 +601,55 @@ func main() {
 		r.Post("/admin/settings/test-notify", notifications.TestNotify)
 	})
 
+	// --- JSON API routes (for SPA frontend) ---
+	r.Route("/api", func(r chi.Router) {
+		r.Use(sessionManager.LoadAndSave)
+
+		// Public API endpoints (login).
+		r.Post("/login", apiHandlers.Login)
+
+		// Authenticated API endpoints.
+		r.Group(func(r chi.Router) {
+			r.Use(withAuth)
+
+			r.Get("/me", apiHandlers.Me)
+			r.Post("/logout", apiHandlers.Logout)
+			r.Get("/preferences", apiHandlers.GetPreferences)
+
+			// Athletes.
+			r.Get("/athletes", apiHandlers.ListAthletes)
+			r.Get("/athletes/{id}", apiHandlers.GetAthlete)
+
+			// Exercises.
+			r.Get("/exercises", apiHandlers.ListExercises)
+			r.Get("/exercises/{id}", apiHandlers.GetExercise)
+
+			// Workouts.
+			r.Get("/athletes/{id}/workouts", apiHandlers.ListWorkouts)
+		})
+	})
+
+	// SPA fallback — serve the React frontend for unmatched routes.
+	// In production the frontend is embedded; in development it's proxied via Vite.
+	spaHandler := spaFallbackHandler()
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		// API routes that don't match should return 404 JSON, not the SPA.
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			api.WriteError(w, http.StatusNotFound, "endpoint not found")
+			return
+		}
+		// SSR routes still get the template-rendered 404 (backward compatibility).
+		accept := r.Header.Get("Accept")
+		if strings.Contains(accept, "text/html") && !strings.HasPrefix(r.URL.Path, "/api/") {
+			// Check if this could be a SPA route — try serving the SPA index.
+			spaHandler.ServeHTTP(w, r)
+			return
+		}
+		sessionManager.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tc.NotFound(w, r)
+		})).ServeHTTP(w, r)
+	})
+
 	// Start server with graceful shutdown.
 	srv := &http.Server{
 		Addr:              addr,
@@ -739,5 +800,40 @@ func staticCacheControl(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=86400")
 		next.ServeHTTP(w, r)
+	})
+}
+
+// spaFallbackHandler returns a handler that serves the React SPA from the
+// embedded filesystem. For non-asset routes, it serves index.html so that
+// client-side routing works correctly.
+func spaFallbackHandler() http.Handler {
+	// Strip the "dist" prefix so the embedded files are served at root.
+	dist, err := fs.Sub(frontend.DistFS, "dist")
+	if err != nil {
+		// If the frontend is not embedded (dev mode), return a placeholder.
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "Frontend not available — run the Vite dev server", http.StatusNotFound)
+		})
+	}
+
+	fileServer := http.FileServer(http.FS(dist))
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Try to serve the exact file first (JS, CSS, images).
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if path == "" {
+			path = "index.html"
+		}
+
+		// Check if the file exists in the embedded FS.
+		if f, err := dist.Open(path); err == nil {
+			f.Close()
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// For all other routes, serve index.html (SPA client-side routing).
+		r.URL.Path = "/"
+		fileServer.ServeHTTP(w, r)
 	})
 }
