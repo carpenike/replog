@@ -6,6 +6,11 @@ import { Dashboard } from '@/pages/Dashboard'
 import { AthletesList } from '@/pages/AthletesList'
 import { AthleteDetail } from '@/pages/AthleteDetail'
 import { ExercisesList } from '@/pages/ExercisesList'
+import { WorkoutsList } from '@/pages/WorkoutsList'
+import { WorkoutDetail } from '@/pages/WorkoutDetail'
+import { ProgramsList } from '@/pages/ProgramsList'
+import { NotificationsList } from '@/pages/NotificationsList'
+import { UsersList } from '@/pages/UsersList'
 import { Login } from '@/pages/Login'
 
 export function App() {
@@ -33,7 +38,12 @@ export function App() {
         <Route path="/" element={<Dashboard user={user} />} />
         <Route path="/athletes" element={<AthletesList />} />
         <Route path="/athletes/:id" element={<AthleteDetail />} />
+        <Route path="/athletes/:id/workouts" element={<WorkoutsList />} />
+        <Route path="/athletes/:id/workouts/:workoutId" element={<WorkoutDetail />} />
         <Route path="/exercises" element={<ExercisesList />} />
+        <Route path="/programs" element={<ProgramsList />} />
+        <Route path="/notifications" element={<NotificationsList />} />
+        <Route path="/users" element={<UsersList />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

@@ -154,3 +154,51 @@ export interface UserPreferences {
   created_at: string;
   updated_at: string;
 }
+
+export interface ExerciseGroup {
+  exercise_id: number;
+  exercise_name: string;
+  sets: WorkoutSet[];
+}
+
+export interface BodyWeight {
+  id: number;
+  athlete_id: number;
+  date: string;
+  weight: number;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface BodyWeightPage {
+  entries: BodyWeight[];
+  has_more: boolean;
+}
+
+export interface TrainingMax {
+  id: number;
+  athlete_id: number;
+  exercise_id: number;
+  weight: number;
+  effective_date: string;
+  notes?: string | null;
+  created_at: string;
+  exercise_name?: string;
+}
+
+export interface JournalEntry {
+  date: string;
+  type: string;
+  summary: string;
+  id: number;
+  detail?: string;
+  is_private: boolean;
+  pinned: boolean;
+  second_id?: number;
+  author?: string;
+  author_id?: number;
+}
+
+export interface UserWithAthlete extends User {
+  athlete_name?: string | null;
+}

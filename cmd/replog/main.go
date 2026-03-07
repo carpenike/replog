@@ -626,6 +626,44 @@ func main() {
 
 			// Workouts.
 			r.Get("/athletes/{id}/workouts", apiHandlers.ListWorkouts)
+			r.Post("/athletes/{id}/workouts", apiHandlers.CreateWorkout)
+			r.Get("/athletes/{id}/workouts/{workoutID}", apiHandlers.GetWorkout)
+			r.Delete("/athletes/{id}/workouts/{workoutID}", apiHandlers.DeleteWorkout)
+
+			// Workout Sets.
+			r.Post("/athletes/{id}/workouts/{workoutID}/sets", apiHandlers.AddWorkoutSet)
+			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}", apiHandlers.UpdateWorkoutSet)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}", apiHandlers.DeleteWorkoutSet)
+
+			// Body Weights.
+			r.Get("/athletes/{id}/body-weights", apiHandlers.ListBodyWeights)
+			r.Post("/athletes/{id}/body-weights", apiHandlers.CreateBodyWeight)
+			r.Delete("/athletes/{id}/body-weights/{bwID}", apiHandlers.DeleteBodyWeight)
+
+			// Training Maxes.
+			r.Get("/athletes/{id}/training-maxes", apiHandlers.ListTrainingMaxes)
+			r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes", apiHandlers.GetTrainingMaxHistory)
+
+			// Athlete Programs.
+			r.Get("/athletes/{id}/programs", apiHandlers.ListAthletePrograms)
+
+			// Journal.
+			r.Get("/athletes/{id}/journal", apiHandlers.ListJournalEntries)
+
+			// Program Templates.
+			r.Get("/programs", apiHandlers.ListProgramTemplates)
+			r.Get("/programs/{id}", apiHandlers.GetProgramTemplate)
+
+			// Notifications.
+			r.Get("/notifications", apiHandlers.ListNotifications)
+			r.Get("/notifications/count", apiHandlers.UnreadNotificationCount)
+			r.Post("/notifications/{notificationID}/read", apiHandlers.MarkNotificationRead)
+			r.Post("/notifications/read-all", apiHandlers.MarkAllNotificationsRead)
+
+			// Users (admin only — handler checks IsAdmin internally).
+			r.Get("/users", apiHandlers.ListUsers)
+			r.Post("/users", apiHandlers.CreateUser)
+			r.Delete("/users/{userID}", apiHandlers.DeleteUser)
 		})
 	})
 

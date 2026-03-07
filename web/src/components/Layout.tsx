@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { api, ApiError } from '@/api/client'
 import type { User } from '@/api/types'
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: '🏠' },
   { href: '/athletes', label: 'Athletes', icon: '🏋️' },
   { href: '/exercises', label: 'Exercises', icon: '📋' },
+  { href: '/notifications', label: 'Notifications', icon: '🔔' },
 ]
 
 const coachItems = [
@@ -25,10 +28,27 @@ interface LayoutProps {
 
 export function Layout({ user, children }: LayoutProps) {
   const location = useLocation()
+  const queryClient = useQueryClient()
+
+  const { data: unread } = useQuery({
+    queryKey: ['unread-count'],
+    queryFn: () => api.unreadCount(),
+    refetchInterval: 60_000,
+  })
 
   function isActive(href: string) {
     if (href === '/') return location.pathname === '/'
     return location.pathname.startsWith(href)
+  }
+
+  async function handleLogout() {
+    try {
+      await api.logout()
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e
+    }
+    queryClient.clear()
+    window.location.href = '/'
   }
 
   return (
@@ -52,6 +72,11 @@ export function Layout({ user, children }: LayoutProps) {
             >
               <span>{item.icon}</span>
               {item.label}
+              {item.href === '/notifications' && unread && unread.count > 0 && (
+                <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {unread.count}
+                </span>
+              )}
             </Link>
           ))}
 
@@ -112,6 +137,12 @@ export function Layout({ user, children }: LayoutProps) {
               </p>
             </div>
           </div>
+          <button
+            onClick={handleLogout}
+            className="mt-2 w-full text-left px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            Sign out
+          </button>
         </div>
       </aside>
 
