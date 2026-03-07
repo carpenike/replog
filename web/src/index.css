@@ -19,3 +19,24 @@
   --color-success: #22c55e;
   --color-warning: #f59e0b;
 }
+
+/* Light mode overrides */
+[data-theme="light"] {
+  --color-background: #fafafa;
+  --color-foreground: #171717;
+  --color-card: #ffffff;
+  --color-card-foreground: #171717;
+  --color-primary: #6366f1;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #525252;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #737373;
+  --color-accent: #f0f0f0;
+  --color-accent-foreground: #171717;
+  --color-destructive: #dc2626;
+  --color-border: #e5e5e5;
+  --color-ring: #6366f1;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+}

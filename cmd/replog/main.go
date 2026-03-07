@@ -615,15 +615,22 @@ func main() {
 			r.Get("/me", apiHandlers.Me)
 			r.Post("/logout", apiHandlers.Logout)
 			r.Get("/preferences", apiHandlers.GetPreferences)
+			r.Put("/preferences", apiHandlers.UpdatePreferences)
 			r.Get("/dashboard", apiHandlers.Dashboard)
 
 			// Athletes.
 			r.Get("/athletes", apiHandlers.ListAthletes)
+			r.Post("/athletes", apiHandlers.CreateAthlete)
 			r.Get("/athletes/{id}", apiHandlers.GetAthlete)
+			r.Put("/athletes/{id}", apiHandlers.UpdateAthlete)
+			r.Delete("/athletes/{id}", apiHandlers.DeleteAthlete)
 
 			// Exercises.
 			r.Get("/exercises", apiHandlers.ListExercises)
+			r.Post("/exercises", apiHandlers.CreateExercise)
 			r.Get("/exercises/{id}", apiHandlers.GetExercise)
+			r.Put("/exercises/{id}", apiHandlers.UpdateExercise)
+			r.Delete("/exercises/{id}", apiHandlers.DeleteExercise)
 
 			// Workouts.
 			r.Get("/athletes/{id}/workouts", apiHandlers.ListWorkouts)

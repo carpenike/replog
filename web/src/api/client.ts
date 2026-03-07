@@ -71,6 +71,18 @@ class ApiClient {
     return this.request<Athlete>(`/api/athletes/${id}`);
   }
 
+  async createAthlete(data: { name: string; tier?: string; notes?: string; goal?: string; date_of_birth?: string; grade?: string; gender?: string; track_body_weight?: boolean }): Promise<Athlete> {
+    return this.request<Athlete>('/api/athletes', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateAthlete(id: number, data: { name: string; tier?: string; notes?: string; goal?: string; date_of_birth?: string; grade?: string; gender?: string; track_body_weight?: boolean }): Promise<Athlete> {
+    return this.request<Athlete>(`/api/athletes/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  }
+
+  async deleteAthlete(id: number): Promise<void> {
+    await this.request(`/api/athletes/${id}`, { method: 'DELETE' });
+  }
+
   // Exercises
   async listExercises(): Promise<Exercise[]> {
     return this.request<Exercise[]>('/api/exercises');
@@ -78,6 +90,18 @@ class ApiClient {
 
   async getExercise(id: number): Promise<Exercise> {
     return this.request<Exercise>(`/api/exercises/${id}`);
+  }
+
+  async createExercise(data: { name: string; tier?: string; form_notes?: string; demo_url?: string; rest_seconds?: number; featured?: boolean }): Promise<Exercise> {
+    return this.request<Exercise>('/api/exercises', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateExercise(id: number, data: { name: string; tier?: string; form_notes?: string; demo_url?: string; rest_seconds?: number; featured?: boolean }): Promise<Exercise> {
+    return this.request<Exercise>(`/api/exercises/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  }
+
+  async deleteExercise(id: number): Promise<void> {
+    await this.request(`/api/exercises/${id}`, { method: 'DELETE' });
   }
 
   // Workouts
@@ -198,6 +222,10 @@ class ApiClient {
   // Preferences
   async getPreferences(): Promise<UserPreferences> {
     return this.request<UserPreferences>('/api/preferences');
+  }
+
+  async updatePreferences(data: { weight_unit: string; timezone: string; date_format: string }): Promise<UserPreferences> {
+    return this.request<UserPreferences>('/api/preferences', { method: 'PUT', body: JSON.stringify(data) });
   }
 }
 

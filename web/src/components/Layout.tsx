@@ -24,9 +24,11 @@ const adminItems = [
 interface LayoutProps {
   user: User
   children: ReactNode
+  theme: 'dark' | 'light'
+  onToggleTheme: () => void
 }
 
-export function Layout({ user, children }: LayoutProps) {
+export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
   const location = useLocation()
   const queryClient = useQueryClient()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -139,7 +141,7 @@ export function Layout({ user, children }: LayoutProps) {
           )}
         </nav>
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
               {user.username.slice(0, 2).toUpperCase()}
@@ -151,9 +153,22 @@ export function Layout({ user, children }: LayoutProps) {
               </p>
             </div>
           </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onToggleTheme}
+              className="flex-1 text-left px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            </button>
+            <Link to="/preferences" onClick={() => setSidebarOpen(false)}
+              className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+              ⚙️
+            </Link>
+          </div>
           <button
             onClick={handleLogout}
-            className="mt-2 w-full text-left px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="w-full text-left px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             Sign out
           </button>

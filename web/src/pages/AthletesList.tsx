@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
+import type { User } from '@/api/types'
 
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
@@ -17,7 +18,7 @@ function tierLabel(tier: string): string {
   }
 }
 
-export function AthletesList() {
+export function AthletesList({ user }: { user: User }) {
   const { data: athletes, isLoading, error } = useQuery({
     queryKey: ['athletes'],
     queryFn: () => api.listAthletes(),
@@ -30,6 +31,11 @@ export function AthletesList() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Athletes</h1>
+        {(user.is_coach || user.is_admin) && (
+          <Link to="/athletes/new" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            + New Athlete
+          </Link>
+        )}
       </div>
 
       {athletes && athletes.length === 0 ? (
