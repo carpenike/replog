@@ -34,6 +34,12 @@ export function WorkoutsList() {
           </p>
           <h1 className="text-2xl font-bold">Workouts</h1>
         </div>
+        <Link
+          to={`/athletes/${athleteId}/workouts/new`}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          + New Workout
+        </Link>
       </div>
 
       {page && page.workouts.length === 0 ? (

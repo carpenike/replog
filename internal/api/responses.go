@@ -360,6 +360,22 @@ type ReviewStats struct {
 	NeedsWork     int `json:"needs_work"`
 }
 
+// DashboardStats is the JSON representation of models.DashboardStats.
+type DashboardStats struct {
+	WeekSessions     int     `json:"week_sessions"`
+	WeekVolume       float64 `json:"week_volume"`
+	TotalAthletes    int     `json:"total_athletes"`
+	TrainedThisWeek  int     `json:"trained_this_week"`
+	ConsecutiveWeeks int     `json:"consecutive_weeks"`
+}
+
+// DashboardResponse is the combined dashboard data.
+type DashboardResponse struct {
+	Stats       *DashboardStats `json:"stats"`
+	ReviewStats *ReviewStats    `json:"review_stats"`
+	Athletes    []*AthleteCard  `json:"athletes"`
+}
+
 // APIError is the standard error response envelope.
 type APIError struct {
 	Error   string            `json:"error"`

@@ -8,6 +8,10 @@ import { AthleteDetail } from '@/pages/AthleteDetail'
 import { ExercisesList } from '@/pages/ExercisesList'
 import { WorkoutsList } from '@/pages/WorkoutsList'
 import { WorkoutDetail } from '@/pages/WorkoutDetail'
+import { NewWorkout } from '@/pages/NewWorkout'
+import { BodyWeightsList } from '@/pages/BodyWeightsList'
+import { TrainingMaxesList } from '@/pages/TrainingMaxesList'
+import { JournalPage } from '@/pages/JournalPage'
 import { ProgramsList } from '@/pages/ProgramsList'
 import { NotificationsList } from '@/pages/NotificationsList'
 import { UsersList } from '@/pages/UsersList'
@@ -39,7 +43,11 @@ export function App() {
         <Route path="/athletes" element={<AthletesList />} />
         <Route path="/athletes/:id" element={<AthleteDetail />} />
         <Route path="/athletes/:id/workouts" element={<WorkoutsList />} />
+        <Route path="/athletes/:id/workouts/new" element={<NewWorkout />} />
         <Route path="/athletes/:id/workouts/:workoutId" element={<WorkoutDetail />} />
+        <Route path="/athletes/:id/body-weights" element={<BodyWeightsList />} />
+        <Route path="/athletes/:id/training-maxes" element={<TrainingMaxesList />} />
+        <Route path="/athletes/:id/journal" element={<JournalPage />} />
         <Route path="/exercises" element={<ExercisesList />} />
         <Route path="/programs" element={<ProgramsList />} />
         <Route path="/notifications" element={<NotificationsList />} />

@@ -80,6 +80,54 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// Dashboard returns aggregated stats for the home page.
+func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+
+	resp := DashboardResponse{}
+
+	// Load athlete cards.
+	coachFilter := middleware.CoachAthleteFilter(user)
+	athletes, err := models.ListAthleteCards(h.DB, coachFilter)
+	if err != nil {
+		log.Printf("api: dashboard athlete cards: %v", err)
+	} else {
+		resp.Athletes = make([]*AthleteCard, len(athletes))
+		for i, a := range athletes {
+			resp.Athletes[i] = AthleteCardFromModel(a)
+		}
+	}
+
+	// Dashboard stats (available to coaches/admins).
+	if user.IsCoach || user.IsAdmin {
+		stats, err := models.GetDashboardStats(h.DB)
+		if err != nil {
+			log.Printf("api: dashboard stats: %v", err)
+		} else {
+			resp.Stats = &DashboardStats{
+				WeekSessions:     stats.WeekSessions,
+				WeekVolume:       stats.WeekVolume,
+				TotalAthletes:    stats.TotalAthletes,
+				TrainedThisWeek:  stats.TrainedThisWeek,
+				ConsecutiveWeeks: stats.ConsecutiveWeeks,
+			}
+		}
+
+		reviewStats, err := models.GetReviewStats(h.DB)
+		if err != nil {
+			log.Printf("api: dashboard review stats: %v", err)
+		} else {
+			resp.ReviewStats = &ReviewStats{
+				PendingCount:  reviewStats.PendingCount,
+				ApprovedCount: reviewStats.ApprovedCount,
+				NeedsWork:     reviewStats.NeedsWork,
+			}
+		}
+	}
+
+	WriteJSON(w, http.StatusOK, resp)
+}
+
 // ListAthletes returns athlete cards for the authenticated user.
 func (h *Handlers) ListAthletes(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
@@ -29,6 +29,7 @@ interface LayoutProps {
 export function Layout({ user, children }: LayoutProps) {
   const location = useLocation()
   const queryClient = useQueryClient()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const { data: unread } = useQuery({
     queryKey: ['unread-count'],
@@ -53,8 +54,20 @@ export function Layout({ user, children }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Mobile header */}
+      <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
+        <button onClick={() => setSidebarOpen(true)} className="text-lg">☰</button>
+        <Link to="/" className="text-lg font-bold text-primary">RepLog</Link>
+        <div className="w-6" />
+      </div>
+
       {/* Sidebar */}
-      <aside className="w-56 border-r border-border bg-card flex flex-col">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-56 border-r border-border bg-card flex flex-col transform transition-transform duration-200 md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-4 border-b border-border">
           <Link to="/" className="text-lg font-bold text-primary">RepLog</Link>
         </div>
@@ -64,6 +77,7 @@ export function Layout({ user, children }: LayoutProps) {
             <Link
               key={item.href}
               to={item.href}
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
                 isActive(item.href)
                   ? 'bg-primary/10 text-primary font-medium'
@@ -147,7 +161,7 @@ export function Layout({ user, children }: LayoutProps) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 pt-16 md:p-6 md:pt-6">
         {children}
       </main>
     </div>

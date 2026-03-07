@@ -615,6 +615,7 @@ func main() {
 			r.Get("/me", apiHandlers.Me)
 			r.Post("/logout", apiHandlers.Logout)
 			r.Get("/preferences", apiHandlers.GetPreferences)
+			r.Get("/dashboard", apiHandlers.Dashboard)
 
 			// Athletes.
 			r.Get("/athletes", apiHandlers.ListAthletes)

@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 
 function formatWeight(w: number): string {
@@ -10,11 +11,46 @@ export function WorkoutDetail() {
   const { id, workoutId } = useParams<{ id: string; workoutId: string }>()
   const athleteId = Number(id)
   const wId = Number(workoutId)
+  const queryClient = useQueryClient()
+
+  const [exerciseId, setExerciseId] = useState('')
+  const [reps, setReps] = useState('')
+  const [setWeight, setSetWeight] = useState('')
+  const [rpe, setRpe] = useState('')
+  const [showAddForm, setShowAddForm] = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['workout', athleteId, wId],
     queryFn: () => api.getWorkout(athleteId, wId),
     enabled: !isNaN(athleteId) && !isNaN(wId),
+  })
+
+  const { data: exercises } = useQuery({
+    queryKey: ['exercises'],
+    queryFn: () => api.listExercises(),
+    enabled: showAddForm,
+  })
+
+  const addSetMutation = useMutation({
+    mutationFn: () => api.addSet(athleteId, wId, {
+      exercise_id: parseInt(exerciseId),
+      reps: parseInt(reps),
+      weight: setWeight ? parseFloat(setWeight) : undefined,
+      rpe: rpe ? parseFloat(rpe) : undefined,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workout', athleteId, wId] })
+      setReps('')
+      setSetWeight('')
+      setRpe('')
+    },
+  })
+
+  const deleteSetMutation = useMutation({
+    mutationFn: (setId: number) => api.deleteSet(athleteId, wId, setId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workout', athleteId, wId] })
+    },
   })
 
   if (isLoading) return <p className="text-muted-foreground">Loading workout...</p>
@@ -59,6 +95,7 @@ export function WorkoutDetail() {
                     <th className="text-left px-4 py-2">Weight</th>
                     <th className="text-left px-4 py-2">RPE</th>
                     <th className="text-left px-4 py-2">Notes</th>
+                    <th className="px-4 py-2 w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -69,6 +106,12 @@ export function WorkoutDetail() {
                       <td className="px-4 py-2">{set.weight ? formatWeight(set.weight) : '—'}</td>
                       <td className="px-4 py-2">{set.rpe ?? '—'}</td>
                       <td className="px-4 py-2 text-muted-foreground">{set.notes ?? ''}</td>
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={() => { if (confirm('Delete this set?')) deleteSetMutation.mutate(set.id) }}
+                          className="text-xs text-destructive hover:text-destructive/80"
+                        >×</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -77,6 +120,64 @@ export function WorkoutDetail() {
           ))}
         </div>
       )}
+
+      {/* Add Set */}
+      <div className="mt-6">
+        {!showAddForm ? (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="rounded-md border border-dashed border-border px-4 py-2 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors w-full"
+          >
+            + Add Set
+          </button>
+        ) : (
+          <form
+            onSubmit={(e) => { e.preventDefault(); addSetMutation.mutate() }}
+            className="rounded-lg border border-border bg-card p-4 space-y-3"
+          >
+            <h3 className="text-sm font-medium">Log Set</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="col-span-2">
+                <label htmlFor="exercise" className="block text-xs text-muted-foreground mb-1">Exercise</label>
+                <select id="exercise" value={exerciseId} onChange={e => setExerciseId(e.target.value)}
+                  required
+                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
+                  <option value="">Select exercise...</option>
+                  {exercises?.map(ex => (
+                    <option key={ex.id} value={ex.id}>{ex.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="set-reps" className="block text-xs text-muted-foreground mb-1">Reps</label>
+                <input id="set-reps" type="number" value={reps} onChange={e => setReps(e.target.value)}
+                  required min={1}
+                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm" />
+              </div>
+              <div>
+                <label htmlFor="set-weight" className="block text-xs text-muted-foreground mb-1">Weight</label>
+                <input id="set-weight" type="number" step="0.5" value={setWeight} onChange={e => setSetWeight(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm" />
+              </div>
+              <div>
+                <label htmlFor="set-rpe" className="block text-xs text-muted-foreground mb-1">RPE</label>
+                <input id="set-rpe" type="number" step="0.5" min={1} max={10} value={rpe} onChange={e => setRpe(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" disabled={addSetMutation.isPending || !exerciseId || !reps}
+                className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                {addSetMutation.isPending ? 'Adding...' : 'Add Set'}
+              </button>
+              <button type="button" onClick={() => setShowAddForm(false)}
+                className="rounded-md border border-border px-4 py-1.5 text-sm hover:bg-accent transition-colors">
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   )
 }

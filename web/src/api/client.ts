@@ -1,5 +1,25 @@
 import type { APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, JournalEntry, Notification, ProgramTemplate, TrainingMax, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
+export interface DashboardStats {
+  week_sessions: number;
+  week_volume: number;
+  total_athletes: number;
+  trained_this_week: number;
+  consecutive_weeks: number;
+}
+
+export interface ReviewStatsData {
+  pending_count: number;
+  approved_count: number;
+  needs_work: number;
+}
+
+export interface DashboardData {
+  stats: DashboardStats | null;
+  review_stats: ReviewStatsData | null;
+  athletes: AthleteCard[];
+}
+
 class ApiClient {
   private baseUrl = '';
 
@@ -25,6 +45,10 @@ class ApiClient {
   // Auth
   async me(): Promise<User> {
     return this.request<User>('/api/me');
+  }
+
+  async dashboard(): Promise<DashboardData> {
+    return this.request<DashboardData>('/api/dashboard');
   }
 
   async login(username: string, password: string): Promise<User> {
