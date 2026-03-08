@@ -672,6 +672,13 @@ func main() {
 			r.Get("/users", apiHandlers.ListUsers)
 			r.Post("/users", apiHandlers.CreateUser)
 			r.Delete("/users/{userID}", apiHandlers.DeleteUser)
+
+			// Reviews (coach only — handler checks internally).
+			r.Get("/reviews/pending", apiHandlers.ListPendingReviews)
+
+			// Admin Settings (admin only — handler checks internally).
+			r.Get("/admin/settings", apiHandlers.ListSettings)
+			r.Put("/admin/settings", apiHandlers.UpdateSetting)
 		})
 	})
 

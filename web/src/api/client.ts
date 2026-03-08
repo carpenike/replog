@@ -1,4 +1,4 @@
-import type { APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, JournalEntry, Notification, ProgramTemplate, TrainingMax, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, JournalEntry, Notification, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -226,6 +226,20 @@ class ApiClient {
 
   async updatePreferences(data: { weight_unit: string; timezone: string; date_format: string }): Promise<UserPreferences> {
     return this.request<UserPreferences>('/api/preferences', { method: 'PUT', body: JSON.stringify(data) });
+  }
+
+  // Reviews (coach)
+  async listPendingReviews(): Promise<UnreviewedWorkoutData[]> {
+    return this.request('/api/reviews/pending');
+  }
+
+  // Admin Settings
+  async listSettings(): Promise<SettingCategoryData[]> {
+    return this.request('/api/admin/settings');
+  }
+
+  async updateSetting(key: string, value: string): Promise<void> {
+    await this.request('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ key, value }) });
   }
 }
 

@@ -23,6 +23,8 @@ import { ProgramDetail } from '@/pages/ProgramDetail'
 import { NotificationsList } from '@/pages/NotificationsList'
 import { UsersList } from '@/pages/UsersList'
 import { NewUser } from '@/pages/NewUser'
+import { PendingReviews } from '@/pages/PendingReviews'
+import { AdminSettings } from '@/pages/AdminSettings'
 import { PreferencesPage } from '@/pages/PreferencesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { Login } from '@/pages/Login'
@@ -68,8 +70,10 @@ export function App() {
         <Route path="/programs" element={<ProgramsList />} />
         <Route path="/programs/:id" element={<ProgramDetail />} />
         <Route path="/notifications" element={<NotificationsList />} />
+        <Route path="/reviews/pending" element={<PendingReviews />} />
         <Route path="/users" element={<UsersList />} />
         <Route path="/users/new" element={<NewUser />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />

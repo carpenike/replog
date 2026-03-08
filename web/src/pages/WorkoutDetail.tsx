@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 
@@ -12,6 +12,7 @@ export function WorkoutDetail() {
   const athleteId = Number(id)
   const wId = Number(workoutId)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   const [exerciseId, setExerciseId] = useState('')
   const [reps, setReps] = useState('')
@@ -53,6 +54,14 @@ export function WorkoutDetail() {
     },
   })
 
+  const deleteWorkoutMutation = useMutation({
+    mutationFn: () => api.deleteWorkout(athleteId, wId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workouts', athleteId] })
+      navigate(`/athletes/${athleteId}/workouts`)
+    },
+  })
+
   if (isLoading) return <p className="text-muted-foreground">Loading workout...</p>
   if (error) return <p className="text-destructive">Failed to load workout.</p>
   if (!data) return <p className="text-muted-foreground">Workout not found.</p>
@@ -68,7 +77,14 @@ export function WorkoutDetail() {
         {' / '}
         {workout.date}
       </p>
-      <h1 className="text-2xl font-bold mb-2">{workout.date}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold mb-2">{workout.date}</h1>
+        <button
+          onClick={() => { if (confirm('Delete this workout and all its sets?')) deleteWorkoutMutation.mutate() }}
+          className="text-sm text-destructive hover:text-destructive/80">
+          Delete
+        </button>
+      </div>
       {workout.program_name && (
         <p className="text-sm text-muted-foreground mb-4">{workout.program_name}</p>
       )}

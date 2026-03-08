@@ -202,3 +202,25 @@ export interface JournalEntry {
 export interface UserWithAthlete extends User {
   athlete_name?: string | null;
 }
+
+export interface UnreviewedWorkoutData {
+  workout_id: number;
+  athlete_id: number;
+  athlete_name: string;
+  date: string;
+  set_count: number;
+  notes?: string | null;
+}
+
+export interface SettingValueData {
+  key: string;
+  value: string;
+  source: string;
+  masked: string;
+  read_only: boolean;
+}
+
+export interface SettingCategoryData {
+  category: string;
+  settings: SettingValueData[];
+}
