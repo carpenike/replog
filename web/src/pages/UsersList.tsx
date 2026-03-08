@@ -1,10 +1,18 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 
 export function UsersList() {
+  const queryClient = useQueryClient()
+
   const { data: users, isLoading, error } = useQuery({
     queryKey: ['users'],
     queryFn: () => api.listUsers(),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.deleteUser(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   })
 
   if (isLoading) return <p className="text-muted-foreground">Loading users...</p>
@@ -14,6 +22,10 @@ export function UsersList() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Users</h1>
+        <Link to="/users/new"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          + New User
+        </Link>
       </div>
 
       <div className="rounded-lg border border-border overflow-hidden">
@@ -25,6 +37,7 @@ export function UsersList() {
               <th className="text-left p-3 text-sm font-medium text-muted-foreground">Email</th>
               <th className="text-left p-3 text-sm font-medium text-muted-foreground">Linked Athlete</th>
               <th className="text-left p-3 text-sm font-medium text-muted-foreground">Roles</th>
+              <th className="p-3 w-12"></th>
             </tr>
           </thead>
           <tbody>
@@ -40,6 +53,13 @@ export function UsersList() {
                     {u.is_coach && <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">Coach</span>}
                     {!u.is_admin && !u.is_coach && <span className="text-xs text-muted-foreground">Athlete</span>}
                   </div>
+                </td>
+                <td className="p-3">
+                  <button
+                    onClick={() => { if (confirm(`Delete user ${u.username}?`)) deleteMutation.mutate(u.id) }}
+                    className="text-xs text-destructive hover:text-destructive/80">
+                    ×
+                  </button>
                 </td>
               </tr>
             ))}

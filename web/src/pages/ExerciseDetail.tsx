@@ -23,9 +23,15 @@ export function ExerciseDetail() {
         {' / '}
         {exercise.name}
       </p>
-      <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold">{exercise.name}</h1>
-        {exercise.featured && <span className="text-sm">⭐</span>}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">{exercise.name}</h1>
+          {exercise.featured && <span className="text-sm">⭐</span>}
+        </div>
+        <Link to={`/exercises/${exerciseId}/edit`}
+          className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+          ✏️ Edit
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

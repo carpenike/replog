@@ -7,9 +7,11 @@ import { Dashboard } from '@/pages/Dashboard'
 import { AthletesList } from '@/pages/AthletesList'
 import { AthleteDetail } from '@/pages/AthleteDetail'
 import { NewAthlete } from '@/pages/NewAthlete'
+import { EditAthlete } from '@/pages/EditAthlete'
 import { ExercisesList } from '@/pages/ExercisesList'
 import { ExerciseDetail } from '@/pages/ExerciseDetail'
 import { NewExercise } from '@/pages/NewExercise'
+import { EditExercise } from '@/pages/EditExercise'
 import { WorkoutsList } from '@/pages/WorkoutsList'
 import { WorkoutDetail } from '@/pages/WorkoutDetail'
 import { NewWorkout } from '@/pages/NewWorkout'
@@ -17,8 +19,10 @@ import { BodyWeightsList } from '@/pages/BodyWeightsList'
 import { TrainingMaxesList } from '@/pages/TrainingMaxesList'
 import { JournalPage } from '@/pages/JournalPage'
 import { ProgramsList } from '@/pages/ProgramsList'
+import { ProgramDetail } from '@/pages/ProgramDetail'
 import { NotificationsList } from '@/pages/NotificationsList'
 import { UsersList } from '@/pages/UsersList'
+import { NewUser } from '@/pages/NewUser'
 import { PreferencesPage } from '@/pages/PreferencesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { Login } from '@/pages/Login'
@@ -50,6 +54,7 @@ export function App() {
         <Route path="/athletes" element={<AthletesList user={user} />} />
         <Route path="/athletes/new" element={<NewAthlete />} />
         <Route path="/athletes/:id" element={<AthleteDetail />} />
+        <Route path="/athletes/:id/edit" element={<EditAthlete />} />
         <Route path="/athletes/:id/workouts" element={<WorkoutsList />} />
         <Route path="/athletes/:id/workouts/new" element={<NewWorkout />} />
         <Route path="/athletes/:id/workouts/:workoutId" element={<WorkoutDetail />} />
@@ -59,9 +64,12 @@ export function App() {
         <Route path="/exercises" element={<ExercisesList user={user} />} />
         <Route path="/exercises/new" element={<NewExercise />} />
         <Route path="/exercises/:id" element={<ExerciseDetail />} />
+        <Route path="/exercises/:id/edit" element={<EditExercise />} />
         <Route path="/programs" element={<ProgramsList />} />
+        <Route path="/programs/:id" element={<ProgramDetail />} />
         <Route path="/notifications" element={<NotificationsList />} />
         <Route path="/users" element={<UsersList />} />
+        <Route path="/users/new" element={<NewUser />} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />

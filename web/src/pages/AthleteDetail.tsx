@@ -56,6 +56,10 @@ export function AthleteDetail() {
             </span>
           )}
         </div>
+        <Link to={`/athletes/${athleteId}/edit`}
+          className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+          ✏️ Edit
+        </Link>
       </div>
 
       {/* Quick nav */}
