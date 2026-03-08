@@ -278,16 +278,20 @@ type UserPreferences struct {
 
 // AccessoryPlan is the JSON representation of models.AccessoryPlan.
 type AccessoryPlan struct {
-	ID           int64   `json:"id"`
-	AthleteID    int64   `json:"athlete_id"`
-	ExerciseID   int64   `json:"exercise_id"`
-	Sets         int     `json:"sets"`
-	Reps         string  `json:"reps"`
-	Notes        *string `json:"notes,omitempty"`
-	Active       bool    `json:"active"`
-	CreatedAt    string  `json:"created_at"`
-	UpdatedAt    string  `json:"updated_at"`
-	ExerciseName string  `json:"exercise_name,omitempty"`
+	ID           int64    `json:"id"`
+	AthleteID    int64    `json:"athlete_id"`
+	Day          int      `json:"day"`
+	ExerciseID   int64    `json:"exercise_id"`
+	TargetSets   *int64   `json:"target_sets,omitempty"`
+	TargetRepMin *int64   `json:"target_rep_min,omitempty"`
+	TargetRepMax *int64   `json:"target_rep_max,omitempty"`
+	TargetWeight *float64 `json:"target_weight,omitempty"`
+	Notes        *string  `json:"notes,omitempty"`
+	SortOrder    int      `json:"sort_order"`
+	Active       bool     `json:"active"`
+	CreatedAt    string   `json:"created_at"`
+	UpdatedAt    string   `json:"updated_at"`
+	ExerciseName string   `json:"exercise_name,omitempty"`
 }
 
 // AthleteNote is the JSON representation of models.AthleteNote.

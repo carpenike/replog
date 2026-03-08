@@ -26,11 +26,19 @@ export function WorkoutDetail() {
   const [editSetNotes, setEditSetNotes] = useState('')
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesText, setNotesText] = useState('')
+  const [reviewStatus, setReviewStatus] = useState<'approved' | 'needs_work'>('approved')
+  const [reviewNotes, setReviewNotes] = useState('')
+  const [showReviewForm, setShowReviewForm] = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['workout', athleteId, wId],
     queryFn: () => api.getWorkout(athleteId, wId),
     enabled: !isNaN(athleteId) && !isNaN(wId),
+  })
+
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.me(),
   })
 
   const { data: exercises } = useQuery({
@@ -87,6 +95,16 @@ export function WorkoutDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workout', athleteId, wId] })
       setEditingNotes(false)
+    },
+  })
+
+  const submitReviewMutation = useMutation({
+    mutationFn: () => api.submitReview(athleteId, wId, reviewStatus, reviewNotes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workout', athleteId, wId] })
+      queryClient.invalidateQueries({ queryKey: ['pending-reviews'] })
+      setShowReviewForm(false)
+      setReviewNotes('')
     },
   })
 
@@ -286,6 +304,58 @@ export function WorkoutDetail() {
           </form>
         )}
       </div>
+
+      {/* Coach Review Section */}
+      {me && (me.is_coach || me.is_admin) && (
+        <div className="mt-6 rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Coach Review</h3>
+            {workout.review_status && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                workout.review_status === 'approved' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+              }`}>
+                {workout.review_status === 'approved' ? '✓ Approved' : '⚠ Needs Work'}
+              </span>
+            )}
+          </div>
+
+          {showReviewForm ? (
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="review" checked={reviewStatus === 'approved'}
+                    onChange={() => setReviewStatus('approved')} />
+                  <span className="text-sm text-success">Approve</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="review" checked={reviewStatus === 'needs_work'}
+                    onChange={() => setReviewStatus('needs_work')} />
+                  <span className="text-sm text-warning">Needs Work</span>
+                </label>
+              </div>
+              <textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
+                rows={2} placeholder="Review notes (optional)..."
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <div className="flex gap-2">
+                <button onClick={() => submitReviewMutation.mutate()}
+                  disabled={submitReviewMutation.isPending}
+                  className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                  {submitReviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
+                </button>
+                <button onClick={() => setShowReviewForm(false)}
+                  className="rounded-md border border-border px-4 py-1.5 text-sm hover:bg-accent transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowReviewForm(true)}
+              className="text-sm text-primary hover:text-primary/80">
+              {workout.review_status ? 'Update Review' : 'Review Workout'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

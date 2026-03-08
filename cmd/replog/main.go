@@ -658,6 +658,13 @@ func main() {
 
 			// Athlete Programs.
 			r.Get("/athletes/{id}/programs", apiHandlers.ListAthletePrograms)
+			r.Post("/athletes/{id}/programs", apiHandlers.AssignProgramToAthlete)
+			r.Post("/athletes/{id}/programs/{programID}/deactivate", apiHandlers.DeactivateAthleteProgram)
+
+			// Accessory Plans.
+			r.Get("/athletes/{id}/accessories", apiHandlers.ListAccessoryPlans)
+			r.Post("/athletes/{id}/accessories", apiHandlers.CreateAccessoryPlan)
+			r.Delete("/athletes/{id}/accessories/{planID}", apiHandlers.DeleteAccessoryPlan)
 
 			// Journal.
 			r.Get("/athletes/{id}/journal", apiHandlers.ListJournalEntries)
@@ -679,6 +686,7 @@ func main() {
 
 			// Reviews (coach only — handler checks internally).
 			r.Get("/reviews/pending", apiHandlers.ListPendingReviews)
+			r.Post("/athletes/{id}/workouts/{workoutID}/review", apiHandlers.SubmitReview)
 
 			// Admin Settings (admin only — handler checks internally).
 			r.Get("/admin/settings", apiHandlers.ListSettings)

@@ -1,4 +1,4 @@
-import type { APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, JournalEntry, Notification, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, JournalEntry, Notification, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -245,6 +245,41 @@ class ApiClient {
   // Reviews (coach)
   async listPendingReviews(): Promise<UnreviewedWorkoutData[]> {
     return this.request('/api/reviews/pending');
+  }
+
+  async submitReview(athleteId: number, workoutId: number, status: 'approved' | 'needs_work', notes = ''): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/workouts/${workoutId}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ status, notes }),
+    });
+  }
+
+  // Program Assignment
+  async assignProgram(athleteId: number, data: { template_id: number; start_date: string; role?: string; notes?: string; goal?: string; schedule?: string }): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/programs`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deactivateProgram(athleteId: number, programId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/programs/${programId}/deactivate`, { method: 'POST' });
+  }
+
+  // Accessory Plans
+  async listAccessoryPlans(athleteId: number): Promise<AccessoryPlanData[]> {
+    return this.request(`/api/athletes/${athleteId}/accessories`);
+  }
+
+  async createAccessoryPlan(athleteId: number, data: { day: number; exercise_id: number; target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string }): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/accessories`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAccessoryPlan(athleteId: number, planId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/accessories/${planId}`, { method: 'DELETE' });
   }
 
   // Admin Settings

@@ -224,3 +224,38 @@ export interface SettingCategoryData {
   category: string;
   settings: SettingValueData[];
 }
+
+export interface AccessoryPlanData {
+  id: number;
+  athlete_id: number;
+  day: number;
+  exercise_id: number;
+  target_sets?: number | null;
+  target_rep_min?: number | null;
+  target_rep_max?: number | null;
+  target_weight?: number | null;
+  notes?: string | null;
+  sort_order: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  exercise_name?: string;
+}
+
+export interface AthleteProgram {
+  id: number;
+  athlete_id: number;
+  template_id: number;
+  start_date: string;
+  active: boolean;
+  role: string;
+  schedule?: string | null;
+  notes?: string | null;
+  goal?: string | null;
+  created_at: string;
+  updated_at: string;
+  template_name?: string;
+  num_weeks?: number;
+  num_days?: number;
+  is_loop?: boolean;
+}

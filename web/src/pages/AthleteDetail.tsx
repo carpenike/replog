@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import type { AthleteProgram } from '@/api/types'
 
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
@@ -36,6 +37,12 @@ export function AthleteDetail() {
   const { data: trainingMaxes } = useQuery({
     queryKey: ['training-maxes', athleteId],
     queryFn: () => api.listTrainingMaxes(athleteId),
+    enabled: !isNaN(athleteId),
+  })
+
+  const { data: programs } = useQuery({
+    queryKey: ['athlete-programs', athleteId],
+    queryFn: () => api.listAthletePrograms(athleteId) as Promise<AthleteProgram[]>,
     enabled: !isNaN(athleteId),
   })
 
@@ -76,6 +83,9 @@ export function AthleteDetail() {
         <Link to={`/athletes/${athleteId}/journal`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
           📖 Journal
         </Link>
+        <Link to={`/athletes/${athleteId}/accessories`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+          🔧 Accessories
+        </Link>
       </div>
 
       {/* Info cards */}
@@ -99,6 +109,28 @@ export function AthleteDetail() {
           </div>
         )}
       </div>
+
+      {/* Active Programs */}
+      {programs && programs.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-2">Active Programs</h2>
+          <div className="space-y-2">
+            {programs.filter(p => p.active).map(p => (
+              <Link key={p.id} to={`/programs/${p.template_id}`}
+                className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:border-primary/50 transition-colors">
+                <div>
+                  <p className="font-medium">{p.template_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Started {p.start_date} • {p.role}
+                    {p.num_weeks ? ` • ${p.num_weeks}w` : ''}
+                  </p>
+                </div>
+                {p.is_loop && <span className="text-xs text-primary">Loop</span>}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Training Maxes */}
       {trainingMaxes && trainingMaxes.length > 0 && (
