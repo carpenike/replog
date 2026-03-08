@@ -643,6 +643,9 @@ func main() {
 			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}", apiHandlers.UpdateWorkoutSet)
 			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}", apiHandlers.DeleteWorkoutSet)
 
+			// Workout Notes.
+			r.Put("/athletes/{id}/workouts/{workoutID}/notes", apiHandlers.UpdateWorkoutNotes)
+
 			// Body Weights.
 			r.Get("/athletes/{id}/body-weights", apiHandlers.ListBodyWeights)
 			r.Post("/athletes/{id}/body-weights", apiHandlers.CreateBodyWeight)
@@ -650,6 +653,7 @@ func main() {
 
 			// Training Maxes.
 			r.Get("/athletes/{id}/training-maxes", apiHandlers.ListTrainingMaxes)
+			r.Post("/athletes/{id}/training-maxes", apiHandlers.CreateTrainingMax)
 			r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes", apiHandlers.GetTrainingMaxHistory)
 
 			// Athlete Programs.
