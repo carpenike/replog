@@ -71,6 +71,43 @@ class ApiClient {
     return this.request<DashboardData>('/api/dashboard');
   }
 
+  // Avatars
+  async uploadAvatar(file: File): Promise<{ avatar_url: string }> {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    const res = await fetch(`${this.baseUrl}/api/avatars/upload`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' },
+    })
+    if (!res.ok) throw new ApiError((await res.json()).error ?? 'Upload failed', res.status)
+    return res.json()
+  }
+
+  async deleteAvatar(): Promise<void> {
+    await this.request('/api/avatars/delete', { method: 'POST' });
+  }
+
+  // Notification Preferences
+  async listNotificationPreferences(): Promise<{ type: string; in_app: boolean; external: boolean }[]> {
+    return this.request('/api/notifications/preferences');
+  }
+
+  async updateNotificationPreference(type: string, inApp: boolean, external: boolean): Promise<void> {
+    await this.request('/api/notifications/preferences', { method: 'PUT', body: JSON.stringify({ type, in_app: inApp, external }) });
+  }
+
+  // Program Copy Week
+  async copyWeek(programId: number, sourceWeek: number, targetWeek: number): Promise<{ sets_copied: number }> {
+    return this.request(`/api/programs/${programId}/copy-week`, { method: 'POST', body: JSON.stringify({ source_week: sourceWeek, target_week: targetWeek }) });
+  }
+
+  // Test Connections
+  async testLLMConnection(): Promise<{ success: boolean; error?: string }> {
+    return this.request('/api/admin/settings/test-llm', { method: 'POST' });
+  }
+
   async login(username: string, password: string): Promise<User> {
     return this.request<User>('/api/login', {
       method: 'POST',

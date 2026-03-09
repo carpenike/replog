@@ -18,8 +18,9 @@ import (
 
 // Handlers holds dependencies for API handlers.
 type Handlers struct {
-	DB       *sql.DB
-	Sessions *scs.SessionManager
+	DB        *sql.DB
+	Sessions  *scs.SessionManager
+	AvatarDir string
 }
 
 // Me returns the currently authenticated user.

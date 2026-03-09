@@ -285,8 +285,9 @@ func main() {
 
 	// Initialize API handlers.
 	apiHandlers := &api.Handlers{
-		DB:       db,
-		Sessions: sessionManager,
+		DB:        db,
+		Sessions:  sessionManager,
+		AvatarDir: avatarDir,
 	}
 
 	// Set up router.
@@ -624,6 +625,14 @@ func main() {
 			r.Put("/preferences", apiHandlers.UpdatePreferences)
 			r.Get("/dashboard", apiHandlers.Dashboard)
 
+			// Avatars.
+			r.Post("/avatars/upload", apiHandlers.AvatarUpload)
+			r.Post("/avatars/delete", apiHandlers.AvatarDelete)
+
+			// Notification Preferences.
+			r.Get("/notifications/preferences", apiHandlers.ListNotificationPreferences)
+			r.Put("/notifications/preferences", apiHandlers.UpdateNotificationPreference)
+
 			// Athletes.
 			r.Get("/athletes", apiHandlers.ListAthletes)
 			r.Post("/athletes", apiHandlers.CreateAthlete)
@@ -670,6 +679,8 @@ func main() {
 			// Accessory Plans.
 			r.Get("/athletes/{id}/accessories", apiHandlers.ListAccessoryPlans)
 			r.Post("/athletes/{id}/accessories", apiHandlers.CreateAccessoryPlan)
+			r.Put("/athletes/{id}/accessories/{planID}", apiHandlers.UpdateAccessoryPlan)
+			r.Post("/athletes/{id}/accessories/{planID}/deactivate", apiHandlers.DeactivateAccessoryPlan)
 			r.Delete("/athletes/{id}/accessories/{planID}", apiHandlers.DeleteAccessoryPlan)
 
 			// Journal.
@@ -728,6 +739,7 @@ func main() {
 			r.Get("/programs/{id}", apiHandlers.GetProgramTemplate)
 			r.Put("/programs/{id}", apiHandlers.UpdateProgramTemplate)
 			r.Delete("/programs/{id}", apiHandlers.DeleteProgramTemplate)
+			r.Post("/programs/{id}/copy-week", apiHandlers.CopyWeek)
 
 			// Prescribed Sets.
 			r.Post("/programs/{id}/sets", apiHandlers.AddPrescribedSet)
@@ -764,6 +776,7 @@ func main() {
 			// Admin Settings (admin only — handler checks internally).
 			r.Get("/admin/settings", apiHandlers.ListSettings)
 			r.Put("/admin/settings", apiHandlers.UpdateSetting)
+			r.Post("/admin/settings/test-llm", apiHandlers.TestLLMConnection)
 
 			// Import (coach only — handler checks internally).
 			r.Post("/athletes/{id}/import/upload", apiHandlers.ImportUpload)
