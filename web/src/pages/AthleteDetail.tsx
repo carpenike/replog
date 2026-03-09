@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { AthleteProgram } from '@/api/types'
+import { Spinner } from '@/components/ui'
 
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
@@ -87,7 +88,7 @@ export function AthleteDetail() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] }),
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading athlete...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load athlete.</p>
   if (!athlete) return <p className="text-muted-foreground">Athlete not found.</p>
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 export function EditExercise() {
   const { id } = useParams<{ id: string }>()
@@ -60,7 +61,7 @@ export function EditExercise() {
     },
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading...</p>
+  if (isLoading) return <Spinner />
 
   return (
     <div className="max-w-lg">

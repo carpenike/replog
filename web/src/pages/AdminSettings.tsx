@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { SettingCategoryData } from '@/api/types'
+import { Spinner } from '@/components/ui'
 
 export function AdminSettings() {
   const queryClient = useQueryClient()
@@ -21,7 +22,7 @@ export function AdminSettings() {
     },
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading settings...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load settings.</p>
 
   return (

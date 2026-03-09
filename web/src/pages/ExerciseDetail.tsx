@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 export function ExerciseDetail() {
   const { id } = useParams<{ id: string }>()
@@ -12,7 +13,7 @@ export function ExerciseDetail() {
     enabled: !isNaN(exerciseId),
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading exercise...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load exercise.</p>
   if (!exercise) return <p className="text-muted-foreground">Exercise not found.</p>
 

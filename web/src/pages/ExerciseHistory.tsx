@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
@@ -23,7 +24,7 @@ export function ExerciseHistory() {
     enabled: !isNaN(athleteId) && !isNaN(exId),
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading history...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load history.</p>
 
   return (

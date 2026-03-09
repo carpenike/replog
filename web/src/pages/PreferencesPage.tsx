@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 export function PreferencesPage() {
   const queryClient = useQueryClient()
@@ -31,7 +32,7 @@ export function PreferencesPage() {
     },
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading preferences...</p>
+  if (isLoading) return <Spinner />
 
   return (
     <div className="max-w-lg">

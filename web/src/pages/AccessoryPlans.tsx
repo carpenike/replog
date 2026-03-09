@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 export function AccessoryPlans() {
   const { id } = useParams<{ id: string }>()
@@ -63,7 +64,7 @@ export function AccessoryPlans() {
     byDay.get(p.day)!.push(p)
   }
 
-  if (isLoading) return <p className="text-muted-foreground">Loading...</p>
+  if (isLoading) return <Spinner />
 
   return (
     <div>

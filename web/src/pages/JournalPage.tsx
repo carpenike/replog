@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 const typeIcons: Record<string, string> = {
   workout: '🏋️',
@@ -39,7 +40,7 @@ export function JournalPage() {
     },
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading journal...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load journal.</p>
 
   return (

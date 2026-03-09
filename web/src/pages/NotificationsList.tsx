@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 export function NotificationsList() {
   const queryClient = useQueryClient()
@@ -27,7 +28,7 @@ export function NotificationsList() {
 
   const hasUnread = notifications?.some(n => !n.read) ?? false
 
-  if (isLoading) return <p className="text-muted-foreground">Loading notifications...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load notifications.</p>
 
   return (

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 export function ProgramsList() {
   const { data: programs, isLoading, error } = useQuery({
@@ -8,7 +9,7 @@ export function ProgramsList() {
     queryFn: () => api.listProgramTemplates(),
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading programs...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load programs.</p>
 
   return (

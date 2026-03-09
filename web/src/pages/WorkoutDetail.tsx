@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
@@ -108,7 +109,7 @@ export function WorkoutDetail() {
     },
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading workout...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load workout.</p>
   if (!data) return <p className="text-muted-foreground">Workout not found.</p>
 
@@ -172,8 +173,12 @@ export function WorkoutDetail() {
         <div className="space-y-6">
           {groups.map(group => (
             <div key={group.exercise_id} className="rounded-lg border border-border overflow-hidden">
-              <div className="bg-muted/50 px-4 py-2 border-b border-border">
+              <div className="bg-muted/50 px-4 py-2 border-b border-border flex items-center justify-between">
                 <h3 className="font-semibold">{group.exercise_name}</h3>
+                <Link to={`/athletes/${athleteId}/exercises/${group.exercise_id}/history`}
+                  className="text-xs text-muted-foreground hover:text-primary">
+                  History
+                </Link>
               </div>
               <table className="w-full">
                 <thead>

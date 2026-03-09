@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
@@ -76,7 +77,7 @@ export function BodyWeightsList() {
 
       {/* List */}
       {isLoading ? (
-        <p className="text-muted-foreground">Loading...</p>
+        <Spinner />
       ) : page && page.entries.length === 0 ? (
         <p className="text-muted-foreground">No body weight entries yet.</p>
       ) : (

@@ -2,10 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web</title>
-    <script type="module" crossorigin src="/assets/index-Cc-vHd6I.js"></script>
+    <meta name="description" content="Self-hosted workout tracking for the family" />
+    <title>RepLog</title>
+    <script>
+      // Apply saved theme before React hydrates to prevent flash.
+      (function() {
+        var t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-CE5nrmdy.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-CSx4IOf5.css">
   </head>
   <body>

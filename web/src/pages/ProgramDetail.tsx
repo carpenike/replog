@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { ProgramTemplate } from '@/api/types'
+import { Spinner } from '@/components/ui'
 
 interface PrescribedSetData {
   id: number
@@ -35,7 +36,7 @@ export function ProgramDetail() {
     enabled: !isNaN(programId),
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading program...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load program.</p>
   if (!data) return <p className="text-muted-foreground">Program not found.</p>
 
