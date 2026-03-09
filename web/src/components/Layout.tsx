@@ -13,6 +13,7 @@ const navItems = [
 
 const coachItems = [
   { href: '/programs', label: 'Programs', icon: '📊' },
+  { href: '/equipment', label: 'Equipment', icon: '🏗️' },
   { href: '/reviews/pending', label: 'Reviews', icon: '✅' },
 ]
 

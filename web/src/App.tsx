@@ -25,6 +25,8 @@ import { ProgramDetail } from '@/pages/ProgramDetail'
 import { NewProgram } from '@/pages/NewProgram'
 import { EditProgram } from '@/pages/EditProgram'
 import { NotificationsList } from '@/pages/NotificationsList'
+import { EquipmentList } from '@/pages/EquipmentList'
+import { CycleReview } from '@/pages/CycleReview'
 import { UsersList } from '@/pages/UsersList'
 import { NewUser } from '@/pages/NewUser'
 import { PendingReviews } from '@/pages/PendingReviews'
@@ -79,6 +81,8 @@ export function App() {
         <Route path="/programs/new" element={<NewProgram />} />
         <Route path="/programs/:id" element={<ProgramDetail />} />
         <Route path="/programs/:id/edit" element={<EditProgram />} />
+        <Route path="/equipment" element={<EquipmentList />} />
+        <Route path="/athletes/:id/cycle-review" element={<CycleReview />} />
         <Route path="/notifications" element={<NotificationsList />} />
         <Route path="/reviews/pending" element={<PendingReviews />} />
         <Route path="/users" element={<UsersList />} />

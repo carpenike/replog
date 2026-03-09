@@ -288,3 +288,41 @@ export interface ProgressionRuleData {
   increment: number;
   exercise_name?: string;
 }
+
+export interface EquipmentData {
+  id: number;
+  name: string;
+  description?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExerciseEquipmentData {
+  ID: number;
+  ExerciseID: number;
+  EquipmentID: number;
+  EquipmentName: string;
+  Optional: boolean;
+}
+
+export interface AthleteEquipmentData {
+  ID: number;
+  AthleteID: number;
+  EquipmentID: number;
+  EquipmentName: string;
+}
+
+export interface TMSuggestion {
+  exercise_id: number;
+  exercise_name: string;
+  current_tm: number;
+  increment: number;
+  suggested_tm: number;
+}
+
+export interface CycleReviewData {
+  cycle_number: number;
+  cycle_start: string;
+  cycle_end: string;
+  suggestions: TMSuggestion[];
+}

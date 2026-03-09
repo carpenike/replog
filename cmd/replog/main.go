@@ -681,6 +681,25 @@ func main() {
 			// Exercise History.
 			r.Get("/athletes/{id}/exercises/{exerciseID}/history", apiHandlers.ListExerciseHistory)
 
+			// Exercise Equipment.
+			r.Get("/exercises/{id}/equipment", apiHandlers.ListExerciseEquipment)
+			r.Post("/exercises/{id}/equipment", apiHandlers.AddExerciseEquipment)
+			r.Delete("/exercises/{id}/equipment/{equipmentID}", apiHandlers.RemoveExerciseEquipment)
+
+			// Athlete Equipment.
+			r.Get("/athletes/{id}/equipment", apiHandlers.ListAthleteEquipment)
+			r.Post("/athletes/{id}/equipment", apiHandlers.AddAthleteEquipment)
+			r.Delete("/athletes/{id}/equipment/{equipmentID}", apiHandlers.RemoveAthleteEquipment)
+
+			// Cycle Review.
+			r.Get("/athletes/{id}/cycle-review", apiHandlers.GetCycleReview)
+			r.Post("/athletes/{id}/cycle-review", apiHandlers.ApplyTMBumps)
+
+			// Equipment Catalog.
+			r.Get("/equipment", apiHandlers.ListEquipment)
+			r.Post("/equipment", apiHandlers.CreateEquipment)
+			r.Delete("/equipment/{equipmentID}", apiHandlers.DeleteEquipment)
+
 			// Program Templates.
 			r.Get("/programs", apiHandlers.ListProgramTemplates)
 			r.Post("/programs", apiHandlers.CreateProgramTemplate)

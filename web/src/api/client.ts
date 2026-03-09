@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -188,6 +188,52 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  // Equipment
+  async listEquipment(): Promise<EquipmentData[]> {
+    return this.request('/api/equipment');
+  }
+
+  async createEquipment(name: string, description = ''): Promise<EquipmentData> {
+    return this.request('/api/equipment', { method: 'POST', body: JSON.stringify({ name, description }) });
+  }
+
+  async deleteEquipmentItem(id: number): Promise<void> {
+    await this.request(`/api/equipment/${id}`, { method: 'DELETE' });
+  }
+
+  async listExerciseEquipment(exerciseId: number): Promise<ExerciseEquipmentData[]> {
+    return this.request(`/api/exercises/${exerciseId}/equipment`);
+  }
+
+  async addExerciseEquipment(exerciseId: number, equipmentId: number, optional = false): Promise<void> {
+    await this.request(`/api/exercises/${exerciseId}/equipment`, { method: 'POST', body: JSON.stringify({ equipment_id: equipmentId, optional }) });
+  }
+
+  async removeExerciseEquipment(exerciseId: number, equipmentId: number): Promise<void> {
+    await this.request(`/api/exercises/${exerciseId}/equipment/${equipmentId}`, { method: 'DELETE' });
+  }
+
+  async listAthleteEquipment(athleteId: number): Promise<AthleteEquipmentData[]> {
+    return this.request(`/api/athletes/${athleteId}/equipment`);
+  }
+
+  async addAthleteEquipment(athleteId: number, equipmentId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/equipment`, { method: 'POST', body: JSON.stringify({ equipment_id: equipmentId }) });
+  }
+
+  async removeAthleteEquipment(athleteId: number, equipmentId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/equipment/${equipmentId}`, { method: 'DELETE' });
+  }
+
+  // Cycle Review
+  async getCycleReview(athleteId: number): Promise<CycleReviewData> {
+    return this.request(`/api/athletes/${athleteId}/cycle-review`);
+  }
+
+  async applyTMBumps(athleteId: number, bumps: { exercise_id: number; new_weight: number }[]): Promise<{ applied: number }> {
+    return this.request(`/api/athletes/${athleteId}/cycle-review`, { method: 'POST', body: JSON.stringify({ bumps }) });
   }
 
   // Programs
