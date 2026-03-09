@@ -87,17 +87,7 @@
                 "cwd": "${workspaceFolder}/web"
             },
             "isBackground": true,
-            "problemMatcher": {
-                "owner": "vite",
-                "pattern": {
-                    "regexp": "^$"
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": "vite",
-                    "endsPattern": "ready in"
-                }
-            },
+            "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated",
