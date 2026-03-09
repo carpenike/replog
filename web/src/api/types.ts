@@ -259,3 +259,24 @@ export interface AthleteProgram {
   num_days?: number;
   is_loop?: boolean;
 }
+
+export interface ExerciseHistoryEntryData {
+  workout_id: number;
+  workout_date: string;
+  set_number: number;
+  reps: number;
+  weight?: number | null;
+  rpe?: number | null;
+  notes?: string | null;
+}
+
+export interface ExerciseHistoryDayData {
+  workout_id: number;
+  workout_date: string;
+  sets: ExerciseHistoryEntryData[];
+}
+
+export interface ExerciseHistoryPageData {
+  days: ExerciseHistoryDayData[];
+  has_more: boolean;
+}

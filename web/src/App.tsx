@@ -19,6 +19,7 @@ import { BodyWeightsList } from '@/pages/BodyWeightsList'
 import { TrainingMaxesList } from '@/pages/TrainingMaxesList'
 import { JournalPage } from '@/pages/JournalPage'
 import { AccessoryPlans } from '@/pages/AccessoryPlans'
+import { ExerciseHistory } from '@/pages/ExerciseHistory'
 import { ProgramsList } from '@/pages/ProgramsList'
 import { ProgramDetail } from '@/pages/ProgramDetail'
 import { NotificationsList } from '@/pages/NotificationsList'
@@ -65,6 +66,7 @@ export function App() {
         <Route path="/athletes/:id/training-maxes" element={<TrainingMaxesList />} />
         <Route path="/athletes/:id/journal" element={<JournalPage />} />
         <Route path="/athletes/:id/accessories" element={<AccessoryPlans />} />
+        <Route path="/athletes/:id/exercises/:exerciseId/history" element={<ExerciseHistory />} />
         <Route path="/exercises" element={<ExercisesList user={user} />} />
         <Route path="/exercises/new" element={<NewExercise />} />
         <Route path="/exercises/:id" element={<ExerciseDetail />} />

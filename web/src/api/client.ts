@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, JournalEntry, Notification, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -231,6 +231,26 @@ class ApiClient {
   // Journal
   async listJournalEntries(athleteId: number, limit = 50): Promise<JournalEntry[]> {
     return this.request<JournalEntry[]>(`/api/athletes/${athleteId}/journal?limit=${limit}`);
+  }
+
+  async createNote(athleteId: number, content: string, isPrivate = false, pinned = false): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/notes`, {
+      method: 'POST',
+      body: JSON.stringify({ content, is_private: isPrivate, pinned }),
+    });
+  }
+
+  // Athlete Goal
+  async updateAthleteGoal(athleteId: number, goal: string): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/goal`, {
+      method: 'PUT',
+      body: JSON.stringify({ goal }),
+    });
+  }
+
+  // Exercise History
+  async listExerciseHistory(athleteId: number, exerciseId: number, offset = 0): Promise<ExerciseHistoryPageData> {
+    return this.request(`/api/athletes/${athleteId}/exercises/${exerciseId}/history?offset=${offset}`);
   }
 
   // Preferences

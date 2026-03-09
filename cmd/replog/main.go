@@ -668,6 +668,13 @@ func main() {
 
 			// Journal.
 			r.Get("/athletes/{id}/journal", apiHandlers.ListJournalEntries)
+			r.Post("/athletes/{id}/notes", apiHandlers.CreateAthleteNote)
+
+			// Athlete Goal.
+			r.Put("/athletes/{id}/goal", apiHandlers.UpdateAthleteGoal)
+
+			// Exercise History.
+			r.Get("/athletes/{id}/exercises/{exerciseID}/history", apiHandlers.ListExerciseHistory)
 
 			// Program Templates.
 			r.Get("/programs", apiHandlers.ListProgramTemplates)
