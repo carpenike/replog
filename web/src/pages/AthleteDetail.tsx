@@ -165,6 +165,9 @@ export function AthleteDetail() {
         <Link to={`/athletes/${athleteId}/import`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
           📥 Import
         </Link>
+        <Link to={`/athletes/${athleteId}/generate`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+          🤖 AI Coach
+        </Link>
       </div>
 
       {/* Info cards */}

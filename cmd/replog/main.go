@@ -762,6 +762,11 @@ func main() {
 			// Import (coach only — handler checks internally).
 			r.Post("/athletes/{id}/import/upload", apiHandlers.ImportUpload)
 			r.Post("/athletes/{id}/import/execute", apiHandlers.ImportExecute)
+
+			// AI Coach Generation (coach only — handler checks internally).
+			r.Get("/athletes/{id}/generate", apiHandlers.GenerateFormData)
+			r.Post("/athletes/{id}/generate", apiHandlers.GenerateSubmit)
+			r.Post("/athletes/{id}/generate/execute", apiHandlers.GenerateExecute)
 		})
 	})
 
