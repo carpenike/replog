@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, PrescriptionData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -156,6 +156,24 @@ class ApiClient {
 
   async deleteSet(athleteId: number, workoutId: number, setId: number): Promise<void> {
     await this.request(`/api/athletes/${athleteId}/workouts/${workoutId}/sets/${setId}`, { method: 'DELETE' });
+  }
+
+  // Assignments
+  async listAssignments(athleteId: number): Promise<AthleteExerciseData[]> {
+    return this.request(`/api/athletes/${athleteId}/assignments`);
+  }
+
+  async assignExercise(athleteId: number, exerciseId: number, targetReps = 0): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/assignments`, { method: 'POST', body: JSON.stringify({ exercise_id: exerciseId, target_reps: targetReps }) });
+  }
+
+  async deactivateAssignment(athleteId: number, assignmentId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/assignments/${assignmentId}/deactivate`, { method: 'POST' });
+  }
+
+  // Program Compatibility
+  async checkProgramCompatibility(athleteId: number, templateId: number): Promise<ProgramCompatibilityData> {
+    return this.request(`/api/athletes/${athleteId}/program-compatibility?template_id=${templateId}`);
   }
 
   // Body Weights

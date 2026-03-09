@@ -351,3 +351,24 @@ export interface PrescriptionData {
   cycle_number: number;
   lines: PrescriptionLineData[];
 }
+
+export interface AthleteExerciseData {
+  id: number;
+  athlete_id: number;
+  exercise_id: number;
+  active: boolean;
+  assigned_at: string;
+  deactivated_at?: string | null;
+  exercise_name?: string;
+  exercise_tier?: string | null;
+  target_reps?: number | null;
+}
+
+export interface ProgramCompatibilityData {
+  template_id: number;
+  template_name: string;
+  ready: boolean;
+  ready_count: number;
+  total_count: number;
+  exercises: { exercise_id: number; exercise_name: string; has_required: boolean }[];
+}

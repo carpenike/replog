@@ -694,6 +694,14 @@ func main() {
 			r.Post("/athletes/{id}/equipment", apiHandlers.AddAthleteEquipment)
 			r.Delete("/athletes/{id}/equipment/{equipmentID}", apiHandlers.RemoveAthleteEquipment)
 
+			// Exercise Assignments.
+			r.Get("/athletes/{id}/assignments", apiHandlers.ListAssignments)
+			r.Post("/athletes/{id}/assignments", apiHandlers.AssignExercise)
+			r.Post("/athletes/{id}/assignments/{assignmentID}/deactivate", apiHandlers.DeactivateAssignment)
+
+			// Program Compatibility.
+			r.Get("/athletes/{id}/program-compatibility", apiHandlers.CheckProgramCompatibility)
+
 			// Cycle Review.
 			r.Get("/athletes/{id}/cycle-review", apiHandlers.GetCycleReview)
 			r.Post("/athletes/{id}/cycle-review", apiHandlers.ApplyTMBumps)
