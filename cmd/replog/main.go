@@ -715,6 +715,7 @@ func main() {
 			r.Get("/athletes/{id}/assignments", apiHandlers.ListAssignments)
 			r.Post("/athletes/{id}/assignments", apiHandlers.AssignExercise)
 			r.Post("/athletes/{id}/assignments/{assignmentID}/deactivate", apiHandlers.DeactivateAssignment)
+			r.Post("/athletes/{id}/assignments/reactivate", apiHandlers.ReactivateAssignment)
 
 			// Program Compatibility.
 			r.Get("/athletes/{id}/program-compatibility", apiHandlers.CheckProgramCompatibility)
@@ -772,11 +773,13 @@ func main() {
 			// Reviews (coach only — handler checks internally).
 			r.Get("/reviews/pending", apiHandlers.ListPendingReviews)
 			r.Post("/athletes/{id}/workouts/{workoutID}/review", apiHandlers.SubmitReview)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/review", apiHandlers.DeleteReview)
 
 			// Admin Settings (admin only — handler checks internally).
 			r.Get("/admin/settings", apiHandlers.ListSettings)
 			r.Put("/admin/settings", apiHandlers.UpdateSetting)
 			r.Post("/admin/settings/test-llm", apiHandlers.TestLLMConnection)
+			r.Post("/admin/settings/test-notify", apiHandlers.TestNotifyConnection)
 
 			// Catalog (admin only — handler checks internally).
 			r.Get("/catalog/export", apiHandlers.CatalogExportJSON)

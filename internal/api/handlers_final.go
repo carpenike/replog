@@ -1,0 +1,95 @@
+package api
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"strconv"
+
+	"github.com/carpenike/replog/internal/middleware"
+	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/notify"
+)
+
+// ReactivateAssignment reactivates a deactivated exercise assignment.
+func (h *Handlers) ReactivateAssignment(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+
+	var req struct {
+		ExerciseID int64 `json:"exercise_id"`
+		TargetReps int   `json:"target_reps"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.ExerciseID == 0 {
+		WriteError(w, http.StatusBadRequest, "exercise_id is required")
+		return
+	}
+
+	assignment, err := models.ReactivateAssignment(h.DB, athleteID, req.ExerciseID, req.TargetReps)
+	if err != nil {
+		log.Printf("api: reactivate assignment athlete %d exercise %d: %v", athleteID, req.ExerciseID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to reactivate assignment")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, AthleteExerciseFromModel(assignment))
+}
+
+// DeleteReview deletes a workout review.
+func (h *Handlers) DeleteReview(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	workoutID, err := strconv.ParseInt(r.PathValue("workoutID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid workout ID")
+		return
+	}
+
+	review, err := models.GetWorkoutReviewByWorkoutID(h.DB, workoutID)
+	if err != nil {
+		log.Printf("api: get review for workout %d: %v", workoutID, err)
+		WriteError(w, http.StatusNotFound, "review not found")
+		return
+	}
+
+	if err := models.DeleteWorkoutReview(h.DB, review.ID); err != nil {
+		log.Printf("api: delete review %d: %v", review.ID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to delete review")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// TestNotifyConnection tests the notification provider connection.
+func (h *Handlers) TestNotifyConnection(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "admin access required")
+		return
+	}
+
+	if err := notify.TestConnection(h.DB); err != nil {
+		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]any{"success": true})
+}
