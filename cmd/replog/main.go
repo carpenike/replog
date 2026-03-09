@@ -758,6 +758,10 @@ func main() {
 			// Admin Settings (admin only — handler checks internally).
 			r.Get("/admin/settings", apiHandlers.ListSettings)
 			r.Put("/admin/settings", apiHandlers.UpdateSetting)
+
+			// Import (coach only — handler checks internally).
+			r.Post("/athletes/{id}/import/upload", apiHandlers.ImportUpload)
+			r.Post("/athletes/{id}/import/execute", apiHandlers.ImportExecute)
 		})
 	})
 

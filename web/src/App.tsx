@@ -23,6 +23,7 @@ import { ExerciseHistory } from '@/pages/ExerciseHistory'
 import { PrescriptionPage } from '@/pages/PrescriptionPage'
 import { AssignmentsPage } from '@/pages/AssignmentsPage'
 import { TMSetup } from '@/pages/TMSetup'
+import { ImportPage } from '@/pages/ImportPage'
 import { ProgramsList } from '@/pages/ProgramsList'
 import { ProgramDetail } from '@/pages/ProgramDetail'
 import { NewProgram } from '@/pages/NewProgram'
@@ -80,6 +81,7 @@ export function App() {
         <Route path="/athletes/:id/prescription" element={<PrescriptionPage />} />
         <Route path="/athletes/:id/assignments" element={<AssignmentsPage />} />
         <Route path="/athletes/:id/tm-setup" element={<TMSetup />} />
+        <Route path="/athletes/:id/import" element={<ImportPage />} />
         <Route path="/athletes/:id/exercises/:exerciseId/history" element={<ExerciseHistory />} />
         <Route path="/exercises" element={<ExercisesList user={user} />} />
         <Route path="/exercises/new" element={<NewExercise />} />
