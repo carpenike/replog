@@ -85,9 +85,15 @@ export function Login() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Workout tracking for the family
-        </p>
+        <div className="mt-4 space-y-2 text-center">
+          <a href="/passkeys/login/begin"
+            className="block text-sm text-primary hover:text-primary/80">
+            Sign in with Passkey
+          </a>
+          <p className="text-xs text-muted-foreground">
+            Workout tracking for the family
+          </p>
+        </div>
       </div>
     </div>
   )

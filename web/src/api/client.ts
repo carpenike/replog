@@ -108,6 +108,10 @@ class ApiClient {
     return this.request('/api/admin/settings/test-llm', { method: 'POST' });
   }
 
+  async testNotifyConnection(): Promise<{ success: boolean; error?: string }> {
+    return this.request('/api/admin/settings/test-notify', { method: 'POST' });
+  }
+
   async login(username: string, password: string): Promise<User> {
     return this.request<User>('/api/login', {
       method: 'POST',

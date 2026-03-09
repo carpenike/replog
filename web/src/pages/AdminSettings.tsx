@@ -50,6 +50,15 @@ export function AdminSettings() {
           </div>
         ))}
       </div>
+
+      {/* Test Connections */}
+      <div className="mt-8 rounded-lg border border-border bg-card p-4">
+        <h2 className="text-lg font-semibold mb-3">Test Connections</h2>
+        <div className="flex flex-wrap gap-3">
+          <TestButton label="Test LLM" onClick={() => api.testLLMConnection()} />
+          <TestButton label="Test Notifications" onClick={() => api.testNotifyConnection()} />
+        </div>
+      </div>
     </div>
   )
 }
@@ -122,6 +131,42 @@ function SettingRow({ settingKey, value, masked, source, readOnly, isSaved, onSa
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function TestButton({ label, onClick }: { label: string; onClick: () => Promise<{ success: boolean; error?: string }> }) {
+  const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  async function handleTest() {
+    setStatus('testing')
+    setErrorMsg('')
+    try {
+      const result = await onClick()
+      setStatus(result.success ? 'success' : 'error')
+      if (!result.success && result.error) setErrorMsg(result.error)
+    } catch {
+      setStatus('error')
+      setErrorMsg('Connection failed')
+    }
+    setTimeout(() => setStatus('idle'), 5000)
+  }
+
+  return (
+    <div>
+      <button onClick={handleTest} disabled={status === 'testing'}
+        className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+          status === 'success' ? 'bg-success/20 text-success' :
+          status === 'error' ? 'bg-destructive/20 text-destructive' :
+          'border border-border hover:bg-accent'
+        } disabled:opacity-50`}>
+        {status === 'testing' ? 'Testing...' :
+         status === 'success' ? '✓ Connected' :
+         status === 'error' ? '✗ Failed' :
+         label}
+      </button>
+      {errorMsg && <p className="text-xs text-destructive mt-1">{errorMsg}</p>}
     </div>
   )
 }

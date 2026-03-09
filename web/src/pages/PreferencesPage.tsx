@@ -83,6 +83,18 @@ export function PreferencesPage() {
           {mutation.isPending ? 'Saving...' : 'Save Preferences'}
         </button>
       </form>
+
+      {/* Passkey Management */}
+      <div className="mt-8 rounded-lg border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold mb-2">Passkeys</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Manage your passkey credentials for passwordless login. Passkeys use your device's biometric or PIN to sign in securely.
+        </p>
+        <a href="/preferences"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 inline-block">
+          Manage Passkeys
+        </a>
+      </div>
     </div>
   )
 }
