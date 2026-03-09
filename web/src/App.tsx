@@ -31,6 +31,8 @@ import { PreferencesPage } from '@/pages/PreferencesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { Login } from '@/pages/Login'
 
+import { LoadingPage } from '@/components/ui'
+
 export function App() {
   const { theme, toggleTheme } = useTheme()
   const { data: user, isLoading, error } = useQuery({
@@ -42,7 +44,7 @@ export function App() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
-        <p className="text-muted-foreground">Loading...</p>
+        <LoadingPage />
       </div>
     )
   }

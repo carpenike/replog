@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 import type { User } from '@/api/types'
 
 interface DashboardProps {
@@ -13,10 +14,49 @@ function formatVolume(v: number): string {
 }
 
 export function Dashboard({ user }: DashboardProps) {
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.dashboard(),
   })
+
+  if (isLoading) return <Spinner />
+
+  // Athlete-only user: redirect-like quick actions for their own profile
+  if (!user.is_coach && !user.is_admin && user.athlete_id) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-6">
+          Welcome, {user.name ?? user.username}
+        </h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link to={`/athletes/${user.athlete_id}/workouts/new`}
+            className="rounded-lg border border-border bg-card p-6 hover:border-primary/50 transition-colors text-center">
+            <span className="text-3xl mb-2 block">🏋️</span>
+            <p className="font-semibold">Log Today's Workout</p>
+            <p className="text-sm text-muted-foreground mt-1">Start a new workout session</p>
+          </Link>
+          <Link to={`/athletes/${user.athlete_id}/workouts`}
+            className="rounded-lg border border-border bg-card p-6 hover:border-primary/50 transition-colors text-center">
+            <span className="text-3xl mb-2 block">📝</span>
+            <p className="font-semibold">Workout History</p>
+            <p className="text-sm text-muted-foreground mt-1">View past workouts</p>
+          </Link>
+          <Link to={`/athletes/${user.athlete_id}/body-weights`}
+            className="rounded-lg border border-border bg-card p-6 hover:border-primary/50 transition-colors text-center">
+            <span className="text-3xl mb-2 block">⚖️</span>
+            <p className="font-semibold">Body Weight</p>
+            <p className="text-sm text-muted-foreground mt-1">Log or view body weight</p>
+          </Link>
+          <Link to={`/athletes/${user.athlete_id}`}
+            className="rounded-lg border border-border bg-card p-6 hover:border-primary/50 transition-colors text-center">
+            <span className="text-3xl mb-2 block">👤</span>
+            <p className="font-semibold">My Profile</p>
+            <p className="text-sm text-muted-foreground mt-1">View training maxes, programs, journal</p>
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>

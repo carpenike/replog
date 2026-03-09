@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 
 export function WorkoutsList() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
+  const [offset, setOffset] = useState(0)
 
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
@@ -13,12 +16,12 @@ export function WorkoutsList() {
   })
 
   const { data: page, isLoading, error } = useQuery({
-    queryKey: ['workouts', athleteId],
-    queryFn: () => api.listWorkouts(athleteId),
+    queryKey: ['workouts', athleteId, offset],
+    queryFn: () => api.listWorkouts(athleteId, offset),
     enabled: !isNaN(athleteId),
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading workouts...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load workouts.</p>
 
   return (
@@ -72,6 +75,25 @@ export function WorkoutsList() {
               </div>
             </Link>
           ))}
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between pt-4">
+            <button
+              onClick={() => setOffset(Math.max(0, offset - 20))}
+              disabled={offset === 0}
+              className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              ← Previous
+            </button>
+            {page?.has_more && (
+              <button
+                onClick={() => setOffset(offset + 20)}
+                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              >
+                Next →
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

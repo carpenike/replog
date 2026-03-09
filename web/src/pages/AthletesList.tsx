@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
+import { Spinner } from '@/components/ui'
 import type { User } from '@/api/types'
 
 const tierColors: Record<string, string> = {
@@ -19,17 +21,23 @@ function tierLabel(tier: string): string {
 }
 
 export function AthletesList({ user }: { user: User }) {
+  const [search, setSearch] = useState('')
+
   const { data: athletes, isLoading, error } = useQuery({
     queryKey: ['athletes'],
     queryFn: () => api.listAthletes(),
   })
 
-  if (isLoading) return <p className="text-muted-foreground">Loading athletes...</p>
+  if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load athletes.</p>
+
+  const filtered = athletes?.filter(a =>
+    a.name.toLowerCase().includes(search.toLowerCase())
+  ) ?? []
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Athletes</h1>
         {(user.is_coach || user.is_admin) && (
           <Link to="/athletes/new" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
@@ -38,11 +46,19 @@ export function AthletesList({ user }: { user: User }) {
         )}
       </div>
 
-      {athletes && athletes.length === 0 ? (
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search athletes..."
+        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm mb-4 placeholder:text-muted-foreground"
+      />
+
+      {filtered.length === 0 ? (
         <p className="text-muted-foreground">No athletes found.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {athletes?.map(athlete => (
+          {filtered.map(athlete => (
             <Link
               key={athlete.id}
               to={`/athletes/${athlete.id}`}
