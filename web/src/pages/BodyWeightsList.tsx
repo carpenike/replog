@@ -18,10 +18,11 @@ export function BodyWeightsList() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [weight, setWeight] = useState('')
   const [notes, setNotes] = useState('')
+  const [offset, setOffset] = useState(0)
 
   const { data: page, isLoading } = useQuery({
-    queryKey: ['body-weights', athleteId],
-    queryFn: () => api.listBodyWeights(athleteId),
+    queryKey: ['body-weights', athleteId, offset],
+    queryFn: () => api.listBodyWeights(athleteId, offset),
     enabled: !isNaN(athleteId),
   })
 
@@ -113,6 +114,28 @@ export function BodyWeightsList() {
           </table>
         </div>
       )}
+
+      {/* Pagination */}
+      {page && (page.has_more || offset > 0) && (
+        <div className="flex items-center justify-between pt-4">
+          <button
+            onClick={() => setOffset(Math.max(0, offset - 20))}
+            disabled={offset === 0}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-30"
+          >
+            ← Previous
+          </button>
+          {page.has_more && (
+            <button
+              onClick={() => setOffset(offset + 20)}
+              className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+            >
+              Next →
+            </button>
+          )}
+        </div>
+      )}
+
       {confirmDialog()}
     </div>
   )

@@ -60,6 +60,10 @@ class ApiClient {
         window.location.href = `/?returnTo=${returnTo}`
         throw new ApiError('Session expired', 401)
       }
+      // Access denied — clear error message.
+      if (res.status === 403) {
+        throw new ApiError('You don\'t have permission to perform this action.', 403)
+      }
       const body = await res.json().catch(() => ({ error: res.statusText, code: res.status })) as APIError;
       throw new ApiError(body.error, body.code, body.details);
     }
