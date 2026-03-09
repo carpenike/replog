@@ -20,6 +20,7 @@ const coachItems = [
 const adminItems = [
   { href: '/users', label: 'Users', icon: '👥' },
   { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
+  { href: '/admin/catalog', label: 'Catalog', icon: '📚' },
 ]
 
 interface LayoutProps {

@@ -38,6 +38,7 @@ import { EditUser } from '@/pages/EditUser'
 import { ExportPage } from '@/pages/ExportPage'
 import { PendingReviews } from '@/pages/PendingReviews'
 import { AdminSettings } from '@/pages/AdminSettings'
+import { CatalogAdmin } from '@/pages/CatalogAdmin'
 import { PreferencesPage } from '@/pages/PreferencesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { Login } from '@/pages/Login'
@@ -102,6 +103,7 @@ export function App() {
         <Route path="/users/:userId/edit" element={<EditUser />} />
         <Route path="/athletes/:id/export" element={<ExportPage />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
+        <Route path="/admin/catalog" element={<CatalogAdmin />} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />

@@ -778,6 +778,11 @@ func main() {
 			r.Put("/admin/settings", apiHandlers.UpdateSetting)
 			r.Post("/admin/settings/test-llm", apiHandlers.TestLLMConnection)
 
+			// Catalog (admin only — handler checks internally).
+			r.Get("/catalog/export", apiHandlers.CatalogExportJSON)
+			r.Post("/catalog/import/upload", apiHandlers.CatalogImportUpload)
+			r.Post("/catalog/import/execute", apiHandlers.CatalogImportExecute)
+
 			// Import (coach only — handler checks internally).
 			r.Post("/athletes/{id}/import/upload", apiHandlers.ImportUpload)
 			r.Post("/athletes/{id}/import/execute", apiHandlers.ImportExecute)
