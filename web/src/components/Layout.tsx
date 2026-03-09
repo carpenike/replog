@@ -105,6 +105,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
                 <Link
                   key={item.href}
                   to={item.href}
+                  onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
                     isActive(item.href)
                       ? 'bg-primary/10 text-primary font-medium'
@@ -127,6 +128,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
                 <Link
                   key={item.href}
                   to={item.href}
+                  onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
                     isActive(item.href)
                       ? 'bg-primary/10 text-primary font-medium'

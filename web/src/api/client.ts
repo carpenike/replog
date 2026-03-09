@@ -24,15 +24,23 @@ class ApiClient {
   private baseUrl = '';
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      ...options,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      credentials: 'include',
-    });
+    let res: Response
+    try {
+      res = await fetch(`${this.baseUrl}${path}`, {
+        ...options,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        credentials: 'include',
+      })
+    } catch {
+      if (!navigator.onLine) {
+        throw new ApiError('You appear to be offline. Check your connection.', 0)
+      }
+      throw new ApiError('Unable to reach the server. Please try again.', 0)
+    }
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText, code: res.status })) as APIError;
