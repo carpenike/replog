@@ -58,11 +58,14 @@ export function UsersList() {
                   </div>
                 </td>
                 <td className="p-3">
-                  <button
-                    onClick={async () => { if (await confirm({ title: 'Delete User', description: `Delete user ${u.username}?`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate(u.id) }}
-                    className="text-xs text-destructive hover:text-destructive/80">
-                    ×
-                  </button>
+                  <div className="flex gap-2">
+                    <Link to={`/users/${u.id}/edit`} className="text-xs text-primary hover:text-primary/80">Edit</Link>
+                    <button
+                      onClick={async () => { if (await confirm({ title: 'Delete User', description: `Delete user ${u.username}?`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate(u.id) }}
+                      className="text-xs text-destructive hover:text-destructive/80">
+                      ×
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -29,6 +29,8 @@ import { EquipmentList } from '@/pages/EquipmentList'
 import { CycleReview } from '@/pages/CycleReview'
 import { UsersList } from '@/pages/UsersList'
 import { NewUser } from '@/pages/NewUser'
+import { EditUser } from '@/pages/EditUser'
+import { ExportPage } from '@/pages/ExportPage'
 import { PendingReviews } from '@/pages/PendingReviews'
 import { AdminSettings } from '@/pages/AdminSettings'
 import { PreferencesPage } from '@/pages/PreferencesPage'
@@ -87,6 +89,8 @@ export function App() {
         <Route path="/reviews/pending" element={<PendingReviews />} />
         <Route path="/users" element={<UsersList />} />
         <Route path="/users/new" element={<NewUser />} />
+        <Route path="/users/:userId/edit" element={<EditUser />} />
+        <Route path="/athletes/:id/export" element={<ExportPage />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />

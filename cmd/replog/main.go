@@ -698,6 +698,7 @@ func main() {
 			// Equipment Catalog.
 			r.Get("/equipment", apiHandlers.ListEquipment)
 			r.Post("/equipment", apiHandlers.CreateEquipment)
+			r.Put("/equipment/{equipmentID}", apiHandlers.UpdateEquipment)
 			r.Delete("/equipment/{equipmentID}", apiHandlers.DeleteEquipment)
 
 			// Program Templates.
@@ -726,6 +727,8 @@ func main() {
 			// Users (admin only — handler checks IsAdmin internally).
 			r.Get("/users", apiHandlers.ListUsers)
 			r.Post("/users", apiHandlers.CreateUser)
+			r.Get("/users/{userID}", apiHandlers.GetUser)
+			r.Put("/users/{userID}", apiHandlers.UpdateUser)
 			r.Delete("/users/{userID}", apiHandlers.DeleteUser)
 
 			// Reviews (coach only — handler checks internally).

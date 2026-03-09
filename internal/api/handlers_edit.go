@@ -1,0 +1,132 @@
+package api
+
+import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"log"
+	"net/http"
+	"strconv"
+
+	"github.com/carpenike/replog/internal/middleware"
+	"github.com/carpenike/replog/internal/models"
+)
+
+// UpdateEquipment updates an equipment item. Coach only.
+func (h *Handlers) UpdateEquipment(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("equipmentID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid equipment ID")
+		return
+	}
+
+	var req struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Name == "" {
+		WriteError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	equip, err := models.UpdateEquipment(h.DB, id, req.Name, req.Description)
+	if errors.Is(err, models.ErrNotFound) {
+		WriteError(w, http.StatusNotFound, "equipment not found")
+		return
+	}
+	if err != nil {
+		log.Printf("api: update equipment %d: %v", id, err)
+		WriteError(w, http.StatusInternalServerError, "failed to update equipment")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, EquipmentFromModel(equip))
+}
+
+// GetUser returns a user by ID. Admin only.
+func (h *Handlers) GetUser(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "admin access required")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("userID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	target, err := models.GetUserByID(h.DB, id)
+	if errors.Is(err, models.ErrNotFound) {
+		WriteError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	if err != nil {
+		log.Printf("api: get user %d: %v", id, err)
+		WriteError(w, http.StatusInternalServerError, "failed to get user")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, UserFromModel(target))
+}
+
+// UpdateUser updates a user. Admin only.
+func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	authUser := middleware.UserFromContext(r.Context())
+	if !authUser.IsAdmin {
+		WriteError(w, http.StatusForbidden, "admin access required")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("userID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	var req struct {
+		Username  string `json:"username"`
+		Name      string `json:"name"`
+		Email     string `json:"email"`
+		IsCoach   bool   `json:"is_coach"`
+		IsAdmin   bool   `json:"is_admin"`
+		AthleteID *int64 `json:"athlete_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Username == "" {
+		WriteError(w, http.StatusBadRequest, "username is required")
+		return
+	}
+
+	athleteID := sql.NullInt64{}
+	if req.AthleteID != nil {
+		athleteID = sql.NullInt64{Int64: *req.AthleteID, Valid: true}
+	}
+
+	updated, err := models.UpdateUser(h.DB, id, req.Username, req.Name, req.Email, athleteID, req.IsCoach, req.IsAdmin)
+	if errors.Is(err, models.ErrDuplicateUsername) {
+		WriteError(w, http.StatusConflict, "username already exists")
+		return
+	}
+	if err != nil {
+		log.Printf("api: update user %d: %v", id, err)
+		WriteError(w, http.StatusInternalServerError, "failed to update user")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, UserFromModel(updated))
+}

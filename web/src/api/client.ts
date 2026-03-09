@@ -203,6 +203,10 @@ class ApiClient {
     await this.request(`/api/equipment/${id}`, { method: 'DELETE' });
   }
 
+  async updateEquipment(id: number, name: string, description = ''): Promise<EquipmentData> {
+    return this.request(`/api/equipment/${id}`, { method: 'PUT', body: JSON.stringify({ name, description }) });
+  }
+
   async listExerciseEquipment(exerciseId: number): Promise<ExerciseEquipmentData[]> {
     return this.request(`/api/exercises/${exerciseId}/equipment`);
   }
@@ -319,6 +323,14 @@ class ApiClient {
 
   async deleteUser(id: number): Promise<void> {
     await this.request(`/api/users/${id}`, { method: 'DELETE' });
+  }
+
+  async getUser(id: number): Promise<User> {
+    return this.request<User>(`/api/users/${id}`);
+  }
+
+  async updateUser(id: number, data: { username: string; name?: string; email?: string; is_coach?: boolean; is_admin?: boolean; athlete_id?: number | null }): Promise<User> {
+    return this.request<User>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
   }
 
   // Journal
