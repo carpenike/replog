@@ -19,6 +19,14 @@ export function TrainingMaxesList() {
   const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().slice(0, 10))
   const [notes, setNotes] = useState('')
 
+  const [selectedExercise, setSelectedExercise] = useState<{ id: number; name: string } | null>(null)
+
+  const { data: history } = useQuery({
+    queryKey: ['tm-history', athleteId, selectedExercise?.id],
+    queryFn: () => api.getTrainingMaxHistory(athleteId, selectedExercise!.id),
+    enabled: !!selectedExercise,
+  })
+
   const { data: maxes, isLoading, error } = useQuery({
     queryKey: ['training-maxes', athleteId],
     queryFn: () => api.listTrainingMaxes(athleteId),
@@ -108,7 +116,11 @@ export function TrainingMaxesList() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {maxes?.map(tm => (
-            <div key={tm.id} className="rounded-lg border border-border bg-card p-4">
+            <div key={tm.id}
+              onClick={() => setSelectedExercise(selectedExercise?.id === tm.exercise_id ? null : { id: tm.exercise_id, name: tm.exercise_name ?? '' })}
+              className={`rounded-lg border bg-card p-4 cursor-pointer transition-colors ${
+                selectedExercise?.id === tm.exercise_id ? 'border-primary' : 'border-border hover:border-primary/30'
+              }`}>
               <p className="text-sm text-muted-foreground">{tm.exercise_name}</p>
               <p className="text-2xl font-bold mt-1">{formatWeight(tm.weight)}</p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -119,6 +131,33 @@ export function TrainingMaxesList() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* TM History */}
+      {selectedExercise && history && (
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold mb-3">{selectedExercise.name} — History</h2>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Weight</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map(tm => (
+                  <tr key={tm.id} className="border-b border-border last:border-0">
+                    <td className="p-3 text-sm">{tm.effective_date}</td>
+                    <td className="p-3 text-sm font-medium">{formatWeight(tm.weight)}</td>
+                    <td className="p-3 text-sm text-muted-foreground">{tm.notes ?? ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

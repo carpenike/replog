@@ -240,6 +240,17 @@ class ApiClient {
     });
   }
 
+  async updateNote(athleteId: number, noteId: number, content: string, isPrivate = false, pinned = false): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/notes/${noteId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content, is_private: isPrivate, pinned }),
+    });
+  }
+
+  async deleteNote(athleteId: number, noteId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/notes/${noteId}`, { method: 'DELETE' });
+  }
+
   // Athlete Goal
   async updateAthleteGoal(athleteId: number, goal: string): Promise<void> {
     await this.request(`/api/athletes/${athleteId}/goal`, {

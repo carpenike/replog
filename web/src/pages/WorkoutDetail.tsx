@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
@@ -14,6 +15,7 @@ export function WorkoutDetail() {
   const wId = Number(workoutId)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const { confirm, dialog: confirmDialog } = useConfirm()
 
   const [exerciseId, setExerciseId] = useState('')
   const [reps, setReps] = useState('')
@@ -127,7 +129,10 @@ export function WorkoutDetail() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold mb-2">{workout.date}</h1>
         <button
-          onClick={() => { if (confirm('Delete this workout and all its sets?')) deleteWorkoutMutation.mutate() }}
+          onClick={async () => {
+            if (await confirm({ title: 'Delete Workout', description: 'Delete this workout and all its sets? This cannot be undone.', confirmLabel: 'Delete', variant: 'danger' }))
+              deleteWorkoutMutation.mutate()
+          }}
           className="text-sm text-destructive hover:text-destructive/80">
           Delete
         </button>
@@ -238,7 +243,10 @@ export function WorkoutDetail() {
                         <td className="px-4 py-2 text-muted-foreground">{set.notes ?? ''}</td>
                         <td className="px-4 py-2">
                           <button
-                            onClick={() => { if (confirm('Delete this set?')) deleteSetMutation.mutate(set.id) }}
+                            onClick={async () => {
+                              if (await confirm({ title: 'Delete Set', description: 'Remove this set?', confirmLabel: 'Delete', variant: 'danger' }))
+                                deleteSetMutation.mutate(set.id)
+                            }}
                             className="text-xs text-destructive hover:text-destructive/80"
                           >×</button>
                         </td>
@@ -361,6 +369,7 @@ export function WorkoutDetail() {
           )}
         </div>
       )}
+      {confirmDialog()}
     </div>
   )
 }

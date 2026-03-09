@@ -23,6 +23,8 @@ export function JournalPage() {
   const [noteContent, setNoteContent] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
   const [showNoteForm, setShowNoteForm] = useState(false)
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
+  const [editContent, setEditContent] = useState('')
 
   const { data: entries, isLoading, error } = useQuery({
     queryKey: ['journal', athleteId],
@@ -38,6 +40,19 @@ export function JournalPage() {
       setIsPrivate(false)
       setShowNoteForm(false)
     },
+  })
+
+  const updateNoteMutation = useMutation({
+    mutationFn: (noteId: number) => api.updateNote(athleteId, noteId, editContent),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journal', athleteId] })
+      setEditingNoteId(null)
+    },
+  })
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: number) => api.deleteNote(athleteId, noteId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['journal', athleteId] }),
   })
 
   if (isLoading) return <Spinner />
@@ -94,15 +109,39 @@ export function JournalPage() {
                     {entry.pinned && <span className="text-xs text-primary">📌</span>}
                     {entry.is_private && <span className="text-xs text-muted-foreground">🔒</span>}
                   </div>
-                  {entry.detail && (
-                    <p className="text-sm text-muted-foreground mt-0.5">{entry.detail}</p>
+                  {editingNoteId === entry.id && entry.type === 'note' ? (
+                    <div className="mt-2">
+                      <textarea value={editContent} onChange={e => setEditContent(e.target.value)}
+                        rows={2} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm mb-2" />
+                      <div className="flex gap-2">
+                        <button onClick={() => updateNoteMutation.mutate(entry.id)}
+                          disabled={updateNoteMutation.isPending}
+                          className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground">Save</button>
+                        <button onClick={() => setEditingNoteId(null)}
+                          className="text-xs text-muted-foreground">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {entry.detail && (
+                        <p className="text-sm text-muted-foreground mt-0.5">{entry.detail}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-muted-foreground">{entry.date}</span>
+                        {entry.author && (
+                          <span className="text-xs text-muted-foreground">by {entry.author}</span>
+                        )}
+                        {entry.type === 'note' && (
+                          <>
+                            <button onClick={() => { setEditingNoteId(entry.id); setEditContent(entry.detail || entry.summary) }}
+                              className="text-xs text-primary hover:text-primary/80 ml-auto">Edit</button>
+                            <button onClick={() => { if (confirm('Delete this note?')) deleteNoteMutation.mutate(entry.id) }}
+                              className="text-xs text-destructive hover:text-destructive/80">Delete</button>
+                          </>
+                        )}
+                      </div>
+                    </>
                   )}
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-muted-foreground">{entry.date}</span>
-                    {entry.author && (
-                      <span className="text-xs text-muted-foreground">by {entry.author}</span>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>

@@ -669,6 +669,8 @@ func main() {
 			// Journal.
 			r.Get("/athletes/{id}/journal", apiHandlers.ListJournalEntries)
 			r.Post("/athletes/{id}/notes", apiHandlers.CreateAthleteNote)
+			r.Put("/athletes/{id}/notes/{noteID}", apiHandlers.UpdateAthleteNote)
+			r.Delete("/athletes/{id}/notes/{noteID}", apiHandlers.DeleteAthleteNote)
 
 			// Athlete Goal.
 			r.Put("/athletes/{id}/goal", apiHandlers.UpdateAthleteGoal)
