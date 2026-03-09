@@ -58,6 +58,25 @@ export function Dashboard({ user }: DashboardProps) {
     )
   }
 
+  // Non-coach user without a linked athlete
+  if (!user.is_coach && !user.is_admin) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-6">
+          Welcome, {user.name ?? user.username}
+        </h1>
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <span className="text-4xl block mb-3">👋</span>
+          <p className="font-semibold text-lg mb-2">You're all set!</p>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Your account hasn't been linked to an athlete profile yet.
+            Ask your coach to connect your account so you can start logging workouts.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">
