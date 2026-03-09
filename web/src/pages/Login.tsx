@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useLocation } from 'react-router-dom'
 import { api, ApiError } from '@/api/client'
 
 export function Login() {
@@ -8,6 +9,10 @@ export function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const queryClient = useQueryClient()
+  const location = useLocation()
+
+  // After login, navigate to the page the user was trying to reach.
+  const returnTo = new URLSearchParams(location.search).get('returnTo') ?? '/'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -16,7 +21,8 @@ export function Login() {
 
     try {
       await api.login(username, password)
-      queryClient.invalidateQueries({ queryKey: ['me'] })
+      await queryClient.invalidateQueries({ queryKey: ['me'] })
+      window.location.href = returnTo
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message)

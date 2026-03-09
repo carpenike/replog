@@ -43,6 +43,12 @@ class ApiClient {
     }
 
     if (!res.ok) {
+      // Session expired — redirect to login.
+      if (res.status === 401 && !path.includes('/login') && !path.includes('/me')) {
+        const returnTo = encodeURIComponent(window.location.pathname)
+        window.location.href = `/?returnTo=${returnTo}`
+        throw new ApiError('Session expired', 401)
+      }
       const body = await res.json().catch(() => ({ error: res.statusText, code: res.status })) as APIError;
       throw new ApiError(body.error, body.code, body.details);
     }
