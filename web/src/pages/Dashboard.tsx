@@ -29,10 +29,16 @@ export function Dashboard({ user }: DashboardProps) {
           Welcome, {user.name ?? user.username}
         </h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link to={`/athletes/${user.athlete_id}/prescription`}
+            className="rounded-lg border border-primary/30 bg-primary/5 p-6 hover:border-primary/50 transition-colors text-center">
+            <span className="text-3xl mb-2 block">📋</span>
+            <p className="font-semibold">Today's Workout</p>
+            <p className="text-sm text-muted-foreground mt-1">View your prescribed training</p>
+          </Link>
           <Link to={`/athletes/${user.athlete_id}/workouts/new`}
             className="rounded-lg border border-border bg-card p-6 hover:border-primary/50 transition-colors text-center">
             <span className="text-3xl mb-2 block">🏋️</span>
-            <p className="font-semibold">Log Today's Workout</p>
+            <p className="font-semibold">Log Workout</p>
             <p className="text-sm text-muted-foreground mt-1">Start a new workout session</p>
           </Link>
           <Link to={`/athletes/${user.athlete_id}/workouts`}

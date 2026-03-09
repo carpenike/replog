@@ -132,6 +132,9 @@ export function AthleteDetail() {
 
       {/* Quick nav */}
       <div className="flex flex-wrap gap-2 mb-6">
+        <Link to={`/athletes/${athleteId}/prescription`} className="rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-sm hover:border-primary/50 transition-colors font-medium">
+          📋 Today's Workout
+        </Link>
         <Link to={`/athletes/${athleteId}/workouts`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
           📝 Workouts
         </Link>

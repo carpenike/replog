@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, PrescriptionData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -238,6 +238,11 @@ class ApiClient {
 
   async applyTMBumps(athleteId: number, bumps: { exercise_id: number; new_weight: number }[]): Promise<{ applied: number }> {
     return this.request(`/api/athletes/${athleteId}/cycle-review`, { method: 'POST', body: JSON.stringify({ bumps }) });
+  }
+
+  // Prescription
+  async getPrescription(athleteId: number): Promise<PrescriptionData> {
+    return this.request(`/api/athletes/${athleteId}/prescription`);
   }
 
   // Programs

@@ -326,3 +326,28 @@ export interface CycleReviewData {
   cycle_end: string;
   suggestions: TMSuggestion[];
 }
+
+export interface PrescriptionSetData {
+  set_number: number;
+  reps?: number | null;
+  percentage?: number | null;
+  target_weight?: number | null;
+  absolute_weight?: number | null;
+  rep_type: string;
+  notes?: string | null;
+}
+
+export interface PrescriptionLineData {
+  exercise_name: string;
+  exercise_id: number;
+  training_max?: number | null;
+  sets: PrescriptionSetData[];
+}
+
+export interface PrescriptionData {
+  program_name: string;
+  current_week: number;
+  current_day: number;
+  cycle_number: number;
+  lines: PrescriptionLineData[];
+}

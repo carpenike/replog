@@ -675,6 +675,9 @@ func main() {
 			// Athlete Goal.
 			r.Put("/athletes/{id}/goal", apiHandlers.UpdateAthleteGoal)
 
+			// Prescription (today's workout).
+			r.Get("/athletes/{id}/prescription", apiHandlers.GetPrescription)
+
 			// Athlete Promotion.
 			r.Post("/athletes/{id}/promote", apiHandlers.PromoteAthlete)
 
