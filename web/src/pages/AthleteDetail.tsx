@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { AthleteProgram } from '@/api/types'
 import { Spinner } from '@/components/ui'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
@@ -48,6 +49,7 @@ export function AthleteDetail() {
     enabled: !isNaN(athleteId),
   })
 
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalText, setGoalText] = useState('')
@@ -222,7 +224,7 @@ export function AthleteDetail() {
                     {p.num_weeks ? ` • ${p.num_weeks}w` : ''}
                   </p>
                 </Link>
-                <button onClick={() => { if (confirm('Deactivate this program?')) deactivateMutation.mutate(p.id) }}
+                <button onClick={async () => { if (await confirm({ title: 'Deactivate Program', description: 'Deactivate this program assignment?', confirmLabel: 'Deactivate', variant: 'danger' })) deactivateMutation.mutate(p.id) }}
                   className="text-xs text-muted-foreground hover:text-destructive ml-3">
                   Deactivate
                 </button>
@@ -282,6 +284,7 @@ export function AthleteDetail() {
           </div>
         )}
       </div>
+      {confirmDialog()}
     </div>
   )
 }

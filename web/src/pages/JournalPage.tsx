@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 const typeIcons: Record<string, string> = {
   workout: '🏋️',
@@ -18,6 +19,7 @@ const typeIcons: Record<string, string> = {
 export function JournalPage() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
   const [noteContent, setNoteContent] = useState('')
@@ -135,7 +137,7 @@ export function JournalPage() {
                           <>
                             <button onClick={() => { setEditingNoteId(entry.id); setEditContent(entry.detail || entry.summary) }}
                               className="text-xs text-primary hover:text-primary/80 ml-auto">Edit</button>
-                            <button onClick={() => { if (confirm('Delete this note?')) deleteNoteMutation.mutate(entry.id) }}
+                            <button onClick={async () => { if (await confirm({ title: 'Delete Note', description: 'Remove this note?', confirmLabel: 'Delete', variant: 'danger' })) deleteNoteMutation.mutate(entry.id) }}
                               className="text-xs text-destructive hover:text-destructive/80">Delete</button>
                           </>
                         )}
@@ -148,6 +150,7 @@ export function JournalPage() {
           ))}
         </div>
       )}
+      {confirmDialog()}
     </div>
   )
 }

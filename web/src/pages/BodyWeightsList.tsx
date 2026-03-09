@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
@@ -11,6 +12,7 @@ function formatWeight(w: number): string {
 export function BodyWeightsList() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
@@ -99,7 +101,7 @@ export function BodyWeightsList() {
                   <td className="p-3 text-sm text-muted-foreground">{bw.notes ?? ''}</td>
                   <td className="p-3">
                     <button
-                      onClick={() => { if (confirm('Delete this entry?')) deleteMutation.mutate(bw.id) }}
+                      onClick={async () => { if (await confirm({ title: 'Delete Entry', description: 'Remove this body weight entry?', confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate(bw.id) }}
                       className="text-xs text-destructive hover:text-destructive/80"
                     >
                       ×
@@ -111,6 +113,7 @@ export function BodyWeightsList() {
           </table>
         </div>
       )}
+      {confirmDialog()}
     </div>
   )
 }

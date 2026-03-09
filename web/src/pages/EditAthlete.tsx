@@ -3,11 +3,13 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 export function EditAthlete() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const navigate = useNavigate()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
   const { data: athlete, isLoading } = useQuery({
@@ -149,12 +151,13 @@ export function EditAthlete() {
             </Link>
           </div>
           <button type="button"
-            onClick={() => { if (confirm(`Delete ${athlete?.name}? This cannot be undone.`)) deleteMutation.mutate() }}
+            onClick={async () => { if (await confirm({ title: 'Delete Athlete', description: `Delete ${athlete?.name}? This cannot be undone.`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate() }}
             className="text-sm text-destructive hover:text-destructive/80">
             Delete
           </button>
         </div>
       </form>
+      {confirmDialog()}
     </div>
   )
 }

@@ -2,8 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 export function UsersList() {
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
   const { data: users, isLoading, error } = useQuery({
@@ -57,7 +59,7 @@ export function UsersList() {
                 </td>
                 <td className="p-3">
                   <button
-                    onClick={() => { if (confirm(`Delete user ${u.username}?`)) deleteMutation.mutate(u.id) }}
+                    onClick={async () => { if (await confirm({ title: 'Delete User', description: `Delete user ${u.username}?`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate(u.id) }}
                     className="text-xs text-destructive hover:text-destructive/80">
                     ×
                   </button>
@@ -67,6 +69,7 @@ export function UsersList() {
           </tbody>
         </table>
       </div>
+      {confirmDialog()}
     </div>
   )
 }

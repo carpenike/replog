@@ -3,11 +3,13 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 export function EditExercise() {
   const { id } = useParams<{ id: string }>()
   const exerciseId = Number(id)
   const navigate = useNavigate()
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
   const { data: exercise, isLoading } = useQuery({
@@ -128,12 +130,13 @@ export function EditExercise() {
             </Link>
           </div>
           <button type="button"
-            onClick={() => { if (confirm(`Delete ${exercise?.name}? This will fail if workouts reference it.`)) deleteMutation.mutate() }}
+            onClick={async () => { if (await confirm({ title: 'Delete Exercise', description: `Delete ${exercise?.name}? This will fail if workouts reference it.`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate() }}
             className="text-sm text-destructive hover:text-destructive/80">
             Delete
           </button>
         </div>
       </form>
+      {confirmDialog()}
     </div>
   )
 }

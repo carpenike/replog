@@ -3,10 +3,12 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 export function AccessoryPlans() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
+  const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
   const [showForm, setShowForm] = useState(false)
@@ -157,7 +159,7 @@ export function AccessoryPlans() {
                         {plan.notes ? ` — ${plan.notes}` : ''}
                       </p>
                     </div>
-                    <button onClick={() => { if (confirm('Delete this accessory?')) deleteMutation.mutate(plan.id) }}
+                    <button onClick={async () => { if (await confirm({ title: 'Delete Accessory', description: 'Remove this accessory plan?', confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate(plan.id) }}
                       className="text-xs text-destructive hover:text-destructive/80">×</button>
                   </div>
                 ))}
@@ -166,6 +168,7 @@ export function AccessoryPlans() {
           ))}
         </div>
       )}
+      {confirmDialog()}
     </div>
   )
 }
