@@ -22,17 +22,28 @@ export interface DashboardData {
 
 class ApiClient {
   private baseUrl = '';
+  private csrfToken = '';
+
+  setCsrfToken(token: string) {
+    this.csrfToken = token;
+  }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      ...options.headers as Record<string, string>,
+    }
+    // Include CSRF token for state-changing requests.
+    if (this.csrfToken && options.method && options.method !== 'GET') {
+      headers['X-CSRF-Token'] = this.csrfToken
+    }
+
     let res: Response
     try {
       res = await fetch(`${this.baseUrl}${path}`, {
         ...options,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
+        headers,
         credentials: 'include',
       })
     } catch {
@@ -58,7 +69,11 @@ class ApiClient {
 
   // Auth
   async me(): Promise<User> {
-    return this.request<User>('/api/me');
+    const data = await this.request<{ user: User; csrf_token: string }>('/api/me');
+    if (data.csrf_token) {
+      this.setCsrfToken(data.csrf_token);
+    }
+    return data.user;
   }
 
   async dashboard(): Promise<DashboardData> {

@@ -605,12 +605,16 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		r.Use(sessionManager.LoadAndSave)
 
-		// Public API endpoints (login).
-		r.Post("/login", apiHandlers.Login)
+		// Public API endpoints (login) — rate limited.
+		r.Group(func(r chi.Router) {
+			r.Use(authLimiter.Limit)
+			r.Post("/login", apiHandlers.Login)
+		})
 
 		// Authenticated API endpoints.
 		r.Group(func(r chi.Router) {
 			r.Use(withAuth)
+			r.Use(withCSRF)
 
 			r.Get("/me", apiHandlers.Me)
 			r.Post("/logout", apiHandlers.Logout)

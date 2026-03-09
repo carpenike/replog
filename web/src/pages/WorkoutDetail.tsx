@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
@@ -62,6 +63,7 @@ export function WorkoutDetail() {
       setReps('')
       setSetWeight('')
       setRpe('')
+      toast.success('Set added')
     },
   })
 
@@ -69,6 +71,7 @@ export function WorkoutDetail() {
     mutationFn: (setId: number) => api.deleteSet(athleteId, wId, setId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workout', athleteId, wId] })
+      toast.success('Set deleted')
     },
   })
 

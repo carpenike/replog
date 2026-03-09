@@ -177,6 +177,10 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
           >
             Sign out
           </button>
+          <a href="/athletes" target="_self"
+            className="block w-full text-left px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            Classic UI →
+          </a>
         </div>
       </aside>
 
