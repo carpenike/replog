@@ -92,6 +92,14 @@ export function AthleteDetail() {
 
   if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load athlete.</p>
+  const promoteMutation = useMutation({
+    mutationFn: () => api.promoteAthlete(athleteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['athlete', athleteId] })
+      queryClient.invalidateQueries({ queryKey: ['athletes'] })
+    },
+  })
+
   if (!athlete) return <p className="text-muted-foreground">Athlete not found.</p>
 
   const recentWorkouts = workouts?.workouts.slice(0, 5) ?? []
@@ -107,10 +115,19 @@ export function AthleteDetail() {
             </span>
           )}
         </div>
-        <Link to={`/athletes/${athleteId}/edit`}
-          className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors">
-          ✏️ Edit
-        </Link>
+        <div className="flex gap-2">
+          {athlete.tier && athlete.tier !== 'sport_performance' && (
+            <button onClick={() => promoteMutation.mutate()}
+              disabled={promoteMutation.isPending}
+              className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-50">
+              📈 Promote
+            </button>
+          )}
+          <Link to={`/athletes/${athleteId}/edit`}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+            ✏️ Edit
+          </Link>
+        </div>
       </div>
 
       {/* Quick nav */}

@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, BodyWeight, BodyWeightPage, Exercise, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -199,8 +199,47 @@ class ApiClient {
     return this.request(`/api/programs/${id}`);
   }
 
+  async createProgramTemplate(data: { name: string; description?: string; num_weeks: number; num_days: number; is_loop?: boolean; audience?: string; athlete_id?: number }): Promise<ProgramTemplate> {
+    return this.request<ProgramTemplate>('/api/programs', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateProgramTemplate(id: number, data: { name: string; description?: string; num_weeks: number; num_days: number; is_loop?: boolean }): Promise<ProgramTemplate> {
+    return this.request<ProgramTemplate>(`/api/programs/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  }
+
+  async deleteProgramTemplate(id: number): Promise<void> {
+    await this.request(`/api/programs/${id}`, { method: 'DELETE' });
+  }
+
+  // Prescribed Sets
+  async addPrescribedSet(programId: number, data: { exercise_id: number; week: number; day: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
+    await this.request(`/api/programs/${programId}/sets`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deletePrescribedSet(programId: number, setId: number): Promise<void> {
+    await this.request(`/api/programs/${programId}/sets/${setId}`, { method: 'DELETE' });
+  }
+
+  // Progression Rules
+  async listProgressionRules(programId: number): Promise<ProgressionRuleData[]> {
+    return this.request(`/api/programs/${programId}/rules`);
+  }
+
+  async setProgressionRule(programId: number, exerciseId: number, increment: number): Promise<void> {
+    await this.request(`/api/programs/${programId}/rules`, { method: 'POST', body: JSON.stringify({ exercise_id: exerciseId, increment }) });
+  }
+
+  async deleteProgressionRule(programId: number, ruleId: number): Promise<void> {
+    await this.request(`/api/programs/${programId}/rules/${ruleId}`, { method: 'DELETE' });
+  }
+
   async listAthletePrograms(athleteId: number): Promise<unknown[]> {
     return this.request(`/api/athletes/${athleteId}/programs`);
+  }
+
+  // Athlete Promotion
+  async promoteAthlete(athleteId: number): Promise<Athlete> {
+    return this.request<Athlete>(`/api/athletes/${athleteId}/promote`, { method: 'POST' });
   }
 
   // Notifications

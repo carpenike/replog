@@ -280,3 +280,11 @@ export interface ExerciseHistoryPageData {
   days: ExerciseHistoryDayData[];
   has_more: boolean;
 }
+
+export interface ProgressionRuleData {
+  id: number;
+  template_id: number;
+  exercise_id: number;
+  increment: number;
+  exercise_name?: string;
+}

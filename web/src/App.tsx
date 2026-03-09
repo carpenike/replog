@@ -22,6 +22,8 @@ import { AccessoryPlans } from '@/pages/AccessoryPlans'
 import { ExerciseHistory } from '@/pages/ExerciseHistory'
 import { ProgramsList } from '@/pages/ProgramsList'
 import { ProgramDetail } from '@/pages/ProgramDetail'
+import { NewProgram } from '@/pages/NewProgram'
+import { EditProgram } from '@/pages/EditProgram'
 import { NotificationsList } from '@/pages/NotificationsList'
 import { UsersList } from '@/pages/UsersList'
 import { NewUser } from '@/pages/NewUser'
@@ -73,8 +75,10 @@ export function App() {
         <Route path="/exercises/new" element={<NewExercise />} />
         <Route path="/exercises/:id" element={<ExerciseDetail />} />
         <Route path="/exercises/:id/edit" element={<EditExercise />} />
-        <Route path="/programs" element={<ProgramsList />} />
+        <Route path="/programs" element={<ProgramsList user={user} />} />
+        <Route path="/programs/new" element={<NewProgram />} />
         <Route path="/programs/:id" element={<ProgramDetail />} />
+        <Route path="/programs/:id/edit" element={<EditProgram />} />
         <Route path="/notifications" element={<NotificationsList />} />
         <Route path="/reviews/pending" element={<PendingReviews />} />
         <Route path="/users" element={<UsersList />} />

@@ -675,12 +675,28 @@ func main() {
 			// Athlete Goal.
 			r.Put("/athletes/{id}/goal", apiHandlers.UpdateAthleteGoal)
 
+			// Athlete Promotion.
+			r.Post("/athletes/{id}/promote", apiHandlers.PromoteAthlete)
+
 			// Exercise History.
 			r.Get("/athletes/{id}/exercises/{exerciseID}/history", apiHandlers.ListExerciseHistory)
 
 			// Program Templates.
 			r.Get("/programs", apiHandlers.ListProgramTemplates)
+			r.Post("/programs", apiHandlers.CreateProgramTemplate)
 			r.Get("/programs/{id}", apiHandlers.GetProgramTemplate)
+			r.Put("/programs/{id}", apiHandlers.UpdateProgramTemplate)
+			r.Delete("/programs/{id}", apiHandlers.DeleteProgramTemplate)
+
+			// Prescribed Sets.
+			r.Post("/programs/{id}/sets", apiHandlers.AddPrescribedSet)
+			r.Put("/programs/{id}/sets/{setID}", apiHandlers.UpdatePrescribedSet)
+			r.Delete("/programs/{id}/sets/{setID}", apiHandlers.DeletePrescribedSet)
+
+			// Progression Rules.
+			r.Get("/programs/{id}/rules", apiHandlers.ListProgressionRules)
+			r.Post("/programs/{id}/rules", apiHandlers.SetProgressionRule)
+			r.Delete("/programs/{id}/rules/{ruleID}", apiHandlers.DeleteProgressionRule)
 
 			// Notifications.
 			r.Get("/notifications", apiHandlers.ListNotifications)

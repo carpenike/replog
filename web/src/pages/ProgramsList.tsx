@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import type { User } from '@/api/types'
 
-export function ProgramsList() {
+export function ProgramsList({ user }: { user: User }) {
   const { data: programs, isLoading, error } = useQuery({
     queryKey: ['programs'],
     queryFn: () => api.listProgramTemplates(),
@@ -16,6 +17,11 @@ export function ProgramsList() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Programs</h1>
+        {(user.is_coach || user.is_admin) && (
+          <Link to="/programs/new" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            + New Program
+          </Link>
+        )}
       </div>
 
       {programs && programs.length === 0 ? (
