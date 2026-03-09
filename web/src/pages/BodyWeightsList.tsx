@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
-import { useConfirm } from '@/components/ConfirmDialog'
+import { useConfirm } from '@/lib/useConfirm'
 
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)

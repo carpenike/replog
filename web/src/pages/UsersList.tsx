@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
-import { useConfirm } from '@/components/ConfirmDialog'
+import { useConfirm } from '@/lib/useConfirm'
 
 export function UsersList() {
   const { confirm, dialog: confirmDialog } = useConfirm()

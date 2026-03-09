@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
-import { useConfirm } from '@/components/ConfirmDialog'
+import { useConfirm } from '@/lib/useConfirm'
 
 export function EditAthlete() {
   const { id } = useParams<{ id: string }>()

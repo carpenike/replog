@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { AthleteProgram } from '@/api/types'
 import { Spinner } from '@/components/ui'
-import { useConfirm } from '@/components/ConfirmDialog'
+import { useConfirm } from '@/lib/useConfirm'
 
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
