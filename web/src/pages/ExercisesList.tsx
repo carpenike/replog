@@ -39,7 +39,7 @@ export function ExercisesList({ user }: { user: User }) {
         className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm mb-4 placeholder:text-muted-foreground"
       />
 
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="rounded-lg border border-border overflow-hidden table-scroll">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/50">

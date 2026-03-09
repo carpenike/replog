@@ -40,3 +40,25 @@
   --color-success: #16a34a;
   --color-warning: #d97706;
 }
+
+/* Mobile table scroll */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Skip to content link (a11y) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 200;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 0.875rem;
+  border-radius: 0 0 0.5rem 0;
+}
+.skip-link:focus {
+  top: 0;
+}

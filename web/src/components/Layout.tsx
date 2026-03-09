@@ -57,6 +57,8 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
+      <a href="#main-content" className="skip-link">Skip to content</a>
+
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
@@ -179,7 +181,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-4 pt-16 md:p-6 md:pt-6">
+      <main id="main-content" className="flex-1 p-4 pt-16 md:p-6 md:pt-6">
         {children}
       </main>
     </div>

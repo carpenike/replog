@@ -83,7 +83,7 @@ export function BodyWeightsList() {
       ) : page && page.entries.length === 0 ? (
         <p className="text-muted-foreground">No body weight entries yet.</p>
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden table-scroll">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/50">
