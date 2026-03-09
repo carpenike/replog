@@ -88,15 +88,13 @@
             },
             "isBackground": true,
             "problemMatcher": {
+                "owner": "vite",
                 "pattern": {
-                    "regexp": "^$",
-                    "file": 1,
-                    "line": 2,
-                    "message": 3
+                    "regexp": "^$"
                 },
                 "background": {
                     "activeOnStart": true,
-                    "beginsPattern": "VITE",
+                    "beginsPattern": "vite",
                     "endsPattern": "ready in"
                 }
             },
