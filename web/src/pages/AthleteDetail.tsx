@@ -90,8 +90,6 @@ export function AthleteDetail() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] }),
   })
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load athlete.</p>
   const promoteMutation = useMutation({
     mutationFn: () => api.promoteAthlete(athleteId),
     onSuccess: () => {
@@ -100,6 +98,8 @@ export function AthleteDetail() {
     },
   })
 
+  if (isLoading) return <Spinner />
+  if (error) return <p className="text-destructive">Failed to load athlete.</p>
   if (!athlete) return <p className="text-muted-foreground">Athlete not found.</p>
 
   const recentWorkouts = workouts?.workouts.slice(0, 5) ?? []
