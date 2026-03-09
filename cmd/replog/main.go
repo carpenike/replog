@@ -702,6 +702,10 @@ func main() {
 			// Program Compatibility.
 			r.Get("/athletes/{id}/program-compatibility", apiHandlers.CheckProgramCompatibility)
 
+			// TM Setup.
+			r.Get("/athletes/{id}/missing-tms", apiHandlers.ListMissingTMs)
+			r.Post("/athletes/{id}/batch-tms", apiHandlers.BatchSetTMs)
+
 			// Cycle Review.
 			r.Get("/athletes/{id}/cycle-review", apiHandlers.GetCycleReview)
 			r.Post("/athletes/{id}/cycle-review", apiHandlers.ApplyTMBumps)
@@ -741,6 +745,11 @@ func main() {
 			r.Get("/users/{userID}", apiHandlers.GetUser)
 			r.Put("/users/{userID}", apiHandlers.UpdateUser)
 			r.Delete("/users/{userID}", apiHandlers.DeleteUser)
+
+			// Login Tokens (admin only).
+			r.Get("/users/{userID}/tokens", apiHandlers.ListLoginTokens)
+			r.Post("/users/{userID}/tokens", apiHandlers.CreateLoginToken)
+			r.Delete("/users/{userID}/tokens/{tokenID}", apiHandlers.DeleteLoginToken)
 
 			// Reviews (coach only — handler checks internally).
 			r.Get("/reviews/pending", apiHandlers.ListPendingReviews)

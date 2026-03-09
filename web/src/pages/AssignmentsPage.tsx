@@ -67,7 +67,7 @@ export function AssignmentsPage() {
       {showAdd && (
         <form onSubmit={(e) => { e.preventDefault(); assignMutation.mutate() }}
           className="rounded-lg border border-border bg-card p-4 mb-6 flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[200px]">
+          <div className="flex-1 min-w-50">
             <label className="block text-xs text-muted-foreground mb-1">Exercise</label>
             <select value={exerciseId} onChange={e => setExerciseId(e.target.value)} required
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">

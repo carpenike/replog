@@ -274,7 +274,7 @@ export function ProgramDetail() {
         {showAddRule && (
           <form onSubmit={(e) => { e.preventDefault(); addRuleMutation.mutate() }}
             className="rounded-lg border border-border bg-card p-4 mb-3 flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-50">
               <label className="block text-xs text-muted-foreground mb-1">Exercise</label>
               <select value={ruleExId} onChange={e => setRuleExId(e.target.value)} required
                 className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">

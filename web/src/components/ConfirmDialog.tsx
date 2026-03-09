@@ -26,7 +26,7 @@ export function ConfirmDialog({ open, title, description, confirmLabel = 'Confir
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-100 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/50" onClick={onCancel} />
       <div role="dialog" aria-modal="true" aria-labelledby="confirm-title"
         className="relative bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 shadow-lg">

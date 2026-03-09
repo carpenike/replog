@@ -372,3 +372,8 @@ export interface ProgramCompatibilityData {
   total_count: number;
   exercises: { exercise_id: number; exercise_name: string; has_required: boolean }[];
 }
+
+export interface MissingTMData {
+  exercise_id: number;
+  exercise_name: string;
+}

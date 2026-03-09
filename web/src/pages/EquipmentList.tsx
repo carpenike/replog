@@ -46,12 +46,12 @@ export function EquipmentList() {
       {showForm && (
         <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }}
           className="rounded-lg border border-border bg-card p-4 mb-6 flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[200px]">
+          <div className="flex-1 min-w-50">
             <label className="block text-xs text-muted-foreground mb-1">Name</label>
             <input type="text" value={name} onChange={e => setName(e.target.value)} required
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm" />
           </div>
-          <div className="flex-1 min-w-[200px]">
+          <div className="flex-1 min-w-50">
             <label className="block text-xs text-muted-foreground mb-1">Description</label>
             <input type="text" value={description} onChange={e => setDescription(e.target.value)}
               className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm" />

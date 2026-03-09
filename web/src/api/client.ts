@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, Notification, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, MissingTMData, Notification, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -195,6 +195,14 @@ class ApiClient {
   // Training Maxes
   async listTrainingMaxes(athleteId: number): Promise<TrainingMax[]> {
     return this.request<TrainingMax[]>(`/api/athletes/${athleteId}/training-maxes`);
+  }
+
+  async listMissingTMs(athleteId: number, templateId: number): Promise<MissingTMData[]> {
+    return this.request(`/api/athletes/${athleteId}/missing-tms?template_id=${templateId}`);
+  }
+
+  async batchSetTMs(athleteId: number, maxes: { exercise_id: number; weight: number }[]): Promise<{ set: number }> {
+    return this.request(`/api/athletes/${athleteId}/batch-tms`, { method: 'POST', body: JSON.stringify({ maxes }) });
   }
 
   async getTrainingMaxHistory(athleteId: number, exerciseId: number): Promise<TrainingMax[]> {

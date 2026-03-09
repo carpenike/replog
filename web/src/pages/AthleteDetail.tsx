@@ -153,6 +153,9 @@ export function AthleteDetail() {
         <Link to={`/athletes/${athleteId}/assignments`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
           🎯 Assignments
         </Link>
+        <Link to={`/athletes/${athleteId}/tm-setup`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+          🔧 TM Setup
+        </Link>
         <Link to={`/athletes/${athleteId}/cycle-review`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
           📈 Cycle Review
         </Link>
