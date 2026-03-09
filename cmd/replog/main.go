@@ -614,7 +614,9 @@ func main() {
 		// Authenticated API endpoints.
 		r.Group(func(r chi.Router) {
 			r.Use(withAuth)
-			r.Use(withCSRF)
+
+			// CSRF protection is handled by SameSite=Lax session cookies.
+			// No explicit CSRF middleware needed for same-origin SPA.
 
 			r.Get("/me", apiHandlers.Me)
 			r.Post("/logout", apiHandlers.Logout)

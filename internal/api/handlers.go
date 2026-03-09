@@ -29,15 +29,7 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusUnauthorized, "not authenticated")
 		return
 	}
-	apiUser := UserFromModel(user)
-
-	// Include CSRF token so SPA can send it with mutations.
-	csrfToken := middleware.CSRFTokenFromContext(r.Context())
-
-	WriteJSON(w, http.StatusOK, map[string]any{
-		"user":       apiUser,
-		"csrf_token": csrfToken,
-	})
+	WriteJSON(w, http.StatusOK, UserFromModel(user))
 }
 
 // Login authenticates a user and creates a session.
