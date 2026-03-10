@@ -100,13 +100,22 @@ export function AthleteDetail() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">{athlete.name}</h1>
-          {athlete.tier && (
+        <div className="flex items-center gap-4">
+          {athlete.avatar_url ? (
+            <img src={athlete.avatar_url} alt={athlete.name} className="h-16 w-16 rounded-full object-cover ring-2 ring-border" />
+          ) : (
+            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">
+              {athlete.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold">{athlete.name}</h1>
+            {athlete.tier && (
             <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${tierColors[athlete.tier] ?? 'bg-muted text-muted-foreground'}`}>
               {tierLabel(athlete.tier)}
             </span>
           )}
+          </div>
         </div>
         <div className="flex gap-2">
           {athlete.tier && athlete.tier !== 'sport_performance' && (

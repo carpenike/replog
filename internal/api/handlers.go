@@ -173,7 +173,19 @@ func (h *Handlers) GetAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, AthleteFromModel(athlete))
+	resp := AthleteFromModel(athlete)
+
+	// Look up linked user's avatar for this athlete.
+	var avatarPath sql.NullString
+	_ = h.DB.QueryRow(
+		`SELECT avatar_path FROM users WHERE athlete_id = ? AND avatar_path IS NOT NULL LIMIT 1`,
+		id,
+	).Scan(&avatarPath)
+	if avatarPath.Valid {
+		resp.AvatarURL = "/avatars/" + avatarPath.String
+	}
+
+	WriteJSON(w, http.StatusOK, resp)
 }
 
 // ListExercises returns the exercise catalog.

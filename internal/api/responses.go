@@ -18,6 +18,7 @@ type Athlete struct {
 	Gender          *string `json:"gender,omitempty"`
 	CoachID         *int64  `json:"coach_id,omitempty"`
 	TrackBodyWeight bool    `json:"track_body_weight"`
+	AvatarURL       string  `json:"avatar_url,omitempty"`
 	CreatedAt       string  `json:"created_at"`
 	UpdatedAt       string  `json:"updated_at"`
 }
