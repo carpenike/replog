@@ -17,6 +17,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+        timeout: 300000, // 5 minutes for LLM generation
       },
       '/auth': {
         target: 'http://localhost:8080',
