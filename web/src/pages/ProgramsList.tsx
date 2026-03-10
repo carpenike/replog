@@ -44,11 +44,11 @@ export function ProgramsList({ user }: { user: User }) {
           <TableBody>
             {programs?.map(program => (
               <TableRow key={program.id} className="cursor-pointer" onClick={() => navigate(`/programs/${program.id}`)}>
-                <TableCell>
+                <TableCell className="whitespace-normal max-w-xs">
                   <div>
                     <p className="font-medium">{program.name}</p>
                     {program.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">{program.description}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{program.description}</p>
                     )}
                   </div>
                 </TableCell>
