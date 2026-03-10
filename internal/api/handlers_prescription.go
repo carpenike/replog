@@ -64,7 +64,7 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if program == nil {
-		WriteError(w, http.StatusNotFound, "no active program for today")
+		WriteJSON(w, http.StatusOK, nil)
 		return
 	}
 
