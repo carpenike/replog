@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Menu, Sun, Moon, Settings, LogOut, User as UserIcon } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
@@ -46,6 +46,7 @@ interface LayoutProps {
 
 export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
   const location = useLocation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -204,14 +205,16 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
                 {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
                 {theme === 'dark' ? 'Light mode' : 'Dark mode'}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { window.location.href = '/preferences' }}>
+              <DropdownMenuItem onClick={() => navigate('/preferences')}>
                 <Settings className="mr-2 h-4 w-4" />
                 Preferences
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { if (user.athlete_id) window.location.href = `/athletes/${user.athlete_id}` }}>
-                <UserIcon className="mr-2 h-4 w-4" />
-                My Profile
-              </DropdownMenuItem>
+              {user.athlete_id && (
+                <DropdownMenuItem onClick={() => navigate(`/athletes/${user.athlete_id}`)}>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  My Profile
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
