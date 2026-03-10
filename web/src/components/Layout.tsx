@@ -157,10 +157,8 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
       {/* Mobile header */}
       <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetTrigger>
-            <Button variant="ghost" size="icon">
-              <Menu className="h-5 w-5" />
-            </Button>
+          <SheetTrigger className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-accent transition-colors">
+            <Menu className="h-5 w-5" />
           </SheetTrigger>
           <SheetContent side="left" className="w-56 p-0">
             <SheetTitle className="p-4 border-b border-border text-lg font-bold text-primary">

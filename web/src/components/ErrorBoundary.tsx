@@ -1,5 +1,4 @@
 import { Component, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 
 interface Props {
   children: ReactNode
@@ -35,9 +34,9 @@ export class ErrorBoundary extends Component<Props, State> {
             >
               Try Again
             </button>
-            <Link to="/" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+            <a href="/" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
               Go Home
-            </Link>
+            </a>
           </div>
         </div>
       )
