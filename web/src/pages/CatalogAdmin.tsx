@@ -3,8 +3,8 @@ import { useMutation } from '@tanstack/react-query'
 import { ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { FileUpload } from '@/components/FileUpload'
 import { Alert } from '@/components/ui/alert'
 interface ImportResult {
   exercises_created: number
@@ -50,16 +50,6 @@ export function CatalogAdmin() {
       setError(err instanceof ApiError ? err.message : 'Import failed')
     },
   })
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) {
-      setError('')
-      uploadMutation.mutate(file, {
-        onSuccess: () => setStep('importing'),
-        onError: (err) => setError(err instanceof ApiError ? err.message : 'Upload failed'),
-      })
-    }
-  }
   function downloadCatalog() {
     const a = document.createElement('a')
     a.href = '/api/catalog/export'
@@ -94,8 +84,14 @@ export function CatalogAdmin() {
             <p className="text-sm text-muted-foreground mb-4">
               Upload a catalog JSON file to add exercises, equipment, and programs.
             </p>
-            <Input type="file" accept=".json" onChange={handleFileChange}
-               />
+            <FileUpload accept=".json" onChange={(file) => {
+              setError('')
+              uploadMutation.mutate(file, {
+                onSuccess: () => setStep('importing'),
+                onError: (err) => setError(err instanceof ApiError ? err.message : 'Upload failed'),
+              })
+            }}
+               label="Select JSON file" />
             {uploadMutation.isPending && <Spinner className="mt-2" />}
             </CardContent>
           </Card>

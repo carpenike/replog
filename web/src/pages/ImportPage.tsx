@@ -3,8 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { FileUpload } from '@/components/FileUpload'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
@@ -78,10 +78,6 @@ export function ImportPage() {
       setStep('result')
     },
   })
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) uploadMutation.mutate(file)
-  }
   function updateMapping(index: number, mappedId: number) {
     setMappings(prev => prev.map((m, i) =>
       i === index ? { ...m, mapped_id: mappedId, create: mappedId === 0 } : m
@@ -111,9 +107,9 @@ export function ImportPage() {
             </Select>
           </div>
           <div>
-            <Label >File</Label>
-            <Input type="file" accept=".csv,.json" onChange={handleFileChange}
-               />
+            <Label>File</Label>
+            <FileUpload accept=".csv,.json" onChange={(file) => uploadMutation.mutate(file)}
+               label="Select file" />
           </div>
           {uploadMutation.isPending && <Spinner />}
           {uploadMutation.isError && (

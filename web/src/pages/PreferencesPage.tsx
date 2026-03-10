@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert } from '@/components/ui/alert'
+import { FileUpload } from '@/components/FileUpload'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useConfirm } from '@/lib/useConfirm'
@@ -240,13 +241,11 @@ export function PreferencesPage() {
                 </div>
               )}
               <div className="flex-1 space-y-2">
-                <Input
-                  type="file"
+                <FileUpload
                   accept="image/*"
                   disabled={uploading}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
+                  label={uploading ? 'Uploading...' : 'Upload photo'}
+                  onChange={async (file) => {
                     setUploading(true)
                     try {
                       await api.uploadAvatar(file)
@@ -256,7 +255,6 @@ export function PreferencesPage() {
                       toast.error(err instanceof ApiError ? err.message : 'Upload failed')
                     } finally {
                       setUploading(false)
-                      e.target.value = ''
                     }
                   }}
                 />
