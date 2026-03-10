@@ -5,13 +5,16 @@ import { api } from '@/api/client'
 import type { AthleteProgram } from '@/api/types'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
-
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent } from '@/components/ui/card'
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
   intermediate: 'bg-amber-500/10 text-amber-400',
   sport_performance: 'bg-purple-500/10 text-purple-400',
 }
-
 function tierLabel(tier: string): string {
   switch (tier) {
     case 'foundational': return 'Foundational'
@@ -20,35 +23,29 @@ function tierLabel(tier: string): string {
     default: return tier
   }
 }
-
 export function AthleteDetail() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
-
   const { data: athlete, isLoading, error } = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
     enabled: !isNaN(athleteId),
   })
-
   const { data: workouts } = useQuery({
     queryKey: ['workouts', athleteId, 'recent'],
     queryFn: () => api.listWorkouts(athleteId, 0),
     enabled: !isNaN(athleteId),
   })
-
   const { data: trainingMaxes } = useQuery({
     queryKey: ['training-maxes', athleteId],
     queryFn: () => api.listTrainingMaxes(athleteId),
     enabled: !isNaN(athleteId),
   })
-
   const { data: programs } = useQuery({
     queryKey: ['athlete-programs', athleteId],
     queryFn: () => api.listAthletePrograms(athleteId) as Promise<AthleteProgram[]>,
     enabled: !isNaN(athleteId),
   })
-
   const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
   const [editingGoal, setEditingGoal] = useState(false)
@@ -57,13 +54,11 @@ export function AthleteDetail() {
   const [assignTemplateId, setAssignTemplateId] = useState('')
   const [assignDate, setAssignDate] = useState(new Date().toISOString().slice(0, 10))
   const [assignRole, setAssignRole] = useState('primary')
-
   const { data: allPrograms } = useQuery({
     queryKey: ['programs'],
     queryFn: () => api.listProgramTemplates(),
     enabled: showAssign,
   })
-
   const goalMutation = useMutation({
     mutationFn: () => api.updateAthleteGoal(athleteId, goalText),
     onSuccess: () => {
@@ -71,7 +66,6 @@ export function AthleteDetail() {
       setEditingGoal(false)
     },
   })
-
   const assignMutation = useMutation({
     mutationFn: () => api.assignProgram(athleteId, {
       template_id: parseInt(assignTemplateId),
@@ -84,12 +78,10 @@ export function AthleteDetail() {
       setAssignTemplateId('')
     },
   })
-
   const deactivateMutation = useMutation({
     mutationFn: (programId: number) => api.deactivateProgram(athleteId, programId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] }),
   })
-
   const promoteMutation = useMutation({
     mutationFn: () => api.promoteAthlete(athleteId),
     onSuccess: () => {
@@ -97,13 +89,10 @@ export function AthleteDetail() {
       queryClient.invalidateQueries({ queryKey: ['athletes'] })
     },
   })
-
   if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load athlete.</p>
   if (!athlete) return <p className="text-muted-foreground">Athlete not found.</p>
-
   const recentWorkouts = workouts?.workouts.slice(0, 5) ?? []
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -117,19 +106,17 @@ export function AthleteDetail() {
         </div>
         <div className="flex gap-2">
           {athlete.tier && athlete.tier !== 'sport_performance' && (
-            <button onClick={() => promoteMutation.mutate()}
+            <Button variant="ghost" onClick={() => promoteMutation.mutate()}
               disabled={promoteMutation.isPending}
-              className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-50">
+              >
               📈 Promote
-            </button>
+            </Button>
           )}
-          <Link to={`/athletes/${athleteId}/edit`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+          <Button variant="outline" size="sm" onClick={() => window.location.href = `/athletes/${athleteId}/edit`}>
             ✏️ Edit
-          </Link>
+          </Button>
         </div>
       </div>
-
       {/* Quick nav */}
       <div className="flex flex-wrap gap-2 mb-6">
         <Link to={`/athletes/${athleteId}/prescription`} className="rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-sm hover:border-primary/50 transition-colors font-medium">
@@ -169,7 +156,6 @@ export function AthleteDetail() {
           🤖 AI Coach
         </Link>
       </div>
-
       {/* Info cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="rounded-lg border border-border bg-card p-4"
@@ -177,13 +163,13 @@ export function AthleteDetail() {
           <h2 className="text-sm font-medium text-muted-foreground mb-1">Goal</h2>
           {editingGoal ? (
             <div onClick={e => e.stopPropagation()}>
-              <textarea value={goalText} onChange={e => setGoalText(e.target.value)}
-                rows={2} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm mb-2" />
+              <Textarea value={goalText} onChange={e => setGoalText(e.target.value)}
+                className="mb-2" />
               <div className="flex gap-2">
-                <button onClick={() => goalMutation.mutate()} disabled={goalMutation.isPending}
-                  className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground hover:bg-primary/90">Save</button>
-                <button onClick={() => setEditingGoal(false)}
-                  className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+                <Button variant="ghost" onClick={() => goalMutation.mutate()} disabled={goalMutation.isPending}
+                  >Save</Button>
+                <Button variant="ghost" onClick={() => setEditingGoal(false)}
+                  >Cancel</Button>
               </div>
             </div>
           ) : (
@@ -193,35 +179,37 @@ export function AthleteDetail() {
           )}
         </div>
         {athlete.notes && (
-          <div className="rounded-lg border border-border bg-card p-4">
+          <Card>
+            <CardContent>
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Notes</h2>
             <p className="text-foreground">{athlete.notes}</p>
-          </div>
+            </CardContent>
+          </Card>
         )}
         {athlete.date_of_birth && (
-          <div className="rounded-lg border border-border bg-card p-4">
+          <Card>
+            <CardContent>
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Date of Birth</h2>
             <p className="text-foreground">{athlete.date_of_birth}</p>
-          </div>
+            </CardContent>
+          </Card>
         )}
       </div>
-
       {/* Active Programs */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold">Programs</h2>
-          <button onClick={() => setShowAssign(!showAssign)}
+          <Button variant="ghost" onClick={() => setShowAssign(!showAssign)}
             className="text-sm text-primary hover:text-primary/80">
             {showAssign ? 'Cancel' : '+ Assign'}
-          </button>
+          </Button>
         </div>
-
         {showAssign && (
           <form onSubmit={(e) => { e.preventDefault(); assignMutation.mutate() }}
             className="rounded-lg border border-border bg-card p-4 mb-3 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="col-span-2 md:col-span-1">
-                <label className="block text-xs text-muted-foreground mb-1">Program</label>
+                <Label >Program</Label>
                 <select value={assignTemplateId} onChange={e => setAssignTemplateId(e.target.value)} required
                   className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
                   <option value="">Select...</option>
@@ -231,12 +219,11 @@ export function AthleteDetail() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Start Date</label>
-                <input type="date" value={assignDate} onChange={e => setAssignDate(e.target.value)} required
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm" />
+                <Label >Start Date</Label>
+                <Input type="date" value={assignDate} onChange={e => setAssignDate(e.target.value)} required />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Role</label>
+                <Label >Role</Label>
                 <select value={assignRole} onChange={e => setAssignRole(e.target.value)}
                   className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
                   <option value="primary">Primary</option>
@@ -244,17 +231,17 @@ export function AthleteDetail() {
                 </select>
               </div>
             </div>
-            <button type="submit" disabled={assignMutation.isPending || !assignTemplateId}
-              className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+            <Button type="submit" disabled={assignMutation.isPending || !assignTemplateId}
+              >
               Assign Program
-            </button>
+            </Button>
           </form>
         )}
-
         {programs && programs.filter(p => p.active).length > 0 ? (
           <div className="space-y-2">
             {programs.filter(p => p.active).map(p => (
-              <div key={p.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-3">
+              <Card size="sm" className="flex items-center justify-between">
+                <CardContent>
                 <Link to={`/programs/${p.template_id}`} className="flex-1 hover:text-primary transition-colors">
                   <p className="font-medium">{p.template_name}</p>
                   <p className="text-xs text-muted-foreground">
@@ -262,18 +249,18 @@ export function AthleteDetail() {
                     {p.num_weeks ? ` • ${p.num_weeks}w` : ''}
                   </p>
                 </Link>
-                <button onClick={async () => { if (await confirm({ title: 'Deactivate Program', description: 'Deactivate this program assignment?', confirmLabel: 'Deactivate', variant: 'danger' })) deactivateMutation.mutate(p.id) }}
+                <Button variant="ghost" onClick={async () => { if (await confirm({ title: 'Deactivate Program', description: 'Deactivate this program assignment?', confirmLabel: 'Deactivate', variant: 'danger' })) deactivateMutation.mutate(p.id) }}
                   className="text-xs text-muted-foreground hover:text-destructive ml-3">
                   Deactivate
-                </button>
-              </div>
+                </Button>
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No active programs.</p>
         )}
       </div>
-
       {/* Training Maxes */}
       {trainingMaxes && trainingMaxes.length > 0 && (
         <div className="mb-6">
@@ -285,15 +272,16 @@ export function AthleteDetail() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {trainingMaxes.map(tm => (
-              <div key={tm.id} className="rounded-lg border border-border bg-card p-3">
+              <Card size="sm">
+                <CardContent>
                 <p className="text-sm text-muted-foreground">{tm.exercise_name}</p>
                 <p className="text-lg font-bold">{tm.weight}</p>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       )}
-
       {/* Recent Workouts */}
       <div>
         <div className="flex items-center justify-between mb-2">

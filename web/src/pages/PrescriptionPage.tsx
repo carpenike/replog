@@ -2,6 +2,9 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
@@ -35,11 +38,13 @@ export function PrescriptionPage() {
       {error || !prescription ? (
         <div>
           <h1 className="text-2xl font-bold mb-4">Today's Workout</h1>
-          <div className="rounded-lg border border-border bg-card p-6 text-center">
+          <Card className="text-center">
+            <CardContent>
             <span className="text-3xl block mb-2">📋</span>
             <p className="text-muted-foreground">No program assigned for today.</p>
             <p className="text-sm text-muted-foreground mt-1">Ask your coach to assign a program.</p>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       ) : (
         <div>
@@ -51,10 +56,9 @@ export function PrescriptionPage() {
                 {prescription.cycle_number > 1 && ` (Cycle ${prescription.cycle_number})`}
               </p>
             </div>
-            <Link to={`/athletes/${athleteId}/workouts/new`}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            <Button onClick={() => window.location.href = `/athletes/${athleteId}/workouts/new`}>
               Start Logging
-            </Link>
+            </Button>
           </div>
 
           {prescription.lines.length === 0 ? (
@@ -62,47 +66,47 @@ export function PrescriptionPage() {
           ) : (
             <div className="space-y-4">
               {prescription.lines.map((line, i) => (
-                <div key={`${line.exercise_id}-${i}`} className="rounded-lg border border-border overflow-hidden">
-                  <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{line.exercise_name}</h3>
-                      {line.training_max && (
-                        <p className="text-xs text-muted-foreground">TM: {formatWeight(line.training_max)}</p>
-                      )}
-                    </div>
-                  </div>
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-xs text-muted-foreground border-b border-border">
-                        <th className="text-left px-4 py-2 w-16">Set</th>
-                        <th className="text-left px-4 py-2">Reps</th>
-                        <th className="text-left px-4 py-2">Weight</th>
-                        <th className="text-left px-4 py-2">%</th>
-                        <th className="text-left px-4 py-2">Notes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {line.sets.map((set, j) => (
-                        <tr key={j} className="border-b border-border last:border-0 text-sm">
-                          <td className="px-4 py-2 text-muted-foreground">{set.set_number}</td>
-                          <td className="px-4 py-2 font-medium">
-                            {set.reps ? set.reps : 'AMRAP'}
-                            {set.reps && set.rep_type === 'amrap' && '+'}
-                          </td>
-                          <td className="px-4 py-2 font-medium text-primary">
-                            {set.target_weight ? formatWeight(set.target_weight)
-                              : set.absolute_weight ? formatWeight(set.absolute_weight)
-                              : 'BW'}
-                          </td>
-                          <td className="px-4 py-2 text-muted-foreground">
-                            {set.percentage ? `${set.percentage}%` : ''}
-                          </td>
-                          <td className="px-4 py-2 text-muted-foreground text-xs">{set.notes ?? ''}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Card key={`${line.exercise_id}-${i}`} size="sm">
+                  <CardHeader>
+                    <CardTitle>{line.exercise_name}</CardTitle>
+                    {line.training_max && (
+                      <CardDescription>TM: {formatWeight(line.training_max)}</CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-16">Set</TableHead>
+                          <TableHead>Reps</TableHead>
+                          <TableHead>Weight</TableHead>
+                          <TableHead>%</TableHead>
+                          <TableHead>Notes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {line.sets.map((set, j) => (
+                          <TableRow key={j}>
+                            <TableCell className="text-muted-foreground">{set.set_number}</TableCell>
+                            <TableCell className="font-medium">
+                              {set.reps ? set.reps : 'AMRAP'}
+                              {set.reps && set.rep_type === 'amrap' && '+'}
+                            </TableCell>
+                            <TableCell className="font-medium text-primary">
+                              {set.target_weight ? formatWeight(set.target_weight)
+                                : set.absolute_weight ? formatWeight(set.absolute_weight)
+                                : 'BW'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {set.percentage ? `${set.percentage}%` : ''}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-xs">{set.notes ?? ''}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}

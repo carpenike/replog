@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 export function NewWorkout() {
   const { id } = useParams<{ id: string }>()
@@ -54,24 +58,22 @@ export function NewWorkout() {
         )}
 
         <div>
-          <label htmlFor="date" className="block text-sm font-medium mb-1">Date</label>
-          <input id="date" type="date" value={date} onChange={e => setDate(e.target.value)}
-            required
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <Label htmlFor="date" >Date</Label>
+          <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
         </div>
 
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium mb-1">Notes</label>
-          <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)}
+          <Label htmlFor="notes" >Notes</Label>
+          <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)}
             rows={3} placeholder="Optional session notes..."
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
         </div>
 
         <div className="flex gap-3">
-          <button type="submit" disabled={createMutation.isPending}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+          <Button type="submit" disabled={createMutation.isPending}
+            >
             {createMutation.isPending ? 'Creating...' : 'Create Workout'}
-          </button>
+          </Button>
           <Link to={`/athletes/${athleteId}/workouts`}
             className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
             Cancel

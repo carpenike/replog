@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { Card, CardContent } from '@/components/ui/card'
 import type { User } from '@/api/types'
 
 interface DashboardProps {
@@ -71,14 +72,16 @@ export function Dashboard({ user }: DashboardProps) {
         <h1 className="text-2xl font-bold mb-6">
           Welcome, {user.name ?? user.username}
         </h1>
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <Card className="text-center">
+          <CardContent>
           <span className="text-4xl block mb-3">👋</span>
           <p className="font-semibold text-lg mb-2">You're all set!</p>
           <p className="text-muted-foreground max-w-md mx-auto">
             Your account hasn't been linked to an athlete profile yet.
             Ask your coach to connect your account so you can start logging workouts.
           </p>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -92,26 +95,34 @@ export function Dashboard({ user }: DashboardProps) {
       {/* Stats cards */}
       {data?.stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">This Week</p>
-            <p className="text-2xl font-bold mt-1">{data.stats.week_sessions}</p>
-            <p className="text-xs text-muted-foreground">sessions</p>
-          </div>
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Volume</p>
-            <p className="text-2xl font-bold mt-1">{formatVolume(data.stats.week_volume)}</p>
-            <p className="text-xs text-muted-foreground">lbs this week</p>
-          </div>
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Athletes</p>
-            <p className="text-2xl font-bold mt-1">{data.stats.trained_this_week}/{data.stats.total_athletes}</p>
-            <p className="text-xs text-muted-foreground">trained this week</p>
-          </div>
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Streak</p>
-            <p className="text-2xl font-bold mt-1">{data.stats.consecutive_weeks}</p>
-            <p className="text-xs text-muted-foreground">consecutive weeks</p>
-          </div>
+          <Card size="sm">
+            <CardContent>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">This Week</p>
+              <p className="text-2xl font-bold mt-1">{data.stats.week_sessions}</p>
+              <p className="text-xs text-muted-foreground">sessions</p>
+            </CardContent>
+          </Card>
+          <Card size="sm">
+            <CardContent>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Volume</p>
+              <p className="text-2xl font-bold mt-1">{formatVolume(data.stats.week_volume)}</p>
+              <p className="text-xs text-muted-foreground">lbs this week</p>
+            </CardContent>
+          </Card>
+          <Card size="sm">
+            <CardContent>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Athletes</p>
+              <p className="text-2xl font-bold mt-1">{data.stats.trained_this_week}/{data.stats.total_athletes}</p>
+              <p className="text-xs text-muted-foreground">trained this week</p>
+            </CardContent>
+          </Card>
+          <Card size="sm">
+            <CardContent>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Streak</p>
+              <p className="text-2xl font-bold mt-1">{data.stats.consecutive_weeks}</p>
+              <p className="text-xs text-muted-foreground">consecutive weeks</p>
+            </CardContent>
+          </Card>
         </div>
       )}
 

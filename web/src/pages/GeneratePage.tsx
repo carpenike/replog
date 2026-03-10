@@ -3,14 +3,17 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
-
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent } from '@/components/ui/card'
 interface GenerateFormData {
   configured: boolean
   reference_programs: { id: number; name: string }[]
   default_days: number
   default_weeks: number
 }
-
 interface GenerateResult {
   reasoning: string
   model: string
@@ -20,19 +23,16 @@ interface GenerateResult {
   programs: number
   exercises: number
 }
-
 interface ExecuteResult {
   programs_created: number
   exercises_created: number
   prescribed_sets: number
   progression_rules: number
 }
-
 export function GeneratePage() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const queryClient = useQueryClient()
-
   const [step, setStep] = useState<'form' | 'generating' | 'preview' | 'result'>('form')
   const [programName, setProgramName] = useState('')
   const [numDays, setNumDays] = useState('3')
@@ -44,25 +44,21 @@ export function GeneratePage() {
   const [genResult, setGenResult] = useState<GenerateResult | null>(null)
   const [execResult, setExecResult] = useState<ExecuteResult | null>(null)
   const [error, setError] = useState('')
-
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
     enabled: !isNaN(athleteId),
   })
-
   const { data: formData } = useQuery({
     queryKey: ['generate-form', athleteId],
     queryFn: () => fetch(`/api/athletes/${athleteId}/generate`, { credentials: 'include', headers: { Accept: 'application/json' } }).then(r => r.json()) as Promise<GenerateFormData>,
     enabled: !isNaN(athleteId) && step === 'form',
   })
-
   // Set defaults from form data
   if (formData && !programName) {
     setNumDays(formData.default_days.toString())
     setNumWeeks(formData.default_weeks.toString())
   }
-
   const generateMutation = useMutation({
     mutationFn: async () => {
       setStep('generating')
@@ -95,7 +91,6 @@ export function GeneratePage() {
       setStep('form')
     },
   })
-
   const executeMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/athletes/${athleteId}/generate/execute`, {
@@ -120,7 +115,6 @@ export function GeneratePage() {
       setError(err instanceof ApiError ? err.message : 'Failed to save program')
     },
   })
-
   return (
     <div className="max-w-2xl">
       <p className="text-sm text-muted-foreground mb-1">
@@ -128,70 +122,58 @@ export function GeneratePage() {
         {' / AI Coach'}
       </p>
       <h1 className="text-2xl font-bold mb-6">Generate Program</h1>
-
       {formData && !formData.configured && (
-        <div className="rounded-lg border border-border bg-card p-6 text-center">
+        <Card className="text-center">
+          <CardContent>
           <span className="text-3xl block mb-2">🤖</span>
           <p className="font-medium mb-1">AI Coach Not Configured</p>
           <p className="text-sm text-muted-foreground">Go to Admin Settings to configure an LLM provider.</p>
-        </div>
+          </CardContent>
+        </Card>
       )}
-
       {error && (
         <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive mb-4">
           {error}
-          <button onClick={() => setError('')} className="ml-2 text-xs underline">dismiss</button>
+          <Button variant="link" size="xs" onClick={() => setError('')}>dismiss</Button>
         </div>
       )}
-
       {/* Step 1: Form */}
       {step === 'form' && formData?.configured && (
         <form onSubmit={(e) => { e.preventDefault(); generateMutation.mutate() }} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Program Name *</label>
-            <input type="text" value={programName} onChange={e => setProgramName(e.target.value)} required
-              placeholder="e.g. Sport Performance Block 5"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            <Label >Program Name *</Label>
+            <Input type="text" value={programName} onChange={e => setProgramName(e.target.value)} required placeholder="e.g. Sport Performance Block 5" />
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1">Days/Week</label>
-              <input type="number" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <Label >Days/Week</Label>
+              <Input type="number" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Weeks</label>
-              <input type="number" min={1} max={52} value={numWeeks} onChange={e => setNumWeeks(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <Label >Weeks</Label>
+              <Input type="number" min={1} max={52} value={numWeeks} onChange={e => setNumWeeks(e.target.value)} />
             </div>
           </div>
-
           <div className="flex items-center gap-2">
             <input type="checkbox" checked={isLoop} onChange={e => setIsLoop(e.target.checked)} className="rounded border-border" />
-            <label className="text-sm">Loop (repeat week sequence)</label>
+            <Label>Loop (repeat week sequence)</Label>
           </div>
-
           <div>
-            <label className="block text-sm font-medium mb-1">Coach Directions</label>
-            <textarea value={coachDirections} onChange={e => setCoachDirections(e.target.value)} rows={3}
+            <Label >Coach Directions</Label>
+            <Textarea value={coachDirections} onChange={e => setCoachDirections(e.target.value)} 
               placeholder="Specific instructions for the AI coach..."
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium mb-1">Focus Areas</label>
-            <input type="text" value={focusAreas} onChange={e => setFocusAreas(e.target.value)}
-              placeholder="e.g. power, conditioning, hypertrophy (comma-separated)"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            <Label >Focus Areas</Label>
+            <Input type="text" value={focusAreas} onChange={e => setFocusAreas(e.target.value)} placeholder="e.g. power, conditioning, hypertrophy (comma-separated)" />
           </div>
-
           {formData.reference_programs.length > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-1">Reference Programs</label>
+              <Label >Reference Programs</Label>
               <div className="space-y-1 max-h-40 overflow-y-auto rounded-md border border-border p-2">
                 {formData.reference_programs.map(p => (
-                  <label key={p.id} className="flex items-center gap-2 text-sm">
+                  <Label key={p.id}>
                     <input type="checkbox"
                       checked={referenceIds.includes(p.id)}
                       onChange={e => setReferenceIds(prev =>
@@ -199,19 +181,17 @@ export function GeneratePage() {
                       )}
                       className="rounded border-border" />
                     {p.name}
-                  </label>
+                  </Label>
                 ))}
               </div>
             </div>
           )}
-
-          <button type="submit" disabled={generateMutation.isPending}
-            className="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+          <Button size="lg" type="submit" disabled={generateMutation.isPending}
+            >
             Generate Program
-          </button>
+          </Button>
         </form>
       )}
-
       {/* Step 2: Generating */}
       {step === 'generating' && (
         <div className="text-center py-12">
@@ -220,11 +200,11 @@ export function GeneratePage() {
           <p className="text-xs text-muted-foreground mt-1">This may take up to a minute.</p>
         </div>
       )}
-
       {/* Step 3: Preview */}
       {step === 'preview' && genResult && (
         <div>
-          <div className="rounded-lg border border-border bg-card p-4 mb-6">
+          <Card className="mb-6">
+            <CardContent>
             <h2 className="font-semibold mb-2">AI Coach Reasoning</h2>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{genResult.reasoning}</p>
             <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
@@ -233,9 +213,10 @@ export function GeneratePage() {
               <span>{genResult.duration}</span>
               {genResult.truncated && <span className="text-warning">⚠ Output was truncated</span>}
             </div>
-          </div>
-
-          <div className="rounded-lg border border-border bg-card p-4 mb-6">
+            </CardContent>
+          </Card>
+          <Card className="mb-6">
+            <CardContent>
             <h2 className="font-semibold mb-2">Generated Content</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -247,25 +228,25 @@ export function GeneratePage() {
                 <p className="text-lg font-bold">{genResult.exercises}</p>
               </div>
             </div>
-          </div>
-
+            </CardContent>
+          </Card>
           <div className="flex gap-3">
-            <button onClick={() => executeMutation.mutate()}
+            <Button variant="ghost" onClick={() => executeMutation.mutate()}
               disabled={executeMutation.isPending}
-              className="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+              >
               {executeMutation.isPending ? 'Saving...' : 'Save Program'}
-            </button>
-            <button onClick={() => { setStep('form'); setGenResult(null); setError('') }}
-              className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+            </Button>
+            <Button variant="ghost" onClick={() => { setStep('form'); setGenResult(null); setError('') }}
+              >
               Start Over
-            </button>
+            </Button>
           </div>
         </div>
       )}
-
       {/* Step 4: Result */}
       {step === 'result' && execResult && (
-        <div className="rounded-lg border border-border bg-card p-6 text-center">
+        <Card className="text-center">
+          <CardContent>
           <span className="text-4xl block mb-3">✅</span>
           <h2 className="text-lg font-semibold mb-2">Program Created!</h2>
           <div className="text-sm text-muted-foreground space-y-1">
@@ -279,16 +260,15 @@ export function GeneratePage() {
             )}
           </div>
           <div className="mt-4 flex gap-3 justify-center">
-            <Link to={`/athletes/${athleteId}`}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            <Button onClick={() => window.location.href = `/athletes/${athleteId}`}>
               View Athlete
-            </Link>
-            <Link to="/programs"
-              className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+            </Button>
+            <Button variant="outline" onClick={() => window.location.href = '/programs'}>
               View Programs
-            </Link>
+            </Button>
           </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

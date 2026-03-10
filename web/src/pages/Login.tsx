@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { api, ApiError } from '@/api/client'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export function Login() {
   const [username, setUsername] = useState('')
@@ -11,7 +15,6 @@ export function Login() {
   const queryClient = useQueryClient()
   const location = useLocation()
 
-  // After login, navigate to the page the user was trying to reach.
   const returnTo = new URLSearchParams(location.search).get('returnTo') ?? '/'
 
   async function handleSubmit(e: React.FormEvent) {
@@ -36,65 +39,59 @@ export function Login() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6">
-        <h1 className="text-2xl font-bold text-center text-primary mb-6">RepLog</h1>
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-primary">RepLog</CardTitle>
+        </CardHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
-              {error}
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                autoComplete="username"
+                required
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+              />
             </div>
-          )}
 
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-foreground mb-1">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              autoComplete="username"
-              required
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+            </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+            <Button type="submit" disabled={loading} className="w-full" size="lg">
+              {loading ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </form>
+        </CardContent>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
-
-        <div className="mt-4 space-y-2 text-center">
+        <CardFooter className="flex-col gap-2 text-center">
           <a href="/passkeys/login/begin"
-            className="block text-sm text-primary hover:text-primary/80">
+            className="text-sm text-primary hover:text-primary/80">
             Sign in with Passkey
           </a>
           <p className="text-xs text-muted-foreground">
             Workout tracking for the family
           </p>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

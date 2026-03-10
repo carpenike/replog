@@ -3,27 +3,24 @@ import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import type { User } from '@/api/types'
-
+import { Button } from '@/components/ui/button'
 export function ProgramsList({ user }: { user: User }) {
   const { data: programs, isLoading, error } = useQuery({
     queryKey: ['programs'],
     queryFn: () => api.listProgramTemplates(),
   })
-
   if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load programs.</p>
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Programs</h1>
         {(user.is_coach || user.is_admin) && (
-          <Link to="/programs/new" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          <Button onClick={() => window.location.href = '/programs/new'} >
             + New Program
-          </Link>
+          </Button>
         )}
       </div>
-
       {programs && programs.length === 0 ? (
         <p className="text-muted-foreground">No program templates found.</p>
       ) : (

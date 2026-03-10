@@ -2,6 +2,8 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card'
 
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
@@ -42,35 +44,41 @@ export function ExerciseHistory() {
       ) : (
         <div className="space-y-4">
           {history?.days.map(day => (
-            <div key={day.workout_id} className="rounded-lg border border-border overflow-hidden table-scroll">
-              <div className="bg-muted/50 px-4 py-2 border-b border-border flex items-center justify-between">
-                <Link to={`/athletes/${athleteId}/workouts/${day.workout_id}`}
-                  className="text-sm font-medium hover:text-primary">
-                  {day.workout_date}
-                </Link>
-                <span className="text-xs text-muted-foreground">{day.sets.length} set{day.sets.length !== 1 ? 's' : ''}</span>
-              </div>
-              <table className="w-full">
-                <thead>
-                  <tr className="text-xs text-muted-foreground border-b border-border">
-                    <th className="text-left px-4 py-1.5 w-12">Set</th>
-                    <th className="text-left px-4 py-1.5">Reps</th>
-                    <th className="text-left px-4 py-1.5">Weight</th>
-                    <th className="text-left px-4 py-1.5">RPE</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {day.sets.map(set => (
-                    <tr key={`${set.workout_id}-${set.set_number}`} className="border-b border-border last:border-0 text-sm">
-                      <td className="px-4 py-1.5 text-muted-foreground">{set.set_number}</td>
-                      <td className="px-4 py-1.5">{set.reps}</td>
-                      <td className="px-4 py-1.5">{set.weight ? formatWeight(set.weight) : '—'}</td>
-                      <td className="px-4 py-1.5">{set.rpe ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Card key={day.workout_id} size="sm">
+              <CardHeader>
+                <CardTitle>
+                  <Link to={`/athletes/${athleteId}/workouts/${day.workout_id}`}
+                    className="hover:text-primary">
+                    {day.workout_date}
+                  </Link>
+                </CardTitle>
+                <CardAction>
+                  <span className="text-xs text-muted-foreground">{day.sets.length} set{day.sets.length !== 1 ? 's' : ''}</span>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">Set</TableHead>
+                      <TableHead>Reps</TableHead>
+                      <TableHead>Weight</TableHead>
+                      <TableHead>RPE</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {day.sets.map(set => (
+                      <TableRow key={`${set.workout_id}-${set.set_number}`}>
+                        <TableCell className="text-muted-foreground">{set.set_number}</TableCell>
+                        <TableCell>{set.reps}</TableCell>
+                        <TableCell>{set.weight ? formatWeight(set.weight) : '—'}</TableCell>
+                        <TableCell>{set.rpe ?? '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

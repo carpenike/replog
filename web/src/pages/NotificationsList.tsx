@@ -1,15 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
-
+import { Button } from '@/components/ui/button'
 export function NotificationsList() {
   const queryClient = useQueryClient()
-
   const { data: notifications, isLoading, error } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.listNotifications(),
   })
-
   const markReadMutation = useMutation({
     mutationFn: (id: number) => api.markNotificationRead(id),
     onSuccess: () => {
@@ -17,7 +15,6 @@ export function NotificationsList() {
       queryClient.invalidateQueries({ queryKey: ['unread-count'] })
     },
   })
-
   const markAllMutation = useMutation({
     mutationFn: () => api.markAllNotificationsRead(),
     onSuccess: () => {
@@ -25,25 +22,21 @@ export function NotificationsList() {
       queryClient.invalidateQueries({ queryKey: ['unread-count'] })
     },
   })
-
   const hasUnread = notifications?.some(n => !n.read) ?? false
-
   if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load notifications.</p>
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Notifications</h1>
         {hasUnread && (
-          <button onClick={() => markAllMutation.mutate()}
+          <Button variant="ghost" onClick={() => markAllMutation.mutate()}
             disabled={markAllMutation.isPending}
             className="text-sm text-primary hover:text-primary/80 disabled:opacity-50">
             Mark all read
-          </button>
+          </Button>
         )}
       </div>
-
       {notifications && notifications.length === 0 ? (
         <p className="text-muted-foreground">No notifications.</p>
       ) : (
@@ -69,10 +62,10 @@ export function NotificationsList() {
                     {new Date(n.created_at).toLocaleDateString()}
                   </span>
                   {!n.read && (
-                    <button onClick={() => markReadMutation.mutate(n.id)}
-                      className="text-xs text-primary hover:text-primary/80">
+                    <Button variant="ghost" onClick={() => markReadMutation.mutate(n.id)}
+                      >
                       ✓
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

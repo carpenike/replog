@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { Card, CardContent } from '@/components/ui/card'
 
 export function PendingReviews() {
   const { data: workouts, isLoading, error } = useQuery({
@@ -17,10 +18,12 @@ export function PendingReviews() {
       <h1 className="text-2xl font-bold mb-6">Pending Reviews</h1>
 
       {workouts && workouts.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-6 text-center">
+        <Card className="text-center">
+          <CardContent>
           <p className="text-2xl mb-2">✅</p>
           <p className="text-muted-foreground">All workouts reviewed! Nice work, coach.</p>
-        </div>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-2">
           {workouts?.map(w => (

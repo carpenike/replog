@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { Card, CardContent } from '@/components/ui/card'
 
 export function ExerciseDetail() {
   const { id } = useParams<{ id: string }>()
@@ -37,34 +38,42 @@ export function ExerciseDetail() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {exercise.tier && (
-          <div className="rounded-lg border border-border bg-card p-4">
+          <Card>
+            <CardContent>
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Tier</h2>
             <p className="text-foreground capitalize">{exercise.tier.replace('_', ' ')}</p>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
         {exercise.rest_seconds && (
-          <div className="rounded-lg border border-border bg-card p-4">
+          <Card>
+            <CardContent>
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Rest Timer</h2>
             <p className="text-foreground">{exercise.rest_seconds}s</p>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
         {exercise.form_notes && (
-          <div className="rounded-lg border border-border bg-card p-4 md:col-span-2">
+          <Card className="md:col-span-2">
+            <CardContent>
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Form Notes</h2>
             <p className="text-foreground whitespace-pre-wrap">{exercise.form_notes}</p>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
         {exercise.demo_url && (
-          <div className="rounded-lg border border-border bg-card p-4 md:col-span-2">
+          <Card className="md:col-span-2">
+            <CardContent>
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Demo Video</h2>
             <a href={exercise.demo_url} target="_blank" rel="noopener noreferrer"
               className="text-primary hover:text-primary/80 text-sm break-all">
               {exercise.demo_url}
             </a>
-          </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

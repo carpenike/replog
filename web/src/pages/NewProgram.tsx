@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 export function NewProgram() {
   const navigate = useNavigate()
@@ -42,43 +46,39 @@ export function NewProgram() {
         )}
 
         <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1">Name *</label>
-          <input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required
-            placeholder="e.g. 5/3/1 BBB, GZCL T1/T2"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <Label htmlFor="name" >Name *</Label>
+          <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. 5/3/1 BBB, GZCL T1/T2" />
         </div>
 
         <div>
-          <label htmlFor="desc" className="block text-sm font-medium mb-1">Description</label>
-          <textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} rows={2}
+          <Label htmlFor="desc" >Description</Label>
+          <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} 
             placeholder="Brief description of the program..."
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="weeks" className="block text-sm font-medium mb-1">Weeks *</label>
-            <input id="weeks" type="number" min={1} max={52} value={numWeeks} onChange={e => setNumWeeks(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            <Label htmlFor="weeks" >Weeks *</Label>
+            <Input id="weeks" type="number" min={1} max={52} value={numWeeks} onChange={e => setNumWeeks(e.target.value)} />
           </div>
           <div>
-            <label htmlFor="days" className="block text-sm font-medium mb-1">Days/Week *</label>
-            <input id="days" type="number" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            <Label htmlFor="days" >Days/Week *</Label>
+            <Input id="days" type="number" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} />
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <input id="loop" type="checkbox" checked={isLoop} onChange={e => setIsLoop(e.target.checked)}
             className="rounded border-border" />
-          <label htmlFor="loop" className="text-sm">Loop (repeat week sequence)</label>
+          <Label htmlFor="loop">Loop (repeat week sequence)</Label>
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={mutation.isPending}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+          <Button type="submit" disabled={mutation.isPending}
+            >
             {mutation.isPending ? 'Creating...' : 'Create Program'}
-          </button>
+          </Button>
           <Link to="/programs" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
             Cancel
           </Link>

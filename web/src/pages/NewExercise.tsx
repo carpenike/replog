@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 export function NewExercise() {
   const navigate = useNavigate()
@@ -45,13 +49,12 @@ export function NewExercise() {
         )}
 
         <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1">Name *</label>
-          <input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <Label htmlFor="name" >Name *</Label>
+          <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
         </div>
 
         <div>
-          <label htmlFor="tier" className="block text-sm font-medium mb-1">Tier</label>
+          <Label htmlFor="tier" >Tier</Label>
           <select id="tier" value={tier} onChange={e => setTier(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
             <option value="">None</option>
@@ -62,37 +65,33 @@ export function NewExercise() {
         </div>
 
         <div>
-          <label htmlFor="formNotes" className="block text-sm font-medium mb-1">Form Notes</label>
-          <textarea id="formNotes" value={formNotes} onChange={e => setFormNotes(e.target.value)} rows={3}
+          <Label htmlFor="formNotes" >Form Notes</Label>
+          <Textarea id="formNotes" value={formNotes} onChange={e => setFormNotes(e.target.value)} 
             placeholder="Coaching cues, technique notes..."
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
         </div>
 
         <div>
-          <label htmlFor="demoUrl" className="block text-sm font-medium mb-1">Demo URL</label>
-          <input id="demoUrl" type="url" value={demoUrl} onChange={e => setDemoUrl(e.target.value)}
-            placeholder="https://..."
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <Label htmlFor="demoUrl" >Demo URL</Label>
+          <Input id="demoUrl" type="url" value={demoUrl} onChange={e => setDemoUrl(e.target.value)} placeholder="https://..." />
         </div>
 
         <div>
-          <label htmlFor="rest" className="block text-sm font-medium mb-1">Rest Timer (seconds)</label>
-          <input id="rest" type="number" value={restSeconds} onChange={e => setRestSeconds(e.target.value)}
-            min={0} placeholder="e.g. 120"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <Label htmlFor="rest" >Rest Timer (seconds)</Label>
+          <Input id="rest" type="number" value={restSeconds} onChange={e => setRestSeconds(e.target.value)} min={0} placeholder="e.g. 120" />
         </div>
 
         <div className="flex items-center gap-2">
           <input id="featured" type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)}
             className="rounded border-border" />
-          <label htmlFor="featured" className="text-sm">Featured lift</label>
+          <Label htmlFor="featured">Featured lift</Label>
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={mutation.isPending}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+          <Button type="submit" disabled={mutation.isPending}
+            >
             {mutation.isPending ? 'Creating...' : 'Create Exercise'}
-          </button>
+          </Button>
           <Link to="/exercises" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
             Cancel
           </Link>

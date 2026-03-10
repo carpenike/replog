@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
-
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 const typeIcons: Record<string, string> = {
   workout: '🏋️',
   body_weight: '⚖️',
@@ -15,25 +17,21 @@ const typeIcons: Record<string, string> = {
   review: '✅',
   note: '📝',
 }
-
 export function JournalPage() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
-
   const [noteContent, setNoteContent] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
   const [showNoteForm, setShowNoteForm] = useState(false)
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
   const [editContent, setEditContent] = useState('')
-
   const { data: entries, isLoading, error } = useQuery({
     queryKey: ['journal', athleteId],
     queryFn: () => api.listJournalEntries(athleteId),
     enabled: !isNaN(athleteId),
   })
-
   const createNoteMutation = useMutation({
     mutationFn: () => api.createNote(athleteId, noteContent, isPrivate),
     onSuccess: () => {
@@ -43,7 +41,6 @@ export function JournalPage() {
       setShowNoteForm(false)
     },
   })
-
   const updateNoteMutation = useMutation({
     mutationFn: (noteId: number) => api.updateNote(athleteId, noteId, editContent),
     onSuccess: () => {
@@ -51,15 +48,12 @@ export function JournalPage() {
       setEditingNoteId(null)
     },
   })
-
   const deleteNoteMutation = useMutation({
     mutationFn: (noteId: number) => api.deleteNote(athleteId, noteId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['journal', athleteId] }),
   })
-
   if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load journal.</p>
-
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-1">
@@ -68,33 +62,31 @@ export function JournalPage() {
       </p>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Journal</h1>
-        <button onClick={() => setShowNoteForm(!showNoteForm)}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+        <Button variant="ghost" onClick={() => setShowNoteForm(!showNoteForm)}
+          >
           {showNoteForm ? 'Cancel' : '+ Add Note'}
-        </button>
+        </Button>
       </div>
-
       {/* Add note form */}
       {showNoteForm && (
         <form onSubmit={(e) => { e.preventDefault(); createNoteMutation.mutate() }}
           className="rounded-lg border border-border bg-card p-4 mb-6 space-y-3">
-          <textarea value={noteContent} onChange={e => setNoteContent(e.target.value)}
+          <Textarea value={noteContent} onChange={e => setNoteContent(e.target.value)}
             rows={3} placeholder="Write a note..."
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm">
+            <Label>
               <input type="checkbox" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)}
                 className="rounded border-border" />
               Private (coaches only)
-            </label>
-            <button type="submit" disabled={createNoteMutation.isPending || !noteContent.trim()}
-              className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+            </Label>
+            <Button type="submit" disabled={createNoteMutation.isPending || !noteContent.trim()}
+              >
               {createNoteMutation.isPending ? 'Saving...' : 'Add Note'}
-            </button>
+            </Button>
           </div>
         </form>
       )}
-
       {entries && entries.length === 0 ? (
         <p className="text-muted-foreground">No journal entries yet.</p>
       ) : (
@@ -113,14 +105,14 @@ export function JournalPage() {
                   </div>
                   {editingNoteId === entry.id && entry.type === 'note' ? (
                     <div className="mt-2">
-                      <textarea value={editContent} onChange={e => setEditContent(e.target.value)}
+                      <Textarea value={editContent} onChange={e => setEditContent(e.target.value)}
                         rows={2} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm mb-2" />
                       <div className="flex gap-2">
-                        <button onClick={() => updateNoteMutation.mutate(entry.id)}
+                        <Button variant="ghost" onClick={() => updateNoteMutation.mutate(entry.id)}
                           disabled={updateNoteMutation.isPending}
-                          className="rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground">Save</button>
-                        <button onClick={() => setEditingNoteId(null)}
-                          className="text-xs text-muted-foreground">Cancel</button>
+                          >Save</Button>
+                        <Button variant="ghost" onClick={() => setEditingNoteId(null)}
+                          className="text-xs text-muted-foreground">Cancel</Button>
                       </div>
                     </div>
                   ) : (
@@ -135,10 +127,10 @@ export function JournalPage() {
                         )}
                         {entry.type === 'note' && (
                           <>
-                            <button onClick={() => { setEditingNoteId(entry.id); setEditContent(entry.detail || entry.summary) }}
-                              className="text-xs text-primary hover:text-primary/80 ml-auto">Edit</button>
-                            <button onClick={async () => { if (await confirm({ title: 'Delete Note', description: 'Remove this note?', confirmLabel: 'Delete', variant: 'danger' })) deleteNoteMutation.mutate(entry.id) }}
-                              className="text-xs text-destructive hover:text-destructive/80">Delete</button>
+                            <Button variant="ghost" onClick={() => { setEditingNoteId(entry.id); setEditContent(entry.detail || entry.summary) }}
+                              >Edit</Button>
+                            <Button variant="ghost" onClick={async () => { if (await confirm({ title: 'Delete Note', description: 'Remove this note?', confirmLabel: 'Delete', variant: 'danger' })) deleteNoteMutation.mutate(entry.id) }}
+                              >Delete</Button>
                           </>
                         )}
                       </div>

@@ -4,13 +4,13 @@ import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import type { User } from '@/api/types'
-
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
   intermediate: 'bg-amber-500/10 text-amber-400',
   sport_performance: 'bg-purple-500/10 text-purple-400',
 }
-
 function tierLabel(tier: string): string {
   switch (tier) {
     case 'foundational': return 'Foundational'
@@ -19,41 +19,28 @@ function tierLabel(tier: string): string {
     default: return tier
   }
 }
-
 export function AthletesList({ user }: { user: User }) {
   const [search, setSearch] = useState('')
-
   const { data: athletes, isLoading, error } = useQuery({
     queryKey: ['athletes'],
     queryFn: () => api.listAthletes(),
   })
-
   if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load athletes.</p>
-
   const filtered = athletes?.filter(a =>
     a.name.toLowerCase().includes(search.toLowerCase())
   ) ?? []
-
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Athletes</h1>
         {(user.is_coach || user.is_admin) && (
-          <Link to="/athletes/new" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          <Button onClick={() => window.location.href = '/athletes/new'} >
             + New Athlete
-          </Link>
+          </Button>
         )}
       </div>
-
-      <input
-        type="text"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Search athletes..."
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm mb-4 placeholder:text-muted-foreground"
-      />
-
+      <Input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search athletes..." />
       {filtered.length === 0 ? (
         <p className="text-muted-foreground">No athletes found.</p>
       ) : (

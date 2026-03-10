@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export function UsersList() {
   const { confirm, dialog: confirmDialog } = useConfirm()
@@ -25,53 +28,48 @@ export function UsersList() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Users</h1>
-        <Link to="/users/new"
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+        <Button onClick={() => window.location.href = '/users/new'}>
           + New User
-        </Link>
+        </Button>
       </div>
 
-      <div className="rounded-lg border border-border overflow-hidden table-scroll">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="text-left p-3 text-sm font-medium text-muted-foreground">Username</th>
-              <th className="text-left p-3 text-sm font-medium text-muted-foreground">Name</th>
-              <th className="text-left p-3 text-sm font-medium text-muted-foreground">Email</th>
-              <th className="text-left p-3 text-sm font-medium text-muted-foreground">Linked Athlete</th>
-              <th className="text-left p-3 text-sm font-medium text-muted-foreground">Roles</th>
-              <th className="p-3 w-12"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users?.map(u => (
-              <tr key={u.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="p-3 text-sm font-medium">{u.username}</td>
-                <td className="p-3 text-sm">{u.name ?? '—'}</td>
-                <td className="p-3 text-sm text-muted-foreground">{u.email ?? '—'}</td>
-                <td className="p-3 text-sm">{u.athlete_name ?? '—'}</td>
-                <td className="p-3 text-sm">
-                  <div className="flex gap-1">
-                    {u.is_admin && <span className="text-xs px-1.5 py-0.5 rounded bg-destructive/10 text-destructive">Admin</span>}
-                    {u.is_coach && <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">Coach</span>}
-                    {!u.is_admin && !u.is_coach && <span className="text-xs text-muted-foreground">Athlete</span>}
-                  </div>
-                </td>
-                <td className="p-3">
-                  <div className="flex gap-2">
-                    <Link to={`/users/${u.id}/edit`} className="text-xs text-primary hover:text-primary/80">Edit</Link>
-                    <button
-                      onClick={async () => { if (await confirm({ title: 'Delete User', description: `Delete user ${u.username}?`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate(u.id) }}
-                      className="text-xs text-destructive hover:text-destructive/80">
-                      ×
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Username</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Linked Athlete</TableHead>
+            <TableHead>Roles</TableHead>
+            <TableHead className="w-12"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {users?.map(u => (
+            <TableRow key={u.id}>
+              <TableCell className="font-medium">{u.username}</TableCell>
+              <TableCell>{u.name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{u.email ?? '—'}</TableCell>
+              <TableCell>{u.athlete_name ?? '—'}</TableCell>
+              <TableCell>
+                <div className="flex gap-1">
+                  {u.is_admin && <Badge variant="destructive">Admin</Badge>}
+                  {u.is_coach && <Badge>Coach</Badge>}
+                  {!u.is_admin && !u.is_coach && <Badge variant="secondary">Athlete</Badge>}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <Link to={`/users/${u.id}/edit`} className="text-xs text-primary hover:text-primary/80">Edit</Link>
+                  <Button variant="ghost" size="xs" onClick={async () => { if (await confirm({ title: 'Delete User', description: `Delete user ${u.username}?`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate(u.id) }}>
+                    ×
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       {confirmDialog()}
     </div>
   )

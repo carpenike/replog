@@ -4,6 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 export function EditAthlete() {
   const { id } = useParams<{ id: string }>()
@@ -82,13 +86,12 @@ export function EditAthlete() {
         )}
 
         <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1">Name *</label>
-          <input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <Label htmlFor="name" >Name *</Label>
+          <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
         </div>
 
         <div>
-          <label htmlFor="tier" className="block text-sm font-medium mb-1">Tier</label>
+          <Label htmlFor="tier" >Tier</Label>
           <select id="tier" value={tier} onChange={e => setTier(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
             <option value="">None</option>
@@ -99,25 +102,24 @@ export function EditAthlete() {
         </div>
 
         <div>
-          <label htmlFor="goal" className="block text-sm font-medium mb-1">Goal</label>
-          <textarea id="goal" value={goal} onChange={e => setGoal(e.target.value)} rows={2}
+          <Label htmlFor="goal" >Goal</Label>
+          <Textarea id="goal" value={goal} onChange={e => setGoal(e.target.value)} 
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
         </div>
 
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium mb-1">Notes</label>
-          <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+          <Label htmlFor="notes" >Notes</Label>
+          <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} 
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="dob" className="block text-sm font-medium mb-1">Date of Birth</label>
-            <input id="dob" type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            <Label htmlFor="dob" >Date of Birth</Label>
+            <Input id="dob" type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} />
           </div>
           <div>
-            <label htmlFor="gender" className="block text-sm font-medium mb-1">Gender</label>
+            <Label htmlFor="gender" >Gender</Label>
             <select id="gender" value={gender} onChange={e => setGender(e.target.value)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
               <option value="">Not specified</option>
@@ -128,33 +130,31 @@ export function EditAthlete() {
         </div>
 
         <div>
-          <label htmlFor="grade" className="block text-sm font-medium mb-1">Grade</label>
-          <input id="grade" type="text" value={grade} onChange={e => setGrade(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <Label htmlFor="grade" >Grade</Label>
+          <Input id="grade" type="text" value={grade} onChange={e => setGrade(e.target.value)} />
         </div>
 
         <div className="flex items-center gap-2">
           <input id="trackBW" type="checkbox" checked={trackBW} onChange={e => setTrackBW(e.target.checked)}
             className="rounded border-border" />
-          <label htmlFor="trackBW" className="text-sm">Track body weight</label>
+          <Label htmlFor="trackBW">Track body weight</Label>
         </div>
 
         <div className="flex items-center justify-between pt-2">
           <div className="flex gap-3">
-            <button type="submit" disabled={mutation.isPending}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+            <Button type="submit" disabled={mutation.isPending}
+              >
               {mutation.isPending ? 'Saving...' : 'Save Changes'}
-            </button>
+            </Button>
             <Link to={`/athletes/${athleteId}`}
               className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
               Cancel
             </Link>
           </div>
-          <button type="button"
-            onClick={async () => { if (await confirm({ title: 'Delete Athlete', description: `Delete ${athlete?.name}? This cannot be undone.`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate() }}
+          <Button variant="ghost" type="button" onClick={async () => { if (await confirm({ title: 'Delete Athlete', description: `Delete ${athlete?.name}? This cannot be undone.`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate() }}
             className="text-sm text-destructive hover:text-destructive/80">
             Delete
-          </button>
+          </Button>
         </div>
       </form>
       {confirmDialog()}

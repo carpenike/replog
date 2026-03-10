@@ -5,11 +5,15 @@ import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
-
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent } from '@/components/ui/card'
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
 }
-
 export function WorkoutDetail() {
   const { id, workoutId } = useParams<{ id: string; workoutId: string }>()
   const athleteId = Number(id)
@@ -17,7 +21,6 @@ export function WorkoutDetail() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { confirm, dialog: confirmDialog } = useConfirm()
-
   const [exerciseId, setExerciseId] = useState('')
   const [reps, setReps] = useState('')
   const [setWeight, setSetWeight] = useState('')
@@ -33,24 +36,20 @@ export function WorkoutDetail() {
   const [reviewStatus, setReviewStatus] = useState<'approved' | 'needs_work'>('approved')
   const [reviewNotes, setReviewNotes] = useState('')
   const [showReviewForm, setShowReviewForm] = useState(false)
-
   const { data, isLoading, error } = useQuery({
     queryKey: ['workout', athleteId, wId],
     queryFn: () => api.getWorkout(athleteId, wId),
     enabled: !isNaN(athleteId) && !isNaN(wId),
   })
-
   const { data: me } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.me(),
   })
-
   const { data: exercises } = useQuery({
     queryKey: ['exercises'],
     queryFn: () => api.listExercises(),
     enabled: showAddForm,
   })
-
   const addSetMutation = useMutation({
     mutationFn: () => api.addSet(athleteId, wId, {
       exercise_id: parseInt(exerciseId),
@@ -66,7 +65,6 @@ export function WorkoutDetail() {
       toast.success('Set added')
     },
   })
-
   const deleteSetMutation = useMutation({
     mutationFn: (setId: number) => api.deleteSet(athleteId, wId, setId),
     onSuccess: () => {
@@ -74,7 +72,6 @@ export function WorkoutDetail() {
       toast.success('Set deleted')
     },
   })
-
   const deleteWorkoutMutation = useMutation({
     mutationFn: () => api.deleteWorkout(athleteId, wId),
     onSuccess: () => {
@@ -82,7 +79,6 @@ export function WorkoutDetail() {
       navigate(`/athletes/${athleteId}/workouts`)
     },
   })
-
   const updateSetMutation = useMutation({
     mutationFn: (setId: number) => api.updateSet(athleteId, wId, setId, {
       reps: parseInt(editReps),
@@ -95,7 +91,6 @@ export function WorkoutDetail() {
       setEditingSetId(null)
     },
   })
-
   const updateNotesMutation = useMutation({
     mutationFn: () => api.updateWorkoutNotes(athleteId, wId, notesText),
     onSuccess: () => {
@@ -103,7 +98,6 @@ export function WorkoutDetail() {
       setEditingNotes(false)
     },
   })
-
   const submitReviewMutation = useMutation({
     mutationFn: () => api.submitReview(athleteId, wId, reviewStatus, reviewNotes),
     onSuccess: () => {
@@ -113,13 +107,10 @@ export function WorkoutDetail() {
       setReviewNotes('')
     },
   })
-
   if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load workout.</p>
   if (!data) return <p className="text-muted-foreground">Workout not found.</p>
-
   const { workout, groups } = data
-
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-1">
@@ -131,41 +122,39 @@ export function WorkoutDetail() {
       </p>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold mb-2">{workout.date}</h1>
-        <button
-          onClick={async () => {
+        <Button variant="ghost" onClick={async () => {
             if (await confirm({ title: 'Delete Workout', description: 'Delete this workout and all its sets? This cannot be undone.', confirmLabel: 'Delete', variant: 'danger' }))
               deleteWorkoutMutation.mutate()
           }}
           className="text-sm text-destructive hover:text-destructive/80">
           Delete
-        </button>
+        </Button>
       </div>
       {workout.program_name && (
         <p className="text-sm text-muted-foreground mb-4">{workout.program_name}</p>
       )}
-
       {/* Editable notes */}
       {editingNotes ? (
-        <div className="rounded-lg border border-border bg-card p-3 mb-4">
-          <textarea
-            value={notesText}
-            onChange={e => setNotesText(e.target.value)}
+        <Card size="sm" className="mb-4">
+          <CardContent>
+          <Textarea value={notesText} onChange={e => setNotesText(e.target.value)}
             rows={3}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm mb-2"
             placeholder="Session notes..."
           />
           <div className="flex gap-2">
-            <button onClick={() => updateNotesMutation.mutate()}
+            <Button variant="ghost" onClick={() => updateNotesMutation.mutate()}
               disabled={updateNotesMutation.isPending}
-              className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+              >
               Save
-            </button>
-            <button onClick={() => setEditingNotes(false)}
-              className="rounded-md border border-border px-3 py-1 text-xs hover:bg-accent">
+            </Button>
+            <Button variant="ghost" onClick={() => setEditingNotes(false)}
+              >
               Cancel
-            </button>
+            </Button>
           </div>
-        </div>
+          </CardContent>
+        </Card>
       ) : (
         <div
           onClick={() => { setNotesText(workout.notes ?? ''); setEditingNotes(true) }}
@@ -174,7 +163,6 @@ export function WorkoutDetail() {
           {workout.notes || <span className="text-muted-foreground italic">Click to add notes...</span>}
         </div>
       )}
-
       {groups.length === 0 ? (
         <p className="text-muted-foreground">No sets logged.</p>
       ) : (
@@ -188,50 +176,46 @@ export function WorkoutDetail() {
                   History
                 </Link>
               </div>
-              <table className="w-full">
-                <thead>
-                  <tr className="text-xs text-muted-foreground border-b border-border">
-                    <th className="text-left px-4 py-2 w-12">Set</th>
-                    <th className="text-left px-4 py-2">Reps</th>
-                    <th className="text-left px-4 py-2">Weight</th>
-                    <th className="text-left px-4 py-2">RPE</th>
-                    <th className="text-left px-4 py-2">Notes</th>
-                    <th className="px-4 py-2 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">Set</TableHead>
+                    <TableHead>Reps</TableHead>
+                    <TableHead>Weight</TableHead>
+                    <TableHead>RPE</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {group.sets.map(set => (
                     editingSetId === set.id ? (
-                      <tr key={set.id} className="border-b border-border last:border-0 text-sm bg-muted/30">
-                        <td className="px-4 py-2 text-muted-foreground">{set.set_number}</td>
-                        <td className="px-2 py-1">
-                          <input type="number" value={editReps} onChange={e => setEditReps(e.target.value)}
-                            min={1} className="w-16 rounded border border-border bg-background px-2 py-1 text-sm" />
-                        </td>
-                        <td className="px-2 py-1">
-                          <input type="number" step="0.5" value={editWeight} onChange={e => setEditWeight(e.target.value)}
-                            className="w-20 rounded border border-border bg-background px-2 py-1 text-sm" />
-                        </td>
-                        <td className="px-2 py-1">
-                          <input type="number" step="0.5" min={1} max={10} value={editRpe} onChange={e => setEditRpe(e.target.value)}
-                            className="w-16 rounded border border-border bg-background px-2 py-1 text-sm" />
-                        </td>
-                        <td className="px-2 py-1">
-                          <input type="text" value={editSetNotes} onChange={e => setEditSetNotes(e.target.value)}
-                            className="w-full rounded border border-border bg-background px-2 py-1 text-sm" />
-                        </td>
-                        <td className="px-2 py-1">
+                      <TableRow key={set.id} className="bg-muted/30">
+                        <TableCell className="text-muted-foreground">{set.set_number}</TableCell>
+                        <TableCell>
+                          <Input type="number" value={editReps} onChange={e => setEditReps(e.target.value)} min={1} className="w-16" />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" step="0.5" value={editWeight} onChange={e => setEditWeight(e.target.value)} className="w-20" />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" step="0.5" min={1} max={10} value={editRpe} onChange={e => setEditRpe(e.target.value)} className="w-16" />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="text" value={editSetNotes} onChange={e => setEditSetNotes(e.target.value)} />
+                        </TableCell>
+                        <TableCell>
                           <div className="flex gap-1">
-                            <button onClick={() => updateSetMutation.mutate(set.id)}
+                            <Button variant="ghost" onClick={() => updateSetMutation.mutate(set.id)}
                               disabled={updateSetMutation.isPending}
-                              className="text-xs text-primary hover:text-primary/80">✓</button>
-                            <button onClick={() => setEditingSetId(null)}
-                              className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+                              >✓</Button>
+                            <Button variant="ghost" onClick={() => setEditingSetId(null)}
+                              >✕</Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ) : (
-                      <tr key={set.id} className="border-b border-border last:border-0 text-sm hover:bg-muted/20 cursor-pointer"
+                      <TableRow key={set.id} className="cursor-pointer"
                         onDoubleClick={() => {
                           setEditingSetId(set.id)
                           setEditReps(set.reps.toString())
@@ -239,39 +223,35 @@ export function WorkoutDetail() {
                           setEditRpe(set.rpe?.toString() ?? '')
                           setEditSetNotes(set.notes ?? '')
                         }}>
-                        <td className="px-4 py-2 text-muted-foreground">{set.set_number}</td>
-                        <td className="px-4 py-2">{set.reps_label ?? set.reps}</td>
-                        <td className="px-4 py-2">{set.weight ? formatWeight(set.weight) : '—'}</td>
-                        <td className="px-4 py-2">{set.rpe ?? '—'}</td>
-                        <td className="px-4 py-2 text-muted-foreground">{set.notes ?? ''}</td>
-                        <td className="px-4 py-2">
-                          <button
-                            onClick={async () => {
+                        <TableCell className="text-muted-foreground">{set.set_number}</TableCell>
+                        <TableCell>{set.reps_label ?? set.reps}</TableCell>
+                        <TableCell>{set.weight ? formatWeight(set.weight) : '—'}</TableCell>
+                        <TableCell>{set.rpe ?? '—'}</TableCell>
+                        <TableCell className="text-muted-foreground">{set.notes ?? ''}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="xs" onClick={async () => {
                               if (await confirm({ title: 'Delete Set', description: 'Remove this set?', confirmLabel: 'Delete', variant: 'danger' }))
                                 deleteSetMutation.mutate(set.id)
                             }}
-                            className="text-xs text-destructive hover:text-destructive/80"
-                          >×</button>
-                        </td>
-                      </tr>
+                          >×</Button>
+                        </TableCell>
+                      </TableRow>
                     )
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           ))}
         </div>
       )}
-
       {/* Add Set */}
       <div className="mt-6">
         {!showAddForm ? (
-          <button
-            onClick={() => setShowAddForm(true)}
+          <Button variant="ghost" onClick={() => setShowAddForm(true)}
             className="rounded-md border border-dashed border-border px-4 py-2 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors w-full"
           >
             + Add Set
-          </button>
+          </Button>
         ) : (
           <form
             onSubmit={(e) => { e.preventDefault(); addSetMutation.mutate() }}
@@ -280,7 +260,7 @@ export function WorkoutDetail() {
             <h3 className="text-sm font-medium">Log Set</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
-                <label htmlFor="exercise" className="block text-xs text-muted-foreground mb-1">Exercise</label>
+                <Label htmlFor="exercise" >Exercise</Label>
                 <select id="exercise" value={exerciseId} onChange={e => setExerciseId(e.target.value)}
                   required
                   className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
@@ -291,39 +271,35 @@ export function WorkoutDetail() {
                 </select>
               </div>
               <div>
-                <label htmlFor="set-reps" className="block text-xs text-muted-foreground mb-1">Reps</label>
-                <input id="set-reps" type="number" value={reps} onChange={e => setReps(e.target.value)}
-                  required min={1}
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm" />
+                <Label htmlFor="set-reps" >Reps</Label>
+                <Input id="set-reps" type="number" value={reps} onChange={e => setReps(e.target.value)} required min={1} />
               </div>
               <div>
-                <label htmlFor="set-weight" className="block text-xs text-muted-foreground mb-1">Weight</label>
-                <input id="set-weight" type="number" step="0.5" value={setWeight} onChange={e => setSetWeight(e.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm" />
+                <Label htmlFor="set-weight" >Weight</Label>
+                <Input id="set-weight" type="number" step="0.5" value={setWeight} onChange={e => setSetWeight(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="set-rpe" className="block text-xs text-muted-foreground mb-1">RPE</label>
-                <input id="set-rpe" type="number" step="0.5" min={1} max={10} value={rpe} onChange={e => setRpe(e.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm" />
+                <Label htmlFor="set-rpe" >RPE</Label>
+                <Input id="set-rpe" type="number" step="0.5" min={1} max={10} value={rpe} onChange={e => setRpe(e.target.value)} />
               </div>
             </div>
             <div className="flex gap-2">
-              <button type="submit" disabled={addSetMutation.isPending || !exerciseId || !reps}
-                className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+              <Button type="submit" disabled={addSetMutation.isPending || !exerciseId || !reps}
+                >
                 {addSetMutation.isPending ? 'Adding...' : 'Add Set'}
-              </button>
-              <button type="button" onClick={() => setShowAddForm(false)}
-                className="rounded-md border border-border px-4 py-1.5 text-sm hover:bg-accent transition-colors">
+              </Button>
+              <Button variant="ghost" type="button" onClick={() => setShowAddForm(false)}
+                >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         )}
       </div>
-
       {/* Coach Review Section */}
       {me && (me.is_coach || me.is_admin) && (
-        <div className="mt-6 rounded-lg border border-border bg-card p-4">
+        <Card className="mt-6">
+          <CardContent>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold">Coach Review</h3>
             {workout.review_status && (
@@ -334,43 +310,43 @@ export function WorkoutDetail() {
               </span>
             )}
           </div>
-
           {showReviewForm ? (
             <div className="space-y-3">
               <div className="flex gap-3">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <Label>
                   <input type="radio" name="review" checked={reviewStatus === 'approved'}
                     onChange={() => setReviewStatus('approved')} />
                   <span className="text-sm text-success">Approve</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                </Label>
+                <Label>
                   <input type="radio" name="review" checked={reviewStatus === 'needs_work'}
                     onChange={() => setReviewStatus('needs_work')} />
                   <span className="text-sm text-warning">Needs Work</span>
-                </label>
+                </Label>
               </div>
-              <textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
+              <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
                 rows={2} placeholder="Review notes (optional)..."
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
               <div className="flex gap-2">
-                <button onClick={() => submitReviewMutation.mutate()}
+                <Button variant="ghost" onClick={() => submitReviewMutation.mutate()}
                   disabled={submitReviewMutation.isPending}
-                  className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                  >
                   {submitReviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
-                </button>
-                <button onClick={() => setShowReviewForm(false)}
-                  className="rounded-md border border-border px-4 py-1.5 text-sm hover:bg-accent transition-colors">
+                </Button>
+                <Button variant="ghost" onClick={() => setShowReviewForm(false)}
+                  >
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
-            <button onClick={() => setShowReviewForm(true)}
+            <Button variant="ghost" onClick={() => setShowReviewForm(true)}
               className="text-sm text-primary hover:text-primary/80">
               {workout.review_status ? 'Update Review' : 'Review Workout'}
-            </button>
+            </Button>
           )}
-        </div>
+          </CardContent>
+        </Card>
       )}
       {confirmDialog()}
     </div>
