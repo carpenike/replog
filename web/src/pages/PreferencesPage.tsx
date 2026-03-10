@@ -108,8 +108,11 @@ export function PreferencesPage() {
         <p className="text-sm text-muted-foreground mb-4">
           Manage your passkey credentials for passwordless login. Passkeys use your device's biometric or PIN to sign in securely.
         </p>
-        <a href="/preferences">
-          <Button>Manage Passkeys</Button>
+        <a
+          href="/preferences"
+          className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+        >
+          Manage Passkeys
         </a>
         </CardContent>
       </Card>
