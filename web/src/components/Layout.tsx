@@ -56,8 +56,12 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
 
   function isActive(href: string) {
     if (href === '/') return location.pathname === '/'
-    // Exact match for list pages to avoid highlighting when on sub-pages
+    // Exact match for list pages and athlete profile to avoid false highlights
     if (href === '/athletes' || href === '/exercises' || href === '/programs' || href === '/equipment' || href === '/notifications') {
+      return location.pathname === href
+    }
+    // My Profile: exact match only (don't highlight for sub-pages like /prescription)
+    if (user.athlete_id && href === `/athletes/${user.athlete_id}`) {
       return location.pathname === href
     }
     return location.pathname.startsWith(href)
