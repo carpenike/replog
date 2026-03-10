@@ -135,6 +135,15 @@ export function AthleteDetail() {
               ✏️ Edit
             </Button>
           )}
+          {isCoach && athlete.linked_user_id && (
+            <Button variant="ghost" size="sm" onClick={async () => {
+              await api.startImpersonation(athlete.linked_user_id!)
+              queryClient.invalidateQueries({ queryKey: ['me'] })
+              window.location.href = '/'
+            }}>
+              👁️ View as Athlete
+            </Button>
+          )}
         </div>
       </div>
       {/* Quick nav */}

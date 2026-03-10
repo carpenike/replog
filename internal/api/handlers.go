@@ -184,14 +184,18 @@ func (h *Handlers) GetAthlete(w http.ResponseWriter, r *http.Request) {
 
 	resp := AthleteFromModel(athlete)
 
-	// Look up linked user's avatar for this athlete.
+	// Look up linked user's avatar and ID for this athlete.
 	var avatarPath sql.NullString
+	var linkedUserID sql.NullInt64
 	_ = h.DB.QueryRow(
-		`SELECT avatar_path FROM users WHERE athlete_id = ? AND avatar_path IS NOT NULL LIMIT 1`,
+		`SELECT id, avatar_path FROM users WHERE athlete_id = ? LIMIT 1`,
 		id,
-	).Scan(&avatarPath)
+	).Scan(&linkedUserID, &avatarPath)
 	if avatarPath.Valid {
 		resp.AvatarURL = "/avatars/" + avatarPath.String
+	}
+	if linkedUserID.Valid {
+		resp.LinkedUserID = &linkedUserID.Int64
 	}
 
 	WriteJSON(w, http.StatusOK, resp)
