@@ -212,7 +212,7 @@ export function AthleteDetail() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="col-span-2 md:col-span-1">
                 <Label >Program</Label>
-                <Select value={assignTemplateId || undefined} onValueChange={(val) => setAssignTemplateId(val ?? "")} required>
+                <Select value={assignTemplateId || null} onValueChange={(val) => setAssignTemplateId(val ?? "")} required>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select...">
                       {(value: string | null) => {

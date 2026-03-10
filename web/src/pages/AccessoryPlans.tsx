@@ -96,7 +96,7 @@ export function AccessoryPlans() {
             </div>
             <div className="col-span-2 md:col-span-3">
               <Label >Exercise</Label>
-              <Select value={exerciseId || undefined} onValueChange={(val) => setExerciseId(val ?? "")} required>
+              <Select value={exerciseId || null} onValueChange={(val) => setExerciseId(val ?? "")} required>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select exercise...">
                     {(value: string | null) => {

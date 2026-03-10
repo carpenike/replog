@@ -262,7 +262,7 @@ export function WorkoutDetail() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
                 <Label>Exercise</Label>
-                <Select value={exerciseId || undefined} onValueChange={(val) => setExerciseId(val ?? "")} required>
+                <Select value={exerciseId || null} onValueChange={(val) => setExerciseId(val ?? "")} required>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select exercise...">
                       {(value: string | null) => {
