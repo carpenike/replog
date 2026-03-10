@@ -8,7 +8,7 @@ import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 interface PrescribedSetData {
@@ -167,11 +167,8 @@ export function ProgramDetail() {
               <h2 className="text-lg font-semibold mb-3">Week {week}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Array.from(days.entries()).sort((a, b) => a[0] - b[0]).map(([day, exercises]) => (
-                  <Card key={day} size="sm">
-                    <CardHeader>
-                      <CardTitle>Day {day}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                  <Card key={day} size="sm" className="p-3 gap-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground px-0">Day {day}</h3>
                     <div className="space-y-3">
                       {Array.from(exercises.entries()).map(([exerciseName, exSets]) => (
                         <div key={exerciseName}>
@@ -195,7 +192,6 @@ export function ProgramDetail() {
                         </div>
                       ))}
                     </div>
-                    </CardContent>
                   </Card>
                 ))}
               </div>
