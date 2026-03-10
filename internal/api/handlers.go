@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/carpenike/replog/internal/middleware"
@@ -21,6 +22,10 @@ type Handlers struct {
 	DB        *sql.DB
 	Sessions  *scs.SessionManager
 	AvatarDir string
+
+	// generateCache holds in-progress generation results keyed by athlete ID.
+	// Used instead of session storage to avoid gob encoding large structs.
+	generateCache sync.Map
 }
 
 // Me returns the currently authenticated user.

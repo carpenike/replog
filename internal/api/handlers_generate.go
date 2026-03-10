@@ -190,9 +190,8 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 		ms.Programs = importers.BuildProgramMappings(parsed.Programs, nil)
 	}
 
-	// Store in session for execute step.
-	sessionKey := "api_generate_" + strconv.FormatInt(athleteID, 10)
-	h.Sessions.Put(r.Context(), sessionKey, ms)
+	// Store in memory for execute step (avoids gob encoding issues with session store).
+	h.generateCache.Store(athleteID, ms)
 
 	truncated := result.StopReason == "max_tokens" || result.StopReason == "length"
 
@@ -221,12 +220,12 @@ func (h *Handlers) GenerateExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionKey := "api_generate_" + strconv.FormatInt(athleteID, 10)
-	ms, ok := h.Sessions.Get(r.Context(), sessionKey).(*importers.MappingState)
-	if !ok || ms == nil {
+	val, ok := h.generateCache.Load(athleteID)
+	if !ok {
 		WriteError(w, http.StatusBadRequest, "no generation in progress — submit first")
 		return
 	}
+	ms := val.(*importers.MappingState)
 
 	result, err := models.ExecuteCatalogImport(h.DB, ms, &athleteID)
 	if err != nil {
@@ -242,7 +241,7 @@ func (h *Handlers) GenerateExecute(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.Sessions.Remove(r.Context(), sessionKey)
+	h.generateCache.Delete(athleteID)
 
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"programs_created":   result.ProgramsCreated,
