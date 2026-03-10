@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
+import { Alert } from '@/components/ui/alert'
 interface GenerateFormData {
   configured: boolean
   reference_programs: { id: number; name: string }[]
@@ -133,10 +134,10 @@ export function GeneratePage() {
         </Card>
       )}
       {error && (
-        <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive mb-4">
+        <Alert variant="destructive" className="mb-4">
           {error}
           <Button variant="link" size="xs" onClick={() => setError('')}>dismiss</Button>
-        </div>
+        </Alert>
       )}
       {/* Step 1: Form */}
       {step === 'form' && formData?.configured && (

@@ -5,6 +5,7 @@ import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Alert } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 export function TMSetup() {
   const { id } = useParams<{ id: string }>()
@@ -55,9 +56,9 @@ export function TMSetup() {
         Set training maxes for exercises that need them before starting a program.
       </p>
       {saved && (
-        <div className="rounded-md bg-success/10 border border-success/30 p-3 text-sm text-success mb-4">
+        <Alert variant="success" className="mb-4">
           Training maxes saved!
-        </div>
+        </Alert>
       )}
       {isLoading ? <Spinner /> : missing && missing.length === 0 ? (
         <Card className="text-center">

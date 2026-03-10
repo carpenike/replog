@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Alert } from '@/components/ui/alert'
 
 export function EditProgram() {
   const { id } = useParams<{ id: string }>()
@@ -65,7 +66,7 @@ export function EditProgram() {
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
-          <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">{error}</div>
+          <Alert variant="destructive">{error}</Alert>
         )}
 
         <div>

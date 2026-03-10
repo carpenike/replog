@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Card, CardContent } from '@/components/ui/card'
+import { Alert } from '@/components/ui/alert'
 import type { User } from '@/api/types'
 
 interface DashboardProps {
@@ -128,10 +129,10 @@ export function Dashboard({ user }: DashboardProps) {
 
       {/* Review stats for coaches */}
       {data?.review_stats && data.review_stats.pending_count > 0 && (
-        <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 mb-6">
+        <Alert variant="warning" className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-warning">Pending Reviews</p>
+              <p className="font-medium">Pending Reviews</p>
               <p className="text-sm text-muted-foreground">
                 {data.review_stats.pending_count} workout{data.review_stats.pending_count !== 1 ? 's' : ''} awaiting review
               </p>
@@ -143,7 +144,7 @@ export function Dashboard({ user }: DashboardProps) {
               Review now &rarr;
             </Link>
           </div>
-        </div>
+        </Alert>
       )}
 
       {/* Athletes grid */}

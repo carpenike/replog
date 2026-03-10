@@ -6,6 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Alert } from '@/components/ui/alert'
 
 export function NewWorkout() {
   const { id } = useParams<{ id: string }>()
@@ -52,9 +53,9 @@ export function NewWorkout() {
         className="space-y-4"
       >
         {error && (
-          <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+          <Alert variant="destructive">
             {error}
-          </div>
+          </Alert>
         )}
 
         <div>

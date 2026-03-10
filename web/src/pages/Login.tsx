@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Alert } from '@/components/ui/alert'
 
 export function Login() {
   const [username, setUsername] = useState('')
@@ -47,9 +48,9 @@ export function Login() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+              <Alert variant="destructive">
                 {error}
-              </div>
+              </Alert>
             )}
 
             <div className="grid gap-1.5">

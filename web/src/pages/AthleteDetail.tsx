@@ -5,7 +5,7 @@ import { api } from '@/api/client'
 import type { AthleteProgram } from '@/api/types'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -120,40 +120,40 @@ export function AthleteDetail() {
       </div>
       {/* Quick nav */}
       <div className="flex flex-wrap gap-2 mb-6">
-        <Link to={`/athletes/${athleteId}/prescription`} className="rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-sm hover:border-primary/50 transition-colors font-medium">
+        <Link to={`/athletes/${athleteId}/prescription`} className={buttonVariants({ variant: "default", size: "sm" })}>
           📋 Today's Workout
         </Link>
-        <Link to={`/athletes/${athleteId}/workouts`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/workouts`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           📝 Workouts
         </Link>
-        <Link to={`/athletes/${athleteId}/body-weights`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/body-weights`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           ⚖️ Body Weight
         </Link>
-        <Link to={`/athletes/${athleteId}/training-maxes`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/training-maxes`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           💪 Training Maxes
         </Link>
-        <Link to={`/athletes/${athleteId}/journal`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/journal`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           📖 Journal
         </Link>
-        <Link to={`/athletes/${athleteId}/accessories`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/accessories`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           🔧 Accessories
         </Link>
-        <Link to={`/athletes/${athleteId}/assignments`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/assignments`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           🎯 Assignments
         </Link>
-        <Link to={`/athletes/${athleteId}/tm-setup`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/tm-setup`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           🔧 TM Setup
         </Link>
-        <Link to={`/athletes/${athleteId}/cycle-review`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/cycle-review`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           📈 Cycle Review
         </Link>
-        <Link to={`/athletes/${athleteId}/export`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/export`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           📦 Export
         </Link>
-        <Link to={`/athletes/${athleteId}/import`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/import`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           📥 Import
         </Link>
-        <Link to={`/athletes/${athleteId}/generate`} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/50 transition-colors">
+        <Link to={`/athletes/${athleteId}/generate`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           🤖 AI Coach
         </Link>
       </div>

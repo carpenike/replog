@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Alert } from '@/components/ui/alert'
 
 export function EditAthlete() {
   const { id } = useParams<{ id: string }>()
@@ -84,7 +85,7 @@ export function EditAthlete() {
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
-          <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">{error}</div>
+          <Alert variant="destructive">{error}</Alert>
         )}
 
         <div>

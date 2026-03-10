@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Alert } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 
 export function PreferencesPage() {
@@ -44,9 +45,9 @@ export function PreferencesPage() {
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {saved && (
-          <div className="rounded-md bg-success/10 border border-success/30 p-3 text-sm text-success">
+          <Alert variant="success">
             Preferences saved
-          </div>
+          </Alert>
         )}
 
         <div>

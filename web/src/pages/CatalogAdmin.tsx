@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { Alert } from '@/components/ui/alert'
 interface ImportResult {
   exercises_created: number
   equipment_created: number
@@ -69,9 +70,9 @@ export function CatalogAdmin() {
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Catalog Administration</h1>
       {error && (
-        <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive mb-4">
+        <Alert variant="destructive" className="mb-4">
           {error}
-        </div>
+        </Alert>
       )}
       {step === 'menu' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

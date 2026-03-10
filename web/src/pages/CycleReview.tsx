@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+import { Alert } from '@/components/ui/alert'
 export function CycleReview() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
@@ -63,9 +64,9 @@ export function CycleReview() {
         Cycle {review?.cycle_number} • {review?.cycle_start} → {review?.cycle_end}
       </p>
       {applied && (
-        <div className="rounded-md bg-success/10 border border-success/30 p-3 text-sm text-success mb-4">
+        <Alert variant="success" className="mb-4">
           Training maxes updated!
-        </div>
+        </Alert>
       )}
       {review?.suggestions.length === 0 ? (
         <p className="text-muted-foreground">No TM bump suggestions for this cycle.</p>

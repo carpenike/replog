@@ -1,49 +1,51 @@
+import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { useTheme } from '@/lib/useTheme'
 import { Layout } from '@/components/Layout'
-import { Dashboard } from '@/pages/Dashboard'
-import { AthletesList } from '@/pages/AthletesList'
-import { AthleteDetail } from '@/pages/AthleteDetail'
-import { NewAthlete } from '@/pages/NewAthlete'
-import { EditAthlete } from '@/pages/EditAthlete'
-import { ExercisesList } from '@/pages/ExercisesList'
-import { ExerciseDetail } from '@/pages/ExerciseDetail'
-import { NewExercise } from '@/pages/NewExercise'
-import { EditExercise } from '@/pages/EditExercise'
-import { WorkoutsList } from '@/pages/WorkoutsList'
-import { WorkoutDetail } from '@/pages/WorkoutDetail'
-import { NewWorkout } from '@/pages/NewWorkout'
-import { BodyWeightsList } from '@/pages/BodyWeightsList'
-import { TrainingMaxesList } from '@/pages/TrainingMaxesList'
-import { JournalPage } from '@/pages/JournalPage'
-import { AccessoryPlans } from '@/pages/AccessoryPlans'
-import { ExerciseHistory } from '@/pages/ExerciseHistory'
-import { PrescriptionPage } from '@/pages/PrescriptionPage'
-import { AssignmentsPage } from '@/pages/AssignmentsPage'
-import { TMSetup } from '@/pages/TMSetup'
-import { ImportPage } from '@/pages/ImportPage'
-import { GeneratePage } from '@/pages/GeneratePage'
-import { ProgramsList } from '@/pages/ProgramsList'
-import { ProgramDetail } from '@/pages/ProgramDetail'
-import { NewProgram } from '@/pages/NewProgram'
-import { EditProgram } from '@/pages/EditProgram'
-import { NotificationsList } from '@/pages/NotificationsList'
-import { EquipmentList } from '@/pages/EquipmentList'
-import { CycleReview } from '@/pages/CycleReview'
-import { UsersList } from '@/pages/UsersList'
-import { NewUser } from '@/pages/NewUser'
-import { EditUser } from '@/pages/EditUser'
-import { ExportPage } from '@/pages/ExportPage'
-import { PendingReviews } from '@/pages/PendingReviews'
-import { AdminSettings } from '@/pages/AdminSettings'
-import { CatalogAdmin } from '@/pages/CatalogAdmin'
-import { PreferencesPage } from '@/pages/PreferencesPage'
-import { NotFoundPage } from '@/pages/NotFoundPage'
 import { Login } from '@/pages/Login'
+import { LoadingPage, Spinner } from '@/components/ui'
 
-import { LoadingPage } from '@/components/ui'
+// Lazy-load all page components for code-splitting
+const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })))
+const AthletesList = lazy(() => import('@/pages/AthletesList').then(m => ({ default: m.AthletesList })))
+const AthleteDetail = lazy(() => import('@/pages/AthleteDetail').then(m => ({ default: m.AthleteDetail })))
+const NewAthlete = lazy(() => import('@/pages/NewAthlete').then(m => ({ default: m.NewAthlete })))
+const EditAthlete = lazy(() => import('@/pages/EditAthlete').then(m => ({ default: m.EditAthlete })))
+const ExercisesList = lazy(() => import('@/pages/ExercisesList').then(m => ({ default: m.ExercisesList })))
+const ExerciseDetail = lazy(() => import('@/pages/ExerciseDetail').then(m => ({ default: m.ExerciseDetail })))
+const NewExercise = lazy(() => import('@/pages/NewExercise').then(m => ({ default: m.NewExercise })))
+const EditExercise = lazy(() => import('@/pages/EditExercise').then(m => ({ default: m.EditExercise })))
+const WorkoutsList = lazy(() => import('@/pages/WorkoutsList').then(m => ({ default: m.WorkoutsList })))
+const WorkoutDetail = lazy(() => import('@/pages/WorkoutDetail').then(m => ({ default: m.WorkoutDetail })))
+const NewWorkout = lazy(() => import('@/pages/NewWorkout').then(m => ({ default: m.NewWorkout })))
+const BodyWeightsList = lazy(() => import('@/pages/BodyWeightsList').then(m => ({ default: m.BodyWeightsList })))
+const TrainingMaxesList = lazy(() => import('@/pages/TrainingMaxesList').then(m => ({ default: m.TrainingMaxesList })))
+const JournalPage = lazy(() => import('@/pages/JournalPage').then(m => ({ default: m.JournalPage })))
+const AccessoryPlans = lazy(() => import('@/pages/AccessoryPlans').then(m => ({ default: m.AccessoryPlans })))
+const ExerciseHistory = lazy(() => import('@/pages/ExerciseHistory').then(m => ({ default: m.ExerciseHistory })))
+const PrescriptionPage = lazy(() => import('@/pages/PrescriptionPage').then(m => ({ default: m.PrescriptionPage })))
+const AssignmentsPage = lazy(() => import('@/pages/AssignmentsPage').then(m => ({ default: m.AssignmentsPage })))
+const TMSetup = lazy(() => import('@/pages/TMSetup').then(m => ({ default: m.TMSetup })))
+const ImportPage = lazy(() => import('@/pages/ImportPage').then(m => ({ default: m.ImportPage })))
+const GeneratePage = lazy(() => import('@/pages/GeneratePage').then(m => ({ default: m.GeneratePage })))
+const ProgramsList = lazy(() => import('@/pages/ProgramsList').then(m => ({ default: m.ProgramsList })))
+const ProgramDetail = lazy(() => import('@/pages/ProgramDetail').then(m => ({ default: m.ProgramDetail })))
+const NewProgram = lazy(() => import('@/pages/NewProgram').then(m => ({ default: m.NewProgram })))
+const EditProgram = lazy(() => import('@/pages/EditProgram').then(m => ({ default: m.EditProgram })))
+const NotificationsList = lazy(() => import('@/pages/NotificationsList').then(m => ({ default: m.NotificationsList })))
+const EquipmentList = lazy(() => import('@/pages/EquipmentList').then(m => ({ default: m.EquipmentList })))
+const CycleReview = lazy(() => import('@/pages/CycleReview').then(m => ({ default: m.CycleReview })))
+const UsersList = lazy(() => import('@/pages/UsersList').then(m => ({ default: m.UsersList })))
+const NewUser = lazy(() => import('@/pages/NewUser').then(m => ({ default: m.NewUser })))
+const EditUser = lazy(() => import('@/pages/EditUser').then(m => ({ default: m.EditUser })))
+const ExportPage = lazy(() => import('@/pages/ExportPage').then(m => ({ default: m.ExportPage })))
+const PendingReviews = lazy(() => import('@/pages/PendingReviews').then(m => ({ default: m.PendingReviews })))
+const AdminSettings = lazy(() => import('@/pages/AdminSettings').then(m => ({ default: m.AdminSettings })))
+const CatalogAdmin = lazy(() => import('@/pages/CatalogAdmin').then(m => ({ default: m.CatalogAdmin })))
+const PreferencesPage = lazy(() => import('@/pages/PreferencesPage').then(m => ({ default: m.PreferencesPage })))
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
 
 export function App() {
   const { theme, toggleTheme } = useTheme()
@@ -67,6 +69,7 @@ export function App() {
 
   return (
     <Layout user={user} theme={theme} onToggleTheme={toggleTheme}>
+      <Suspense fallback={<Spinner />}>
       <Routes>
         <Route path="/" element={<Dashboard user={user} />} />
         <Route path="/athletes" element={<AthletesList user={user} />} />
@@ -108,6 +111,7 @@ export function App() {
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </Suspense>
     </Layout>
   )
 }
