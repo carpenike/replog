@@ -377,3 +377,42 @@ export interface MissingTMData {
   exercise_id: number;
   exercise_name: string;
 }
+
+
+export interface PasskeyData {
+  id: number;
+  label?: string | null;
+  created_at: string;
+  last_used?: string;
+  sign_count: number;
+  backup_state: boolean;
+}
+
+// WebAuthn browser API types (subset used by our registration flow)
+export interface PublicKeyCredentialCreationOptionsJSON {
+  publicKey: {
+    rp: { name: string; id: string };
+    user: { id: string; name: string; displayName: string };
+    challenge: string;
+    pubKeyCredParams: { type: string; alg: number }[];
+    timeout?: number;
+    excludeCredentials?: { type: string; id: string; transports?: string[] }[];
+    authenticatorSelection?: {
+      authenticatorAttachment?: string;
+      requireResidentKey?: boolean;
+      residentKey?: string;
+      userVerification?: string;
+    };
+    attestation?: string;
+  };
+}
+
+export interface PublicKeyCredentialJSON {
+  id: string;
+  rawId: string;
+  type: string;
+  response: {
+    attestationObject: string;
+    clientDataJSON: string;
+  };
+}

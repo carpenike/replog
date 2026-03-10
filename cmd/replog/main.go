@@ -835,6 +835,15 @@ func main() {
 			r.Get("/athletes/{id}/generate", apiHandlers.GenerateFormData)
 			r.Post("/athletes/{id}/generate", apiHandlers.GenerateSubmit)
 			r.Post("/athletes/{id}/generate/execute", apiHandlers.GenerateExecute)
+
+			// Passkeys (user's own credentials).
+			r.Get("/passkeys", apiHandlers.ListPasskeys)
+			r.Delete("/passkeys/{id}", apiHandlers.DeletePasskey)
+			r.Post("/passkeys/label", apiHandlers.SetPasskeyLabel)
+			if passkeys != nil {
+				r.Get("/passkeys/register/begin", passkeys.BeginRegistration)
+				r.Post("/passkeys/register/finish", passkeys.FinishRegistration)
+			}
 		})
 	})
 

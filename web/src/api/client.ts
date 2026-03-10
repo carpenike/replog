@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, MissingTMData, Notification, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, MissingTMData, Notification, PasskeyData, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -509,6 +509,32 @@ class ApiClient {
 
   async updateSetting(key: string, value: string): Promise<void> {
     await this.request('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ key, value }) });
+  }
+
+  // Passkeys
+  async listPasskeys(): Promise<PasskeyData[]> {
+    return this.request<PasskeyData[]>('/api/passkeys');
+  }
+
+  async deletePasskey(id: number): Promise<void> {
+    await this.request(`/api/passkeys/${id}`, { method: 'DELETE' });
+  }
+
+  async setPasskeyLabel(label: string): Promise<void> {
+    await this.request('/api/passkeys/label', { method: 'POST', body: JSON.stringify({ label }) });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async beginPasskeyRegistration(): Promise<any> {
+    return this.request('/api/passkeys/register/begin');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async finishPasskeyRegistration(credential: any): Promise<void> {
+    await this.request('/api/passkeys/register/finish', {
+      method: 'POST',
+      body: JSON.stringify(credential),
+    });
   }
 }
 
