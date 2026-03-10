@@ -325,12 +325,6 @@ func main() {
 				next.ServeHTTP(w, r)
 			case strings.HasPrefix(path, "/static/"):
 				next.ServeHTTP(w, r)
-			case strings.HasPrefix(path, "/auth/"):
-				next.ServeHTTP(w, r)
-			case strings.HasPrefix(path, "/passkeys/"):
-				next.ServeHTTP(w, r)
-			case strings.HasPrefix(path, "/setup/"):
-				next.ServeHTTP(w, r)
 			case strings.HasPrefix(path, "/avatars/"):
 				next.ServeHTTP(w, r)
 			case path == "/health" || path == "/healthz" || path == "/readyz":
@@ -649,6 +643,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(authLimiter.Limit)
 			r.Post("/login", apiHandlers.Login)
+			r.Get("/auth/token/{token}", apiHandlers.TokenLogin)
 			// Passkey login ceremony (unauthenticated).
 			if passkeys != nil {
 				r.Get("/passkeys/login/begin", passkeys.BeginLogin)
@@ -847,6 +842,9 @@ func main() {
 				r.Get("/passkeys/register/begin", passkeys.BeginRegistration)
 				r.Post("/passkeys/register/finish", passkeys.FinishRegistration)
 			}
+
+			// Setup wizard.
+			r.Post("/setup/passkey/skip", apiHandlers.SkipPasskeySetup)
 		})
 	})
 

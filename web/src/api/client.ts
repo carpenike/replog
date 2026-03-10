@@ -67,6 +67,14 @@ class ApiClient {
     return this.request<User>('/api/me');
   }
 
+  async tokenLogin(token: string): Promise<{ status: string; redirect: string; needs_setup: boolean }> {
+    return this.request(`/api/auth/token/${encodeURIComponent(token)}`);
+  }
+
+  async skipPasskeySetup(): Promise<void> {
+    await this.request('/api/setup/passkey/skip', { method: 'POST' });
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async beginPasskeyLogin(): Promise<any> {
     return this.request('/api/passkeys/login/begin');

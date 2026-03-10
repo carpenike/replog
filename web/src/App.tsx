@@ -46,6 +46,8 @@ const AdminSettings = lazy(() => import('@/pages/AdminSettings').then(m => ({ de
 const CatalogAdmin = lazy(() => import('@/pages/CatalogAdmin').then(m => ({ default: m.CatalogAdmin })))
 const PreferencesPage = lazy(() => import('@/pages/PreferencesPage').then(m => ({ default: m.PreferencesPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
+const TokenLoginPage = lazy(() => import('@/pages/TokenLoginPage').then(m => ({ default: m.TokenLoginPage })))
+const PasskeySetupPage = lazy(() => import('@/pages/PasskeySetupPage').then(m => ({ default: m.PasskeySetupPage })))
 
 export function App() {
   const { theme, toggleTheme } = useTheme()
@@ -64,7 +66,14 @@ export function App() {
   }
 
   if (error || !user) {
-    return <Login />
+    return (
+      <Suspense fallback={<LoadingPage />}>
+        <Routes>
+          <Route path="/auth/token/:token" element={<TokenLoginPage />} />
+          <Route path="*" element={<Login />} />
+        </Routes>
+      </Suspense>
+    )
   }
 
   return (
@@ -108,6 +117,7 @@ export function App() {
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/catalog" element={<CatalogAdmin />} />
         <Route path="/preferences" element={<PreferencesPage />} />
+        <Route path="/setup/passkey" element={<PasskeySetupPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
