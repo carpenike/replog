@@ -14,7 +14,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
 
 const navItems = [
@@ -196,7 +195,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
                 </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
+              <div className="px-1.5 py-1 text-xs font-medium text-muted-foreground">{displayName}</div>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onToggleTheme}>
                 {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
