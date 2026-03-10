@@ -66,3 +66,12 @@ applyTo: "**/*.go"
 - Unexported helpers use camelCase
 - Acronyms: `ID` not `Id`, `HTTP` not `Http`, `SQL` not `Sql`
 - Receiver names: short (1-2 chars), consistent within a type
+
+## API Documentation
+
+- OpenAPI spec lives at `internal/api/openapi.yaml` and `docs/openapi.yaml`
+- When adding, removing, or modifying API endpoints, update the OpenAPI spec
+- Run `python3 scripts/gen-openapi.py` to regenerate the spec from route registrations
+- After regeneration, copy `docs/openapi.yaml` to `internal/api/openapi.yaml`
+- Swagger UI is served at `/api/docs` — verify changes render correctly
+- The spec includes all `/api/*` routes with tags, summaries, and path parameters

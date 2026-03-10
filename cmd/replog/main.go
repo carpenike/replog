@@ -368,6 +368,10 @@ func main() {
 	r.Get("/readyz", handleReadyz(db))
 	r.Get("/avatars/{filename}", avatars.Serve)
 
+	// API documentation (public).
+	r.Get("/api/docs", api.DocsHandler)
+	r.Get("/api/docs/openapi.yaml", api.SpecHandler)
+
 	// Rate limiter for authentication endpoints — 10 attempts per minute per IP.
 	// REPLOG_TRUSTED_PROXIES is a comma-separated list of CIDRs or IPs whose
 	// X-Forwarded-For headers should be trusted (e.g., "127.0.0.1,10.0.0.0/8").
