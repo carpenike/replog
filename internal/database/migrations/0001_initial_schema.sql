@@ -294,6 +294,8 @@ CREATE TABLE IF NOT EXISTS webauthn_credentials (
     flags_backup_eligible INTEGER NOT NULL DEFAULT 0 CHECK(flags_backup_eligible IN (0, 1)),
     flags_backup_state    INTEGER NOT NULL DEFAULT 0 CHECK(flags_backup_state IN (0, 1)),
     label           TEXT,
+    use_count       INTEGER NOT NULL DEFAULT 0,
+    last_used_at    DATETIME,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
