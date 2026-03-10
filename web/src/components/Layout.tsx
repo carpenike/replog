@@ -18,12 +18,12 @@ import {
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: '🏠' },
-  { href: '/athletes', label: 'Athletes', icon: '🏋️' },
-  { href: '/exercises', label: 'Exercises', icon: '📋' },
   { href: '/notifications', label: 'Notifications', icon: '🔔' },
 ]
 
 const coachItems = [
+  { href: '/athletes', label: 'Athletes', icon: '🏋️' },
+  { href: '/exercises', label: 'Exercises', icon: '📋' },
   { href: '/programs', label: 'Programs', icon: '📊' },
   { href: '/equipment', label: 'Equipment', icon: '🏗️' },
   { href: '/reviews/pending', label: 'Reviews', icon: '✅' },
