@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { formatDate } from '@/lib/utils'
 const typeIcons: Record<string, string> = {
   workout: '🏋️',
   body_weight: '⚖️',
@@ -15,6 +16,7 @@ const typeIcons: Record<string, string> = {
   goal_change: '🎯',
   tier_change: '📈',
   program_start: '📋',
+  program_end: '🏁',
   review: '✅',
   note: '📝',
 }
@@ -120,7 +122,7 @@ export function JournalPage() {
                         <p className="text-sm text-muted-foreground mt-0.5">{entry.detail}</p>
                       )}
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground">{entry.date}</span>
+                        <span className="text-xs text-muted-foreground">{formatDate(entry.date)}</span>
                         {entry.author && (
                           <span className="text-xs text-muted-foreground">by {entry.author}</span>
                         )}

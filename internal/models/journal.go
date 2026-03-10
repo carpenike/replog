@@ -151,6 +151,23 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 
 			UNION ALL
 
+			-- Program Deactivations
+			SELECT date(ap.deactivated_at) AS date,
+			       'program_end' AS type,
+			       'Ended program: ' || pt.name AS summary,
+			       ap.id AS id,
+			       '' AS detail,
+			       0 AS is_private,
+			       0 AS pinned,
+			       ap.template_id AS second_id,
+			       '' AS author,
+			       0 AS author_id
+			FROM athlete_programs ap
+			JOIN program_templates pt ON pt.id = ap.template_id
+			WHERE ap.athlete_id = ? AND ap.deactivated_at IS NOT NULL
+
+			UNION ALL
+
 			-- Workout Reviews
 			SELECT date(wr.created_at) AS date,
 			       'review' AS type,
@@ -192,6 +209,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 	rows, err := db.Query(query,
 		athleteID, athleteID, athleteID, athleteID,
 		athleteID, athleteID, athleteID, athleteID,
+		athleteID,
 		limit,
 	)
 	if err != nil {

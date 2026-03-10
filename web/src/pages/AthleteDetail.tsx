@@ -11,12 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-
-// Format date strings — strip time portion from ISO dates
-function formatDate(d: string): string {
-  if (!d) return '—'
-  return d.split('T')[0]
-}
+import { formatDate } from '@/lib/utils'
 
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',

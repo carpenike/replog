@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { formatDate } from '@/lib/utils'
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
 }
@@ -120,7 +121,7 @@ export function TrainingMaxesList() {
               <p className="text-sm text-muted-foreground">{tm.exercise_name}</p>
               <p className="text-2xl font-bold mt-1">{formatWeight(tm.weight)}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Effective: {tm.effective_date}
+                Effective: {formatDate(tm.effective_date)}
               </p>
               {tm.notes && (
                 <p className="text-xs text-muted-foreground mt-1">{tm.notes}</p>
@@ -144,7 +145,7 @@ export function TrainingMaxesList() {
             <TableBody>
               {history.map(tm => (
                 <TableRow key={tm.id}>
-                  <TableCell>{tm.effective_date}</TableCell>
+                  <TableCell>{formatDate(tm.effective_date)}</TableCell>
                   <TableCell className="font-medium">{formatWeight(tm.weight)}</TableCell>
                   <TableCell className="text-muted-foreground">{tm.notes ?? ''}</TableCell>
                 </TableRow>
