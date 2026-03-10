@@ -5,47 +5,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme {
-  --color-background: #1a1a1a;
-  --color-foreground: #fafafa;
-  --color-card: #262626;
-  --color-card-foreground: #fafafa;
-  --color-primary: #8b8ff5;
-  --color-primary-foreground: #fafafa;
-  --color-secondary: #2a2a2a;
-  --color-secondary-foreground: #a1a1aa;
-  --color-muted: #2a2a2a;
-  --color-muted-foreground: #a1a1aa;
-  --color-accent: #2a2a2a;
-  --color-accent-foreground: #fafafa;
-  --color-destructive: #dc2626;
-  --color-border: #333;
-  --color-ring: #8b8ff5;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-}
-
-/* Light mode overrides */
-[data-theme="light"] {
-  --color-background: #fafafa;
-  --color-foreground: #171717;
-  --color-card: #ffffff;
-  --color-card-foreground: #171717;
-  --color-primary: #6366f1;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #f5f5f5;
-  --color-secondary-foreground: #525252;
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #737373;
-  --color-accent: #f0f0f0;
-  --color-accent-foreground: #171717;
-  --color-destructive: #dc2626;
-  --color-border: #e5e5e5;
-  --color-ring: #6366f1;
-  --color-success: #16a34a;
-  --color-warning: #d97706;
-}
-
 /* Mobile table scroll */
 .table-scroll {
   overflow-x: auto;
@@ -87,6 +46,8 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+  --success: oklch(0.65 0.2 145);
+  --warning: oklch(0.75 0.18 75);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -122,6 +83,8 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+  --success: oklch(0.7 0.2 145);
+  --warning: oklch(0.8 0.18 75);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -155,6 +118,8 @@
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);

@@ -14,15 +14,10 @@
       // Apply saved theme before React hydrates to prevent flash.
       (function() {
         var t = localStorage.getItem('theme');
-        if (t === 'light' || t === 'dark') {
-          document.documentElement.setAttribute('data-theme', t);
-          if (t === 'dark') document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.add('dark');
-        }
+        if (t !== 'light') document.documentElement.classList.add('dark');
       })();
     </script>
-    <style>body { background-color: #1a1a1a; } [data-theme="light"] body { background-color: #fafafa; }</style>
+    <style>body { background-color: oklch(0.145 0 0); } html:not(.dark) body { background-color: oklch(1 0 0); }</style>
     <link rel="manifest" href="/manifest.json" />
   </head>
   <body>

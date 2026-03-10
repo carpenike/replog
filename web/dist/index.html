@@ -14,21 +14,16 @@
       // Apply saved theme before React hydrates to prevent flash.
       (function() {
         var t = localStorage.getItem('theme');
-        if (t === 'light' || t === 'dark') {
-          document.documentElement.setAttribute('data-theme', t);
-          if (t === 'dark') document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.add('dark');
-        }
+        if (t !== 'light') document.documentElement.classList.add('dark');
       })();
     </script>
-    <style>body { background-color: #1a1a1a; } [data-theme="light"] body { background-color: #fafafa; }</style>
+    <style>body { background-color: oklch(0.145 0 0); } html:not(.dark) body { background-color: oklch(1 0 0); }</style>
     <link rel="manifest" href="/manifest.json" />
-    <script type="module" crossorigin src="/assets/index-B-sBiode.js"></script>
+    <script type="module" crossorigin src="/assets/index-DFw54DEl.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-query-BT09-8Fz.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-2abhFmXE.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-ui-Bas-ttQ2.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-BB8zL0N5.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-DCWhYV5J.css">
   </head>
   <body>
     <div id="root"></div>
