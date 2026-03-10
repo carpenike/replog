@@ -329,6 +329,10 @@ func main() {
 				next.ServeHTTP(w, r)
 			case strings.HasPrefix(path, "/passkeys/"):
 				next.ServeHTTP(w, r)
+			case strings.HasPrefix(path, "/setup/"):
+				next.ServeHTTP(w, r)
+			case path == "/preferences":
+				next.ServeHTTP(w, r)
 			case strings.HasPrefix(path, "/avatars/"):
 				next.ServeHTTP(w, r)
 			case path == "/health" || path == "/healthz" || path == "/readyz":
