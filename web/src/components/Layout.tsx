@@ -104,7 +104,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
               My Training
             </p>
             {[
-              { href: `/athletes/${user.athlete_id}/workouts/new`, label: 'Log Workout', icon: '🏋️' },
+              { href: `/athletes/${user.athlete_id}/prescription`, label: "Today's Workout", icon: '📋' },
               { href: `/athletes/${user.athlete_id}/workouts`, label: 'My Workouts', icon: '📝' },
               { href: `/athletes/${user.athlete_id}/journal`, label: 'My Journal', icon: '📖' },
               { href: `/athletes/${user.athlete_id}`, label: 'My Profile', icon: '👤' },
