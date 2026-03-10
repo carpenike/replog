@@ -32,6 +32,7 @@ type AthleteCard struct {
 	WeekStreak        int     `json:"week_streak"`
 	BWTrend           string  `json:"bw_trend,omitempty"`
 	TrackBodyWeight   bool    `json:"track_body_weight"`
+	AvatarURL         *string `json:"avatar_url,omitempty"`
 }
 
 // User is the JSON representation of models.User.

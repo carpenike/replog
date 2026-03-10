@@ -79,6 +79,7 @@ func AthleteCardFromModel(m *models.AthleteCardInfo) *AthleteCard {
 		WeekStreak:        m.WeekStreak,
 		BWTrend:           m.BWTrend,
 		TrackBodyWeight:   m.TrackBodyWeight,
+		AvatarURL:         nullStr(m.AvatarURL),
 	}
 }
 

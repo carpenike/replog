@@ -35,6 +35,7 @@ type AthleteCardInfo struct {
 	WeekStreak        int            // consecutive weeks with a workout
 	BWTrend           string         // "up", "down", "flat", or "" if insufficient data
 	TrackBodyWeight   bool           // whether body weight tracking is enabled
+	AvatarURL         sql.NullString // linked user's avatar URL, if any
 }
 
 // CreateAthlete inserts a new athlete. coachID links the athlete to a coach.
@@ -316,7 +317,8 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
 			       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout,
-			       a.track_body_weight
+			       a.track_body_weight,
+			       (SELECT '/avatars/' || u.avatar_path FROM users u WHERE u.athlete_id = a.id AND u.avatar_path IS NOT NULL LIMIT 1) AS avatar_url
 			FROM athletes a
 			WHERE a.coach_id = ?
 			ORDER BY a.name COLLATE NOCASE
@@ -327,7 +329,8 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
 			       (SELECT date(w.date) FROM workouts w WHERE w.athlete_id = a.id ORDER BY w.date DESC LIMIT 1) AS last_workout,
-			       a.track_body_weight
+			       a.track_body_weight,
+			       (SELECT '/avatars/' || u.avatar_path FROM users u WHERE u.athlete_id = a.id AND u.avatar_path IS NOT NULL LIMIT 1) AS avatar_url
 			FROM athletes a
 			ORDER BY a.name COLLATE NOCASE
 			LIMIT 100`)
@@ -340,7 +343,7 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 	var cards []*AthleteCardInfo
 	for rows.Next() {
 		c := &AthleteCardInfo{}
-		if err := rows.Scan(&c.ID, &c.Name, &c.Tier, &c.ActiveAssignments, &c.LastWorkoutDate, &c.TrackBodyWeight); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Tier, &c.ActiveAssignments, &c.LastWorkoutDate, &c.TrackBodyWeight, &c.AvatarURL); err != nil {
 			return nil, fmt.Errorf("models: scan athlete card: %w", err)
 		}
 		cards = append(cards, c)

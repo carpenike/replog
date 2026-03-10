@@ -69,7 +69,18 @@ export function AthletesList({ user }: { user: User }) {
           <TableBody>
             {filtered.map(athlete => (
               <TableRow key={athlete.id} className="cursor-pointer" onClick={() => navigate(`/athletes/${athlete.id}`)}>
-                <TableCell className="font-medium">{athlete.name}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    {athlete.avatar_url ? (
+                      <img src={athlete.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+                    ) : (
+                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                        {athlete.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {athlete.name}
+                  </div>
+                </TableCell>
                 <TableCell>
                   {athlete.tier ? (
                     <Badge variant={tierVariant[athlete.tier] ?? 'secondary'}>{tierLabel(athlete.tier)}</Badge>

@@ -158,11 +158,20 @@ export function Dashboard({ user }: DashboardProps) {
                 to={`/athletes/${a.id}`}
                 className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:border-primary/50 transition-colors"
               >
-                <div>
-                  <p className="font-medium">{a.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {a.last_workout_date ? `Last: ${a.last_workout_date}` : 'No workouts'}
-                  </p>
+                <div className="flex items-center gap-3">
+                  {a.avatar_url ? (
+                    <img src={a.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
+                      {a.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-medium">{a.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {a.last_workout_date ? `Last: ${a.last_workout_date}` : 'No workouts'}
+                    </p>
+                  </div>
                 </div>
                 <div className="text-right">
                   {a.week_streak > 0 && (

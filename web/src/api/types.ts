@@ -25,6 +25,7 @@ export interface AthleteCard {
   week_streak: number;
   bw_trend?: string;
   track_body_weight: boolean;
+  avatar_url?: string;
 }
 
 export interface User {
