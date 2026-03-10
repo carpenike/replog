@@ -1,31 +1,19 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import type { SettingCategoryData } from '@/api/types'
+import type { SettingCategoryData, SettingValueData } from '@/api/types'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Alert } from '@/components/ui/alert'
 
 export function AdminSettings() {
-  const queryClient = useQueryClient()
-  const [saved, setSaved] = useState<string | null>(null)
-
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: () => api.listSettings(),
-  })
-
-  const mutation = useMutation({
-    mutationFn: ({ key, value }: { key: string; value: string }) => api.updateSetting(key, value),
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['admin-settings'] })
-      setSaved(vars.key)
-      setTimeout(() => setSaved(null), 2000)
-    },
   })
 
   if (isLoading) return <Spinner />
@@ -37,37 +25,7 @@ export function AdminSettings() {
 
       <div className="space-y-6">
         {categories?.map((cat: SettingCategoryData) => (
-          <Card key={cat.category}>
-            <CardHeader>
-              <CardTitle>{cat.category}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Setting</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead className="w-20"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cat.settings.map(setting => (
-                    <SettingRow
-                      key={setting.key}
-                      settingKey={setting.key}
-                      value={setting.value}
-                      masked={setting.masked}
-                      source={setting.source}
-                      readOnly={setting.read_only}
-                      isSaved={saved === setting.key}
-                      onSave={(value) => mutation.mutate({ key: setting.key, value })}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <SettingCategoryCard key={cat.category} category={cat} />
         ))}
 
         {/* Test Connections */}
@@ -88,59 +46,117 @@ export function AdminSettings() {
   )
 }
 
-function SettingRow({ settingKey, value, masked, source, readOnly, isSaved, onSave }: {
-  settingKey: string
-  value: string
-  masked: string
-  source: string
-  readOnly: boolean
-  isSaved: boolean
-  onSave: (value: string) => void
-}) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const label = settingKey.split('.').slice(1).join(' ').replace(/_/g, ' ')
+function SettingCategoryCard({ category }: { category: SettingCategoryData }) {
+  const queryClient = useQueryClient()
+  const [drafts, setDrafts] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {}
+    for (const s of category.settings) {
+      if (!s.read_only) initial[s.key] = s.value
+    }
+    return initial
+  })
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
-  if (editing) {
-    return (
-      <TableRow>
-        <TableCell className="font-medium capitalize whitespace-normal">{label}</TableCell>
-        <TableCell colSpan={2}>
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              className="font-mono"
-              onKeyDown={e => { if (e.key === 'Enter') { onSave(draft); setEditing(false) } if (e.key === 'Escape') { setEditing(false); setDraft(value) } }}
-              autoFocus
-            />
-          </div>
-        </TableCell>
-        <TableCell>
-          <div className="flex gap-1">
-            <Button size="xs" onClick={() => { onSave(draft); setEditing(false) }}>Save</Button>
-            <Button size="xs" variant="ghost" onClick={() => { setEditing(false); setDraft(value) }}>Cancel</Button>
-          </div>
-        </TableCell>
-      </TableRow>
-    )
+  const mutation = useMutation({
+    mutationFn: async (changes: { key: string; value: string }[]) => {
+      for (const c of changes) {
+        await api.updateSetting(c.key, c.value)
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-settings'] })
+      setStatus('saved')
+      setTimeout(() => setStatus('idle'), 2000)
+    },
+  })
+
+  const hasChanges = category.settings.some(
+    s => !s.read_only && drafts[s.key] !== s.value
+  )
+
+  function handleSave() {
+    const changes = category.settings
+      .filter(s => !s.read_only && drafts[s.key] !== s.value)
+      .map(s => ({ key: s.key, value: drafts[s.key] }))
+    if (changes.length > 0) mutation.mutate(changes)
+  }
+
+  function handleReset() {
+    const reset: Record<string, string> = {}
+    for (const s of category.settings) {
+      if (!s.read_only) reset[s.key] = s.value
+    }
+    setDrafts(reset)
   }
 
   return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{category.category}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableBody>
+            {category.settings.map(setting => (
+              <SettingRow
+                key={setting.key}
+                setting={setting}
+                draft={drafts[setting.key]}
+                onDraftChange={val => setDrafts(d => ({ ...d, [setting.key]: val }))}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+      {category.settings.some(s => !s.read_only) && (
+        <CardFooter className="flex justify-end gap-2 border-t pt-4">
+          {hasChanges && (
+            <Button variant="ghost" size="sm" onClick={handleReset}>Reset</Button>
+          )}
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!hasChanges && status !== 'saved'}
+          >
+            {status === 'saving' ? 'Saving...' : status === 'saved' ? 'Saved ✓' : 'Save'}
+          </Button>
+        </CardFooter>
+      )}
+    </Card>
+  )
+}
+
+function SettingRow({ setting, draft, onDraftChange }: {
+  setting: SettingValueData
+  draft?: string
+  onDraftChange: (val: string) => void
+}) {
+  const label = setting.key.split('.').slice(1).join(' ').replace(/_/g, ' ')
+
+  return (
     <TableRow>
-      <TableCell className="font-medium capitalize whitespace-normal">{label}</TableCell>
-      <TableCell className="font-mono text-muted-foreground whitespace-normal">
-        {isSaved ? <span className="text-success">Saved ✓</span> : (masked || value || <span className="italic">(empty)</span>)}
-      </TableCell>
+      <TableCell className="font-medium capitalize whitespace-normal w-1/3">{label}</TableCell>
       <TableCell>
-        {source !== 'default' && (
-          <Badge variant={source === 'env' ? 'default' : 'secondary'}>{source}</Badge>
-        )}
-      </TableCell>
-      <TableCell>
-        {!readOnly && (
-          <Button variant="ghost" size="xs" onClick={() => setEditing(true)}>Edit</Button>
+        {setting.read_only ? (
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-muted-foreground">{setting.masked || setting.value || <span className="italic">(empty)</span>}</span>
+            {setting.source !== 'default' && (
+              <Badge variant={setting.source === 'env' ? 'default' : 'secondary'}>{setting.source}</Badge>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Input
+              type={setting.masked ? 'password' : 'text'}
+              value={draft ?? setting.value}
+              onChange={e => onDraftChange(e.target.value)}
+              className="font-mono"
+              placeholder={`Enter ${label}`}
+            />
+            {setting.source !== 'default' && (
+              <Badge variant={setting.source === 'env' ? 'default' : 'secondary'}>{setting.source}</Badge>
+            )}
+          </div>
         )}
       </TableCell>
     </TableRow>
