@@ -383,8 +383,8 @@ export interface PasskeyData {
   id: number;
   label?: string | null;
   created_at: string;
-  last_used?: string;
-  sign_count: number;
+  last_used_at?: string | null;
+  use_count: number;
   backup_state: boolean;
 }
 

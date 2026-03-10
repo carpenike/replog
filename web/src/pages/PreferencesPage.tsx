@@ -235,6 +235,7 @@ export function PreferencesPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>Last Used</TableHead>
                   <TableHead>Uses</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
@@ -244,7 +245,8 @@ export function PreferencesPage() {
                   <TableRow key={pk.id}>
                     <TableCell className="font-medium">{pk.label ?? 'Unnamed passkey'}</TableCell>
                     <TableCell className="text-muted-foreground">{new Date(pk.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-muted-foreground">{pk.sign_count}</TableCell>
+                    <TableCell className="text-muted-foreground">{pk.last_used_at ? new Date(pk.last_used_at).toLocaleDateString() : 'Never'}</TableCell>
+                    <TableCell className="text-muted-foreground">{pk.use_count}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"

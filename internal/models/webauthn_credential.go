@@ -27,6 +27,8 @@ type WebAuthnCredential struct {
 	BackupEligible   bool
 	BackupState      bool
 	Label            sql.NullString
+	UseCount         int64
+	LastUsedAt       sql.NullTime
 	CreatedAt        time.Time
 }
 
@@ -135,7 +137,7 @@ func ListWebAuthnCredentialsByUser(db *sql.DB, userID int64) ([]*WebAuthnCredent
 		SELECT id, user_id, credential_id, public_key, attestation_type, transport,
 		       sign_count, clone_warning, attachment, aaguid,
 		       flags_user_present, flags_user_verified, flags_backup_eligible, flags_backup_state,
-		       label, created_at
+		       label, use_count, last_used_at, created_at
 		FROM webauthn_credentials
 		WHERE user_id = ?
 		ORDER BY created_at DESC`, userID)
@@ -152,7 +154,7 @@ func ListWebAuthnCredentialsByUser(db *sql.DB, userID int64) ([]*WebAuthnCredent
 			&wc.ID, &wc.UserID, &wc.CredentialID, &wc.PublicKey, &wc.AttestationType,
 			&transportStr, &wc.SignCount, &wc.CloneWarning, &wc.Attachment, &wc.AAGUID,
 			&wc.UserPresent, &wc.UserVerified, &wc.BackupEligible, &wc.BackupState,
-			&wc.Label, &wc.CreatedAt,
+			&wc.Label, &wc.UseCount, &wc.LastUsedAt, &wc.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("models: scan webauthn credential: %w", err)
 		}
@@ -203,7 +205,7 @@ func GetUserByCredentialID(db *sql.DB, credentialID []byte) (*User, error) {
 func UpdateWebAuthnCredentialSignCount(db *sql.DB, credentialID []byte, signCount uint32, cloneWarning bool) error {
 	_, err := db.Exec(`
 		UPDATE webauthn_credentials
-		SET sign_count = ?, clone_warning = ?
+		SET sign_count = ?, clone_warning = ?, use_count = use_count + 1, last_used_at = CURRENT_TIMESTAMP
 		WHERE credential_id = ?`,
 		signCount, boolToInt(cloneWarning), credentialID)
 	if err != nil {

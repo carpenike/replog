@@ -13,12 +13,12 @@ import (
 
 // PasskeyResponse is the JSON representation of a WebAuthn credential.
 type PasskeyResponse struct {
-	ID           int64   `json:"id"`
-	Label        *string `json:"label"`
-	CreatedAt    string  `json:"created_at"`
-	LastUsed     string  `json:"last_used,omitempty"`
-	SignCount    uint32  `json:"sign_count"`
-	BackupState  bool    `json:"backup_state"`
+	ID          int64   `json:"id"`
+	Label       *string `json:"label"`
+	CreatedAt   string  `json:"created_at"`
+	LastUsedAt  *string `json:"last_used_at"`
+	UseCount    int64   `json:"use_count"`
+	BackupState bool    `json:"backup_state"`
 }
 
 // ListPasskeys returns the current user's registered passkey credentials.
@@ -43,11 +43,17 @@ func (h *Handlers) ListPasskeys(w http.ResponseWriter, r *http.Request) {
 		if c.Label.Valid {
 			label = &c.Label.String
 		}
+		var lastUsed *string
+		if c.LastUsedAt.Valid {
+			s := c.LastUsedAt.Time.Format(time.RFC3339)
+			lastUsed = &s
+		}
 		result = append(result, PasskeyResponse{
 			ID:          c.ID,
 			Label:       label,
 			CreatedAt:   c.CreatedAt.Format(time.RFC3339),
-			SignCount:   c.SignCount,
+			LastUsedAt:  lastUsed,
+			UseCount:    c.UseCount,
 			BackupState: c.BackupState,
 		})
 	}
