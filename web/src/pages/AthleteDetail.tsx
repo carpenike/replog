@@ -30,6 +30,11 @@ export function AthleteDetail() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.me(),
+  })
+  const isCoach = me?.is_coach || me?.is_admin
   const { data: athlete, isLoading, error } = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
@@ -118,16 +123,18 @@ export function AthleteDetail() {
           </div>
         </div>
         <div className="flex gap-2">
-          {athlete.tier && athlete.tier !== 'sport_performance' && (
+          {isCoach && athlete.tier && athlete.tier !== 'sport_performance' && (
             <Button variant="ghost" onClick={() => promoteMutation.mutate()}
               disabled={promoteMutation.isPending}
               >
               📈 Promote
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => navigate(`/athletes/${athleteId}/edit`)}>
-            ✏️ Edit
-          </Button>
+          {isCoach && (
+            <Button variant="outline" size="sm" onClick={() => navigate(`/athletes/${athleteId}/edit`)}>
+              ✏️ Edit
+            </Button>
+          )}
         </div>
       </div>
       {/* Quick nav */}
@@ -150,24 +157,28 @@ export function AthleteDetail() {
         <Link to={`/athletes/${athleteId}/accessories`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           🔧 Accessories
         </Link>
-        <Link to={`/athletes/${athleteId}/assignments`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          🎯 Assignments
-        </Link>
-        <Link to={`/athletes/${athleteId}/tm-setup`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          🔧 TM Setup
-        </Link>
-        <Link to={`/athletes/${athleteId}/cycle-review`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          📈 Cycle Review
-        </Link>
-        <Link to={`/athletes/${athleteId}/export`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          📦 Export
-        </Link>
-        <Link to={`/athletes/${athleteId}/import`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          📥 Import
-        </Link>
-        <Link to={`/athletes/${athleteId}/generate`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          🤖 AI Coach
-        </Link>
+        {isCoach && (
+          <>
+            <Link to={`/athletes/${athleteId}/assignments`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              🎯 Assignments
+            </Link>
+            <Link to={`/athletes/${athleteId}/tm-setup`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              🔧 TM Setup
+            </Link>
+            <Link to={`/athletes/${athleteId}/cycle-review`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              📈 Cycle Review
+            </Link>
+            <Link to={`/athletes/${athleteId}/export`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              📦 Export
+            </Link>
+            <Link to={`/athletes/${athleteId}/import`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              📥 Import
+            </Link>
+            <Link to={`/athletes/${athleteId}/generate`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              🤖 AI Coach
+            </Link>
+          </>
+        )}
       </div>
       {/* Info cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -212,10 +223,12 @@ export function AthleteDetail() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold">Programs</h2>
-          <Button variant="ghost" onClick={() => setShowAssign(!showAssign)}
-            className="text-sm text-primary hover:text-primary/80">
-            {showAssign ? 'Cancel' : '+ Assign'}
-          </Button>
+          {isCoach && (
+            <Button variant="ghost" onClick={() => setShowAssign(!showAssign)}
+              className="text-sm text-primary hover:text-primary/80">
+              {showAssign ? 'Cancel' : '+ Assign'}
+            </Button>
+          )}
         </div>
         {showAssign && (
           <form onSubmit={(e) => { e.preventDefault(); assignMutation.mutate() }}
