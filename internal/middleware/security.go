@@ -1,6 +1,9 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 // SecurityHeaders sets standard security response headers on every request.
 // These provide defense-in-depth against common web attacks:
@@ -16,13 +19,24 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "same-origin")
-		w.Header().Set("Content-Security-Policy",
-			"default-src 'self'; "+
-				"style-src 'self' https://fonts.googleapis.com; "+
-				"font-src https://fonts.gstatic.com; "+
-				"script-src 'self' 'unsafe-inline'; "+
-				"img-src 'self' data:; "+
-				"connect-src 'self'")
+
+		// Relax CSP for API docs (Swagger UI loads from CDN).
+		if strings.HasPrefix(r.URL.Path, "/api/docs") {
+			w.Header().Set("Content-Security-Policy",
+				"default-src 'self'; "+
+					"style-src 'self' 'unsafe-inline' https://unpkg.com; "+
+					"script-src 'self' 'unsafe-inline' https://unpkg.com; "+
+					"img-src 'self' data: https://unpkg.com; "+
+					"connect-src 'self'")
+		} else {
+			w.Header().Set("Content-Security-Policy",
+				"default-src 'self'; "+
+					"style-src 'self' https://fonts.googleapis.com; "+
+					"font-src https://fonts.gstatic.com; "+
+					"script-src 'self' 'unsafe-inline'; "+
+					"img-src 'self' data:; "+
+					"connect-src 'self'")
+		}
 		next.ServeHTTP(w, r)
 	})
 }
