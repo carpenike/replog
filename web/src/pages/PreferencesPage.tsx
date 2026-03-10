@@ -39,12 +39,6 @@ export function PreferencesPage() {
     queryFn: () => api.me(),
   })
 
-  const { data: athlete } = useQuery({
-    queryKey: ['athlete', me?.athlete_id],
-    queryFn: () => api.getAthlete(me!.athlete_id!),
-    enabled: !!me?.athlete_id,
-  })
-
   const { data: prefs, isLoading } = useQuery({
     queryKey: ['preferences'],
     queryFn: () => api.getPreferences(),
@@ -230,19 +224,19 @@ export function PreferencesPage() {
       </form>
 
       {/* Avatar */}
-      {me?.athlete_id && (
+      {me && (
         <Card className="mt-8">
           <CardHeader>
             <CardTitle>Avatar</CardTitle>
-            <CardDescription>Upload a profile photo for your athlete profile.</CardDescription>
+            <CardDescription>Upload a profile photo.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              {athlete?.avatar_url ? (
-                <img src={athlete.avatar_url} alt="Avatar" className="h-16 w-16 rounded-full object-cover" />
+              {me.avatar_url ? (
+                <img src={me.avatar_url} alt="Avatar" className="h-16 w-16 rounded-full object-cover" />
               ) : (
                 <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-2xl">
-                  {athlete?.name?.charAt(0)?.toUpperCase() ?? '?'}
+                  {(me.name ?? me.username).charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="flex-1 space-y-2">
@@ -256,7 +250,6 @@ export function PreferencesPage() {
                     setUploading(true)
                     try {
                       await api.uploadAvatar(file)
-                      queryClient.invalidateQueries({ queryKey: ['athlete', me.athlete_id] })
                       queryClient.invalidateQueries({ queryKey: ['me'] })
                       toast.success('Avatar updated')
                     } catch (err) {
@@ -267,7 +260,7 @@ export function PreferencesPage() {
                     }
                   }}
                 />
-                {athlete?.avatar_url && (
+                {me.avatar_url && (
                   <Button
                     variant="ghost"
                     size="xs"
@@ -275,7 +268,7 @@ export function PreferencesPage() {
                       if (await confirm({ title: 'Remove Avatar', description: 'Delete your profile photo?', confirmLabel: 'Remove', variant: 'danger' })) {
                         try {
                           await api.deleteAvatar()
-                          queryClient.invalidateQueries({ queryKey: ['athlete', me.athlete_id] })
+                          queryClient.invalidateQueries({ queryKey: ['me'] })
                           toast.success('Avatar removed')
                         } catch {
                           toast.error('Failed to remove avatar')

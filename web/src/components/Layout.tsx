@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Menu, Sun, Moon, Settings, LogOut, User as UserIcon } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import type { User } from '@/api/types'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetTrigger, SheetContent, SheetTitle } from '@/components/ui/sheet'
@@ -185,6 +185,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 hover:bg-accent transition-colors text-left">
                 <Avatar className="h-8 w-8">
+                  {user.avatar_url && <AvatarImage src={user.avatar_url} alt={displayName} />}
                   <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
                     {initials}
                   </AvatarFallback>
