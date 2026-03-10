@@ -46,8 +46,10 @@ type User struct {
 	AthleteID *int64  `json:"athlete_id,omitempty"`
 	IsCoach   bool    `json:"is_coach"`
 	IsAdmin   bool    `json:"is_admin"`
-	AvatarURL string  `json:"avatar_url,omitempty"`
-	CreatedAt string  `json:"created_at"`
+	AvatarURL     string  `json:"avatar_url,omitempty"`
+	Impersonating bool    `json:"impersonating,omitempty"`
+	RealUserID    *int64  `json:"real_user_id,omitempty"`
+	CreatedAt     string  `json:"created_at"`
 	UpdatedAt string  `json:"updated_at"`
 }
 

@@ -247,6 +247,23 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
 
       {/* Main content */}
       <main id="main-content" className="flex-1 p-4 pt-16 md:p-6 md:pt-6">
+        {user.impersonating && (
+          <div className="mb-4 flex items-center justify-between rounded-lg bg-warning/20 border border-warning/40 px-4 py-2 text-sm">
+            <span className="font-medium text-warning">
+              👁️ Viewing as <strong>{displayName}</strong>
+            </span>
+            <button
+              onClick={async () => {
+                await api.stopImpersonation()
+                queryClient.invalidateQueries({ queryKey: ['me'] })
+                window.location.href = '/'
+              }}
+              className="rounded-md bg-warning px-3 py-1 text-xs font-medium text-warning-foreground hover:bg-warning/90 transition-colors"
+            >
+              Exit Impersonation
+            </button>
+          </div>
+        )}
         {children}
       </main>
     </div>

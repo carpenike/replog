@@ -75,6 +75,15 @@ class ApiClient {
     await this.request('/api/setup/passkey/skip', { method: 'POST' });
   }
 
+  // Impersonation
+  async startImpersonation(userId: number): Promise<void> {
+    await this.request(`/api/admin/impersonate/${userId}`, { method: 'POST' });
+  }
+
+  async stopImpersonation(): Promise<void> {
+    await this.request('/api/admin/stop-impersonating', { method: 'POST' });
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async beginPasskeyLogin(): Promise<any> {
     return this.request('/api/passkeys/login/begin');

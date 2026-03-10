@@ -845,6 +845,11 @@ func main() {
 
 			// Setup wizard.
 			r.Post("/setup/passkey/skip", apiHandlers.SkipPasskeySetup)
+
+			// Impersonation.
+			r.Post("/admin/impersonate/{userId}", apiHandlers.StartImpersonation)
+			r.Post("/admin/stop-impersonating", apiHandlers.StopImpersonation)
+			r.Get("/admin/impersonateable", apiHandlers.ImpersonateableUsers)
 		})
 	})
 

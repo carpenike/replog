@@ -37,6 +37,8 @@ export interface User {
   is_coach: boolean;
   is_admin: boolean;
   avatar_url?: string;
+  impersonating?: boolean;
+  real_user_id?: number;
   created_at: string;
   updated_at: string;
 }

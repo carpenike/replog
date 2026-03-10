@@ -30,7 +30,16 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusUnauthorized, "not authenticated")
 		return
 	}
-	WriteJSON(w, http.StatusOK, UserFromModel(user))
+	resp := UserFromModel(user)
+
+	// Check if currently impersonating.
+	realUserID := h.Sessions.GetInt64(r.Context(), "impersonating_real_user_id")
+	if realUserID != 0 {
+		resp.Impersonating = true
+		resp.RealUserID = &realUserID
+	}
+
+	WriteJSON(w, http.StatusOK, resp)
 }
 
 // Login authenticates a user and creates a session.

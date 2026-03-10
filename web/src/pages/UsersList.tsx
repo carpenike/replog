@@ -62,6 +62,15 @@ export function UsersList() {
               <TableCell>
                 <div className="flex gap-2">
                   <Link to={`/users/${u.id}/edit`} className="text-xs text-primary hover:text-primary/80">Edit</Link>
+                  {!u.is_admin && (
+                    <Button variant="ghost" size="xs" onClick={async () => {
+                      await api.startImpersonation(u.id)
+                      queryClient.invalidateQueries({ queryKey: ['me'] })
+                      window.location.href = '/'
+                    }}>
+                      👁️
+                    </Button>
+                  )}
                   <Button variant="ghost" size="xs" onClick={async () => { if (await confirm({ title: 'Delete User', description: `Delete user ${u.username}?`, confirmLabel: 'Delete', variant: 'danger' })) deleteMutation.mutate(u.id) }}>
                     ×
                   </Button>
