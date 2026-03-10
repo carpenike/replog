@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Menu, Sun, Moon, Settings, LogOut, User as UserIcon } from 'lucide-react'
+import { Menu, Sun, Moon, Settings, LogOut } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import type { User } from '@/api/types'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -235,12 +235,6 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
                 <Settings className="mr-2 h-4 w-4" />
                 Preferences
               </DropdownMenuItem>
-              {user.athlete_id && (
-                <DropdownMenuItem onClick={() => navigate(`/athletes/${user.athlete_id}`)}>
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  My Profile
-                </DropdownMenuItem>
-              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
