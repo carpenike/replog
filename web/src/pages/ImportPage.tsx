@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
@@ -24,6 +24,7 @@ interface ImportResult {
   exercises_created: number
 }
 export function ImportPage() {
+  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const [step, setStep] = useState<'upload' | 'map' | 'result'>('upload')
@@ -181,7 +182,7 @@ export function ImportPage() {
             )}
           </div>
           <div className="mt-4 flex gap-3 justify-center">
-            <Button onClick={() => window.location.href = `/athletes/${athleteId}/workouts`}>
+            <Button onClick={() => navigate(`/athletes/${athleteId}/workouts`)}>
               View Workouts
             </Button>
             <Button variant="ghost" onClick={() => { setStep('upload'); setImportResult(null); setUploadResult(null) }}

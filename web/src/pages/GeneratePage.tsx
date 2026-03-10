@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
@@ -32,6 +32,7 @@ interface ExecuteResult {
   progression_rules: number
 }
 export function GeneratePage() {
+  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const queryClient = useQueryClient()
@@ -261,10 +262,10 @@ export function GeneratePage() {
             )}
           </div>
           <div className="mt-4 flex gap-3 justify-center">
-            <Button onClick={() => window.location.href = `/athletes/${athleteId}`}>
+            <Button onClick={() => navigate(`/athletes/${athleteId}`)}>
               View Athlete
             </Button>
-            <Button variant="outline" onClick={() => window.location.href = '/programs'}>
+            <Button variant="outline" onClick={() => navigate('/programs')}>
               View Programs
             </Button>
           </div>

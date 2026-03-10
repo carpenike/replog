@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import type { User } from '@/api/types'
 import { Button } from '@/components/ui/button'
 export function ProgramsList({ user }: { user: User }) {
+  const navigate = useNavigate()
   const { data: programs, isLoading, error } = useQuery({
     queryKey: ['programs'],
     queryFn: () => api.listProgramTemplates(),
@@ -16,7 +17,7 @@ export function ProgramsList({ user }: { user: User }) {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Programs</h1>
         {(user.is_coach || user.is_admin) && (
-          <Button onClick={() => window.location.href = '/programs/new'} >
+          <Button onClick={() => navigate('/programs/new')} >
             + New Program
           </Button>
         )}

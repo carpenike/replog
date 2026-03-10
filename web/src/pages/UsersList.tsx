@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export function UsersList() {
+  const navigate = useNavigate()
   const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
@@ -28,7 +29,7 @@ export function UsersList() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Users</h1>
-        <Button onClick={() => window.location.href = '/users/new'}>
+        <Button onClick={() => navigate('/users/new')}>
           + New User
         </Button>
       </div>

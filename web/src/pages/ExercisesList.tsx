@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import type { User } from '@/api/types'
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export function ExercisesList({ user }: { user: User }) {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
 
   const { data: exercises, isLoading, error } = useQuery({
@@ -28,7 +29,7 @@ export function ExercisesList({ user }: { user: User }) {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Exercises</h1>
         {(user.is_coach || user.is_admin) && (
-          <Button onClick={() => window.location.href = '/exercises/new'}>
+          <Button onClick={() => navigate('/exercises/new')}>
             + New Exercise
           </Button>
         )}
@@ -47,7 +48,7 @@ export function ExercisesList({ user }: { user: User }) {
         <TableBody>
           {filtered.map(exercise => (
             <TableRow key={exercise.id} className="cursor-pointer"
-              onClick={() => window.location.href = `/exercises/${exercise.id}`}>
+              onClick={() => navigate(`/exercises/${exercise.id}`)}>
               <TableCell className="font-medium">
                 <Link to={`/exercises/${exercise.id}`} className="hover:text-primary">{exercise.name}</Link>
               </TableCell>

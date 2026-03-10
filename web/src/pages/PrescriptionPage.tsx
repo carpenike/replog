@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
@@ -11,6 +11,7 @@ function formatWeight(w: number): string {
 }
 
 export function PrescriptionPage() {
+  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
 
@@ -56,7 +57,7 @@ export function PrescriptionPage() {
                 {prescription.cycle_number > 1 && ` (Cycle ${prescription.cycle_number})`}
               </p>
             </div>
-            <Button onClick={() => window.location.href = `/athletes/${athleteId}/workouts/new`}>
+            <Button onClick={() => navigate(`/athletes/${athleteId}/workouts/new`)}>
               Start Logging
             </Button>
           </div>

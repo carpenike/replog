@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { AthleteProgram } from '@/api/types'
@@ -25,6 +25,7 @@ function tierLabel(tier: string): string {
   }
 }
 export function AthleteDetail() {
+  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const { data: athlete, isLoading, error } = useQuery({
@@ -113,7 +114,7 @@ export function AthleteDetail() {
               📈 Promote
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => window.location.href = `/athletes/${athleteId}/edit`}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/athletes/${athleteId}/edit`)}>
             ✏️ Edit
           </Button>
         </div>

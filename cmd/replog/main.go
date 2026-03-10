@@ -797,20 +797,19 @@ func main() {
 		})
 	})
 
-	// SPA fallback — serve the React frontend for unmatched routes.
-	// In production the frontend is embedded; in development it's proxied via Vite.
+	// SPA frontend — serve the React app at /app/* for the new UI.
+	// All client-side routes are handled by serving index.html.
 	spaHandler := spaFallbackHandler()
+	r.Get("/app", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/app/", http.StatusMovedPermanently)
+	})
+	r.Handle("/app/*", http.StripPrefix("/app", spaHandler))
+
+	// Fallback — unmatched routes.
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		// API routes that don't match should return 404 JSON, not the SPA.
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			api.WriteError(w, http.StatusNotFound, "endpoint not found")
-			return
-		}
-		// SSR routes still get the template-rendered 404 (backward compatibility).
-		accept := r.Header.Get("Accept")
-		if strings.Contains(accept, "text/html") && !strings.HasPrefix(r.URL.Path, "/api/") {
-			// Check if this could be a SPA route — try serving the SPA index.
-			spaHandler.ServeHTTP(w, r)
 			return
 		}
 		sessionManager.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 export function WorkoutsList() {
+  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const [offset, setOffset] = useState(0)
@@ -33,7 +34,7 @@ export function WorkoutsList() {
           </p>
           <h1 className="text-2xl font-bold">Workouts</h1>
         </div>
-        <Button onClick={() => window.location.href = `/athletes/${athleteId}/workouts/new`}>
+        <Button onClick={() => navigate(`/athletes/${athleteId}/workouts/new`)}>
           + New Workout
         </Button>
       </div>
