@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, type ReactNode } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
@@ -6,6 +6,14 @@ import { useTheme } from '@/lib/useTheme'
 import { Layout } from '@/components/Layout'
 import { Login } from '@/pages/Login'
 import { LoadingPage, Spinner } from '@/components/ui'
+import type { User } from '@/api/types'
+
+/** Route guard — redirects to / if the user doesn't have the required role. */
+function RequireRole({ user, role, children }: { user: User; role: 'coach' | 'admin'; children: ReactNode }) {
+  if (role === 'admin' && !user.is_admin) return <Navigate to="/" replace />
+  if (role === 'coach' && !user.is_coach && !user.is_admin) return <Navigate to="/" replace />
+  return <>{children}</>
+}
 
 // Lazy-load all page components for code-splitting
 const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })))
@@ -82,9 +90,9 @@ export function App() {
       <Routes>
         <Route path="/" element={<Dashboard user={user} />} />
         <Route path="/athletes" element={<AthletesList user={user} />} />
-        <Route path="/athletes/new" element={<NewAthlete />} />
+        <Route path="/athletes/new" element={<RequireRole user={user} role="coach"><NewAthlete /></RequireRole>} />
         <Route path="/athletes/:id" element={<AthleteDetail />} />
-        <Route path="/athletes/:id/edit" element={<EditAthlete />} />
+        <Route path="/athletes/:id/edit" element={<RequireRole user={user} role="coach"><EditAthlete /></RequireRole>} />
         <Route path="/athletes/:id/workouts" element={<WorkoutsList />} />
         <Route path="/athletes/:id/workouts/new" element={<NewWorkout />} />
         <Route path="/athletes/:id/workouts/:workoutId" element={<WorkoutDetail />} />
@@ -95,27 +103,27 @@ export function App() {
         <Route path="/athletes/:id/prescription" element={<PrescriptionPage />} />
         <Route path="/athletes/:id/assignments" element={<AssignmentsPage />} />
         <Route path="/athletes/:id/tm-setup" element={<TMSetup />} />
-        <Route path="/athletes/:id/import" element={<ImportPage />} />
-        <Route path="/athletes/:id/generate" element={<GeneratePage />} />
+        <Route path="/athletes/:id/import" element={<RequireRole user={user} role="coach"><ImportPage /></RequireRole>} />
+        <Route path="/athletes/:id/generate" element={<RequireRole user={user} role="coach"><GeneratePage /></RequireRole>} />
         <Route path="/athletes/:id/exercises/:exerciseId/history" element={<ExerciseHistory />} />
         <Route path="/exercises" element={<ExercisesList user={user} />} />
-        <Route path="/exercises/new" element={<NewExercise />} />
+        <Route path="/exercises/new" element={<RequireRole user={user} role="coach"><NewExercise /></RequireRole>} />
         <Route path="/exercises/:id" element={<ExerciseDetail />} />
-        <Route path="/exercises/:id/edit" element={<EditExercise />} />
+        <Route path="/exercises/:id/edit" element={<RequireRole user={user} role="coach"><EditExercise /></RequireRole>} />
         <Route path="/programs" element={<ProgramsList user={user} />} />
-        <Route path="/programs/new" element={<NewProgram />} />
+        <Route path="/programs/new" element={<RequireRole user={user} role="coach"><NewProgram /></RequireRole>} />
         <Route path="/programs/:id" element={<ProgramDetail />} />
-        <Route path="/programs/:id/edit" element={<EditProgram />} />
-        <Route path="/equipment" element={<EquipmentList />} />
+        <Route path="/programs/:id/edit" element={<RequireRole user={user} role="coach"><EditProgram /></RequireRole>} />
+        <Route path="/equipment" element={<RequireRole user={user} role="coach"><EquipmentList /></RequireRole>} />
         <Route path="/athletes/:id/cycle-review" element={<CycleReview />} />
         <Route path="/notifications" element={<NotificationsList />} />
-        <Route path="/reviews/pending" element={<PendingReviews />} />
-        <Route path="/users" element={<UsersList />} />
-        <Route path="/users/new" element={<NewUser />} />
-        <Route path="/users/:userId/edit" element={<EditUser />} />
+        <Route path="/reviews/pending" element={<RequireRole user={user} role="coach"><PendingReviews /></RequireRole>} />
+        <Route path="/users" element={<RequireRole user={user} role="admin"><UsersList /></RequireRole>} />
+        <Route path="/users/new" element={<RequireRole user={user} role="admin"><NewUser /></RequireRole>} />
+        <Route path="/users/:userId/edit" element={<RequireRole user={user} role="admin"><EditUser /></RequireRole>} />
         <Route path="/athletes/:id/export" element={<ExportPage />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
-        <Route path="/admin/catalog" element={<CatalogAdmin />} />
+        <Route path="/admin/settings" element={<RequireRole user={user} role="admin"><AdminSettings /></RequireRole>} />
+        <Route path="/admin/catalog" element={<RequireRole user={user} role="admin"><CatalogAdmin /></RequireRole>} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/setup/passkey" element={<PasskeySetupPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
