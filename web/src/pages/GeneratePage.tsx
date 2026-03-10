@@ -58,7 +58,9 @@ export function GeneratePage() {
     enabled: !isNaN(athleteId) && step === 'form',
   })
   // Set defaults from form data
-  if (formData && !programName) {
+  const [defaultsApplied, setDefaultsApplied] = useState(false)
+  if (formData && !defaultsApplied) {
+    setDefaultsApplied(true)
     setNumDays(formData.default_days.toString())
     setNumWeeks(formData.default_weeks.toString())
   }
