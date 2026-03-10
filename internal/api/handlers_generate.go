@@ -53,7 +53,7 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 
 	// Get defaults from active program.
 	defaultDays, defaultWeeks := 3, 4
-	if prog, err := models.GetActiveProgram(h.DB, athleteID); err == nil {
+	if prog, err := models.GetActiveProgram(h.DB, athleteID); err == nil && prog != nil {
 		defaultDays = prog.NumDays
 		defaultWeeks = prog.NumWeeks
 	}
