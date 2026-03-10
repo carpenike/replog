@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert } from '@/components/ui/alert'
-import { FileUpload } from '@/components/FileUpload'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useConfirm } from '@/lib/useConfirm'
@@ -229,39 +228,49 @@ export function PreferencesPage() {
         <Card className="mt-8">
           <CardHeader>
             <CardTitle>Avatar</CardTitle>
-            <CardDescription>Upload a profile photo.</CardDescription>
+            <CardDescription>Your profile photo appears in the sidebar and across the app.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
+          <CardContent>
+            <div className="flex flex-col items-center gap-4">
               {me.avatar_url ? (
-                <img src={me.avatar_url} alt="Avatar" className="h-16 w-16 rounded-full object-cover" />
+                <img src={me.avatar_url} alt="Avatar" className="h-24 w-24 rounded-full object-cover ring-2 ring-border" />
               ) : (
-                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-2xl">
+                <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center text-4xl font-bold text-muted-foreground">
                   {(me.name ?? me.username).charAt(0).toUpperCase()}
                 </div>
               )}
-              <div className="flex-1 space-y-2">
-                <FileUpload
-                  accept="image/*"
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
                   disabled={uploading}
-                  label={uploading ? 'Uploading...' : 'Upload photo'}
-                  onChange={async (file) => {
-                    setUploading(true)
-                    try {
-                      await api.uploadAvatar(file)
-                      queryClient.invalidateQueries({ queryKey: ['me'] })
-                      toast.success('Avatar updated')
-                    } catch (err) {
-                      toast.error(err instanceof ApiError ? err.message : 'Upload failed')
-                    } finally {
-                      setUploading(false)
+                  onClick={() => {
+                    const input = document.createElement('input')
+                    input.type = 'file'
+                    input.accept = 'image/*'
+                    input.onchange = async () => {
+                      const file = input.files?.[0]
+                      if (!file) return
+                      setUploading(true)
+                      try {
+                        await api.uploadAvatar(file)
+                        queryClient.invalidateQueries({ queryKey: ['me'] })
+                        toast.success('Avatar updated')
+                      } catch (err) {
+                        toast.error(err instanceof ApiError ? err.message : 'Upload failed')
+                      } finally {
+                        setUploading(false)
+                      }
                     }
+                    input.click()
                   }}
-                />
+                >
+                  {uploading ? 'Uploading...' : me.avatar_url ? 'Change photo' : 'Upload photo'}
+                </Button>
                 {me.avatar_url && (
                   <Button
                     variant="ghost"
-                    size="xs"
+                    size="sm"
                     onClick={async () => {
                       if (await confirm({ title: 'Remove Avatar', description: 'Delete your profile photo?', confirmLabel: 'Remove', variant: 'danger' })) {
                         try {
@@ -273,9 +282,8 @@ export function PreferencesPage() {
                         }
                       }
                     }}
-                    className="text-muted-foreground hover:text-destructive"
                   >
-                    Remove avatar
+                    Remove
                   </Button>
                 )}
               </div>
