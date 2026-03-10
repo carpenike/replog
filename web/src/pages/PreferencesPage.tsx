@@ -34,6 +34,17 @@ export function PreferencesPage() {
   const queryClient = useQueryClient()
   const { confirm, dialog: confirmDialog } = useConfirm()
 
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.me(),
+  })
+
+  const { data: athlete } = useQuery({
+    queryKey: ['athlete', me?.athlete_id],
+    queryFn: () => api.getAthlete(me!.athlete_id!),
+    enabled: !!me?.athlete_id,
+  })
+
   const { data: prefs, isLoading } = useQuery({
     queryKey: ['preferences'],
     queryFn: () => api.getPreferences(),
@@ -50,6 +61,7 @@ export function PreferencesPage() {
   const [saved, setSaved] = useState(false)
   const [passkeyLabel, setPasskeyLabel] = useState('')
   const [registering, setRegistering] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   // Initialize form when data loads
   if (prefs && !weightUnit && !timezone) {
@@ -216,6 +228,70 @@ export function PreferencesPage() {
           {mutation.isPending ? 'Saving...' : 'Save Preferences'}
         </Button>
       </form>
+
+      {/* Avatar */}
+      {me?.athlete_id && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Avatar</CardTitle>
+            <CardDescription>Upload a profile photo for your athlete profile.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              {athlete?.avatar_url ? (
+                <img src={athlete.avatar_url} alt="Avatar" className="h-16 w-16 rounded-full object-cover" />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-2xl">
+                  {athlete?.name?.charAt(0)?.toUpperCase() ?? '?'}
+                </div>
+              )}
+              <div className="flex-1 space-y-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploading}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setUploading(true)
+                    try {
+                      await api.uploadAvatar(file)
+                      queryClient.invalidateQueries({ queryKey: ['athlete', me.athlete_id] })
+                      queryClient.invalidateQueries({ queryKey: ['me'] })
+                      toast.success('Avatar updated')
+                    } catch (err) {
+                      toast.error(err instanceof ApiError ? err.message : 'Upload failed')
+                    } finally {
+                      setUploading(false)
+                      e.target.value = ''
+                    }
+                  }}
+                />
+                {athlete?.avatar_url && (
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={async () => {
+                      if (await confirm({ title: 'Remove Avatar', description: 'Delete your profile photo?', confirmLabel: 'Remove', variant: 'danger' })) {
+                        try {
+                          await api.deleteAvatar()
+                          queryClient.invalidateQueries({ queryKey: ['athlete', me.athlete_id] })
+                          toast.success('Avatar removed')
+                        } catch {
+                          toast.error('Failed to remove avatar')
+                        }
+                      }
+                    }}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    Remove avatar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Passkey Management */}
       <Card className="mt-8">

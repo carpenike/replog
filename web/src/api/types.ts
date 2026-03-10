@@ -11,6 +11,7 @@ export interface Athlete {
   gender?: string | null;
   coach_id?: number | null;
   track_body_weight: boolean;
+  avatar_url?: string;
   created_at: string;
   updated_at: string;
 }
