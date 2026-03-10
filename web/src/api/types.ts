@@ -223,6 +223,9 @@ export interface SettingValueData {
   source: string;
   masked: string;
   read_only: boolean;
+  field_type: string;
+  options?: string[];
+  description: string;
 }
 
 export interface SettingCategoryData {

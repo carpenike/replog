@@ -44,11 +44,14 @@ func (h *Handlers) ListPendingReviews(w http.ResponseWriter, r *http.Request) {
 
 // SettingValueResponse is the JSON representation for a setting.
 type SettingValueResponse struct {
-	Key      string `json:"key"`
-	Value    string `json:"value"`
-	Source   string `json:"source"`
-	Masked   string `json:"masked"`
-	ReadOnly bool   `json:"read_only"`
+	Key         string   `json:"key"`
+	Value       string   `json:"value"`
+	Source      string   `json:"source"`
+	Masked      string   `json:"masked"`
+	ReadOnly    bool     `json:"read_only"`
+	FieldType   string   `json:"field_type"`
+	Options     []string `json:"options,omitempty"`
+	Description string   `json:"description"`
 }
 
 // SettingCategoryResponse groups settings by category.
@@ -75,13 +78,19 @@ func (h *Handlers) ListSettings(w http.ResponseWriter, r *http.Request) {
 		}
 		cat := SettingCategoryResponse{Category: catName}
 		for _, s := range settings {
-			cat.Settings = append(cat.Settings, SettingValueResponse{
+			resp := SettingValueResponse{
 				Key:      s.Key,
 				Value:    s.Value,
 				Source:   s.Source,
 				Masked:   s.Masked,
 				ReadOnly: s.ReadOnly,
-			})
+			}
+			if def := models.GetSettingDefinition(s.Key); def != nil {
+				resp.FieldType = def.FieldType
+				resp.Options = def.Options
+				resp.Description = def.Description
+			}
+			cat.Settings = append(cat.Settings, resp)
 		}
 		result = append(result, cat)
 	}

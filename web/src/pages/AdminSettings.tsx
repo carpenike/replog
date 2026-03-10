@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { Alert } from '@/components/ui/alert'
 
 export function AdminSettings() {
@@ -133,9 +135,67 @@ function SettingRow({ setting, draft, onDraftChange }: {
 }) {
   const label = setting.key.split('.').slice(1).join(' ').replace(/_/g, ' ')
 
+  function renderControl() {
+    const value = draft ?? setting.value
+
+    if (setting.field_type === 'select' && setting.options?.length) {
+      return (
+        <Select value={value} onValueChange={(v) => onDraftChange(v ?? '')}>
+          <SelectTrigger className="font-mono">
+            <SelectValue>{(val) => val || <span className="text-muted-foreground italic">Select...</span>}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {setting.options.map(opt => (
+              <SelectItem key={opt} value={opt}>{opt || '(none)'}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )
+    }
+
+    if (setting.field_type === 'textarea') {
+      return (
+        <Textarea
+          value={value}
+          onChange={e => onDraftChange(e.target.value)}
+          className="font-mono"
+          placeholder={setting.description || `Enter ${label}`}
+          rows={3}
+        />
+      )
+    }
+
+    if (setting.field_type === 'number') {
+      return (
+        <Input
+          type="number"
+          value={value}
+          onChange={e => onDraftChange(e.target.value)}
+          className="font-mono"
+          placeholder={setting.description || `Enter ${label}`}
+        />
+      )
+    }
+
+    return (
+      <Input
+        type={setting.field_type === 'password' ? 'password' : 'text'}
+        value={value}
+        onChange={e => onDraftChange(e.target.value)}
+        className="font-mono"
+        placeholder={setting.description || `Enter ${label}`}
+      />
+    )
+  }
+
   return (
     <TableRow>
-      <TableCell className="font-medium capitalize whitespace-normal w-1/3">{label}</TableCell>
+      <TableCell className="font-medium capitalize whitespace-normal w-1/3 align-top">
+        <div>{label}</div>
+        {setting.description && (
+          <div className="text-xs text-muted-foreground font-normal normal-case mt-0.5">{setting.description}</div>
+        )}
+      </TableCell>
       <TableCell>
         {setting.read_only ? (
           <div className="flex items-center gap-2">
@@ -146,13 +206,7 @@ function SettingRow({ setting, draft, onDraftChange }: {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <Input
-              type={setting.masked ? 'password' : 'text'}
-              value={draft ?? setting.value}
-              onChange={e => onDraftChange(e.target.value)}
-              className="font-mono"
-              placeholder={`Enter ${label}`}
-            />
+            {renderControl()}
             {setting.source !== 'default' && (
               <Badge variant={setting.source === 'env' ? 'default' : 'secondary'}>{setting.source}</Badge>
             )}
