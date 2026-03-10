@@ -56,6 +56,10 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
 
   function isActive(href: string) {
     if (href === '/') return location.pathname === '/'
+    // Exact match for list pages to avoid highlighting when on sub-pages
+    if (href === '/athletes' || href === '/exercises' || href === '/programs' || href === '/equipment' || href === '/notifications') {
+      return location.pathname === href
+    }
     return location.pathname.startsWith(href)
   }
 
