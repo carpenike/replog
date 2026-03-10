@@ -434,7 +434,7 @@ class ApiClient {
     return this.request<User>(`/api/users/${id}`);
   }
 
-  async updateUser(id: number, data: { username: string; name?: string; email?: string; is_coach?: boolean; is_admin?: boolean; athlete_id?: number | null }): Promise<User> {
+  async updateUser(id: number, data: { username: string; name?: string; email?: string; password?: string; is_coach?: boolean; is_admin?: boolean; athlete_id?: number | null }): Promise<User> {
     return this.request<User>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
   }
 

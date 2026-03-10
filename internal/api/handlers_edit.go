@@ -99,6 +99,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		Username  string `json:"username"`
 		Name      string `json:"name"`
 		Email     string `json:"email"`
+		Password  string `json:"password"`
 		IsCoach   bool   `json:"is_coach"`
 		IsAdmin   bool   `json:"is_admin"`
 		AthleteID *int64 `json:"athlete_id"`
@@ -126,6 +127,15 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		log.Printf("api: update user %d: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update user")
 		return
+	}
+
+	// Update password if provided.
+	if req.Password != "" {
+		if err := models.UpdatePassword(h.DB, id, req.Password); err != nil {
+			log.Printf("api: set password for user %d: %v", id, err)
+			WriteError(w, http.StatusInternalServerError, "user updated but password change failed")
+			return
+		}
 	}
 
 	WriteJSON(w, http.StatusOK, UserFromModel(updated))
