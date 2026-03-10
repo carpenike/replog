@@ -186,8 +186,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
 
         <div className="p-3 border-t border-border">
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <button className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 hover:bg-accent transition-colors text-left">
+            <DropdownMenuTrigger className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 hover:bg-accent transition-colors text-left">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
                     {initials}
@@ -197,7 +196,6 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
                   <p className="text-sm font-medium truncate">{displayName}</p>
                   <p className="text-xs text-muted-foreground">{roleLabel}</p>
                 </div>
-              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
