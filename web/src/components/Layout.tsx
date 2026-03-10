@@ -76,30 +76,8 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
   function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
     return (
       <>
-        {navItems.map(item => (
-          <Link
-            key={item.href}
-            to={item.href}
-            onClick={onNavigate}
-            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-              isActive(item.href)
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-            }`}
-          >
-            <span>{item.icon}</span>
-            {item.label}
-            {item.href === '/notifications' && unread && unread.count > 0 && (
-              <Badge variant="default" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                {unread.count}
-              </Badge>
-            )}
-          </Link>
-        ))}
-
         {user.athlete_id && (
           <>
-            <Separator className="my-2" />
             <p className="px-3 py-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
               My Training
             </p>
@@ -123,8 +101,30 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
                 {item.label}
               </Link>
             ))}
+            <Separator className="my-2" />
           </>
         )}
+
+        {navItems.map(item => (
+          <Link
+            key={item.href}
+            to={item.href}
+            onClick={onNavigate}
+            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+              isActive(item.href)
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+            }`}
+          >
+            <span>{item.icon}</span>
+            {item.label}
+            {item.href === '/notifications' && unread && unread.count > 0 && (
+              <Badge variant="default" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                {unread.count}
+              </Badge>
+            )}
+          </Link>
+        ))}
 
         {(user.is_coach || user.is_admin) && (
           <>
