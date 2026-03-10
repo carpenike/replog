@@ -11,6 +11,13 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+// Format date strings — strip time portion from ISO dates
+function formatDate(d: string): string {
+  if (!d) return '—'
+  return d.split('T')[0]
+}
+
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
   intermediate: 'bg-amber-500/10 text-amber-400',
@@ -192,7 +199,7 @@ export function AthleteDetail() {
           <Card>
             <CardContent>
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Date of Birth</h2>
-            <p className="text-foreground">{athlete.date_of_birth}</p>
+            <p className="text-foreground">{formatDate(athlete.date_of_birth)}</p>
             </CardContent>
           </Card>
         )}
@@ -260,7 +267,7 @@ export function AthleteDetail() {
                   <Link to={`/programs/${p.template_id}`} className="flex-1 hover:text-primary transition-colors">
                     <p className="font-medium">{p.template_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      Started {p.start_date} • {p.role}
+                      Started {formatDate(p.start_date)} • {p.role}
                       {p.num_weeks ? ` • ${p.num_weeks}w` : ''}
                     </p>
                   </Link>
@@ -274,6 +281,25 @@ export function AthleteDetail() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No active programs.</p>
+        )}
+
+        {/* Deactivated Programs */}
+        {programs && programs.filter(p => !p.active).length > 0 && (
+          <details className="mt-3">
+            <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+              {programs.filter(p => !p.active).length} previous program{programs.filter(p => !p.active).length !== 1 ? 's' : ''}
+            </summary>
+            <div className="mt-2 space-y-1">
+              {programs.filter(p => !p.active).map(p => (
+                <div key={p.id} className="flex items-center justify-between py-1 text-sm text-muted-foreground">
+                  <Link to={`/programs/${p.template_id}`} className="hover:text-foreground">
+                    {p.template_name}
+                  </Link>
+                  <span className="text-xs">{formatDate(p.start_date)} – {formatDate(p.updated_at)}</span>
+                </div>
+              ))}
+            </div>
+          </details>
         )}
       </div>
       {/* Training Maxes */}

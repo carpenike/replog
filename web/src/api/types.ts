@@ -248,6 +248,7 @@ export interface AthleteProgram {
   template_id: number;
   start_date: string;
   active: boolean;
+  deactivated_at?: string | null;
   role: string;
   schedule?: string | null;
   notes?: string | null;
