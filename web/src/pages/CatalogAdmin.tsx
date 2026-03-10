@@ -4,7 +4,6 @@ import { ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { FileUpload } from '@/components/FileUpload'
 import { Alert } from '@/components/ui/alert'
 interface ImportResult {
   exercises_created: number
@@ -70,10 +69,9 @@ export function CatalogAdmin() {
             <CardContent>
             <h2 className="font-semibold mb-2">Export Catalog</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Download the full exercise, equipment, and program catalog as JSON.
+              Download all exercises, equipment, and programs as a JSON file.
             </p>
-            <Button onClick={downloadCatalog}
-              >
+            <Button variant="outline" onClick={downloadCatalog}>
               Download JSON
             </Button>
             </CardContent>
@@ -84,14 +82,24 @@ export function CatalogAdmin() {
             <p className="text-sm text-muted-foreground mb-4">
               Upload a catalog JSON file to add exercises, equipment, and programs.
             </p>
-            <FileUpload accept=".json" onChange={(file) => {
-              setError('')
-              uploadMutation.mutate(file, {
-                onSuccess: () => setStep('importing'),
-                onError: (err) => setError(err instanceof ApiError ? err.message : 'Upload failed'),
-              })
-            }}
-               label="Select JSON file" />
+            <Button variant="outline" onClick={() => {
+              const input = document.createElement('input')
+              input.type = 'file'
+              input.accept = '.json'
+              input.onchange = () => {
+                const file = input.files?.[0]
+                if (file) {
+                  setError('')
+                  uploadMutation.mutate(file, {
+                    onSuccess: () => setStep('importing'),
+                    onError: (err) => setError(err instanceof ApiError ? err.message : 'Upload failed'),
+                  })
+                }
+              }
+              input.click()
+            }}>
+              {uploadMutation.isPending ? 'Uploading...' : 'Select JSON file'}
+            </Button>
             {uploadMutation.isPending && <Spinner className="mt-2" />}
             </CardContent>
           </Card>
