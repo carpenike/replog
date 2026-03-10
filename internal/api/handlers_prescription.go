@@ -59,6 +59,11 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 
 	program, err := models.ResolveAssignment(h.DB, athleteID, time.Now(), tz)
 	if err != nil {
+		log.Printf("api: resolve assignment for athlete %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to resolve program")
+		return
+	}
+	if program == nil {
 		WriteError(w, http.StatusNotFound, "no active program for today")
 		return
 	}
