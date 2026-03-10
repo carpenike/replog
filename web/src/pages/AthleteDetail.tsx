@@ -295,7 +295,7 @@ export function AthleteDetail() {
                   <Link to={`/programs/${p.template_id}`} className="hover:text-foreground">
                     {p.template_name}
                   </Link>
-                  <span className="text-xs">{formatDate(p.start_date)} – {formatDate(p.updated_at)}</span>
+                  <span className="text-xs">{formatDate(p.start_date)} – {p.deactivated_at ? formatDate(p.deactivated_at) : '?'}</span>
                 </div>
               ))}
             </div>

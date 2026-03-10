@@ -42,6 +42,14 @@ func fmtNullTime(nt sql.NullTime) *time.Time {
 	return &nt.Time
 }
 
+func fmtNullTimeStr(nt sql.NullTime) *string {
+	if !nt.Valid {
+		return nil
+	}
+	s := nt.Time.Format(time.RFC3339)
+	return &s
+}
+
 // AthleteFromModel converts a models.Athlete to an API Athlete.
 func AthleteFromModel(m *models.Athlete) *Athlete {
 	return &Athlete{
@@ -237,8 +245,7 @@ func AthleteProgramFromModel(m *models.AthleteProgram) *AthleteProgram {
 		AthleteID:    m.AthleteID,
 		TemplateID:   m.TemplateID,
 		StartDate:    m.StartDate,
-		Active:       m.Active,
-		Role:         m.Role,
+		Active:       m.Active,		DeactivatedAt: fmtNullTimeStr(m.DeactivatedAt),		Role:         m.Role,
 		Schedule:     nullStr(m.Schedule),
 		Notes:        nullStr(m.Notes),
 		Goal:         nullStr(m.Goal),

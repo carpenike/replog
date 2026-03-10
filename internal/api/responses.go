@@ -183,6 +183,7 @@ type AthleteProgram struct {
 	TemplateID   int64   `json:"template_id"`
 	StartDate    string  `json:"start_date"`
 	Active       bool    `json:"active"`
+	DeactivatedAt *string `json:"deactivated_at,omitempty"`
 	Role         string  `json:"role"`
 	Schedule     *string `json:"schedule,omitempty"`
 	Notes        *string `json:"notes,omitempty"`

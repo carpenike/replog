@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS athlete_programs (
     template_id INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE RESTRICT,
     start_date  DATE    NOT NULL,
     active      INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+    deactivated_at DATETIME,
     role        TEXT    NOT NULL DEFAULT 'primary' CHECK(role IN ('primary', 'supplemental')),
     schedule    TEXT,
     notes       TEXT,

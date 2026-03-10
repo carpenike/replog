@@ -16,17 +16,18 @@ var ErrScheduleConflict = errors.New("schedule conflicts with an existing active
 
 // AthleteProgram links an athlete to a program template.
 type AthleteProgram struct {
-	ID         int64
-	AthleteID  int64
-	TemplateID int64
-	StartDate  string // DATE as YYYY-MM-DD
-	Active     bool
-	Role       string         // "primary" or "supplemental"
-	Schedule   sql.NullString // JSON array of ISO weekday numbers, e.g. "[2,4]"
-	Notes      sql.NullString
-	Goal       sql.NullString // short-term cycle goal
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID            int64
+	AthleteID     int64
+	TemplateID    int64
+	StartDate     string // DATE as YYYY-MM-DD
+	Active        bool
+	DeactivatedAt sql.NullTime
+	Role          string         // "primary" or "supplemental"
+	Schedule      sql.NullString // JSON array of ISO weekday numbers, e.g. "[2,4]"
+	Notes         sql.NullString
+	Goal          sql.NullString // short-term cycle goal
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 
 	// Joined fields.
 	TemplateName string
@@ -142,14 +143,14 @@ func validateScheduleConflict(db *sql.DB, athleteID int64, schedule string, excl
 func scanAthleteProgram(scanner interface{ Scan(...any) error }) (*AthleteProgram, error) {
 	ap := &AthleteProgram{}
 	err := scanner.Scan(&ap.ID, &ap.AthleteID, &ap.TemplateID, &ap.StartDate, &ap.Active,
-		&ap.Role, &ap.Schedule, &ap.Notes, &ap.Goal,
+		&ap.DeactivatedAt, &ap.Role, &ap.Schedule, &ap.Notes, &ap.Goal,
 		&ap.CreatedAt, &ap.UpdatedAt, &ap.TemplateName, &ap.NumWeeks, &ap.NumDays, &ap.IsLoop)
 	return ap, err
 }
 
 // athleteProgramColumns is the shared SELECT list for athlete_programs queries.
 const athleteProgramColumns = `ap.id, ap.athlete_id, ap.template_id, ap.start_date, ap.active,
-		        ap.role, ap.schedule, ap.notes, ap.goal,
+		        ap.deactivated_at, ap.role, ap.schedule, ap.notes, ap.goal,
 		        ap.created_at, ap.updated_at, pt.name, pt.num_weeks, pt.num_days, pt.is_loop`
 
 // GetAthleteProgramByID retrieves an athlete program by primary key.
@@ -254,7 +255,7 @@ func ListAthletePrograms(db *sql.DB, athleteID int64) ([]*AthleteProgram, error)
 // DeactivateProgram deactivates an athlete's program.
 func DeactivateProgram(db *sql.DB, athleteProgramID int64) error {
 	_, err := db.Exec(
-		`UPDATE athlete_programs SET active = 0 WHERE id = ?`,
+		`UPDATE athlete_programs SET active = 0, deactivated_at = CURRENT_TIMESTAMP WHERE id = ?`,
 		athleteProgramID,
 	)
 	if err != nil {
