@@ -97,6 +97,35 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
           </Link>
         ))}
 
+        {user.athlete_id && (
+          <>
+            <Separator className="my-2" />
+            <p className="px-3 py-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+              My Training
+            </p>
+            {[
+              { href: `/athletes/${user.athlete_id}/workouts/new`, label: 'Log Workout', icon: '🏋️' },
+              { href: `/athletes/${user.athlete_id}/workouts`, label: 'My Workouts', icon: '📝' },
+              { href: `/athletes/${user.athlete_id}/journal`, label: 'My Journal', icon: '📖' },
+              { href: `/athletes/${user.athlete_id}`, label: 'My Profile', icon: '👤' },
+            ].map(item => (
+              <Link
+                key={item.href}
+                to={item.href}
+                onClick={onNavigate}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                  isActive(item.href)
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                }`}
+              >
+                <span>{item.icon}</span>
+                {item.label}
+              </Link>
+            ))}
+          </>
+        )}
+
         {(user.is_coach || user.is_admin) && (
           <>
             <Separator className="my-2" />
