@@ -216,9 +216,14 @@ export function ProgramDetail() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
                 <Label >Exercise</Label>
-                <Select value={setExId} onValueChange={(val) => setSetExId(val ?? "")} required>
+                <Select value={setExId || undefined} onValueChange={(val) => setSetExId(val ?? "")} required>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select..." />
+                    <SelectValue placeholder="Select...">
+                      {(value: string | null) => {
+                        if (!value) return 'Select...'
+                        return exercises?.find(ex => String(ex.id) === value)?.name ?? value
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {exercises?.map(ex => <SelectItem key={ex.id} value={String(ex.id)}>{ex.name}</SelectItem>)}
@@ -274,9 +279,14 @@ export function ProgramDetail() {
             className="rounded-lg border border-border bg-card p-4 mb-3 flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-50">
               <Label >Exercise</Label>
-              <Select value={ruleExId} onValueChange={(val) => setRuleExId(val ?? "")} required>
+              <Select value={ruleExId || undefined} onValueChange={(val) => setRuleExId(val ?? "")} required>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select..." />
+                  <SelectValue placeholder="Select...">
+                    {(value: string | null) => {
+                      if (!value) return 'Select...'
+                      return exercises?.find(ex => String(ex.id) === value)?.name ?? value
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {exercises?.map(ex => <SelectItem key={ex.id} value={String(ex.id)}>{ex.name}</SelectItem>)}

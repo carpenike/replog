@@ -72,9 +72,14 @@ export function TrainingMaxesList() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="col-span-2">
               <Label htmlFor="tm-exercise" >Exercise</Label>
-              <Select value={exerciseId} onValueChange={(val) => setExerciseId(val ?? "")} required>
+              <Select value={exerciseId || undefined} onValueChange={(val) => setExerciseId(val ?? "")} required>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select exercise..." />
+                  <SelectValue placeholder="Select exercise...">
+                    {(value: string | null) => {
+                      if (!value) return 'Select exercise...'
+                      return exercises?.find(ex => String(ex.id) === value)?.name ?? value
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {exercises?.map(ex => (

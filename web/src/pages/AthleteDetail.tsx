@@ -212,9 +212,15 @@ export function AthleteDetail() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="col-span-2 md:col-span-1">
                 <Label >Program</Label>
-                <Select value={assignTemplateId} onValueChange={(val) => setAssignTemplateId(val ?? "")} required>
+                <Select value={assignTemplateId || undefined} onValueChange={(val) => setAssignTemplateId(val ?? "")} required>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select..." />
+                    <SelectValue placeholder="Select...">
+                      {(value: string | null) => {
+                        if (!value) return 'Select...'
+                        const match = allPrograms?.find(p => String(p.id) === value)
+                        return match?.name ?? value
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {allPrograms?.map(p => (
@@ -249,7 +255,7 @@ export function AthleteDetail() {
         {programs && programs.filter(p => p.active).length > 0 ? (
           <div className="space-y-2">
             {programs.filter(p => p.active).map(p => (
-              <Card size="sm" className="flex items-center justify-between">
+              <Card key={p.id} size="sm" className="flex items-center justify-between">
                 <CardContent>
                 <Link to={`/programs/${p.template_id}`} className="flex-1 hover:text-primary transition-colors">
                   <p className="font-medium">{p.template_name}</p>

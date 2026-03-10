@@ -96,9 +96,14 @@ export function AccessoryPlans() {
             </div>
             <div className="col-span-2 md:col-span-3">
               <Label >Exercise</Label>
-              <Select value={exerciseId} onValueChange={(val) => setExerciseId(val ?? "")} required>
+              <Select value={exerciseId || undefined} onValueChange={(val) => setExerciseId(val ?? "")} required>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select exercise..." />
+                  <SelectValue placeholder="Select exercise...">
+                    {(value: string | null) => {
+                      if (!value) return 'Select exercise...'
+                      return exercises?.find(ex => String(ex.id) === value)?.name ?? value
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {exercises?.map(ex => (

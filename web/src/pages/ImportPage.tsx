@@ -139,7 +139,12 @@ export function ImportPage() {
                   onValueChange={(val) => updateMapping(i, parseInt(val ?? '0'))}
                 >
                   <SelectTrigger className="flex-1">
-                    <SelectValue />
+                    <SelectValue>
+                      {(value: string | null) => {
+                        if (!value || value === '0') return 'Create new'
+                        return exercises?.find(ex => String(ex.id) === value)?.name ?? value
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="0">Create new</SelectItem>
