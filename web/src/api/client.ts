@@ -516,6 +516,14 @@ class ApiClient {
     await this.request(`/api/athletes/${athleteId}/programs/${programId}/deactivate`, { method: 'POST' });
   }
 
+  async reactivateProgram(athleteId: number, programId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/programs/${programId}/reactivate`, { method: 'POST' });
+  }
+
+  async deleteAthleteProgram(athleteId: number, programId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/programs/${programId}`, { method: 'DELETE' });
+  }
+
   // Accessory Plans
   async listAccessoryPlans(athleteId: number): Promise<AccessoryPlanData[]> {
     return this.request(`/api/athletes/${athleteId}/accessories`);

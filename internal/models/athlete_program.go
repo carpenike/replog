@@ -263,3 +263,28 @@ func DeactivateProgram(db *sql.DB, athleteProgramID int64) error {
 	}
 	return nil
 }
+
+// ReactivateProgram reactivates a deactivated athlete program assignment.
+func ReactivateProgram(db *sql.DB, athleteProgramID int64) error {
+	_, err := db.Exec(
+		`UPDATE athlete_programs SET active = 1, deactivated_at = NULL WHERE id = ?`,
+		athleteProgramID,
+	)
+	if err != nil {
+		return fmt.Errorf("models: reactivate athlete program %d: %w", athleteProgramID, err)
+	}
+	return nil
+}
+
+// DeleteAthleteProgram removes an athlete program assignment entirely.
+func DeleteAthleteProgram(db *sql.DB, athleteProgramID int64) error {
+	result, err := db.Exec(`DELETE FROM athlete_programs WHERE id = ?`, athleteProgramID)
+	if err != nil {
+		return fmt.Errorf("models: delete athlete program %d: %w", athleteProgramID, err)
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

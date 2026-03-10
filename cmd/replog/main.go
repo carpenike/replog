@@ -714,6 +714,8 @@ func main() {
 			r.Get("/athletes/{id}/programs", apiHandlers.ListAthletePrograms)
 			r.Post("/athletes/{id}/programs", apiHandlers.AssignProgramToAthlete)
 			r.Post("/athletes/{id}/programs/{programID}/deactivate", apiHandlers.DeactivateAthleteProgram)
+			r.Post("/athletes/{id}/programs/{programID}/reactivate", apiHandlers.ReactivateAthleteProgram)
+			r.Delete("/athletes/{id}/programs/{programID}", apiHandlers.DeleteAthleteProgram)
 
 			// Accessory Plans.
 			r.Get("/athletes/{id}/accessories", apiHandlers.ListAccessoryPlans)

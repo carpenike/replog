@@ -240,7 +240,20 @@ export function AthleteDetail() {
           )}
         </div>
         {showAssign && (
-          <form onSubmit={(e) => { e.preventDefault(); assignMutation.mutate() }}
+          <form onSubmit={async (e) => {
+            e.preventDefault()
+            const existingInRole = programs?.find(p => p.active && p.role === assignRole)
+            if (existingInRole) {
+              const ok = await confirm({
+                title: 'Replace Active Program',
+                description: `This will deactivate "${existingInRole.template_name}" (${existingInRole.role}) and assign the new program.`,
+                confirmLabel: 'Replace',
+                variant: 'danger',
+              })
+              if (!ok) return
+            }
+            assignMutation.mutate()
+          }}
             className="rounded-lg border border-border bg-card p-4 mb-3 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="col-span-2 md:col-span-1">
@@ -321,7 +334,25 @@ export function AthleteDetail() {
                   <Link to={`/programs/${p.template_id}`} className="hover:text-foreground">
                     {p.template_name}
                   </Link>
-                  <span className="text-xs">{formatDate(p.start_date)} – {p.deactivated_at ? formatDate(p.deactivated_at) : '?'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs">{formatDate(p.start_date)} – {p.deactivated_at ? formatDate(p.deactivated_at) : '?'}</span>
+                    {isCoach && (
+                      <>
+                        <Button variant="ghost" size="xs" onClick={async () => {
+                          if (await confirm({ title: 'Reactivate Program', description: `Reactivate "${p.template_name}"? Any active program in the same role will be deactivated.`, confirmLabel: 'Reactivate' })) {
+                            await api.reactivateProgram(athleteId, p.id)
+                            queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] })
+                          }
+                        }}>↩️</Button>
+                        <Button variant="ghost" size="xs" onClick={async () => {
+                          if (await confirm({ title: 'Delete Assignment', description: `Remove this program assignment from history?`, confirmLabel: 'Delete', variant: 'danger' })) {
+                            await api.deleteAthleteProgram(athleteId, p.id)
+                            queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] })
+                          }
+                        }}>×</Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

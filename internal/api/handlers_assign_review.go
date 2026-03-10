@@ -157,6 +157,89 @@ func (h *Handlers) DeactivateAthleteProgram(w http.ResponseWriter, r *http.Reque
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// ReactivateAthleteProgram reactivates a deactivated program assignment.
+// POST /api/athletes/{id}/programs/{programID}/reactivate
+func (h *Handlers) ReactivateAthleteProgram(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "access denied")
+		return
+	}
+
+	programID, err := strconv.ParseInt(r.PathValue("programID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid program ID")
+		return
+	}
+
+	// Get the program to check its role and auto-deactivate conflicts.
+	program, err := models.GetAthleteProgramByID(h.DB, programID)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "program assignment not found")
+		return
+	}
+
+	// Deactivate any existing active program in the same role.
+	existingPrograms, _ := models.ListAthletePrograms(h.DB, athleteID)
+	for _, p := range existingPrograms {
+		if p.Active && p.Role == program.Role && p.ID != programID {
+			_ = models.DeactivateProgram(h.DB, p.ID)
+		}
+	}
+
+	if err := models.ReactivateProgram(h.DB, programID); err != nil {
+		log.Printf("api: reactivate program %d: %v", programID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to reactivate program")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// DeleteAthleteProgram removes a program assignment entirely.
+// DELETE /api/athletes/{id}/programs/{programID}
+func (h *Handlers) DeleteAthleteProgram(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "access denied")
+		return
+	}
+
+	programID, err := strconv.ParseInt(r.PathValue("programID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid program ID")
+		return
+	}
+
+	if err := models.DeleteAthleteProgram(h.DB, programID); err != nil {
+		log.Printf("api: delete athlete program %d: %v", programID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to delete program assignment")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
 // --- Accessory Plans ---
 
 // AccessoryPlanFromModel converts a models.AccessoryPlan to an API AccessoryPlan.
