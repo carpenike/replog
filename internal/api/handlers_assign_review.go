@@ -99,6 +99,21 @@ func (h *Handlers) AssignProgramToAthlete(w http.ResponseWriter, r *http.Request
 		req.Role = "primary"
 	}
 
+	// Auto-deactivate any existing active program in the same role for this athlete.
+	existingPrograms, err := models.ListAthletePrograms(h.DB, athleteID)
+	if err != nil {
+		log.Printf("api: list programs for athlete %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to check existing programs")
+		return
+	}
+	for _, p := range existingPrograms {
+		if p.Active && p.Role == req.Role {
+			if err := models.DeactivateProgram(h.DB, p.ID); err != nil {
+				log.Printf("api: auto-deactivate program %d for athlete %d: %v", p.ID, athleteID, err)
+			}
+		}
+	}
+
 	ap, err := models.AssignProgram(h.DB, athleteID, req.TemplateID, req.StartDate, req.Notes, req.Goal, req.Role, req.Schedule)
 	if err != nil {
 		log.Printf("api: assign program to athlete %d: %v", athleteID, err)
