@@ -303,6 +303,43 @@ func main() {
 		log.Printf("CORS enabled for origins: %v", corsCfg.AllowedOrigins)
 	}
 
+	// SPA middleware — intercept browser navigation and serve the React SPA.
+	// This runs before SSR route matching so the SPA handles all page loads.
+	// API, auth, passkeys, static assets, and other non-HTML requests pass through.
+	spaHandler := spaFallbackHandler()
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Only intercept GET requests that accept HTML (browser navigation).
+			if r.Method != http.MethodGet {
+				next.ServeHTTP(w, r)
+				return
+			}
+			if !strings.Contains(r.Header.Get("Accept"), "text/html") {
+				next.ServeHTTP(w, r)
+				return
+			}
+			// Let these paths pass through to their own handlers.
+			path := r.URL.Path
+			switch {
+			case strings.HasPrefix(path, "/api/"):
+				next.ServeHTTP(w, r)
+			case strings.HasPrefix(path, "/static/"):
+				next.ServeHTTP(w, r)
+			case strings.HasPrefix(path, "/auth/"):
+				next.ServeHTTP(w, r)
+			case strings.HasPrefix(path, "/passkeys/"):
+				next.ServeHTTP(w, r)
+			case strings.HasPrefix(path, "/avatars/"):
+				next.ServeHTTP(w, r)
+			case path == "/health" || path == "/healthz" || path == "/readyz":
+				next.ServeHTTP(w, r)
+			default:
+				// Serve the SPA for all other browser navigation.
+				spaHandler.ServeHTTP(w, r)
+			}
+		})
+	})
+
 	// Custom error page for method-not-allowed. Wrapped with session loading so
 	// logged-in users still see the sidebar navigation on error pages.
 	r.MethodNotAllowed(sessionManager.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -797,14 +834,6 @@ func main() {
 		})
 	})
 
-	// SPA frontend — serve the React app at /app/* for the new UI.
-	// All client-side routes are handled by serving index.html.
-	spaHandler := spaFallbackHandler()
-	r.Get("/app", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/app/", http.StatusMovedPermanently)
-	})
-	r.Handle("/app/*", http.StripPrefix("/app", spaHandler))
-
 	// Fallback — unmatched routes.
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		// API routes that don't match should return 404 JSON, not the SPA.
@@ -812,9 +841,13 @@ func main() {
 			api.WriteError(w, http.StatusNotFound, "endpoint not found")
 			return
 		}
-		sessionManager.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			tc.NotFound(w, r)
-		})).ServeHTTP(w, r)
+		// Non-HTML requests get a plain 404.
+		if !strings.Contains(r.Header.Get("Accept"), "text/html") {
+			http.NotFound(w, r)
+			return
+		}
+		// HTML requests get the SPA (client-side routing handles 404).
+		spaHandler.ServeHTTP(w, r)
 	})
 
 	// Start server with graceful shutdown.

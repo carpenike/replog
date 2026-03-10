@@ -16,7 +16,7 @@ export function Login() {
   const queryClient = useQueryClient()
   const location = useLocation()
 
-  const returnTo = new URLSearchParams(location.search).get('returnTo') ?? '/app/'
+  const returnTo = new URLSearchParams(location.search).get('returnTo') ?? '/'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

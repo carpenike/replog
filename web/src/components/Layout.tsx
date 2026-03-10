@@ -68,7 +68,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
       if (!(e instanceof ApiError)) throw e
     }
     queryClient.clear()
-    window.location.href = '/app/'
+    window.location.href = '/'
   }
 
   const initials = user.username.slice(0, 2).toUpperCase()

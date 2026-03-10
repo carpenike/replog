@@ -20,7 +20,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter basename="/app">
+        <BrowserRouter>
           <App />
           <Toaster
             position="bottom-right"
