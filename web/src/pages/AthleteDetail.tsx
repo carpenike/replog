@@ -255,19 +255,19 @@ export function AthleteDetail() {
         {programs && programs.filter(p => p.active).length > 0 ? (
           <div className="space-y-2">
             {programs.filter(p => p.active).map(p => (
-              <Card key={p.id} size="sm" className="flex items-center justify-between">
-                <CardContent>
-                <Link to={`/programs/${p.template_id}`} className="flex-1 hover:text-primary transition-colors">
-                  <p className="font-medium">{p.template_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Started {p.start_date} • {p.role}
-                    {p.num_weeks ? ` • ${p.num_weeks}w` : ''}
-                  </p>
-                </Link>
-                <Button variant="ghost" onClick={async () => { if (await confirm({ title: 'Deactivate Program', description: 'Deactivate this program assignment?', confirmLabel: 'Deactivate', variant: 'danger' })) deactivateMutation.mutate(p.id) }}
-                  className="text-xs text-muted-foreground hover:text-destructive ml-3">
-                  Deactivate
-                </Button>
+              <Card key={p.id} size="sm">
+                <CardContent className="flex items-center justify-between">
+                  <Link to={`/programs/${p.template_id}`} className="flex-1 hover:text-primary transition-colors">
+                    <p className="font-medium">{p.template_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Started {p.start_date} • {p.role}
+                      {p.num_weeks ? ` • ${p.num_weeks}w` : ''}
+                    </p>
+                  </Link>
+                  <Button variant="ghost" size="xs" onClick={async () => { if (await confirm({ title: 'Deactivate Program', description: 'Deactivate this program assignment?', confirmLabel: 'Deactivate', variant: 'danger' })) deactivateMutation.mutate(p.id) }}
+                    className="text-muted-foreground hover:text-destructive ml-3">
+                    Deactivate
+                  </Button>
                 </CardContent>
               </Card>
             ))}
