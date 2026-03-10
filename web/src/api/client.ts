@@ -67,6 +67,19 @@ class ApiClient {
     return this.request<User>('/api/me');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async beginPasskeyLogin(): Promise<any> {
+    return this.request('/api/passkeys/login/begin');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async finishPasskeyLogin(credential: any): Promise<{ status: string; redirect: string }> {
+    return this.request('/api/passkeys/login/finish', {
+      method: 'POST',
+      body: JSON.stringify(credential),
+    });
+  }
+
   async dashboard(): Promise<DashboardData> {
     return this.request<DashboardData>('/api/dashboard');
   }

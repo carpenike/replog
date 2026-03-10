@@ -331,8 +331,6 @@ func main() {
 				next.ServeHTTP(w, r)
 			case strings.HasPrefix(path, "/setup/"):
 				next.ServeHTTP(w, r)
-			case path == "/preferences":
-				next.ServeHTTP(w, r)
 			case strings.HasPrefix(path, "/avatars/"):
 				next.ServeHTTP(w, r)
 			case path == "/health" || path == "/healthz" || path == "/readyz":
@@ -651,6 +649,11 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(authLimiter.Limit)
 			r.Post("/login", apiHandlers.Login)
+			// Passkey login ceremony (unauthenticated).
+			if passkeys != nil {
+				r.Get("/passkeys/login/begin", passkeys.BeginLogin)
+				r.Post("/passkeys/login/finish", passkeys.FinishLogin)
+			}
 		})
 
 		// Authenticated API endpoints.
