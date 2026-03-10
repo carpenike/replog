@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -146,7 +147,12 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	result, err := llm.Generate(ctx, h.DB, provider, genReq)
 	if err != nil {
 		log.Printf("api: LLM generation failed for athlete %d: %v", athleteID, err)
-		WriteError(w, http.StatusInternalServerError, "Generation failed: "+err.Error())
+		msg := "Generation failed: " + err.Error()
+		var apiErr *llm.APIError
+		if errors.As(err, &apiErr) {
+			msg = apiErr.UserMessage()
+		}
+		WriteError(w, http.StatusInternalServerError, msg)
 		return
 	}
 
