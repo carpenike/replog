@@ -4,6 +4,7 @@ import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 
 export function PreferencesPage() {
@@ -49,36 +50,48 @@ export function PreferencesPage() {
         )}
 
         <div>
-          <Label htmlFor="weightUnit" >Weight Unit</Label>
-          <select id="weightUnit" value={weightUnit} onChange={e => setWeightUnit(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-            <option value="lbs">Pounds (lbs)</option>
-            <option value="kg">Kilograms (kg)</option>
-          </select>
+          <Label>Weight Unit</Label>
+          <Select value={weightUnit} onValueChange={(val) => setWeightUnit(val ?? "lbs")}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="lbs">Pounds (lbs)</SelectItem>
+              <SelectItem value="kg">Kilograms (kg)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
-          <Label htmlFor="timezone" >Timezone</Label>
-          <select id="timezone" value={timezone} onChange={e => setTimezone(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-            <option value="America/New_York">Eastern (New York)</option>
-            <option value="America/Chicago">Central (Chicago)</option>
-            <option value="America/Denver">Mountain (Denver)</option>
-            <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
-            <option value="UTC">UTC</option>
-            <option value="Europe/London">Europe/London</option>
-          </select>
+          <Label>Timezone</Label>
+          <Select value={timezone} onValueChange={(val) => setTimezone(val ?? "America/New_York")}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="America/New_York">Eastern (New York)</SelectItem>
+              <SelectItem value="America/Chicago">Central (Chicago)</SelectItem>
+              <SelectItem value="America/Denver">Mountain (Denver)</SelectItem>
+              <SelectItem value="America/Los_Angeles">Pacific (Los Angeles)</SelectItem>
+              <SelectItem value="UTC">UTC</SelectItem>
+              <SelectItem value="Europe/London">Europe/London</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
-          <Label htmlFor="dateFormat" >Date Format</Label>
-          <select id="dateFormat" value={dateFormat} onChange={e => setDateFormat(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-            <option value="Jan 2, 2006">Jan 2, 2006</option>
-            <option value="2006-01-02">2006-01-02</option>
-            <option value="01/02/2006">01/02/2006</option>
-            <option value="02/01/2006">02/01/2006</option>
-          </select>
+          <Label>Date Format</Label>
+          <Select value={dateFormat} onValueChange={(val) => setDateFormat(val ?? "Jan 2, 2006")}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Jan 2, 2006">Jan 2, 2006</SelectItem>
+              <SelectItem value="2006-01-02">2006-01-02</SelectItem>
+              <SelectItem value="01/02/2006">01/02/2006</SelectItem>
+              <SelectItem value="02/01/2006">02/01/2006</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Button type="submit" disabled={mutation.isPending}

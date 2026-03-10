@@ -7,6 +7,7 @@ import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 export function AssignmentsPage() {
   const { id } = useParams<{ id: string }>()
@@ -63,11 +64,14 @@ export function AssignmentsPage() {
           className="rounded-lg border border-border bg-card p-4 mb-6 flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-50">
             <Label >Exercise</Label>
-            <select value={exerciseId} onChange={e => setExerciseId(e.target.value)} required
-              className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
-              <option value="">Select...</option>
-              {exercises?.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-            </select>
+            <Select value={exerciseId} onValueChange={(val) => setExerciseId(val ?? "")} required>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select..." />
+              </SelectTrigger>
+              <SelectContent>
+                {exercises?.map(ex => <SelectItem key={ex.id} value={String(ex.id)}>{ex.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="w-28">
             <Label >Target Reps</Label>

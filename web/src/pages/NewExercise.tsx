@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export function NewExercise() {
   const navigate = useNavigate()
@@ -54,21 +56,25 @@ export function NewExercise() {
         </div>
 
         <div>
-          <Label htmlFor="tier" >Tier</Label>
-          <select id="tier" value={tier} onChange={e => setTier(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-            <option value="">None</option>
-            <option value="foundational">Foundational</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="sport_performance">Sport Performance</option>
-          </select>
+          <Label>Tier</Label>
+          <Select value={tier} onValueChange={(val) => setTier(val ?? "")}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="None" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">None</SelectItem>
+              <SelectItem value="foundational">Foundational</SelectItem>
+              <SelectItem value="intermediate">Intermediate</SelectItem>
+              <SelectItem value="sport_performance">Sport Performance</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
           <Label htmlFor="formNotes" >Form Notes</Label>
           <Textarea id="formNotes" value={formNotes} onChange={e => setFormNotes(e.target.value)} 
             placeholder="Coaching cues, technique notes..."
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            />
         </div>
 
         <div>
@@ -82,8 +88,7 @@ export function NewExercise() {
         </div>
 
         <div className="flex items-center gap-2">
-          <input id="featured" type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)}
-            className="rounded border-border" />
+          <Checkbox id="featured" checked={featured} onCheckedChange={(checked) => setFeatured(checked)} />
           <Label htmlFor="featured">Featured lift</Label>
         </div>
 
@@ -92,7 +97,7 @@ export function NewExercise() {
             >
             {mutation.isPending ? 'Creating...' : 'Create Exercise'}
           </Button>
-          <Link to="/exercises" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+          <Link to="/exercises" className={buttonVariants({ variant: "outline" })}>
             Cancel
           </Link>
         </div>

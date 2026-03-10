@@ -7,6 +7,7 @@ import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 export function AccessoryPlans() {
   const { id } = useParams<{ id: string }>()
@@ -82,22 +83,29 @@ export function AccessoryPlans() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <Label >Day</Label>
-              <select value={day} onChange={e => setDay(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
-                {[1,2,3,4,5,6,7].map(d => (
-                  <option key={d} value={d}>Day {d}</option>
-                ))}
-              </select>
+              <Select value={day} onValueChange={(val) => setDay(val ?? "1")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1,2,3,4,5,6,7].map(d => (
+                    <SelectItem key={d} value={String(d)}>Day {d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="col-span-2 md:col-span-3">
               <Label >Exercise</Label>
-              <select value={exerciseId} onChange={e => setExerciseId(e.target.value)} required
-                className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
-                <option value="">Select exercise...</option>
-                {exercises?.map(ex => (
-                  <option key={ex.id} value={ex.id}>{ex.name}</option>
-                ))}
-              </select>
+              <Select value={exerciseId} onValueChange={(val) => setExerciseId(val ?? "")} required>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select exercise..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {exercises?.map(ex => (
+                    <SelectItem key={ex.id} value={String(ex.id)}>{ex.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label >Sets</Label>

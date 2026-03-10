@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -66,7 +66,7 @@ export function NewWorkout() {
           <Label htmlFor="notes" >Notes</Label>
           <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)}
             rows={3} placeholder="Optional session notes..."
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            />
         </div>
 
         <div className="flex gap-3">
@@ -75,7 +75,7 @@ export function NewWorkout() {
             {createMutation.isPending ? 'Creating...' : 'Create Workout'}
           </Button>
           <Link to={`/athletes/${athleteId}/workouts`}
-            className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+            className={buttonVariants({ variant: "outline" })}>
             Cancel
           </Link>
         </div>

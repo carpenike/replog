@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 
@@ -81,11 +82,11 @@ export function EditUser() {
 
         <div className="flex gap-4">
           <Label>
-            <input type="checkbox" checked={isCoach} onChange={e => setIsCoach(e.target.checked)} className="rounded border-border" />
+            <Checkbox checked={isCoach} onCheckedChange={(checked) => setIsCoach(checked)} />
             Coach
           </Label>
           <Label>
-            <input type="checkbox" checked={isAdmin} onChange={e => setIsAdmin(e.target.checked)} className="rounded border-border" />
+            <Checkbox checked={isAdmin} onCheckedChange={(checked) => setIsAdmin(checked)} />
             Admin
           </Label>
         </div>
@@ -95,7 +96,7 @@ export function EditUser() {
             >
             {mutation.isPending ? 'Saving...' : 'Save Changes'}
           </Button>
-          <Link to="/users" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+          <Link to="/users" className={buttonVariants({ variant: "outline" })}>
             Cancel
           </Link>
         </div>

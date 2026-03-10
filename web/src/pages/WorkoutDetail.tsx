@@ -8,6 +8,7 @@ import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
@@ -139,7 +140,7 @@ export function WorkoutDetail() {
           <CardContent>
           <Textarea value={notesText} onChange={e => setNotesText(e.target.value)}
             rows={3}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm mb-2"
+           
             placeholder="Session notes..."
           />
           <div className="flex gap-2">
@@ -260,15 +261,17 @@ export function WorkoutDetail() {
             <h3 className="text-sm font-medium">Log Set</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
-                <Label htmlFor="exercise" >Exercise</Label>
-                <select id="exercise" value={exerciseId} onChange={e => setExerciseId(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
-                  <option value="">Select exercise...</option>
-                  {exercises?.map(ex => (
-                    <option key={ex.id} value={ex.id}>{ex.name}</option>
-                  ))}
-                </select>
+                <Label>Exercise</Label>
+                <Select value={exerciseId} onValueChange={(val) => setExerciseId(val ?? "")} required>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select exercise..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {exercises?.map(ex => (
+                      <SelectItem key={ex.id} value={String(ex.id)}>{ex.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="set-reps" >Reps</Label>
@@ -326,7 +329,7 @@ export function WorkoutDetail() {
               </div>
               <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
                 rows={2} placeholder="Review notes (optional)..."
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                />
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={() => submitReviewMutation.mutate()}
                   disabled={submitReviewMutation.isPending}

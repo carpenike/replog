@@ -6,6 +6,7 @@ import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 function formatWeight(w: number): string {
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
@@ -71,13 +72,16 @@ export function TrainingMaxesList() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="col-span-2">
               <Label htmlFor="tm-exercise" >Exercise</Label>
-              <select id="tm-exercise" value={exerciseId} onChange={e => setExerciseId(e.target.value)} required
-                className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
-                <option value="">Select exercise...</option>
-                {exercises?.map(ex => (
-                  <option key={ex.id} value={ex.id}>{ex.name}</option>
-                ))}
-              </select>
+              <Select value={exerciseId} onValueChange={(val) => setExerciseId(val ?? "")} required>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select exercise..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {exercises?.map(ex => (
+                    <SelectItem key={ex.id} value={String(ex.id)}>{ex.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="tm-weight" >Weight</Label>

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -54,7 +55,7 @@ export function NewProgram() {
           <Label htmlFor="desc" >Description</Label>
           <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} 
             placeholder="Brief description of the program..."
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -69,8 +70,7 @@ export function NewProgram() {
         </div>
 
         <div className="flex items-center gap-2">
-          <input id="loop" type="checkbox" checked={isLoop} onChange={e => setIsLoop(e.target.checked)}
-            className="rounded border-border" />
+          <Checkbox id="loop" checked={isLoop} onCheckedChange={(checked) => setIsLoop(checked)} />
           <Label htmlFor="loop">Loop (repeat week sequence)</Label>
         </div>
 
@@ -79,7 +79,7 @@ export function NewProgram() {
             >
             {mutation.isPending ? 'Creating...' : 'Create Program'}
           </Button>
-          <Link to="/programs" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+          <Link to="/programs" className={buttonVariants({ variant: "outline" })}>
             Cancel
           </Link>
         </div>

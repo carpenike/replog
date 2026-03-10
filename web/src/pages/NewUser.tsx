@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 
@@ -66,13 +67,11 @@ export function NewUser() {
 
         <div className="flex gap-4">
           <div className="flex items-center gap-2">
-            <input id="isCoach" type="checkbox" checked={isCoach} onChange={e => setIsCoach(e.target.checked)}
-              className="rounded border-border" />
+            <Checkbox id="isCoach" checked={isCoach} onCheckedChange={(checked) => setIsCoach(checked)} />
             <Label htmlFor="isCoach">Coach</Label>
           </div>
           <div className="flex items-center gap-2">
-            <input id="isAdmin" type="checkbox" checked={isAdmin} onChange={e => setIsAdmin(e.target.checked)}
-              className="rounded border-border" />
+            <Checkbox id="isAdmin" checked={isAdmin} onCheckedChange={(checked) => setIsAdmin(checked)} />
             <Label htmlFor="isAdmin">Admin</Label>
           </div>
         </div>
@@ -82,7 +81,7 @@ export function NewUser() {
             >
             {mutation.isPending ? 'Creating...' : 'Create User'}
           </Button>
-          <Link to="/users" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+          <Link to="/users" className={buttonVariants({ variant: "outline" })}>
             Cancel
           </Link>
         </div>

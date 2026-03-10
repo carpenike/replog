@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 interface PrescribedSetData {
   id: number
   exercise_name: string
@@ -201,11 +202,14 @@ export function ProgramDetail() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
                 <Label >Exercise</Label>
-                <select value={setExId} onChange={e => setSetExId(e.target.value)} required
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
-                  <option value="">Select...</option>
-                  {exercises?.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-                </select>
+                <Select value={setExId} onValueChange={(val) => setSetExId(val ?? "")} required>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {exercises?.map(ex => <SelectItem key={ex.id} value={String(ex.id)}>{ex.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label >Week</Label>
@@ -253,11 +257,14 @@ export function ProgramDetail() {
             className="rounded-lg border border-border bg-card p-4 mb-3 flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-50">
               <Label >Exercise</Label>
-              <select value={ruleExId} onChange={e => setRuleExId(e.target.value)} required
-                className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
-                <option value="">Select...</option>
-                {exercises?.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-              </select>
+              <Select value={ruleExId} onValueChange={(val) => setRuleExId(val ?? "")} required>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {exercises?.map(ex => <SelectItem key={ex.id} value={String(ex.id)}>{ex.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="w-24">
               <Label >Increment</Label>

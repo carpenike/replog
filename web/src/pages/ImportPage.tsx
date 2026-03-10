@@ -6,6 +6,7 @@ import { Spinner } from '@/components/ui'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 interface MappingItem {
   name: string
@@ -97,12 +98,16 @@ export function ImportPage() {
         <div className="space-y-4">
           <div>
             <Label >Format</Label>
-            <select value={format} onChange={e => setFormat(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-              <option value="strong">Strong CSV</option>
-              <option value="hevy">Hevy CSV</option>
-              <option value="replog">RepLog JSON</option>
-            </select>
+            <Select value={format} onValueChange={(val) => setFormat(val ?? "strong")}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="strong">Strong CSV</SelectItem>
+                <SelectItem value="hevy">Hevy CSV</SelectItem>
+                <SelectItem value="replog">RepLog JSON</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label >File</Label>
@@ -128,16 +133,20 @@ export function ImportPage() {
                 <CardContent>
                 <p className="text-sm font-medium w-48 truncate" title={m.name}>{m.name}</p>
                 <span className="text-muted-foreground">→</span>
-                <select
-                  value={m.mapped_id}
-                  onChange={e => updateMapping(i, parseInt(e.target.value))}
-                  className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                <Select
+                  value={String(m.mapped_id)}
+                  onValueChange={(val) => updateMapping(i, parseInt(val ?? '0'))}
                 >
-                  <option value={0}>Create new</option>
-                  {exercises?.map(ex => (
-                    <option key={ex.id} value={ex.id}>{ex.name}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Create new</SelectItem>
+                    {exercises?.map(ex => (
+                      <SelectItem key={ex.id} value={String(ex.id)}>{ex.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 </CardContent>
               </Card>
             ))}

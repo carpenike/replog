@@ -5,6 +5,7 @@ import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 const typeIcons: Record<string, string> = {
@@ -72,12 +73,10 @@ export function JournalPage() {
         <form onSubmit={(e) => { e.preventDefault(); createNoteMutation.mutate() }}
           className="rounded-lg border border-border bg-card p-4 mb-6 space-y-3">
           <Textarea value={noteContent} onChange={e => setNoteContent(e.target.value)}
-            rows={3} placeholder="Write a note..."
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            placeholder="Write a note..." />
           <div className="flex items-center justify-between">
             <Label>
-              <input type="checkbox" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)}
-                className="rounded border-border" />
+              <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(checked)} />
               Private (coaches only)
             </Label>
             <Button type="submit" disabled={createNoteMutation.isPending || !noteContent.trim()}
@@ -106,7 +105,7 @@ export function JournalPage() {
                   {editingNoteId === entry.id && entry.type === 'note' ? (
                     <div className="mt-2">
                       <Textarea value={editContent} onChange={e => setEditContent(e.target.value)}
-                        rows={2} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm mb-2" />
+                        rows={2} />
                       <div className="flex gap-2">
                         <Button variant="ghost" onClick={() => updateNoteMutation.mutate(entry.id)}
                           disabled={updateNoteMutation.isPending}

@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export function NewAthlete() {
   const navigate = useNavigate()
@@ -56,26 +58,28 @@ export function NewAthlete() {
         </div>
 
         <div>
-          <Label htmlFor="tier" >Tier</Label>
-          <select id="tier" value={tier} onChange={e => setTier(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-            <option value="">None</option>
-            <option value="foundational">Foundational</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="sport_performance">Sport Performance</option>
-          </select>
+          <Label>Tier</Label>
+          <Select value={tier} onValueChange={(val) => setTier(val ?? "")}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="None" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">None</SelectItem>
+              <SelectItem value="foundational">Foundational</SelectItem>
+              <SelectItem value="intermediate">Intermediate</SelectItem>
+              <SelectItem value="sport_performance">Sport Performance</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
           <Label htmlFor="goal" >Goal</Label>
-          <Textarea id="goal" value={goal} onChange={e => setGoal(e.target.value)} 
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <Textarea id="goal" value={goal} onChange={e => setGoal(e.target.value)} />
         </div>
 
         <div>
           <Label htmlFor="notes" >Notes</Label>
-          <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} 
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+          <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -84,13 +88,17 @@ export function NewAthlete() {
             <Input id="dob" type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="gender" >Gender</Label>
-            <select id="gender" value={gender} onChange={e => setGender(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-              <option value="">Not specified</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
+            <Label>Gender</Label>
+            <Select value={gender} onValueChange={(val) => setGender(val ?? "")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Not specified" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Not specified</SelectItem>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -100,8 +108,7 @@ export function NewAthlete() {
         </div>
 
         <div className="flex items-center gap-2">
-          <input id="trackBW" type="checkbox" checked={trackBW} onChange={e => setTrackBW(e.target.checked)}
-            className="rounded border-border" />
+          <Checkbox id="trackBW" checked={trackBW} onCheckedChange={(checked) => setTrackBW(checked)} />
           <Label htmlFor="trackBW">Track body weight</Label>
         </div>
 
@@ -110,7 +117,7 @@ export function NewAthlete() {
             >
             {mutation.isPending ? 'Creating...' : 'Create Athlete'}
           </Button>
-          <Link to="/athletes" className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+          <Link to="/athletes" className={buttonVariants({ variant: "outline" })}>
             Cancel
           </Link>
         </div>

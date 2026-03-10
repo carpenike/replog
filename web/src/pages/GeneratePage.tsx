@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -155,14 +156,13 @@ export function GeneratePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <input type="checkbox" checked={isLoop} onChange={e => setIsLoop(e.target.checked)} className="rounded border-border" />
+            <Checkbox checked={isLoop} onCheckedChange={(checked) => setIsLoop(checked)} />
             <Label>Loop (repeat week sequence)</Label>
           </div>
           <div>
             <Label >Coach Directions</Label>
             <Textarea value={coachDirections} onChange={e => setCoachDirections(e.target.value)} 
-              placeholder="Specific instructions for the AI coach..."
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              placeholder="Specific instructions for the AI coach..." />
           </div>
           <div>
             <Label >Focus Areas</Label>
@@ -171,15 +171,15 @@ export function GeneratePage() {
           {formData.reference_programs.length > 0 && (
             <div>
               <Label >Reference Programs</Label>
-              <div className="space-y-1 max-h-40 overflow-y-auto rounded-md border border-border p-2">
+              <div className="space-y-1 max-h-40 overflow-y-auto rounded-md border border-input p-2">
                 {formData.reference_programs.map(p => (
                   <Label key={p.id}>
-                    <input type="checkbox"
+                    <Checkbox
                       checked={referenceIds.includes(p.id)}
-                      onChange={e => setReferenceIds(prev =>
-                        e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id)
+                      onCheckedChange={(checked) => setReferenceIds(prev =>
+                        checked ? [...prev, p.id] : prev.filter(id => id !== p.id)
                       )}
-                      className="rounded border-border" />
+                    />
                     {p.name}
                   </Label>
                 ))}

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 export function CycleReview() {
@@ -82,10 +83,10 @@ export function CycleReview() {
                   </p>
                 </div>
                 <Label>
-                  <input type="checkbox"
+                  <Checkbox
                     checked={selections[s.exercise_id] !== false}
-                    onChange={e => setSelections(prev => ({ ...prev, [s.exercise_id]: e.target.checked }))}
-                    className="rounded border-border" />
+                    onCheckedChange={(checked) => setSelections(prev => ({ ...prev, [s.exercise_id]: checked }))}
+                  />
                   <span className="text-sm">Apply</span>
                 </Label>
               </div>

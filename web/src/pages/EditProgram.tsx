@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -75,7 +76,7 @@ export function EditProgram() {
         <div>
           <Label htmlFor="desc" >Description</Label>
           <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} 
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+            />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -90,8 +91,7 @@ export function EditProgram() {
         </div>
 
         <div className="flex items-center gap-2">
-          <input id="loop" type="checkbox" checked={isLoop} onChange={e => setIsLoop(e.target.checked)}
-            className="rounded border-border" />
+          <Checkbox id="loop" checked={isLoop} onCheckedChange={(checked) => setIsLoop(checked)} />
           <Label htmlFor="loop">Loop</Label>
         </div>
 
@@ -101,7 +101,7 @@ export function EditProgram() {
             {mutation.isPending ? 'Saving...' : 'Save Changes'}
           </Button>
           <Link to={`/programs/${programId}`}
-            className="rounded-md border border-border px-4 py-2 text-sm hover:bg-accent transition-colors">
+            className={buttonVariants({ variant: "outline" })}>
             Cancel
           </Link>
         </div>

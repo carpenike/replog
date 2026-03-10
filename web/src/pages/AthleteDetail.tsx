@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
   intermediate: 'bg-amber-500/10 text-amber-400',
@@ -210,13 +211,16 @@ export function AthleteDetail() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="col-span-2 md:col-span-1">
                 <Label >Program</Label>
-                <select value={assignTemplateId} onChange={e => setAssignTemplateId(e.target.value)} required
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
-                  <option value="">Select...</option>
-                  {allPrograms?.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                <Select value={assignTemplateId} onValueChange={(val) => setAssignTemplateId(val ?? "")} required>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allPrograms?.map(p => (
+                      <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label >Start Date</Label>
@@ -224,11 +228,15 @@ export function AthleteDetail() {
               </div>
               <div>
                 <Label >Role</Label>
-                <select value={assignRole} onChange={e => setAssignRole(e.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
-                  <option value="primary">Primary</option>
-                  <option value="supplemental">Supplemental</option>
-                </select>
+                <Select value={assignRole} onValueChange={(val) => setAssignRole(val ?? "primary")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="primary">Primary</SelectItem>
+                    <SelectItem value="supplemental">Supplemental</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <Button type="submit" disabled={assignMutation.isPending || !assignTemplateId}
