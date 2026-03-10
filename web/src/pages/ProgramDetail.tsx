@@ -36,6 +36,7 @@ export function ProgramDetail() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { confirm, dialog: confirmDialog } = useConfirm()
+  const [editing, setEditing] = useState(false)
   const [showAddSet, setShowAddSet] = useState(false)
   const [setExId, setSetExId] = useState('')
   const [setWeek, setSetWeek] = useState('1')
@@ -54,7 +55,7 @@ export function ProgramDetail() {
   const { data: exercises } = useQuery({
     queryKey: ['exercises'],
     queryFn: () => api.listExercises(),
-    enabled: showAddSet || showAddRule,
+    enabled: editing,
   })
   const { data: rules } = useQuery({
     queryKey: ['program-rules', programId],
@@ -128,16 +129,23 @@ export function ProgramDetail() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold mb-2">{program.name}</h1>
         <div className="flex gap-2">
-          <Link to={`/programs/${programId}/edit`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors">
-            ✏️ Edit
-          </Link>
-          <Button variant="ghost" onClick={async () => {
-            if (await confirm({ title: 'Delete Program', description: `Delete ${program.name}? This will remove all prescribed sets.`, confirmLabel: 'Delete', variant: 'danger' }))
-              deleteProgramMutation.mutate()
-          }} className="text-sm text-destructive hover:text-destructive/80">
-            Delete
+          <Button variant={editing ? 'default' : 'outline'} size="sm" onClick={() => { setEditing(!editing); setShowAddSet(false); setShowAddRule(false) }}>
+            {editing ? '✓ Done' : '✏️ Edit'}
           </Button>
+          {editing && (
+            <>
+              <Link to={`/programs/${programId}/edit`}
+                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+                Edit Details
+              </Link>
+              <Button variant="ghost" size="sm" onClick={async () => {
+                if (await confirm({ title: 'Delete Program', description: `Delete ${program.name}? This will remove all prescribed sets.`, confirmLabel: 'Delete', variant: 'danger' }))
+                  deleteProgramMutation.mutate()
+              }} className="text-destructive">
+                Delete
+              </Button>
+            </>
+          )}
         </div>
       </div>
       {program.description && (
@@ -172,8 +180,12 @@ export function ProgramDetail() {
                                   Set {s.set_number}: {formatSetInfo(s)}
                                   {s.notes && ` — ${s.notes}`}
                                 </p>
-                                <Button variant="ghost" onClick={() => deleteSetMutation.mutate(s.id)}
-                                  >×</Button>
+                                {editing && (
+                                  <Button variant="ghost" size="xs" onClick={async () => {
+                                    if (await confirm({ title: 'Delete Set', description: 'Remove this prescribed set?', confirmLabel: 'Delete', variant: 'danger' }))
+                                      deleteSetMutation.mutate(s.id)
+                                  }}>×</Button>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -189,6 +201,7 @@ export function ProgramDetail() {
         </div>
       )}
       {/* Add Set */}
+      {editing && (
       <div className="mt-6">
         {!showAddSet ? (
           <Button variant="ghost" onClick={() => setShowAddSet(true)}
@@ -243,16 +256,19 @@ export function ProgramDetail() {
           </form>
         )}
       </div>
+      )}
       {/* Progression Rules */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Progression Rules</h2>
-          <Button variant="ghost" onClick={() => setShowAddRule(!showAddRule)}
-            className="text-sm text-primary hover:text-primary/80">
-            {showAddRule ? 'Cancel' : '+ Add Rule'}
-          </Button>
+          {editing && (
+            <Button variant="ghost" onClick={() => setShowAddRule(!showAddRule)}
+              className="text-sm text-primary hover:text-primary/80">
+              {showAddRule ? 'Cancel' : '+ Add Rule'}
+            </Button>
+          )}
         </div>
-        {showAddRule && (
+        {editing && showAddRule && (
           <form onSubmit={(e) => { e.preventDefault(); addRuleMutation.mutate() }}
             className="rounded-lg border border-border bg-card p-4 mb-3 flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-50">
@@ -285,8 +301,12 @@ export function ProgramDetail() {
                   <p className="text-sm font-medium">{rule.exercise_name}</p>
                   <p className="text-xs text-muted-foreground">+{rule.increment} per cycle</p>
                 </div>
-                <Button variant="ghost" onClick={() => deleteRuleMutation.mutate(rule.id)}
-                  >×</Button>
+                {editing && (
+                  <Button variant="ghost" size="xs" onClick={async () => {
+                    if (await confirm({ title: 'Delete Rule', description: 'Remove this progression rule?', confirmLabel: 'Delete', variant: 'danger' }))
+                      deleteRuleMutation.mutate(rule.id)
+                  }}>×</Button>
+                )}
                 </CardContent>
               </Card>
             ))}
