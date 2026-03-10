@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 interface PrescribedSetData {
   id: number
@@ -293,24 +294,31 @@ export function ProgramDetail() {
           </form>
         )}
         {rules && rules.length > 0 ? (
-          <div className="space-y-2">
-            {rules.map(rule => (
-              <Card key={rule.id} size="sm" className="flex items-center justify-between">
-                <CardContent>
-                <div>
-                  <p className="text-sm font-medium">{rule.exercise_name}</p>
-                  <p className="text-xs text-muted-foreground">+{rule.increment} per cycle</p>
-                </div>
-                {editing && (
-                  <Button variant="ghost" size="xs" onClick={async () => {
-                    if (await confirm({ title: 'Delete Rule', description: 'Remove this progression rule?', confirmLabel: 'Delete', variant: 'danger' }))
-                      deleteRuleMutation.mutate(rule.id)
-                  }}>×</Button>
-                )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Exercise</TableHead>
+                <TableHead>Increment</TableHead>
+                {editing && <TableHead className="w-12"></TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rules.map(rule => (
+                <TableRow key={rule.id}>
+                  <TableCell className="font-medium">{rule.exercise_name}</TableCell>
+                  <TableCell className="text-muted-foreground">+{rule.increment} per cycle</TableCell>
+                  {editing && (
+                    <TableCell>
+                      <Button variant="ghost" size="xs" onClick={async () => {
+                        if (await confirm({ title: 'Delete Rule', description: 'Remove this progression rule?', confirmLabel: 'Delete', variant: 'danger' }))
+                          deleteRuleMutation.mutate(rule.id)
+                      }}>×</Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         ) : (
           <p className="text-sm text-muted-foreground">No progression rules defined.</p>
         )}
