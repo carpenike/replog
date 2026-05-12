@@ -425,6 +425,14 @@ func (h *Handlers) ListAthletePrograms(w http.ResponseWriter, r *http.Request) {
 // --- Users (Admin Only) ---
 
 // ListUsers returns all users. Admin only.
+// ListUsers returns all users. Admin only.
+//
+//	@Summary      List users
+//	@Tags         Users
+//	@Produce      json
+//	@Success      200  {array}   api.UserWithAthlete
+//	@Failure      403  {object}  api.APIError
+//	@Router       /users [get]
 func (h *Handlers) ListUsers(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -451,6 +459,18 @@ func (h *Handlers) ListUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateUser creates a new user. Admin only.
+// CreateUser creates a new user. Admin only.
+//
+//	@Summary      Create user
+//	@Tags         Users
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.UserRequest  true  "User"
+//	@Success      201  {object}  api.User
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      409  {object}  api.APIError  "username already exists"
+//	@Router       /users [post]
 func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
 	if !authUser.IsAdmin {
@@ -458,15 +478,7 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Username  string `json:"username"`
-		Name      string `json:"name"`
-		Password  string `json:"password"`
-		Email     string `json:"email"`
-		IsCoach   bool   `json:"is_coach"`
-		IsAdmin   bool   `json:"is_admin"`
-		AthleteID *int64 `json:"athlete_id"`
-	}
+	var req UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -496,6 +508,17 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteUser deletes a user. Admin only.
+// DeleteUser deletes a user. Admin only.
+//
+//	@Summary      Delete user
+//	@Description  Cannot delete yourself.
+//	@Tags         Users
+//	@Produce      json
+//	@Param        userID  path      int  true  "User ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError  "e.g. trying to delete your own account"
+//	@Failure      403  {object}  api.APIError
+//	@Router       /users/{userID} [delete]
 func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
 	if !authUser.IsAdmin {

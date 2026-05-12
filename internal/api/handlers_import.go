@@ -37,6 +37,19 @@ type ImportPreviewResponse struct {
 }
 
 // ImportUpload parses an uploaded workout file and returns mapping data.
+//
+//	@Summary      Upload workouts file for import
+//	@Description  Multipart upload. 'format' field selects parser ('strong', 'hevy', 'replog').
+//	@Tags         Athletes
+//	@Accept       multipart/form-data
+//	@Produce      json
+//	@Param        id      path      int     true   "Athlete ID"
+//	@Param        format  formData  string  true   "strong | hevy | replog"
+//	@Param        file    formData  file    true   "Workout file"
+//	@Success      200  {object}  api.ImportUploadResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/import/upload [post]
 func (h *Handlers) ImportUpload(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -138,6 +151,18 @@ func (h *Handlers) ImportUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 // ImportExecute commits the import with finalized mappings.
+//
+//	@Summary      Commit workout import
+//	@Description  Requires a prior successful upload (state lives in the session).
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                        true   "Athlete ID"
+//	@Param        body  body      api.ImportExecuteRequest   true   "Mapping decisions"
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/import/execute [post]
 func (h *Handlers) ImportExecute(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

@@ -15,6 +15,13 @@ import (
 // --- Catalog Export ---
 
 // CatalogExportJSON returns the full exercise/equipment/program catalog as JSON.
+//
+//	@Summary      Export catalog as JSON
+//	@Tags         Admin
+//	@Produce      json
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      403  {object}  api.APIError
+//	@Router       /catalog/export [get]
 func (h *Handlers) CatalogExportJSON(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -39,6 +46,17 @@ func (h *Handlers) CatalogExportJSON(w http.ResponseWriter, r *http.Request) {
 // --- Catalog Import ---
 
 // CatalogImportUpload parses an uploaded catalog JSON file.
+//
+//	@Summary      Upload catalog JSON for import
+//	@Description  Stores parsed mappings in the session; call /catalog/import/execute to commit.
+//	@Tags         Admin
+//	@Accept       multipart/form-data
+//	@Produce      json
+//	@Param        file  formData  file  true  "Catalog JSON file"
+//	@Success      200  {object}  map[string]interface{}  "Counts of items detected"
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /catalog/import/upload [post]
 func (h *Handlers) CatalogImportUpload(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -101,6 +119,17 @@ func (h *Handlers) CatalogImportUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 // CatalogImportExecute commits the catalog import.
+//
+//	@Summary      Commit catalog import
+//	@Description  Requires a prior successful upload (state lives in the session). Body can override the per-exercise mapping decisions.
+//	@Tags         Admin
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.CatalogImportExecuteRequest  false  "Mapping overrides"
+//	@Success      200  {object}  map[string]interface{}  "Counts of created items"
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /catalog/import/execute [post]
 func (h *Handlers) CatalogImportExecute(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {

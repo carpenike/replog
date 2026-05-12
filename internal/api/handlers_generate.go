@@ -26,6 +26,16 @@ type GenerateFormResponse struct {
 }
 
 // GenerateFormData returns the AI Coach form data for an athlete.
+//
+//	@Summary      AI Coach form data
+//	@Description  Returns the inputs the SPA needs to render the generation form: athlete context, default days/weeks from active program, list of reference programs. `configured=false` if no LLM provider is set up.
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {object}  api.GenerateFormResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/generate [get]
 func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -98,6 +108,19 @@ type GenerateSubmitResponse struct {
 }
 
 // GenerateSubmit submits an LLM generation request and returns results.
+//
+//	@Summary      Submit AI Coach generation
+//	@Description  Calls the configured LLM provider, parses the response as CatalogJSON, and stashes the parsed program in memory for the execute step. May take up to 5 minutes for large generations.
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                  true  "Athlete ID"
+//	@Param        body  body      api.GenerateRequest  true  "Generation request"
+//	@Success      200  {object}  api.GenerateSubmitResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      500  {object}  api.APIError  "LLM provider error (user-friendly message)"
+//	@Router       /athletes/{id}/generate [post]
 func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -208,6 +231,16 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 // GenerateExecute commits the generated program to the database.
+//
+//	@Summary      Commit AI-generated program
+//	@Description  Requires a prior successful Submit (cached in memory keyed by athlete ID). Auto-assigns the new program's exercises to the athlete.
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/generate/execute [post]
 func (h *Handlers) GenerateExecute(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

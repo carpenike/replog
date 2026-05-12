@@ -118,6 +118,15 @@ func (h *Handlers) BatchSetTMs(w http.ResponseWriter, r *http.Request) {
 // --- Login Tokens ---
 
 // ListLoginTokens returns login tokens for a user. Admin only.
+// ListLoginTokens returns active login tokens for a user. Admin only.
+//
+//	@Summary      List login tokens for user
+//	@Tags         Admin
+//	@Produce      json
+//	@Param        userID  path      int  true  "User ID"
+//	@Success      200  {array}   api.LoginToken
+//	@Failure      403  {object}  api.APIError
+//	@Router       /users/{userID}/tokens [get]
 func (h *Handlers) ListLoginTokens(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -152,6 +161,18 @@ func (h *Handlers) ListLoginTokens(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateLoginToken generates a login token for a user. Admin only.
+// CreateLoginToken creates a magic-link login token for a user. Admin only.
+//
+//	@Summary      Create login token
+//	@Description  Returns the bare token in the response — it is shown to the admin once and never again.
+//	@Tags         Admin
+//	@Accept       json
+//	@Produce      json
+//	@Param        userID  path      int                    true  "User ID"
+//	@Param        body    body      api.LoginTokenRequest  false "Optional label"
+//	@Success      201  {object}  api.LoginToken
+//	@Failure      403  {object}  api.APIError
+//	@Router       /users/{userID}/tokens [post]
 func (h *Handlers) CreateLoginToken(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -185,6 +206,16 @@ func (h *Handlers) CreateLoginToken(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteLoginToken deletes a login token. Admin only.
+// DeleteLoginToken revokes a login token. Admin only.
+//
+//	@Summary      Revoke login token
+//	@Tags         Admin
+//	@Produce      json
+//	@Param        userID   path      int  true  "User ID"
+//	@Param        tokenID  path      int  true  "Token ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      403  {object}  api.APIError
+//	@Router       /users/{userID}/tokens/{tokenID} [delete]
 func (h *Handlers) DeleteLoginToken(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {

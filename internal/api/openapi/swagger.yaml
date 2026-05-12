@@ -327,6 +327,20 @@ definitions:
         example: 185.5
         type: number
     type: object
+  api.CatalogImportExecuteRequest:
+    properties:
+      exercises:
+        items:
+          $ref: '#/definitions/api.CatalogImportMappingDecision'
+        type: array
+    type: object
+  api.CatalogImportMappingDecision:
+    properties:
+      create:
+        type: boolean
+      mapped_id:
+        type: integer
+    type: object
   api.CompatibilityResponse:
     properties:
       exercises:
@@ -517,10 +531,107 @@ definitions:
         example: foundational
         type: string
     type: object
+  api.GenerateFormResponse:
+    properties:
+      athlete_context: {}
+      configured:
+        type: boolean
+      default_days:
+        type: integer
+      default_weeks:
+        type: integer
+      reference_programs:
+        items:
+          $ref: '#/definitions/api.ProgramTemplate'
+        type: array
+    type: object
+  api.GenerateRequest:
+    properties:
+      coach_directions:
+        type: string
+      focus_areas:
+        items:
+          type: string
+        type: array
+      is_loop:
+        type: boolean
+      num_days:
+        example: 4
+        type: integer
+      num_weeks:
+        example: 3
+        type: integer
+      program_name:
+        example: Sport Performance Block 4
+        type: string
+      reference_ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  api.GenerateSubmitResponse:
+    properties:
+      duration:
+        type: string
+      exercises:
+        type: integer
+      model:
+        type: string
+      programs:
+        type: integer
+      reasoning:
+        type: string
+      tokens_used:
+        type: integer
+      truncated:
+        type: boolean
+    type: object
   api.GoalRequest:
     properties:
       goal:
         type: string
+    type: object
+  api.ImportExecuteRequest:
+    properties:
+      exercises:
+        items:
+          $ref: '#/definitions/api.ImportMappingDecision'
+        type: array
+    type: object
+  api.ImportMappingDecision:
+    properties:
+      create:
+        type: boolean
+      mapped_id:
+        type: integer
+      name:
+        type: string
+    type: object
+  api.ImportMappingItem:
+    properties:
+      create:
+        type: boolean
+      mapped_id:
+        type: integer
+      name:
+        type: string
+    type: object
+  api.ImportUploadResponse:
+    properties:
+      equipment:
+        items:
+          $ref: '#/definitions/api.ImportMappingItem'
+        type: array
+      exercises:
+        items:
+          $ref: '#/definitions/api.ImportMappingItem'
+        type: array
+      format:
+        type: string
+      programs:
+        items:
+          $ref: '#/definitions/api.ImportMappingItem'
+        type: array
     type: object
   api.JournalEntry:
     properties:
@@ -552,6 +663,24 @@ definitions:
         type: string
       username:
         example: admin
+        type: string
+    type: object
+  api.LoginToken:
+    properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: integer
+      url:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  api.LoginTokenRequest:
+    properties:
+      label:
         type: string
     type: object
   api.Notification:
@@ -930,6 +1059,72 @@ definitions:
       weight_unit:
         type: string
     type: object
+  api.UserRequest:
+    properties:
+      athlete_id:
+        type: integer
+      email:
+        type: string
+      is_admin:
+        type: boolean
+      is_coach:
+        type: boolean
+      name:
+        type: string
+      password:
+        example: hunter22
+        type: string
+      username:
+        example: alice
+        type: string
+    type: object
+  api.UserUpdateRequest:
+    properties:
+      athlete_id:
+        type: integer
+      email:
+        type: string
+      is_admin:
+        type: boolean
+      is_coach:
+        type: boolean
+      name:
+        type: string
+      password:
+        type: string
+      username:
+        example: alice
+        type: string
+    type: object
+  api.UserWithAthlete:
+    properties:
+      athlete_id:
+        type: integer
+      athlete_name:
+        type: string
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      impersonating:
+        type: boolean
+      is_admin:
+        type: boolean
+      is_coach:
+        type: boolean
+      name:
+        type: string
+      real_user_id:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
   api.Workout:
     properties:
       assignment_id:
@@ -1076,6 +1271,73 @@ info:
   title: RepLog API
   version: 1.0.0
 paths:
+  /admin/impersonate/{userId}:
+    post:
+      description: 'Admins can impersonate any user; coaches can impersonate users
+        linked to athletes they own. Sets `impersonating: true` on subsequent /me
+        responses.'
+      parameters:
+      - description: Target user ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Start impersonation
+      tags:
+      - Admin
+  /admin/impersonateable:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.User'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List impersonateable users
+      tags:
+      - Admin
+  /admin/stop-impersonating:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Stop impersonation
+      tags:
+      - Admin
   /athletes:
     get:
       description: |-
@@ -1867,6 +2129,104 @@ paths:
       summary: Get training max history
       tags:
       - TrainingMaxes
+  /athletes/{id}/generate:
+    get:
+      description: 'Returns the inputs the SPA needs to render the generation form:
+        athlete context, default days/weeks from active program, list of reference
+        programs. `configured=false` if no LLM provider is set up.'
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GenerateFormResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: AI Coach form data
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      description: Calls the configured LLM provider, parses the response as CatalogJSON,
+        and stashes the parsed program in memory for the execute step. May take up
+        to 5 minutes for large generations.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Generation request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.GenerateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GenerateSubmitResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "500":
+          description: LLM provider error (user-friendly message)
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Submit AI Coach generation
+      tags:
+      - Athletes
+  /athletes/{id}/generate/execute:
+    post:
+      description: Requires a prior successful Submit (cached in memory keyed by athlete
+        ID). Auto-assigns the new program's exercises to the athlete.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Commit AI-generated program
+      tags:
+      - Athletes
   /athletes/{id}/goal:
     put:
       consumes:
@@ -1899,6 +2259,82 @@ paths:
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Update athlete goal
+      tags:
+      - Athletes
+  /athletes/{id}/import/execute:
+    post:
+      consumes:
+      - application/json
+      description: Requires a prior successful upload (state lives in the session).
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Mapping decisions
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ImportExecuteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Commit workout import
+      tags:
+      - Athletes
+  /athletes/{id}/import/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Multipart upload. 'format' field selects parser ('strong', 'hevy',
+        'replog').
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: strong | hevy | replog
+        in: formData
+        name: format
+        required: true
+        type: string
+      - description: Workout file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ImportUploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Upload workouts file for import
       tags:
       - Athletes
   /athletes/{id}/journal:
@@ -2808,6 +3244,85 @@ paths:
       summary: Upload avatar
       tags:
       - Avatars
+  /catalog/export:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Export catalog as JSON
+      tags:
+      - Admin
+  /catalog/import/execute:
+    post:
+      consumes:
+      - application/json
+      description: Requires a prior successful upload (state lives in the session).
+        Body can override the per-exercise mapping decisions.
+      parameters:
+      - description: Mapping overrides
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/api.CatalogImportExecuteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Counts of created items
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Commit catalog import
+      tags:
+      - Admin
+  /catalog/import/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Stores parsed mappings in the session; call /catalog/import/execute
+        to commit.
+      parameters:
+      - description: Catalog JSON file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Counts of items detected
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Upload catalog JSON for import
+      tags:
+      - Admin
   /dashboard:
     get:
       description: Returns athlete cards plus aggregated stats (only available to
@@ -3843,6 +4358,232 @@ paths:
       summary: Skip passkey setup
       tags:
       - Auth
+  /users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.UserWithAthlete'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: username already exists
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create user
+      tags:
+      - Users
+  /users/{userID}:
+    delete:
+      description: Cannot delete yourself.
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: e.g. trying to delete your own account
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete user
+      tags:
+      - Users
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Get user
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Optional `password` field reissues the password (existing sessions
+        remain valid until expiry).
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: User
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.UserUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: username already exists
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update user
+      tags:
+      - Users
+  /users/{userID}/tokens:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.LoginToken'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List login tokens for user
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      description: Returns the bare token in the response — it is shown to the admin
+        once and never again.
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: Optional label
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/api.LoginTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.LoginToken'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create login token
+      tags:
+      - Admin
+  /users/{userID}/tokens/{tokenID}:
+    delete:
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: Token ID
+        in: path
+        name: tokenID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Revoke login token
+      tags:
+      - Admin
 swagger: "2.0"
 tags:
 - description: Login, logout, current user, token / passkey ceremonies

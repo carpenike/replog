@@ -63,6 +63,16 @@ func (h *Handlers) UpdateEquipment(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetUser returns a user by ID. Admin only.
+//
+//	@Summary      Get user
+//	@Tags         Users
+//	@Produce      json
+//	@Param        userID  path      int  true  "User ID"
+//	@Success      200  {object}  api.User
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /users/{userID} [get]
 func (h *Handlers) GetUser(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -91,6 +101,19 @@ func (h *Handlers) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateUser updates a user. Admin only.
+//
+//	@Summary      Update user
+//	@Description  Optional `password` field reissues the password (existing sessions remain valid until expiry).
+//	@Tags         Users
+//	@Accept       json
+//	@Produce      json
+//	@Param        userID  path      int                    true  "User ID"
+//	@Param        body    body      api.UserUpdateRequest  true  "User"
+//	@Success      200  {object}  api.User
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      409  {object}  api.APIError  "username already exists"
+//	@Router       /users/{userID} [put]
 func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.UserFromContext(r.Context())
 	if !authUser.IsAdmin {
@@ -104,15 +127,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Username  string `json:"username"`
-		Name      string `json:"name"`
-		Email     string `json:"email"`
-		Password  string `json:"password"`
-		IsCoach   bool   `json:"is_coach"`
-		IsAdmin   bool   `json:"is_admin"`
-		AthleteID *int64 `json:"athlete_id"`
-	}
+	var req UserUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return

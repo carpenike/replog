@@ -18,6 +18,18 @@ import (
 //   - Coaches can only impersonate users linked to their athletes
 //   - Cannot impersonate yourself
 //   - Cannot impersonate while already impersonating
+// StartImpersonation lets an admin/coach view the app as another user.
+//
+//	@Summary      Start impersonation
+//	@Description  Admins can impersonate any user; coaches can impersonate users linked to athletes they own. Sets `impersonating: true` on subsequent /me responses.
+//	@Tags         Admin
+//	@Produce      json
+//	@Param        userId  path      int  true  "Target user ID"
+//	@Success      200  {object}  api.User
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /admin/impersonate/{userId} [post]
 func (h *Handlers) StartImpersonation(w http.ResponseWriter, r *http.Request) {
 	realUser := middleware.UserFromContext(r.Context())
 	if realUser == nil {
@@ -89,6 +101,14 @@ func (h *Handlers) StartImpersonation(w http.ResponseWriter, r *http.Request) {
 
 // StopImpersonation reverts to the real user session.
 // POST /api/admin/stop-impersonating
+// StopImpersonation reverts to the admin/coach's real identity.
+//
+//	@Summary      Stop impersonation
+//	@Tags         Admin
+//	@Produce      json
+//	@Success      200  {object}  api.User
+//	@Failure      400  {object}  api.APIError
+//	@Router       /admin/stop-impersonating [post]
 func (h *Handlers) StopImpersonation(w http.ResponseWriter, r *http.Request) {
 	realUserID := h.Sessions.GetInt64(r.Context(), "impersonating_real_user_id")
 	if realUserID == 0 {
@@ -107,6 +127,14 @@ func (h *Handlers) StopImpersonation(w http.ResponseWriter, r *http.Request) {
 
 // ImpersonateableUsers returns the list of users the current user can impersonate.
 // GET /api/admin/impersonateable
+// ImpersonateableUsers lists users the caller is allowed to impersonate.
+//
+//	@Summary      List impersonateable users
+//	@Tags         Admin
+//	@Produce      json
+//	@Success      200  {array}   api.User
+//	@Failure      403  {object}  api.APIError
+//	@Router       /admin/impersonateable [get]
 func (h *Handlers) ImpersonateableUsers(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin && !user.IsCoach {
