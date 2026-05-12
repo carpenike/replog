@@ -68,6 +68,14 @@ type SettingCategoryResponse struct {
 }
 
 // ListSettings returns all application settings grouped by category.
+//
+//	@Summary      List app settings (admin)
+//	@Description  Sensitive settings (LLM keys, SMTP password) return empty `value` and only a masked preview — plaintext is never sent over the wire.
+//	@Tags         Admin
+//	@Produce      json
+//	@Success      200  {array}   api.SettingCategoryResponse
+//	@Failure      403  {object}  api.APIError
+//	@Router       /admin/settings [get]
 func (h *Handlers) ListSettings(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -111,6 +119,17 @@ func (h *Handlers) ListSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateSetting updates a single application setting.
+//
+//	@Summary      Update app setting (admin)
+//	@Description  Sensitive values (Sensitive=true in the registry) are encrypted with REPLOG_SECRET_KEY before storage.
+//	@Tags         Admin
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.SettingUpdateRequest  true  "Setting"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /admin/settings [put]
 func (h *Handlers) UpdateSetting(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -118,10 +137,7 @@ func (h *Handlers) UpdateSetting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Key   string `json:"key"`
-		Value string `json:"value"`
-	}
+	var req SettingUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return

@@ -287,6 +287,14 @@ func (h *Handlers) DeactivateAccessoryPlan(w http.ResponseWriter, r *http.Reques
 // --- Test Connection Endpoints ---
 
 // TestLLMConnection tests the LLM provider connection.
+//
+//	@Summary      Test LLM provider connection (admin)
+//	@Description  Always returns 200; check `success` field for actual result. Errors are surfaced via `error` field for the SPA to display inline.
+//	@Tags         Admin
+//	@Produce      json
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      403  {object}  api.APIError
+//	@Router       /admin/settings/test-llm [post]
 func (h *Handlers) TestLLMConnection(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {

@@ -98,6 +98,14 @@ func (h *Handlers) DeleteReview(w http.ResponseWriter, r *http.Request) {
 }
 
 // TestNotifyConnection tests the notification provider connection.
+//
+//	@Summary      Test notification provider connection (admin)
+//	@Description  Always returns 200; check `success` field. Errors are surfaced via `error` field for the SPA to display inline.
+//	@Tags         Admin
+//	@Produce      json
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      403  {object}  api.APIError
+//	@Router       /admin/settings/test-notify [post]
 func (h *Handlers) TestNotifyConnection(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {

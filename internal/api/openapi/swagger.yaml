@@ -932,6 +932,45 @@ definitions:
       pending_count:
         type: integer
     type: object
+  api.SettingCategoryResponse:
+    properties:
+      category:
+        type: string
+      settings:
+        items:
+          $ref: '#/definitions/api.SettingValueResponse'
+        type: array
+    type: object
+  api.SettingUpdateRequest:
+    properties:
+      key:
+        example: app.name
+        type: string
+      value:
+        example: My Custom Gym
+        type: string
+    type: object
+  api.SettingValueResponse:
+    properties:
+      description:
+        type: string
+      field_type:
+        type: string
+      key:
+        type: string
+      masked:
+        type: string
+      options:
+        items:
+          type: string
+        type: array
+      read_only:
+        type: boolean
+      source:
+        type: string
+      value:
+        type: string
+    type: object
   api.StatusResponse:
     properties:
       status:
@@ -1320,6 +1359,94 @@ paths:
           schema:
             $ref: '#/definitions/api.APIError'
       summary: List impersonateable users
+      tags:
+      - Admin
+  /admin/settings:
+    get:
+      description: Sensitive settings (LLM keys, SMTP password) return empty `value`
+        and only a masked preview — plaintext is never sent over the wire.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.SettingCategoryResponse'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List app settings (admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      description: Sensitive values (Sensitive=true in the registry) are encrypted
+        with REPLOG_SECRET_KEY before storage.
+      parameters:
+      - description: Setting
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.SettingUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update app setting (admin)
+      tags:
+      - Admin
+  /admin/settings/test-llm:
+    post:
+      description: Always returns 200; check `success` field for actual result. Errors
+        are surfaced via `error` field for the SPA to display inline.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Test LLM provider connection (admin)
+      tags:
+      - Admin
+  /admin/settings/test-notify:
+    post:
+      description: Always returns 200; check `success` field. Errors are surfaced
+        via `error` field for the SPA to display inline.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Test notification provider connection (admin)
       tags:
       - Admin
   /admin/stop-impersonating:
