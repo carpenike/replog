@@ -196,6 +196,11 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/generate", h.GenerateFormData)
 			r.Post("/athletes/{id}/generate", h.GenerateSubmit)
 			r.Post("/athletes/{id}/generate/execute", h.GenerateExecute)
+
+			// Passkeys (user's own credentials).
+			r.Get("/passkeys", h.ListPasskeys)
+			r.Delete("/passkeys/{id}", h.DeletePasskey)
+			r.Post("/passkeys/label", h.SetPasskeyLabel)
 		})
 	})
 

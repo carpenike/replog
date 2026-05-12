@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -77,6 +78,14 @@ func (h *Handlers) DeletePasskey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := models.DeleteWebAuthnCredential(h.DB, credID, user.ID); err != nil {
+		// ErrNotFound = the credential is already gone (idempotent delete) or
+		// belongs to another user. Either way the caller's intent is satisfied
+		// and we return OK; we never leak that the credential exists for
+		// someone else.
+		if errors.Is(err, models.ErrNotFound) {
+			WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+			return
+		}
 		log.Printf("api: delete passkey %d for user %d: %v", credID, user.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete passkey")
 		return
