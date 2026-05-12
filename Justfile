@@ -53,9 +53,10 @@ dev-frontend:
 
 # --- Quality gates ---
 
-# Run go vet + frontend lint.
+# Run go vet + golangci-lint + frontend lint.
 lint:
     go vet ./...
+    golangci-lint run
     cd web && npm run lint
 
 # Run all Go tests.

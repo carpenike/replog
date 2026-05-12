@@ -217,7 +217,11 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Auto-approve workout if athlete is logging their own sets.
-	models.AutoApproveWorkout(h.DB, workoutID, user.ID)
+	// Best-effort: a failure here doesn't change the API contract for
+	// the caller (the set was successfully added).
+	if err := models.AutoApproveWorkout(h.DB, workoutID, user.ID); err != nil {
+		log.Printf("api: auto-approve workout %d: %v", workoutID, err)
+	}
 
 	WriteJSON(w, http.StatusCreated, WorkoutSetFromModel(set))
 }

@@ -118,6 +118,7 @@
             gopls
             gotools
             go-swag
+            golangci-lint
             goreleaser
             sqlite
             nodejs_22
