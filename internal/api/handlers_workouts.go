@@ -168,10 +168,10 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.RepType == "" {
-		req.RepType = "standard"
+		req.RepType = "reps"
 	}
 	if req.Category == "" {
-		req.Category = "working"
+		req.Category = "main"
 	}
 
 	set, err := models.AddSet(h.DB, workoutID, req.ExerciseID, req.Reps, req.Weight, req.RPE, req.RepType, req.Category, req.Notes)

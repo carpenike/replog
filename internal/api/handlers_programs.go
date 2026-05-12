@@ -153,7 +153,7 @@ func (h *Handlers) AddPrescribedSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.RepType == "" {
-		req.RepType = "standard"
+		req.RepType = "reps"
 	}
 
 	set, err := models.CreatePrescribedSet(h.DB, templateID, req.ExerciseID, req.Week, req.Day, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.SortOrder, req.RepType, req.Notes)
@@ -193,6 +193,9 @@ func (h *Handlers) UpdatePrescribedSet(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+	if req.RepType == "" {
+		req.RepType = "reps"
 	}
 
 	set, err := models.UpdatePrescribedSet(h.DB, setID, req.ExerciseID, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.SortOrder, req.RepType, req.Notes)
