@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
@@ -240,7 +239,7 @@ func (h *Handlers) TestLLMConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	provider, err := llm.NewProviderFromSettings(h.DB)
+	provider, err := h.llmProvider()
 	if err != nil {
 		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": err.Error()})
 		return

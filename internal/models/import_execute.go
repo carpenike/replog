@@ -782,6 +782,12 @@ func BuildCatalogImportPreview(ms *importers.MappingState) *CatalogImportPreview
 // from a parsed catalog file. athleteID scopes new program templates: nil =
 // global, non-nil = athlete-specific (e.g. AI-generated).
 func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int64) (*CatalogImportResult, error) {
+	if ms == nil {
+		return nil, fmt.Errorf("models: catalog import called with nil MappingState")
+	}
+	if ms.Parsed == nil {
+		return nil, fmt.Errorf("models: catalog import called with nil MappingState.Parsed (caller forgot to set it)")
+	}
 	pf := ms.Parsed
 	result := &CatalogImportResult{}
 

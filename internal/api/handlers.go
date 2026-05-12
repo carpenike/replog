@@ -15,6 +15,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/carpenike/replog/internal/importers"
+	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
@@ -34,9 +35,23 @@ type Handlers struct {
 	Sessions  *scs.SessionManager
 	AvatarDir string
 
+	// LLMProviderFactory builds the LLM provider used by the AI Coach
+	// generation flow. Defaults to llm.NewProviderFromSettings (read from
+	// app_settings). Tests override this to inject llm.MockProvider.
+	LLMProviderFactory func(*sql.DB) (llm.Provider, error)
+
 	// generateCache holds in-progress generation results keyed by athlete ID.
 	// Used instead of session storage to avoid gob encoding large structs.
 	generateCache sync.Map
+}
+
+// llmProvider returns the configured LLM provider, falling back to the
+// production factory if none was injected.
+func (h *Handlers) llmProvider() (llm.Provider, error) {
+	if h.LLMProviderFactory != nil {
+		return h.LLMProviderFactory(h.DB)
+	}
+	return llm.NewProviderFromSettings(h.DB)
 }
 
 // Me returns the currently authenticated user.

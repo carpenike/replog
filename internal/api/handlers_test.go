@@ -191,6 +191,11 @@ func setupTest(t *testing.T) *testEnv {
 			// Workout import (per athlete).
 			r.Post("/athletes/{id}/import/upload", h.ImportUpload)
 			r.Post("/athletes/{id}/import/execute", h.ImportExecute)
+
+			// AI Coach generation (per athlete).
+			r.Get("/athletes/{id}/generate", h.GenerateFormData)
+			r.Post("/athletes/{id}/generate", h.GenerateSubmit)
+			r.Post("/athletes/{id}/generate/execute", h.GenerateExecute)
 		})
 	})
 

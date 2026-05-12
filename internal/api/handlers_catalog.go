@@ -85,6 +85,7 @@ func (h *Handlers) CatalogImportUpload(w http.ResponseWriter, r *http.Request) {
 		Exercises: importers.BuildExerciseMappings(parsed.Exercises, exEntities),
 		Equipment: importers.BuildEquipmentMappings(parsed.Equipment, eqEntities),
 		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
+		Parsed:    parsed,
 	}
 
 	// Store in session.

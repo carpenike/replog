@@ -122,7 +122,7 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create LLM provider.
-	provider, err := llm.NewProviderFromSettings(h.DB)
+	provider, err := h.llmProvider()
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "AI Coach not configured: "+err.Error())
 		return
@@ -177,6 +177,7 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	ms := &importers.MappingState{
 		Format:    importers.FormatCatalogJSON,
 		Exercises: importers.BuildExerciseMappings(parsed.Exercises, entities),
+		Parsed:    parsed,
 	}
 	if parsed.Equipment != nil {
 		equip, _ := models.ListEquipment(h.DB)
