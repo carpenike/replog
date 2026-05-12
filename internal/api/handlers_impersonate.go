@@ -72,8 +72,14 @@ func (h *Handlers) StartImpersonation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Coaches (non-admin) can only impersonate users linked to their athletes.
+	// Coaches (non-admin) can only impersonate their own athletes' linked
+	// users. Disallow impersonating other coaches or admins even when one
+	// happens to be linked to a coach-owned athlete.
 	if !realUser.IsAdmin && realUser.IsCoach {
+		if target.IsCoach || target.IsAdmin {
+			WriteError(w, http.StatusForbidden, "cannot impersonate coaches or admins")
+			return
+		}
 		if !target.AthleteID.Valid {
 			WriteError(w, http.StatusForbidden, "user is not linked to an athlete")
 			return
@@ -83,6 +89,14 @@ func (h *Handlers) StartImpersonation(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusForbidden, "can only impersonate your own athletes")
 			return
 		}
+	}
+
+	// Renew the session token on identity change to defeat session
+	// fixation, matching Login / TokenLogin.
+	if err := h.Sessions.RenewToken(r.Context()); err != nil {
+		log.Printf("api: session renew on impersonate: %v", err)
+		WriteError(w, http.StatusInternalServerError, "session error")
+		return
 	}
 
 	// Store real user ID and switch session to target.
@@ -113,6 +127,13 @@ func (h *Handlers) StopImpersonation(w http.ResponseWriter, r *http.Request) {
 	realUserID := h.Sessions.GetInt64(r.Context(), "impersonating_real_user_id")
 	if realUserID == 0 {
 		WriteError(w, http.StatusBadRequest, "not impersonating anyone")
+		return
+	}
+
+	// Renew the session token on identity change.
+	if err := h.Sessions.RenewToken(r.Context()); err != nil {
+		log.Printf("api: session renew on stop-impersonate: %v", err)
+		WriteError(w, http.StatusInternalServerError, "session error")
 		return
 	}
 

@@ -64,8 +64,12 @@ func (h *Handlers) CatalogImportUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		WriteError(w, http.StatusBadRequest, "file too large")
+	// Cap the entire request body, not just the in-memory portion of
+	// ParseMultipartForm — otherwise the excess spills to /tmp.
+	r.Body = http.MaxBytesReader(w, r.Body, importMaxBytes)
+
+	if err := r.ParseMultipartForm(importMaxBytes); err != nil {
+		WriteError(w, http.StatusRequestEntityTooLarge, "file too large (max 10 MiB)")
 		return
 	}
 

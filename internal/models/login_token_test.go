@@ -115,6 +115,33 @@ func TestValidateLoginToken(t *testing.T) {
 			t.Errorf("user id = %d, want %d", u.ID, user.ID)
 		}
 	})
+
+	t.Run("token is single-use", func(t *testing.T) {
+		// Tokens must be consumed on first successful validate so a leaked
+		// magic-link URL (e.g. from access logs) cannot be replayed.
+		lt, _ := CreateLoginToken(db, user.ID, "one-shot", nil)
+
+		if _, err := ValidateLoginToken(db, lt.Token); err != nil {
+			t.Fatalf("first validate: %v", err)
+		}
+		if _, err := ValidateLoginToken(db, lt.Token); err != ErrNotFound {
+			t.Errorf("second validate err = %v, want ErrNotFound (single-use)", err)
+		}
+	})
+
+	t.Run("expired token is consumed too", func(t *testing.T) {
+		// Even an expired token row should be deleted on lookup so the
+		// table doesn't grow unbounded between scheduled cleanups.
+		past := time.Now().Add(-1 * time.Hour)
+		lt, _ := CreateLoginToken(db, user.ID, "expired-consumed", &past)
+
+		if _, err := ValidateLoginToken(db, lt.Token); err != ErrNotFound {
+			t.Fatalf("first validate err = %v, want ErrNotFound", err)
+		}
+		if _, err := ValidateLoginToken(db, lt.Token); err != ErrNotFound {
+			t.Errorf("second validate err = %v, want ErrNotFound", err)
+		}
+	})
 }
 
 func TestListLoginTokensByUser(t *testing.T) {

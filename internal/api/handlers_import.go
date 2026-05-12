@@ -21,6 +21,10 @@ type ImportUploadResponse struct {
 	Programs  []ImportMappingItem   `json:"programs,omitempty"`
 }
 
+// importMaxBytes is the hard cap on workout / catalog import request bodies.
+// MaxBytesReader rejects anything larger before disk spill.
+const importMaxBytes = 10 << 20 // 10 MiB
+
 // ImportMappingItem represents one item that needs mapping.
 type ImportMappingItem struct {
 	Name     string `json:"name"`
@@ -63,8 +67,12 @@ func (h *Handlers) ImportUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		WriteError(w, http.StatusBadRequest, "file too large (max 10MB)")
+	// Cap the entire request body, not just the in-memory portion of
+	// ParseMultipartForm — otherwise the excess spills to /tmp.
+	r.Body = http.MaxBytesReader(w, r.Body, importMaxBytes)
+
+	if err := r.ParseMultipartForm(importMaxBytes); err != nil {
+		WriteError(w, http.StatusRequestEntityTooLarge, "file too large (max 10 MiB)")
 		return
 	}
 

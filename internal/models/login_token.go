@@ -86,9 +86,19 @@ func CreateLoginToken(db *sql.DB, userID int64, label string, expiresAt *time.Ti
 
 // ValidateLoginToken looks up a token and returns the associated user if the
 // token is valid and not expired. Returns ErrNotFound if invalid or expired.
+//
+// Tokens are single-use: a successful lookup deletes the row in the same
+// transaction so the same magic link cannot be replayed (e.g., from access
+// logs or browser history). Expired tokens are also deleted on lookup.
 func ValidateLoginToken(db *sql.DB, token string) (*User, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("models: validate login token begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	lt := &LoginToken{}
-	err := db.QueryRow(
+	err = tx.QueryRow(
 		`SELECT id, user_id, token, label, expires_at, created_at
 		 FROM login_tokens WHERE token = ?`, token,
 	).Scan(&lt.ID, &lt.UserID, &lt.Token, &lt.Label, &lt.ExpiresAt, &lt.CreatedAt)
@@ -97,6 +107,14 @@ func ValidateLoginToken(db *sql.DB, token string) (*User, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("models: validate login token: %w", err)
+	}
+
+	// Consume the token regardless of whether it's expired — single-use.
+	if _, err := tx.Exec(`DELETE FROM login_tokens WHERE id = ?`, lt.ID); err != nil {
+		return nil, fmt.Errorf("models: validate login token consume: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("models: validate login token commit: %w", err)
 	}
 
 	if lt.IsExpired() {

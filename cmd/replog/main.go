@@ -125,6 +125,11 @@ func main() {
 		sessionManager.Cookie.Secure = true
 	}
 
+	// Enable HSTS whenever cookies are flagged Secure — both signal that the
+	// deployment is reachable over HTTPS. Do not pin browsers to HTTPS for
+	// plaintext localhost dev (default off).
+	middleware.EnableHSTS(sessionManager.Cookie.Secure)
+
 	// Configure WebAuthn for passkey support (optional).
 	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
 	rpOrigins := os.Getenv("REPLOG_WEBAUTHN_ORIGINS")

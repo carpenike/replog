@@ -45,3 +45,24 @@ func TestStatusWriter_CapturesFirstWriteHeader(t *testing.T) {
 		t.Errorf("expected captured status 201, got %d", sw.status)
 	}
 }
+
+func TestScrubPath_RedactsLoginToken(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		// Magic-link tokens must never be logged.
+		{"/api/auth/token/abc123def456", "/api/auth/token/<redacted>"},
+		// Trailing slash with no token = no secret to redact.
+		{"/api/auth/token/", "/api/auth/token/"},
+		// Unrelated paths unchanged.
+		{"/api/me", "/api/me"},
+		{"/api/login", "/api/login"},
+		{"/api/auth/token", "/api/auth/token"},
+	}
+	for _, tc := range cases {
+		if got := scrubPath(tc.in); got != tc.want {
+			t.Errorf("scrubPath(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}

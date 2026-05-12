@@ -3353,8 +3353,15 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Multipart upload; field name is 'file'. Server returns the new
-        avatar URL.
+      description: Multipart upload; field name is 'avatar'. Server sniffs the file's
+        content type and accepts only JPEG, PNG, WebP, or GIF. Returns the new avatar
+        URL.
+      parameters:
+      - description: Avatar image file (JPEG/PNG/WebP/GIF, ≤ 2 MiB)
+        in: formData
+        name: avatar
+        required: true
+        type: file
       produces:
       - application/json
       responses:
@@ -3366,6 +3373,14 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "415":
+          description: Unsupported Media Type
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Upload avatar

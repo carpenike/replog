@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"testing"
+	"time"
 )
 
 func TestCreateUser(t *testing.T) {
@@ -95,6 +96,41 @@ func TestAuthenticate(t *testing.T) {
 		_, err := Authenticate(db, "kidonly", "anything")
 		if err != ErrNoPassword {
 			t.Errorf("err = %v, want ErrNoPassword", err)
+		}
+	})
+
+	t.Run("constant-time on user-not-found (no enumeration)", func(t *testing.T) {
+		// Authenticate must run a bcrypt compare even when the username is
+		// unknown so an attacker cannot distinguish "no such user" from
+		// "wrong password" by response time. Without the dummy compare,
+		// unknown-user returns in microseconds while wrong-password takes
+		// ~80ms — trivial to enumerate accounts.
+		//
+		// We assert the unknown-user path is at least roughly the same
+		// order of magnitude as the wrong-password path. Generous bound
+		// (5x) to keep this stable on noisy CI.
+		const samples = 3
+
+		var unknown, wrong time.Duration
+		for i := 0; i < samples; i++ {
+			t0 := time.Now()
+			_, _ = Authenticate(db, "no-such-user", "anything")
+			unknown += time.Since(t0)
+
+			t0 = time.Now()
+			_, _ = Authenticate(db, "testuser", "wrong-password")
+			wrong += time.Since(t0)
+		}
+		unknown /= samples
+		wrong /= samples
+
+		// Sanity: bcrypt should keep wrong-password well above 1ms.
+		if wrong < time.Millisecond {
+			t.Skipf("bcrypt finished too fast (%v) — env is probably mocked, can't measure", wrong)
+		}
+		if unknown*5 < wrong {
+			t.Errorf("unknown-user (%v) is more than 5x faster than wrong-password (%v) — timing oracle for user enumeration",
+				unknown, wrong)
 		}
 	})
 }

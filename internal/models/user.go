@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -160,15 +161,50 @@ func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	return u, nil
 }
 
+// dummyBcryptHash is a bcrypt hash of an internal value that no real account
+// will ever hold. Generated lazily on first use so the cost stays in sync
+// with bcrypt.DefaultCost without hard-coding a literal hash. We compare
+// against it on the user-not-found and passwordless-account paths so that
+// Authenticate's response time does not reveal whether a username exists
+// (defense against user enumeration via timing).
+var (
+	dummyBcryptHashOnce sync.Once
+	dummyBcryptHash     []byte
+)
+
+func dummyHash() []byte {
+	dummyBcryptHashOnce.Do(func() {
+		// Errors here mean bcrypt itself is broken; let the panic surface.
+		h, err := bcrypt.GenerateFromPassword([]byte("replog-dummy-credential"), bcrypt.DefaultCost)
+		if err != nil {
+			panic(fmt.Sprintf("models: generate dummy bcrypt hash: %v", err))
+		}
+		dummyBcryptHash = h
+	})
+	return dummyBcryptHash
+}
+
 // Authenticate verifies a username/password combination and returns the user
 // if valid. Returns ErrNotFound if credentials are wrong, or ErrNoPassword
 // if the account has no password set (passwordless-only).
+//
+// On the user-not-found and passwordless-account paths we still run a bcrypt
+// compare against a fixed dummy hash so that the response time does not
+// depend on whether the username exists or has a password. Without this,
+// the wrong-username path returns in microseconds while the wrong-password
+// path takes ~80ms — trivial to distinguish from a remote client and use to
+// enumerate accounts.
 func Authenticate(db *sql.DB, username, password string) (*User, error) {
 	u, err := GetUserByUsername(db, username)
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			// Burn the same time a real bcrypt compare would. Result discarded.
+			_ = bcrypt.CompareHashAndPassword(dummyHash(), []byte(password))
+		}
 		return nil, err
 	}
 	if !u.HasPassword() {
+		_ = bcrypt.CompareHashAndPassword(dummyHash(), []byte(password))
 		return nil, ErrNoPassword
 	}
 	if !CheckPassword(u.PasswordHash, password) {
