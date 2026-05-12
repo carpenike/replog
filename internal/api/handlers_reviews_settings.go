@@ -89,6 +89,11 @@ func (h *Handlers) ListSettings(w http.ResponseWriter, r *http.Request) {
 				resp.FieldType = def.FieldType
 				resp.Options = def.Options
 				resp.Description = def.Description
+				// Never return plaintext for sensitive settings — admins see only
+				// the masked preview, and editing is write-only (clear-and-set).
+				if def.Sensitive {
+					resp.Value = ""
+				}
 			}
 			cat.Settings = append(cat.Settings, resp)
 		}

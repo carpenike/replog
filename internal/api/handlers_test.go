@@ -176,6 +176,12 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/users/{userID}", h.GetUser)
 			r.Put("/users/{userID}", h.UpdateUser)
 			r.Delete("/users/{userID}", h.DeleteUser)
+
+			// Admin settings.
+			r.Get("/admin/settings", h.ListSettings)
+			r.Put("/admin/settings", h.UpdateSetting)
+			r.Post("/admin/settings/test-llm", h.TestLLMConnection)
+			r.Post("/admin/settings/test-notify", h.TestNotifyConnection)
 		})
 	})
 
