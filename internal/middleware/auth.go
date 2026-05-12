@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -22,20 +23,36 @@ const PrefsContextKey contextKey = "prefs"
 // UnreadCountContextKey stores the user's unread notification count in request context.
 const UnreadCountContextKey contextKey = "unreadCount"
 
-// RequireAuth redirects unauthenticated users to the login page.
+// writeUnauthorizedJSON writes a 401 JSON response. Kept local to this file
+// so the middleware package has no dependency on the api package (which would
+// be circular: api imports middleware).
+func writeUnauthorizedJSON(w http.ResponseWriter, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"error": msg,
+		"code":  http.StatusUnauthorized,
+	})
+}
+
+// RequireAuth gates a handler chain on having an authenticated session.
+// Unauthenticated requests get a 401 JSON response — every route this guards
+// today lives under /api/*, so an XHR-friendly response is the right answer.
+// (The earlier 303 → /login behavior was carried over from the SSR era and
+// caused fetch() callers to receive HTML when expecting JSON.)
 func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Handler {
 	return sm.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID := sm.GetInt64(r.Context(), "userID")
 		if userID == 0 {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			writeUnauthorizedJSON(w, "not authenticated")
 			return
 		}
 
 		user, err := models.GetUserByID(db, userID)
 		if err != nil {
 			log.Printf("middleware: failed to load user %d: %v", userID, err)
-			sm.Destroy(r.Context())
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			_ = sm.Destroy(r.Context())
+			writeUnauthorizedJSON(w, "session is no longer valid")
 			return
 		}
 
@@ -121,44 +138,6 @@ func CanManageAthlete(user *models.User, athlete *models.Athlete) bool {
 		return athlete.CoachID.Valid && athlete.CoachID.Int64 == user.ID
 	}
 	return false
-}
-
-// ErrorRenderer is a function that renders a styled error page. Middleware
-// accepts this as a parameter to avoid importing the handlers package.
-type ErrorRenderer func(w http.ResponseWriter, r *http.Request, status int, title, message string)
-
-// RequireCoach returns 403 if the user is not a coach or admin.
-// If onError is nil, falls back to plain text http.Error.
-func RequireCoach(onError ErrorRenderer, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := UserFromContext(r.Context())
-		if user == nil || (!user.IsCoach && !user.IsAdmin) {
-			if onError != nil {
-				onError(w, r, http.StatusForbidden, "Access Denied", "You need coach or admin permissions to access this page. Please contact your administrator if you believe this is an error.")
-			} else {
-				http.Error(w, "Forbidden — coach access required", http.StatusForbidden)
-			}
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-// RequireAdmin returns 403 if the user is not an admin.
-// If onError is nil, falls back to plain text http.Error.
-func RequireAdmin(onError ErrorRenderer, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := UserFromContext(r.Context())
-		if user == nil || !user.IsAdmin {
-			if onError != nil {
-				onError(w, r, http.StatusForbidden, "Access Denied", "You need admin permissions to access this page. Please contact your administrator if you believe this is an error.")
-			} else {
-				http.Error(w, "Forbidden — admin access required", http.StatusForbidden)
-			}
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 // CoachAthleteFilter returns the coach ID to use for filtering athlete lists.

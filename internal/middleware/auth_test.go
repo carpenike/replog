@@ -3,8 +3,10 @@ package middleware
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -33,7 +35,7 @@ func testSessionManager() *scs.SessionManager {
 	return sm
 }
 
-func TestRequireAuth_RedirectsWhenNotAuthenticated(t *testing.T) {
+func TestRequireAuth_Returns401JSONWhenNotAuthenticated(t *testing.T) {
 	db := testDB(t)
 	sm := testSessionManager()
 
@@ -41,15 +43,29 @@ func TestRequireAuth_RedirectsWhenNotAuthenticated(t *testing.T) {
 		t.Error("handler should not be called for unauthenticated request")
 	}))
 
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequest("GET", "/api/me", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusSeeOther {
-		t.Errorf("expected status %d, got %d", http.StatusSeeOther, rr.Code)
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, rr.Code)
 	}
-	if loc := rr.Header().Get("Location"); loc != "/login" {
-		t.Errorf("expected redirect to /login, got %q", loc)
+	if ct := rr.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+		t.Errorf("expected JSON Content-Type, got %q", ct)
+	}
+	if loc := rr.Header().Get("Location"); loc != "" {
+		t.Errorf("expected no Location header, got %q", loc)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response is not valid JSON: %v\nbody=%q", err, rr.Body.String())
+	}
+	if body["error"] != "not authenticated" {
+		t.Errorf("expected error=\"not authenticated\", got %v", body["error"])
+	}
+	if code, ok := body["code"].(float64); !ok || int(code) != http.StatusUnauthorized {
+		t.Errorf("expected code=%d, got %v", http.StatusUnauthorized, body["code"])
 	}
 }
 
@@ -100,7 +116,7 @@ func TestRequireAuth_SetsUserInContext(t *testing.T) {
 	}
 }
 
-func TestRequireAuth_InvalidSessionRedirects(t *testing.T) {
+func TestRequireAuth_InvalidSessionReturns401(t *testing.T) {
 	db := testDB(t)
 	sm := testSessionManager()
 
@@ -128,15 +144,25 @@ func TestRequireAuth_InvalidSessionRedirects(t *testing.T) {
 	}))
 
 	cookies := setupRR.Result().Cookies()
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequest("GET", "/api/me", nil)
 	for _, c := range cookies {
 		req.AddCookie(c)
 	}
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusSeeOther {
-		t.Errorf("expected redirect status %d, got %d", http.StatusSeeOther, rr.Code)
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, rr.Code)
+	}
+	if ct := rr.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+		t.Errorf("expected JSON Content-Type, got %q", ct)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response is not valid JSON: %v\nbody=%q", err, rr.Body.String())
+	}
+	if body["error"] != "session is no longer valid" {
+		t.Errorf("expected error=\"session is no longer valid\", got %v", body["error"])
 	}
 }
 
@@ -228,130 +254,6 @@ func TestCanAccessAthlete(t *testing.T) {
 				t.Errorf("CanAccessAthlete() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-func TestRequireCoach_ForbidsNonCoach(t *testing.T) {
-	nonCoach := &models.User{IsCoach: false}
-
-	handler := RequireCoach(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Error("handler should not be called for non-coach")
-	}))
-
-	req := httptest.NewRequest("GET", "/", nil)
-	ctx := context.WithValue(req.Context(), UserContextKey, nonCoach)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusForbidden {
-		t.Errorf("expected 403 Forbidden, got %d", rr.Code)
-	}
-}
-
-func TestRequireCoach_AllowsCoach(t *testing.T) {
-	coach := &models.User{IsCoach: true}
-	called := false
-
-	handler := RequireCoach(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	req := httptest.NewRequest("GET", "/", nil)
-	ctx := context.WithValue(req.Context(), UserContextKey, coach)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	if !called {
-		t.Error("handler should have been called for coach")
-	}
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rr.Code)
-	}
-}
-
-func TestRequireCoach_AllowsAdmin(t *testing.T) {
-	admin := &models.User{IsAdmin: true}
-	called := false
-
-	handler := RequireCoach(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	req := httptest.NewRequest("GET", "/", nil)
-	ctx := context.WithValue(req.Context(), UserContextKey, admin)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	if !called {
-		t.Error("handler should have been called for admin")
-	}
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rr.Code)
-	}
-}
-
-func TestRequireAdmin_ForbidsNonAdmin(t *testing.T) {
-	coach := &models.User{IsCoach: true}
-
-	handler := RequireAdmin(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Error("handler should not be called for non-admin")
-	}))
-
-	req := httptest.NewRequest("GET", "/", nil)
-	ctx := context.WithValue(req.Context(), UserContextKey, coach)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusForbidden {
-		t.Errorf("expected 403 Forbidden, got %d", rr.Code)
-	}
-}
-
-func TestRequireAdmin_AllowsAdmin(t *testing.T) {
-	admin := &models.User{IsAdmin: true}
-	called := false
-
-	handler := RequireAdmin(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	req := httptest.NewRequest("GET", "/", nil)
-	ctx := context.WithValue(req.Context(), UserContextKey, admin)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	if !called {
-		t.Error("handler should have been called for admin")
-	}
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rr.Code)
-	}
-}
-
-func TestRequireAdmin_ForbidsNilUser(t *testing.T) {
-	handler := RequireAdmin(nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Error("handler should not be called for nil user")
-	}))
-
-	req := httptest.NewRequest("GET", "/", nil)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusForbidden {
-		t.Errorf("expected 403 Forbidden, got %d", rr.Code)
 	}
 }
 
