@@ -27,3 +27,304 @@ type AthleteRequest struct {
 	Gender          string `json:"gender,omitempty" example:"M"`
 	TrackBodyWeight bool   `json:"track_body_weight,omitempty"`
 }
+
+// ExerciseRequest is the body for POST /api/exercises and PUT /api/exercises/{id}.
+type ExerciseRequest struct {
+	Name        string `json:"name" example:"Bench Press"`
+	Tier        string `json:"tier,omitempty" example:"foundational"`
+	FormNotes   string `json:"form_notes,omitempty"`
+	DemoURL     string `json:"demo_url,omitempty"`
+	RestSeconds int    `json:"rest_seconds,omitempty" example:"90"`
+	Featured    bool   `json:"featured,omitempty"`
+}
+
+// WorkoutRequest is the body for POST /api/athletes/{id}/workouts.
+type WorkoutRequest struct {
+	Date  string `json:"date,omitempty" example:"2026-05-12"`
+	Notes string `json:"notes,omitempty"`
+}
+
+// WorkoutSetRequest is the body for POST /api/athletes/{id}/workouts/{workoutID}/sets.
+type WorkoutSetRequest struct {
+	ExerciseID int64   `json:"exercise_id" example:"42"`
+	Reps       int     `json:"reps" example:"5"`
+	Weight     float64 `json:"weight,omitempty" example:"135"`
+	RPE        float64 `json:"rpe,omitempty" example:"7"`
+	RepType    string  `json:"rep_type,omitempty" example:"reps"`
+	Category   string  `json:"category,omitempty" example:"main"`
+	Notes      string  `json:"notes,omitempty"`
+}
+
+// WorkoutSetUpdateRequest is the body for PUT /api/athletes/{id}/workouts/{workoutID}/sets/{setID}.
+type WorkoutSetUpdateRequest struct {
+	Reps   int     `json:"reps" example:"5"`
+	Weight float64 `json:"weight,omitempty" example:"135"`
+	RPE    float64 `json:"rpe,omitempty" example:"7"`
+	Notes  string  `json:"notes,omitempty"`
+}
+
+// WorkoutNotesRequest is the body for PUT /api/athletes/{id}/workouts/{workoutID}/notes.
+type WorkoutNotesRequest struct {
+	Notes string `json:"notes"`
+}
+
+// BodyWeightRequest is the body for POST /api/athletes/{id}/body-weights.
+type BodyWeightRequest struct {
+	Date   string  `json:"date,omitempty" example:"2026-05-12"`
+	Weight float64 `json:"weight" example:"185.5"`
+	Notes  string  `json:"notes,omitempty"`
+}
+
+// TrainingMaxRequest is the body for POST /api/athletes/{id}/training-maxes.
+type TrainingMaxRequest struct {
+	ExerciseID    int64   `json:"exercise_id" example:"42"`
+	Weight        float64 `json:"weight" example:"315"`
+	EffectiveDate string  `json:"effective_date,omitempty" example:"2026-05-12"`
+	Notes         string  `json:"notes,omitempty"`
+}
+
+// PreferencesRequest is the body for PUT /api/preferences.
+type PreferencesRequest struct {
+	WeightUnit string `json:"weight_unit,omitempty" example:"lbs"`
+	Timezone   string `json:"timezone,omitempty" example:"America/New_York"`
+	DateFormat string `json:"date_format,omitempty" example:"Jan 2, 2006"`
+}
+
+// EquipmentRequest is the body for POST /api/equipment and PUT /api/equipment/{id}.
+type EquipmentRequest struct {
+	Name        string `json:"name" example:"Squat Rack"`
+	Description string `json:"description,omitempty"`
+}
+
+// AthleteEquipmentRequest is the body for POST /api/athletes/{id}/equipment.
+type AthleteEquipmentRequest struct {
+	EquipmentID int64 `json:"equipment_id" example:"5"`
+}
+
+// ExerciseEquipmentRequest is the body for POST /api/exercises/{id}/equipment.
+type ExerciseEquipmentRequest struct {
+	EquipmentID int64 `json:"equipment_id" example:"5"`
+	Optional    bool  `json:"optional,omitempty"`
+}
+
+// AssignExerciseRequest is the body for POST /api/athletes/{id}/assignments
+// and POST /api/athletes/{id}/assignments/reactivate.
+type AssignExerciseRequest struct {
+	ExerciseID int64 `json:"exercise_id" example:"42"`
+	TargetReps int   `json:"target_reps,omitempty" example:"5"`
+}
+
+// ProgramTemplateRequest is the body for POST /api/programs.
+type ProgramTemplateRequest struct {
+	AthleteID   *int64 `json:"athlete_id,omitempty"`
+	Name        string `json:"name" example:"5/3/1 BBB"`
+	Description string `json:"description,omitempty"`
+	NumWeeks    int    `json:"num_weeks" example:"3"`
+	NumDays     int    `json:"num_days" example:"4"`
+	IsLoop      bool   `json:"is_loop,omitempty"`
+	Audience    string `json:"audience,omitempty" example:"adult"`
+}
+
+// ProgramTemplateUpdateRequest is the body for PUT /api/programs/{id}.
+type ProgramTemplateUpdateRequest struct {
+	Name        string `json:"name" example:"5/3/1 BBB"`
+	Description string `json:"description,omitempty"`
+	NumWeeks    int    `json:"num_weeks" example:"3"`
+	NumDays     int    `json:"num_days" example:"4"`
+	IsLoop      bool   `json:"is_loop,omitempty"`
+}
+
+// PrescribedSetRequest is the body for POST /api/programs/{id}/sets.
+type PrescribedSetRequest struct {
+	ExerciseID     int64    `json:"exercise_id" example:"42"`
+	Week           int      `json:"week" example:"1"`
+	Day            int      `json:"day" example:"1"`
+	SetNumber      int      `json:"set_number" example:"1"`
+	Reps           *int     `json:"reps,omitempty" example:"5"`
+	Percentage     *float64 `json:"percentage,omitempty" example:"0.65"`
+	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	SortOrder      int      `json:"sort_order,omitempty"`
+	RepType        string   `json:"rep_type,omitempty" example:"reps"`
+	Notes          string   `json:"notes,omitempty"`
+}
+
+// PrescribedSetUpdateRequest is the body for PUT /api/programs/{id}/sets/{setID}.
+type PrescribedSetUpdateRequest struct {
+	ExerciseID     int64    `json:"exercise_id" example:"42"`
+	SetNumber      int      `json:"set_number" example:"1"`
+	Reps           *int     `json:"reps,omitempty"`
+	Percentage     *float64 `json:"percentage,omitempty"`
+	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	SortOrder      int      `json:"sort_order,omitempty"`
+	RepType        string   `json:"rep_type,omitempty"`
+	Notes          string   `json:"notes,omitempty"`
+}
+
+// ProgressionRuleRequest is the body for POST /api/programs/{id}/rules.
+type ProgressionRuleRequest struct {
+	ExerciseID int64   `json:"exercise_id" example:"42"`
+	Increment  float64 `json:"increment" example:"5"`
+}
+
+// CopyWeekRequest is the body for POST /api/programs/{id}/copy-week.
+type CopyWeekRequest struct {
+	SourceWeek int `json:"source_week" example:"1"`
+	TargetWeek int `json:"target_week" example:"2"`
+}
+
+// AssignProgramRequest is the body for POST /api/athletes/{id}/programs.
+type AssignProgramRequest struct {
+	TemplateID int64  `json:"template_id" example:"7"`
+	StartDate  string `json:"start_date" example:"2026-05-12"`
+	Notes      string `json:"notes,omitempty"`
+	Goal       string `json:"goal,omitempty"`
+	Role       string `json:"role,omitempty" example:"primary"`
+	Schedule   string `json:"schedule,omitempty"`
+}
+
+// AccessoryPlanRequest is the body for POST /api/athletes/{id}/accessories.
+type AccessoryPlanRequest struct {
+	Day          int     `json:"day" example:"1"`
+	ExerciseID   int64   `json:"exercise_id" example:"42"`
+	TargetSets   int     `json:"target_sets,omitempty" example:"3"`
+	TargetRepMin int     `json:"target_rep_min,omitempty" example:"8"`
+	TargetRepMax int     `json:"target_rep_max,omitempty" example:"12"`
+	TargetWeight float64 `json:"target_weight,omitempty"`
+	Notes        string  `json:"notes,omitempty"`
+	SortOrder    int     `json:"sort_order,omitempty"`
+}
+
+// AccessoryPlanUpdateRequest is the body for PUT /api/athletes/{id}/accessories/{planID}.
+type AccessoryPlanUpdateRequest struct {
+	TargetSets   int     `json:"target_sets,omitempty"`
+	TargetRepMin int     `json:"target_rep_min,omitempty"`
+	TargetRepMax int     `json:"target_rep_max,omitempty"`
+	TargetWeight float64 `json:"target_weight,omitempty"`
+	Notes        string  `json:"notes,omitempty"`
+	SortOrder    int     `json:"sort_order,omitempty"`
+}
+
+// AthleteNoteRequest is the body for POST /api/athletes/{id}/notes
+// and PUT /api/athletes/{id}/notes/{noteID}.
+type AthleteNoteRequest struct {
+	Content   string `json:"content"`
+	IsPrivate bool   `json:"is_private,omitempty"`
+	Pinned    bool   `json:"pinned,omitempty"`
+}
+
+// GoalRequest is the body for PUT /api/athletes/{id}/goal.
+type GoalRequest struct {
+	Goal string `json:"goal"`
+}
+
+// TMBumpsRequest is the body for POST /api/athletes/{id}/cycle-review.
+type TMBumpsRequest struct {
+	Bumps []TMBump `json:"bumps"`
+}
+
+// TMBump is one entry in a TMBumpsRequest.
+type TMBump struct {
+	ExerciseID int64   `json:"exercise_id" example:"42"`
+	NewWeight  float64 `json:"new_weight" example:"320"`
+}
+
+// BatchTMRequest is the body for POST /api/athletes/{id}/batch-tms.
+type BatchTMRequest struct {
+	Maxes []BatchTMEntry `json:"maxes"`
+}
+
+// BatchTMEntry is one entry in a BatchTMRequest.
+type BatchTMEntry struct {
+	ExerciseID int64   `json:"exercise_id" example:"42"`
+	Weight     float64 `json:"weight" example:"315"`
+}
+
+// TrainingMaxNotesRequest is the body for PATCH /api/training-maxes/{tmID}/notes.
+type TrainingMaxNotesRequest struct {
+	Notes string `json:"notes"`
+}
+
+// LoginTokenRequest is the body for POST /api/users/{userID}/tokens.
+type LoginTokenRequest struct {
+	Label string `json:"label,omitempty"`
+}
+
+// PasskeyLabelRequest is the body for POST /api/passkeys/label.
+type PasskeyLabelRequest struct {
+	Label string `json:"label" example:"My YubiKey"`
+}
+
+// ReviewRequest is the body for POST /api/athletes/{id}/workouts/{workoutID}/review.
+type ReviewRequest struct {
+	Status string `json:"status" example:"approved"`
+	Notes  string `json:"notes,omitempty"`
+}
+
+// SettingUpdateRequest is the body for PUT /api/admin/settings.
+type SettingUpdateRequest struct {
+	Key   string `json:"key" example:"app.name"`
+	Value string `json:"value" example:"My Custom Gym"`
+}
+
+// UserRequest is the body for POST /api/users.
+type UserRequest struct {
+	Username  string `json:"username" example:"alice"`
+	Name      string `json:"name,omitempty"`
+	Password  string `json:"password" example:"hunter22"`
+	Email     string `json:"email,omitempty"`
+	IsCoach   bool   `json:"is_coach,omitempty"`
+	IsAdmin   bool   `json:"is_admin,omitempty"`
+	AthleteID *int64 `json:"athlete_id,omitempty"`
+}
+
+// UserUpdateRequest is the body for PUT /api/users/{userID}.
+type UserUpdateRequest struct {
+	Username  string `json:"username" example:"alice"`
+	Name      string `json:"name,omitempty"`
+	Email     string `json:"email,omitempty"`
+	Password  string `json:"password,omitempty"`
+	IsCoach   bool   `json:"is_coach,omitempty"`
+	IsAdmin   bool   `json:"is_admin,omitempty"`
+	AthleteID *int64 `json:"athlete_id,omitempty"`
+}
+
+// NotificationPreferenceRequest is the body for PUT /api/notifications/preferences.
+type NotificationPreferenceRequest struct {
+	Type     string `json:"type" example:"workout_review"`
+	InApp    bool   `json:"in_app"`
+	External bool   `json:"external"`
+}
+
+// GenerateRequest is the body for POST /api/athletes/{id}/generate.
+type GenerateRequest struct {
+	ProgramName     string   `json:"program_name" example:"Sport Performance Block 4"`
+	NumDays         int      `json:"num_days" example:"4"`
+	NumWeeks        int      `json:"num_weeks" example:"3"`
+	IsLoop          bool     `json:"is_loop,omitempty"`
+	CoachDirections string   `json:"coach_directions,omitempty"`
+	FocusAreas      []string `json:"focus_areas,omitempty"`
+	ReferenceIDs    []int64  `json:"reference_ids,omitempty"`
+}
+
+// ImportExecuteRequest is the body for POST /api/athletes/{id}/import/execute.
+type ImportExecuteRequest struct {
+	Exercises []ImportMappingDecision `json:"exercises"`
+}
+
+// ImportMappingDecision is one mapping entry in an ImportExecuteRequest.
+type ImportMappingDecision struct {
+	Name     string `json:"name"`
+	MappedID int64  `json:"mapped_id"`
+	Create   bool   `json:"create"`
+}
+
+// CatalogImportExecuteRequest is the body for POST /api/catalog/import/execute.
+type CatalogImportExecuteRequest struct {
+	Exercises []CatalogImportMappingDecision `json:"exercises,omitempty"`
+}
+
+// CatalogImportMappingDecision is one mapping entry in a CatalogImportExecuteRequest.
+type CatalogImportMappingDecision struct {
+	MappedID int64 `json:"mapped_id"`
+	Create   bool  `json:"create"`
+}

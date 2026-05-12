@@ -157,6 +157,16 @@ func (h *Handlers) DeleteAthlete(w http.ResponseWriter, r *http.Request) {
 // --- Exercises CRUD ---
 
 // CreateExercise creates a new exercise. Coach or admin only.
+//
+//	@Summary      Create exercise
+//	@Tags         Exercises
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.ExerciseRequest  true  "Exercise"
+//	@Success      201  {object}  api.Exercise
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /exercises [post]
 func (h *Handlers) CreateExercise(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -164,14 +174,7 @@ func (h *Handlers) CreateExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Name        string `json:"name"`
-		Tier        string `json:"tier"`
-		FormNotes   string `json:"form_notes"`
-		DemoURL     string `json:"demo_url"`
-		RestSeconds int    `json:"rest_seconds"`
-		Featured    bool   `json:"featured"`
-	}
+	var req ExerciseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -192,6 +195,18 @@ func (h *Handlers) CreateExercise(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateExercise updates an exercise. Coach or admin only.
+//
+//	@Summary      Update exercise
+//	@Tags         Exercises
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                  true  "Exercise ID"
+//	@Param        body  body      api.ExerciseRequest  true  "Exercise"
+//	@Success      200  {object}  api.Exercise
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /exercises/{id} [put]
 func (h *Handlers) UpdateExercise(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -205,14 +220,7 @@ func (h *Handlers) UpdateExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Name        string `json:"name"`
-		Tier        string `json:"tier"`
-		FormNotes   string `json:"form_notes"`
-		DemoURL     string `json:"demo_url"`
-		RestSeconds int    `json:"rest_seconds"`
-		Featured    bool   `json:"featured"`
-	}
+	var req ExerciseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -237,6 +245,15 @@ func (h *Handlers) UpdateExercise(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteExercise deletes an exercise. Coach or admin only.
+//
+//	@Summary      Delete exercise
+//	@Tags         Exercises
+//	@Produce      json
+//	@Param        id   path      int  true  "Exercise ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /exercises/{id} [delete]
 func (h *Handlers) DeleteExercise(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -262,14 +279,20 @@ func (h *Handlers) DeleteExercise(w http.ResponseWriter, r *http.Request) {
 // --- Preferences ---
 
 // UpdatePreferences updates the authenticated user's preferences.
+//
+//	@Summary      Update preferences
+//	@Tags         Preferences
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.PreferencesRequest  true  "Preferences"
+//	@Success      200  {object}  api.UserPreferences
+//	@Failure      400  {object}  api.APIError
+//	@Failure      401  {object}  api.APIError
+//	@Router       /preferences [put]
 func (h *Handlers) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
-	var req struct {
-		WeightUnit string `json:"weight_unit"`
-		Timezone   string `json:"timezone"`
-		DateFormat string `json:"date_format"`
-	}
+	var req PreferencesRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return

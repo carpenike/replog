@@ -15,6 +15,16 @@ import (
 // --- Body Weights ---
 
 // ListBodyWeights returns paginated body weight entries.
+//
+//	@Summary      List body weights
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id      path      int  true   "Athlete ID"
+//	@Param        offset  query     int  false  "Pagination offset"
+//	@Success      200  {object}  api.BodyWeightPage
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/body-weights [get]
 func (h *Handlers) ListBodyWeights(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -43,6 +53,17 @@ func (h *Handlers) ListBodyWeights(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateBodyWeight creates a new body weight entry.
+//
+//	@Summary      Log body weight
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                    true  "Athlete ID"
+//	@Param        body  body      api.BodyWeightRequest  true  "Entry"
+//	@Success      201  {object}  api.BodyWeight
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/body-weights [post]
 func (h *Handlers) CreateBodyWeight(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -55,11 +76,7 @@ func (h *Handlers) CreateBodyWeight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Date   string  `json:"date"`
-		Weight float64 `json:"weight"`
-		Notes  string  `json:"notes"`
-	}
+	var req BodyWeightRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -80,6 +97,16 @@ func (h *Handlers) CreateBodyWeight(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteBodyWeight deletes a body weight entry.
+//
+//	@Summary      Delete body weight
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id    path      int  true  "Athlete ID"
+//	@Param        bwID  path      int  true  "Body weight entry ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/body-weights/{bwID} [delete]
 func (h *Handlers) DeleteBodyWeight(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -110,6 +137,15 @@ func (h *Handlers) DeleteBodyWeight(w http.ResponseWriter, r *http.Request) {
 // --- Training Maxes ---
 
 // ListTrainingMaxes returns current training maxes for an athlete.
+//
+//	@Summary      List current training maxes
+//	@Tags         TrainingMaxes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {array}   api.TrainingMax
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/training-maxes [get]
 func (h *Handlers) ListTrainingMaxes(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -137,6 +173,16 @@ func (h *Handlers) ListTrainingMaxes(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetTrainingMaxHistory returns TM history for an athlete+exercise.
+//
+//	@Summary      Get training max history
+//	@Tags         TrainingMaxes
+//	@Produce      json
+//	@Param        id          path      int  true  "Athlete ID"
+//	@Param        exerciseID  path      int  true  "Exercise ID"
+//	@Success      200  {array}   api.TrainingMax
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/exercises/{exerciseID}/training-maxes [get]
 func (h *Handlers) GetTrainingMaxHistory(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

@@ -13,6 +13,17 @@ import (
 )
 
 // GetWorkout returns a workout with its sets grouped by exercise.
+//
+//	@Summary      Get workout
+//	@Tags         Workouts
+//	@Produce      json
+//	@Param        id         path      int  true  "Athlete ID"
+//	@Param        workoutID  path      int  true  "Workout ID"
+//	@Success      200  {object}  map[string]interface{}  "workout + sets grouped by exercise"
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts/{workoutID} [get]
 func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -69,6 +80,18 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateWorkout creates a new workout for an athlete.
+//
+//	@Summary      Create workout
+//	@Description  One workout per athlete per day (UNIQUE constraint). Date defaults to today if omitted.
+//	@Tags         Workouts
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                 true  "Athlete ID"
+//	@Param        body  body      api.WorkoutRequest  true  "Workout"
+//	@Success      201  {object}  api.Workout
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts [post]
 func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -81,10 +104,7 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Date  string `json:"date"`
-		Notes string `json:"notes"`
-	}
+	var req WorkoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -104,6 +124,16 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteWorkout deletes a workout.
+//
+//	@Summary      Delete workout
+//	@Tags         Workouts
+//	@Produce      json
+//	@Param        id         path      int  true  "Athlete ID"
+//	@Param        workoutID  path      int  true  "Workout ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts/{workoutID} [delete]
 func (h *Handlers) DeleteWorkout(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -132,6 +162,19 @@ func (h *Handlers) DeleteWorkout(w http.ResponseWriter, r *http.Request) {
 }
 
 // AddWorkoutSet adds a set to a workout.
+//
+//	@Summary      Add set to workout
+//	@Description  rep_type defaults to 'reps' and category to 'main' when omitted; both are CHECK-constrained in the schema.
+//	@Tags         Workouts
+//	@Accept       json
+//	@Produce      json
+//	@Param        id         path      int                    true  "Athlete ID"
+//	@Param        workoutID  path      int                    true  "Workout ID"
+//	@Param        body       body      api.WorkoutSetRequest  true  "Set"
+//	@Success      201  {object}  api.WorkoutSet
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts/{workoutID}/sets [post]
 func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -150,15 +193,7 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		ExerciseID int64   `json:"exercise_id"`
-		Reps       int     `json:"reps"`
-		Weight     float64 `json:"weight"`
-		RPE        float64 `json:"rpe"`
-		RepType    string  `json:"rep_type"`
-		Category   string  `json:"category"`
-		Notes      string  `json:"notes"`
-	}
+	var req WorkoutSetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -188,6 +223,20 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateWorkoutSet updates a set.
+//
+//	@Summary      Update set
+//	@Tags         Workouts
+//	@Accept       json
+//	@Produce      json
+//	@Param        id         path      int                          true  "Athlete ID"
+//	@Param        workoutID  path      int                          true  "Workout ID"
+//	@Param        setID      path      int                          true  "Set ID"
+//	@Param        body       body      api.WorkoutSetUpdateRequest  true  "Set"
+//	@Success      200  {object}  api.WorkoutSet
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts/{workoutID}/sets/{setID} [put]
 func (h *Handlers) UpdateWorkoutSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -206,12 +255,7 @@ func (h *Handlers) UpdateWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Reps   int     `json:"reps"`
-		Weight float64 `json:"weight"`
-		RPE    float64 `json:"rpe"`
-		Notes  string  `json:"notes"`
-	}
+	var req WorkoutSetUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -232,6 +276,17 @@ func (h *Handlers) UpdateWorkoutSet(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteWorkoutSet deletes a set.
+//
+//	@Summary      Delete set
+//	@Tags         Workouts
+//	@Produce      json
+//	@Param        id         path      int  true  "Athlete ID"
+//	@Param        workoutID  path      int  true  "Workout ID"
+//	@Param        setID      path      int  true  "Set ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts/{workoutID}/sets/{setID} [delete]
 func (h *Handlers) DeleteWorkoutSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

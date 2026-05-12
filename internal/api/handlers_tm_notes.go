@@ -11,6 +11,17 @@ import (
 )
 
 // CreateTrainingMax sets a new training max for an athlete+exercise.
+//
+//	@Summary      Set training max
+//	@Tags         TrainingMaxes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                     true  "Athlete ID"
+//	@Param        body  body      api.TrainingMaxRequest  true  "TM"
+//	@Success      201  {object}  api.TrainingMax
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/training-maxes [post]
 func (h *Handlers) CreateTrainingMax(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -23,12 +34,7 @@ func (h *Handlers) CreateTrainingMax(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		ExerciseID    int64   `json:"exercise_id"`
-		Weight        float64 `json:"weight"`
-		EffectiveDate string  `json:"effective_date"`
-		Notes         string  `json:"notes"`
-	}
+	var req TrainingMaxRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -49,6 +55,18 @@ func (h *Handlers) CreateTrainingMax(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateWorkoutNotes updates the notes on a workout.
+//
+//	@Summary      Update workout notes
+//	@Tags         Workouts
+//	@Accept       json
+//	@Produce      json
+//	@Param        id         path      int                       true  "Athlete ID"
+//	@Param        workoutID  path      int                       true  "Workout ID"
+//	@Param        body       body      api.WorkoutNotesRequest   true  "Notes"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts/{workoutID}/notes [put]
 func (h *Handlers) UpdateWorkoutNotes(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -67,9 +85,7 @@ func (h *Handlers) UpdateWorkoutNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Notes string `json:"notes"`
-	}
+	var req WorkoutNotesRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return

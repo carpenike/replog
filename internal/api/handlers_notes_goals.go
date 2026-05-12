@@ -93,6 +93,17 @@ func (h *Handlers) UpdateAthleteGoal(w http.ResponseWriter, r *http.Request) {
 // --- Exercise History ---
 
 // ListExerciseHistory returns paginated exercise history for an athlete.
+//
+//	@Summary      Exercise history for athlete
+//	@Tags         Exercises
+//	@Produce      json
+//	@Param        id          path      int  true   "Athlete ID"
+//	@Param        exerciseID  path      int  true   "Exercise ID"
+//	@Param        offset      query     int  false  "Pagination offset"
+//	@Success      200  {object}  api.ExerciseHistoryPage
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/exercises/{exerciseID}/history [get]
 func (h *Handlers) ListExerciseHistory(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

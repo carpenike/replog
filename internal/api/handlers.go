@@ -288,6 +288,14 @@ func (h *Handlers) GetAthlete(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListExercises returns the exercise catalog.
+//
+//	@Summary      List exercises
+//	@Tags         Exercises
+//	@Produce      json
+//	@Param        tier  query     string  false  "Filter by tier (foundational, intermediate, sport_performance)"
+//	@Success      200   {array}   api.Exercise
+//	@Failure      401   {object}  api.APIError
+//	@Router       /exercises [get]
 func (h *Handlers) ListExercises(w http.ResponseWriter, r *http.Request) {
 	tierFilter := r.URL.Query().Get("tier")
 
@@ -306,6 +314,15 @@ func (h *Handlers) ListExercises(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetExercise returns a single exercise by ID.
+//
+//	@Summary      Get exercise
+//	@Tags         Exercises
+//	@Produce      json
+//	@Param        id   path      int  true  "Exercise ID"
+//	@Success      200  {object}  api.Exercise
+//	@Failure      400  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /exercises/{id} [get]
 func (h *Handlers) GetExercise(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -328,6 +345,16 @@ func (h *Handlers) GetExercise(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListWorkouts returns paginated workouts for an athlete.
+//
+//	@Summary      List workouts
+//	@Tags         Workouts
+//	@Produce      json
+//	@Param        id      path      int  true   "Athlete ID"
+//	@Param        offset  query     int  false  "Pagination offset"
+//	@Success      200  {object}  api.WorkoutPage
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts [get]
 func (h *Handlers) ListWorkouts(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -357,6 +384,13 @@ func (h *Handlers) ListWorkouts(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetPreferences returns the authenticated user's preferences.
+//
+//	@Summary      Get preferences
+//	@Tags         Preferences
+//	@Produce      json
+//	@Success      200  {object}  api.UserPreferences
+//	@Failure      401  {object}  api.APIError
+//	@Router       /preferences [get]
 func (h *Handlers) GetPreferences(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	prefs, err := models.GetUserPreferences(h.DB, user.ID)
