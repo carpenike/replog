@@ -15,6 +15,16 @@ import (
 // --- Athletes CRUD ---
 
 // CreateAthlete creates a new athlete. Coach or admin only.
+//
+//	@Summary      Create athlete
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.AthleteRequest  true  "Athlete"
+//	@Success      201  {object}  api.Athlete
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes [post]
 func (h *Handlers) CreateAthlete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -22,16 +32,7 @@ func (h *Handlers) CreateAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Name            string `json:"name"`
-		Tier            string `json:"tier"`
-		Notes           string `json:"notes"`
-		Goal            string `json:"goal"`
-		DateOfBirth     string `json:"date_of_birth"`
-		Grade           string `json:"grade"`
-		Gender          string `json:"gender"`
-		TrackBodyWeight bool   `json:"track_body_weight"`
-	}
+	var req AthleteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -53,6 +54,18 @@ func (h *Handlers) CreateAthlete(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateAthlete updates an athlete. Coach or admin only.
+//
+//	@Summary      Update athlete
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                 true  "Athlete ID"
+//	@Param        body  body      api.AthleteRequest  true  "Athlete"
+//	@Success      200  {object}  api.Athlete
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id} [put]
 func (h *Handlers) UpdateAthlete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -77,16 +90,7 @@ func (h *Handlers) UpdateAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Name            string `json:"name"`
-		Tier            string `json:"tier"`
-		Notes           string `json:"notes"`
-		Goal            string `json:"goal"`
-		DateOfBirth     string `json:"date_of_birth"`
-		Grade           string `json:"grade"`
-		Gender          string `json:"gender"`
-		TrackBodyWeight bool   `json:"track_body_weight"`
-	}
+	var req AthleteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -107,6 +111,16 @@ func (h *Handlers) UpdateAthlete(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteAthlete deletes an athlete. Coach or admin only.
+//
+//	@Summary      Delete athlete
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id} [delete]
 func (h *Handlers) DeleteAthlete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -137,7 +151,7 @@ func (h *Handlers) DeleteAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	WriteJSON(w, http.StatusOK, StatusResponse{Status: "ok"})
 }
 
 // --- Exercises CRUD ---

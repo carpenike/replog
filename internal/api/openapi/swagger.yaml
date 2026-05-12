@@ -1,0 +1,441 @@
+basePath: /api
+definitions:
+  api.APIError:
+    properties:
+      code:
+        type: integer
+      details:
+        additionalProperties:
+          type: string
+        type: object
+      error:
+        type: string
+    type: object
+  api.Athlete:
+    properties:
+      avatar_url:
+        type: string
+      coach_id:
+        type: integer
+      created_at:
+        type: string
+      date_of_birth:
+        type: string
+      gender:
+        type: string
+      goal:
+        type: string
+      grade:
+        type: string
+      id:
+        type: integer
+      linked_user_id:
+        type: integer
+      name:
+        type: string
+      notes:
+        type: string
+      tier:
+        type: string
+      track_body_weight:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  api.AthleteCard:
+    properties:
+      active_assignments:
+        type: integer
+      avatar_url:
+        type: string
+      bw_trend:
+        type: string
+      id:
+        type: integer
+      last_workout_date:
+        type: string
+      name:
+        type: string
+      tier:
+        type: string
+      track_body_weight:
+        type: boolean
+      week_streak:
+        type: integer
+    type: object
+  api.AthleteRequest:
+    properties:
+      date_of_birth:
+        example: "2014-05-12"
+        type: string
+      gender:
+        example: M
+        type: string
+      goal:
+        type: string
+      grade:
+        example: 6th
+        type: string
+      name:
+        example: Charlie
+        type: string
+      notes:
+        type: string
+      tier:
+        example: foundational
+        type: string
+      track_body_weight:
+        type: boolean
+    type: object
+  api.DashboardResponse:
+    properties:
+      athletes:
+        items:
+          $ref: '#/definitions/api.AthleteCard'
+        type: array
+      review_stats:
+        $ref: '#/definitions/api.ReviewStats'
+      stats:
+        $ref: '#/definitions/api.DashboardStats'
+    type: object
+  api.DashboardStats:
+    properties:
+      consecutive_weeks:
+        type: integer
+      total_athletes:
+        type: integer
+      trained_this_week:
+        type: integer
+      week_sessions:
+        type: integer
+      week_volume:
+        type: number
+    type: object
+  api.LoginRequest:
+    properties:
+      password:
+        example: hunter2
+        type: string
+      username:
+        example: admin
+        type: string
+    type: object
+  api.ReviewStats:
+    properties:
+      approved_count:
+        type: integer
+      needs_work:
+        type: integer
+      pending_count:
+        type: integer
+    type: object
+  api.StatusResponse:
+    properties:
+      status:
+        example: ok
+        type: string
+    type: object
+  api.User:
+    properties:
+      athlete_id:
+        type: integer
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      impersonating:
+        type: boolean
+      is_admin:
+        type: boolean
+      is_coach:
+        type: boolean
+      name:
+        type: string
+      real_user_id:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: |-
+    REST API for the RepLog workout tracking application.
+
+    Authentication uses session cookies issued by `POST /api/login`
+    (or the WebAuthn / token-login endpoints). Cookies are
+    `HttpOnly`, `SameSite=Lax`, and (in production) `Secure`.
+    The browser sends them automatically on subsequent requests.
+  title: RepLog API
+  version: 1.0.0
+paths:
+  /athletes:
+    get:
+      description: |-
+        Returns athlete cards visible to the caller (admins see all,
+        coaches see only athletes they own).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.AthleteCard'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List athletes
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AthleteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.Athlete'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create athlete
+      tags:
+      - Athletes
+  /athletes/{id}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete athlete
+      tags:
+      - Athletes
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Athlete'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Get athlete
+      tags:
+      - Athletes
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Athlete
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AthleteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Athlete'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update athlete
+      tags:
+      - Athletes
+  /dashboard:
+    get:
+      description: Returns athlete cards plus aggregated stats (only available to
+        coaches/admins).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.DashboardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Dashboard data
+      tags:
+      - Dashboard
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Authenticates a user, renews the session token to prevent
+        fixation, and sets a `HttpOnly`, `SameSite=Lax` session cookie.
+        Subsequent requests in the same browser are authenticated
+        automatically.
+      parameters:
+      - description: Credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.User'
+        "400":
+          description: missing or malformed credentials
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "401":
+          description: invalid username or password
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: account uses passwordless login
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Log in with username and password
+      tags:
+      - Auth
+  /logout:
+    post:
+      description: Destroys the current session. Subsequent requests will be unauthenticated.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+      summary: Log out
+      tags:
+      - Auth
+  /me:
+    get:
+      description: |-
+        Returns the user associated with the current session, including
+        whether they are currently impersonating another user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Get current user
+      tags:
+      - Auth
+swagger: "2.0"
+tags:
+- description: Login, logout, current user, token / passkey ceremonies
+  name: Auth
+- description: Aggregated home-page stats
+  name: Dashboard
+- description: Athlete CRUD, journals, prescriptions, programs, accessories
+  name: Athletes
+- description: Workout and set logging
+  name: Workouts
+- description: Exercise catalog and per-athlete history
+  name: Exercises
+- description: Program template CRUD, prescribed sets, progression rules
+  name: Programs
+- description: Training max history per athlete + exercise
+  name: TrainingMaxes
+- description: Equipment catalog and per-athlete / per-exercise links
+  name: Equipment
+- description: Coach review of logged workouts
+  name: Reviews
+- description: User notifications and preferences
+  name: Notifications
+- description: Per-user preferences (theme, units, etc.)
+  name: Preferences
+- description: User avatar upload
+  name: Avatars
+- description: WebAuthn passkey credential management
+  name: Passkeys
+- description: User management (admin only)
+  name: Users
+- description: Admin-only impersonation, settings, and catalog import/export
+  name: Admin

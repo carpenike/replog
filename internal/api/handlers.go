@@ -29,6 +29,15 @@ type Handlers struct {
 }
 
 // Me returns the currently authenticated user.
+//
+//	@Summary      Get current user
+//	@Description  Returns the user associated with the current session, including
+//	@Description  whether they are currently impersonating another user.
+//	@Tags         Auth
+//	@Produce      json
+//	@Success      200  {object}  api.User
+//	@Failure      401  {object}  api.APIError
+//	@Router       /me [get]
 func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if user == nil {
@@ -48,11 +57,23 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 }
 
 // Login authenticates a user and creates a session.
+//
+//	@Summary      Log in with username and password
+//	@Description  Authenticates a user, renews the session token to prevent
+//	@Description  fixation, and sets a `HttpOnly`, `SameSite=Lax` session cookie.
+//	@Description  Subsequent requests in the same browser are authenticated
+//	@Description  automatically.
+//	@Tags         Auth
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.LoginRequest  true  "Credentials"
+//	@Success      200  {object}  api.User
+//	@Failure      400  {object}  api.APIError  "missing or malformed credentials"
+//	@Failure      401  {object}  api.APIError  "invalid username or password"
+//	@Failure      403  {object}  api.APIError  "account uses passwordless login"
+//	@Router       /login [post]
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -88,14 +109,29 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // Logout destroys the session.
+//
+//	@Summary      Log out
+//	@Description  Destroys the current session. Subsequent requests will be unauthenticated.
+//	@Tags         Auth
+//	@Produce      json
+//	@Success      200  {object}  api.StatusResponse
+//	@Router       /logout [post]
 func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.Sessions.Destroy(r.Context()); err != nil {
 		log.Printf("api: session destroy error: %v", err)
 	}
-	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	WriteJSON(w, http.StatusOK, StatusResponse{Status: "ok"})
 }
 
 // Dashboard returns aggregated stats for the home page.
+//
+//	@Summary      Dashboard data
+//	@Description  Returns athlete cards plus aggregated stats (only available to coaches/admins).
+//	@Tags         Dashboard
+//	@Produce      json
+//	@Success      200  {object}  api.DashboardResponse
+//	@Failure      401  {object}  api.APIError
+//	@Router       /dashboard [get]
 func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
@@ -144,6 +180,15 @@ func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListAthletes returns athlete cards for the authenticated user.
+//
+//	@Summary      List athletes
+//	@Description  Returns athlete cards visible to the caller (admins see all,
+//	@Description  coaches see only athletes they own).
+//	@Tags         Athletes
+//	@Produce      json
+//	@Success      200  {array}   api.AthleteCard
+//	@Failure      401  {object}  api.APIError
+//	@Router       /athletes [get]
 func (h *Handlers) ListAthletes(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	coachFilter := middleware.CoachAthleteFilter(user)
@@ -163,6 +208,16 @@ func (h *Handlers) ListAthletes(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAthlete returns a single athlete by ID.
+//
+//	@Summary      Get athlete
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {object}  api.Athlete
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id} [get]
 func (h *Handlers) GetAthlete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

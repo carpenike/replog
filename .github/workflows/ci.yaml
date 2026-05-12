@@ -62,3 +62,37 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.6.2
+
+  openapi:
+    name: OpenAPI spec is up to date
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install swag
+        run: go install github.com/swaggo/swag/cmd/swag@v1.16.6
+
+      - name: Regenerate spec
+        run: |
+          swag init \
+            --generalInfo swag.go \
+            --dir ./internal/api \
+            --output ./internal/api/openapi \
+            --outputTypes yaml \
+            --parseInternal \
+            --parseDependency
+
+      - name: Verify spec is committed
+        run: |
+          if ! git diff --exit-code -- internal/api/openapi/swagger.yaml; then
+            echo ""
+            echo "::error::OpenAPI spec is stale. Run 'just openapi' locally and commit the result."
+            exit 1
+          fi

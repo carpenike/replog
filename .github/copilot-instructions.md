@@ -69,7 +69,8 @@ docs/
   data-model.md               # Schema source of truth (27 tables, DDL, ERD)
   requirements.md             # v1.0 user stories and acceptance criteria
   ui-design.md                # Design system and component patterns
-  openapi.yaml                # OpenAPI 3.0 spec for the REST API (also at /api/docs)
+  openapi/                  # Generated OpenAPI spec (do not edit by hand)
+    swagger.yaml            # Run `just openapi` to regenerate from swag annotations
   seed-catalog.md             # Exercise seed data format
   adr/                        # Architecture decision records (11 ADRs)
 
@@ -137,7 +138,9 @@ Key patterns:
 - Follow React 19 rules: don't `setState` inside `useEffect` for derivable values; initialize state from props in `useState(initializer)`
 
 ### API contract
-- The OpenAPI spec at `docs/openapi.yaml` (served at `/api/docs`) is updated as endpoints change
+- The OpenAPI spec at `internal/api/openapi/swagger.yaml` is **generated** by [swaggo/swag](https://github.com/swaggo/swag) from annotations on each handler. Run `just openapi` after adding/changing a route or DTO. CI fails if the committed spec is stale.
+- The spec is served at `/api/docs` (Swagger UI) and `/api/docs/openapi.yaml`.
+- When adding a new handler, copy the annotation block from a similar handler in `internal/api/handlers.go` (Login, Me, Dashboard, ListAthletes are good templates).
 - Auth uses session cookies (SameSite=Lax) — no JWT, no Authorization header
 - Same-origin in production (SPA served from the Go binary); CORS enabled in dev for the Vite dev server
 
@@ -199,6 +202,6 @@ When ending a work session, complete ALL steps. Work is NOT complete until `git 
 - `docs/data-model.md` — complete schema, ERD, DDL, seed data, operational notes
 - `docs/requirements.md` — all v1.0 user stories with acceptance criteria
 - `docs/ui-design.md` — design system and component patterns
-- `docs/openapi.yaml` — OpenAPI 3.0 spec for the REST API (also at `/api/docs`)
+- `internal/api/openapi/swagger.yaml` — generated OpenAPI spec for the REST API (also at `/api/docs`); regenerate with `just openapi`
 - `docs/seed-catalog.md` — exercise seed data format
 - `docs/adr/` — architecture decision records (10 ADRs)

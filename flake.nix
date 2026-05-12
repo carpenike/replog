@@ -117,6 +117,7 @@
             go
             gopls
             gotools
+            go-swag
             goreleaser
             sqlite
             nodejs_22

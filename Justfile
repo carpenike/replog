@@ -69,7 +69,31 @@ build:
     @echo "→ Built ./replog ($(du -h replog | cut -f1))"
 
 # Quality gates: vet + lint + test + build (matches CI).
-qa: lint test build
+qa: openapi-check lint test build
+
+# --- OpenAPI ---
+
+# Regenerate internal/api/openapi/swagger.yaml from handler annotations.
+# Run after adding/changing routes or DTOs. The generated spec is committed.
+openapi:
+    swag init \
+        --generalInfo swag.go \
+        --dir ./internal/api \
+        --output ./internal/api/openapi \
+        --outputTypes yaml \
+        --parseInternal \
+        --parseDependency
+    @echo "→ Regenerated internal/api/openapi/swagger.yaml"
+
+# Verify the committed spec matches what swag would generate now (used by CI).
+openapi-check:
+    @just openapi >/dev/null
+    @if ! git diff --exit-code -- internal/api/openapi/swagger.yaml; then \
+        echo ""; \
+        echo "❌ OpenAPI spec is stale. Run 'just openapi' and commit the result."; \
+        exit 1; \
+    fi
+    @echo "→ OpenAPI spec is up to date"
 
 # --- Database ---
 
