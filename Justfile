@@ -1,0 +1,110 @@
+# RepLog dev commands. Run `just` (or `just -l`) to see everything.
+#
+# Requires: just, go, node, npm. All are provided by the Nix devShell
+# (`nix develop` or `direnv allow`).
+
+set shell := ["bash", "-cu"]
+
+# Default REPLOG_* env so subcommands behave the same as the VS Code Run Server task.
+export REPLOG_ADDR              := env_var_or_default("REPLOG_ADDR", ":8080")
+export REPLOG_DB_PATH           := env_var_or_default("REPLOG_DB_PATH", "./dev.db")
+export REPLOG_AVATAR_DIR        := env_var_or_default("REPLOG_AVATAR_DIR", "./avatars")
+export REPLOG_ADMIN_USER        := env_var_or_default("REPLOG_ADMIN_USER", "admin")
+export REPLOG_ADMIN_PASS        := env_var_or_default("REPLOG_ADMIN_PASS", "admin")
+export REPLOG_ADMIN_EMAIL       := env_var_or_default("REPLOG_ADMIN_EMAIL", "admin@localhost")
+export REPLOG_SECRET_KEY        := env_var_or_default("REPLOG_SECRET_KEY", "dev-only-secret-key-not-for-prod!")
+export REPLOG_WEBAUTHN_RPID     := env_var_or_default("REPLOG_WEBAUTHN_RPID", "localhost")
+export REPLOG_WEBAUTHN_ORIGINS  := env_var_or_default("REPLOG_WEBAUTHN_ORIGINS", "http://localhost:5173,http://localhost:8080")
+
+# List available recipes.
+default:
+    @just --list
+
+# --- Setup ---
+
+# Install frontend dependencies (idempotent; safe to re-run).
+install:
+    cd web && npm install
+
+# --- Day-to-day dev ---
+
+# Run backend + frontend together. Open http://localhost:5173 (login: admin/admin).
+dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ ! -d web/node_modules ]]; then
+        echo "→ web/node_modules missing, running 'just install' first..."
+        just install
+    fi
+    echo "→ Starting backend on :8080 and Vite on :5173"
+    echo "→ Open http://localhost:5173 (login: admin / admin)"
+    trap 'kill 0' EXIT
+    go run ./cmd/replog &
+    cd web && npm run dev &
+    wait
+
+# Run only the Go backend (no frontend hot-reload). SPA served from web/dist if built.
+dev-backend:
+    go run ./cmd/replog
+
+# Run only the Vite dev server.
+dev-frontend:
+    cd web && npm run dev
+
+# --- Quality gates ---
+
+# Run go vet + frontend lint.
+lint:
+    go vet ./...
+    cd web && npm run lint
+
+# Run all Go tests.
+test:
+    go test -count=1 ./...
+
+# Build everything: frontend bundle + Go binary with embedded SPA.
+build:
+    cd web && npm run build
+    go build -o replog ./cmd/replog
+    @echo "→ Built ./replog ($(du -h replog | cut -f1))"
+
+# Quality gates: vet + lint + test + build (matches CI).
+qa: lint test build
+
+# --- Database ---
+
+# Wipe the dev database (ADR 002: pre-prod we mutate 0001_*.sql in place).
+db-reset:
+    rm -f dev.db dev.db-wal dev.db-shm
+    @echo "→ dev.db wiped. Next 'just dev' will re-bootstrap admin and seed catalog."
+
+# Open a sqlite3 shell on the dev database.
+db-shell:
+    sqlite3 dev.db
+
+# Back up the dev database safely (uses sqlite .backup, not cp — WAL-safe).
+db-backup OUT="dev.db.bak":
+    sqlite3 dev.db ".backup '{{OUT}}'"
+    @echo "→ Backup written to {{OUT}}"
+
+# --- Release-ish ---
+
+# Build the binary the way Nix does (frontend first, then go build).
+build-release:
+    cd web && npm ci && npm run build
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o replog ./cmd/replog
+    @echo "→ Built ./replog ($(du -h replog | cut -f1))"
+
+# Build via Nix flake.
+build-nix:
+    nix build
+
+# --- Maintenance ---
+
+# Update Go dependencies.
+go-tidy:
+    go mod tidy
+
+# Audit npm packages for vulnerabilities.
+npm-audit:
+    cd web && npm audit

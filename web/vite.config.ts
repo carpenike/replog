@@ -12,16 +12,13 @@ export default defineConfig({
     },
   },
   server: {
-    // Proxy API requests to the Go backend during development.
+    // Proxy backend requests to the Go binary during development.
+    // Auth, API, and avatar requests all go to :8080.
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         timeout: 300000, // 5 minutes for LLM generation
-      },
-      '/auth': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
       },
       '/avatars': {
         target: 'http://localhost:8080',

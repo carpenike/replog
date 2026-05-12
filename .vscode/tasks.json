@@ -69,14 +69,15 @@
                     "REPLOG_ADMIN_EMAIL": "admin@localhost",
                     "REPLOG_SECRET_KEY": "dev-only-secret-key-not-for-prod!",
                     "REPLOG_WEBAUTHN_RPID": "localhost",
-                    "REPLOG_WEBAUTHN_ORIGINS": "http://localhost:8080"
+                    "REPLOG_WEBAUTHN_ORIGINS": "http://localhost:5173,http://localhost:8080"
                 }
             },
             "isBackground": true,
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
-                "panel": "dedicated"
+                "panel": "dedicated",
+                "group": "dev"
             }
         },
         {
@@ -91,6 +92,16 @@
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated",
+                "group": "dev"
+            }
+        },
+        {
+            "label": "Dev (server + frontend)",
+            "dependsOn": ["Run Server", "Vite Dev Server"],
+            "dependsOrder": "parallel",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
                 "group": "dev"
             }
         }

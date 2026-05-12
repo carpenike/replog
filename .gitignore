@@ -21,8 +21,13 @@ docs/references
 # Ignore avatars
 avatars/*
 
-# ignore env
+# ignore env (local overrides only — .env.example is committed)
 .env
+.env.local
+.envrc.local
+
+# direnv state
+.direnv/
 
 # Test/profiling artifacts
 coverage.out

@@ -120,6 +120,7 @@
             goreleaser
             sqlite
             nodejs_22
+            just
           ];
         };
       }

@@ -48,38 +48,80 @@ See [ADR 001](docs/adr/001-tech-stack.md) for the original Go/htmx rationale and
 
 ## Development
 
-```bash
-# Prerequisites: Go 1.25+, Node.js 22+, Nix (optional, for flake build)
+### Quick start (recommended)
 
-# Run backend (serves the embedded SPA from web/dist if built)
+The repo ships with a Nix flake devShell and a `Justfile`. With Nix and direnv:
+
+```bash
+git clone https://github.com/carpenike/replog
+cd replog
+direnv allow              # one-time: enters the flake devShell on every cd
+just dev                  # boots backend + frontend together
+```
+
+Then open **<http://localhost:5173>** and log in with **admin / admin**.
+
+What's running:
+- Vite dev server on `:5173` — the frontend, with hot-reload
+- Go backend on `:8080` — the JSON API, talking to a local SQLite file at `./dev.db`
+- Vite proxies `/api` and `/avatars` to the backend, so the browser sees a single origin
+
+On first launch the backend bootstraps the admin user and seeds the exercise catalog automatically. The dev DB lives at `./dev.db` (gitignored). Wipe it with `just db-reset` whenever you need a clean slate.
+
+### Without Nix / direnv
+
+You need Go 1.25+, Node.js 22+, and (optionally) [`just`](https://github.com/casey/just). Then:
+
+```bash
+just install              # cd web && npm install
+just dev                  # same as above
+```
+
+Or skip `just` entirely and run the two processes by hand:
+
+```bash
+# Terminal 1
+REPLOG_DB_PATH=./dev.db \
+REPLOG_ADMIN_USER=admin REPLOG_ADMIN_PASS=admin REPLOG_ADMIN_EMAIL=admin@localhost \
+REPLOG_WEBAUTHN_RPID=localhost \
+REPLOG_WEBAUTHN_ORIGINS=http://localhost:5173,http://localhost:8080 \
 go run ./cmd/replog
 
-# Run frontend dev server (proxies /api to backend)
+# Terminal 2
 cd web && npm install && npm run dev
-
-# Build everything
-cd web && npm run build && cd ..
-go build -o replog ./cmd/replog
-
-# Run tests
-go test ./...
-
-# Build with Nix
-nix build
 ```
 
-### Environment for Local Development
+### VS Code
+
+`.vscode/tasks.json` provides equivalent tasks:
+
+- **Dev (server + frontend)** — runs both processes together (preferred)
+- **Run Server** / **Vite Dev Server** — run them individually
+- **Quality Gates (build + vet + test)** — full backend QA
+- **Build**, **Test All**, **Test Current Package**, **Vet**
+
+### Common Justfile recipes
 
 ```bash
-export REPLOG_ADDR=":8080"
-export REPLOG_DB_PATH="./dev.db"
-export REPLOG_ADMIN_USER="admin"
-export REPLOG_ADMIN_PASS="admin"
-export REPLOG_ADMIN_EMAIL="admin@localhost"
-export REPLOG_SECRET_KEY="dev-only-secret-key-not-for-prod!"
-export REPLOG_WEBAUTHN_RPID="localhost"
-export REPLOG_WEBAUTHN_ORIGINS="http://localhost:8080"
+just                # list all recipes
+just dev            # run backend + frontend
+just build          # build frontend bundle + Go binary
+just test           # go test ./...
+just lint           # go vet + npm run lint
+just qa             # lint + test + build (matches CI)
+just db-reset       # wipe ./dev.db and rebootstrap on next run
+just db-shell       # open sqlite3 on ./dev.db
+just db-backup      # WAL-safe backup of ./dev.db
+just build-nix      # nix build
 ```
+
+### LLM API keys
+
+LLM provider keys (Anthropic, OpenAI) are **not** environment variables. Log in as admin, go to Settings, and configure them there. They're stored encrypted in the database using `REPLOG_SECRET_KEY` (auto-generated on first run if unset).
+
+### Custom env overrides
+
+For anything you don't want committed (a different port, a real LLM key for a personal smoke test, etc.), copy `.env.example` to `.env.local`. direnv loads it automatically; raw shell users can `source .env.local`.
 
 ## NixOS Deployment
 
