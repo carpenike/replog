@@ -148,6 +148,11 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/prescription", h.GetPrescription)
 			r.Post("/athletes/{id}/promote", h.PromoteAthlete)
 
+			r.Get("/athletes/{id}/assignments", h.ListAssignments)
+			r.Post("/athletes/{id}/assignments", h.AssignExercise)
+			r.Post("/athletes/{id}/assignments/{assignmentID}/deactivate", h.DeactivateAssignment)
+			r.Post("/athletes/{id}/assignments/reactivate", h.ReactivateAssignment)
+
 			r.Get("/users", h.ListUsers)
 			r.Post("/users", h.CreateUser)
 			r.Get("/users/{userID}", h.GetUser)
