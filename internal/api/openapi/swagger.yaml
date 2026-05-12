@@ -90,6 +90,12 @@ definitions:
       week_streak:
         type: integer
     type: object
+  api.AthleteEquipmentRequest:
+    properties:
+      equipment_id:
+        example: 5
+        type: integer
+    type: object
   api.AthleteExercise:
     properties:
       active:
@@ -284,6 +290,27 @@ definitions:
       week_volume:
         type: number
     type: object
+  api.Equipment:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  api.EquipmentRequest:
+    properties:
+      description:
+        type: string
+      name:
+        example: Squat Rack
+        type: string
+    type: object
   api.Exercise:
     properties:
       created_at:
@@ -312,6 +339,27 @@ definitions:
       exercise_name:
         type: string
       has_required:
+        type: boolean
+    type: object
+  api.ExerciseEquipment:
+    properties:
+      equipment_id:
+        type: integer
+      equipment_name:
+        type: string
+      exercise_id:
+        type: integer
+      id:
+        type: integer
+      optional:
+        type: boolean
+    type: object
+  api.ExerciseEquipmentRequest:
+    properties:
+      equipment_id:
+        example: 5
+        type: integer
+      optional:
         type: boolean
     type: object
   api.ExerciseHistoryDay:
@@ -376,6 +424,37 @@ definitions:
         type: string
       username:
         example: admin
+        type: string
+    type: object
+  api.Notification:
+    properties:
+      athlete_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      link:
+        type: string
+      message:
+        type: string
+      read:
+        type: boolean
+      title:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  api.NotificationPreferenceRequest:
+    properties:
+      external:
+        type: boolean
+      in_app:
+        type: boolean
+      type:
+        example: workout_review
         type: string
     type: object
   api.PreferencesRequest:
@@ -558,6 +637,14 @@ definitions:
       template_id:
         type: integer
     type: object
+  api.ReviewRequest:
+    properties:
+      notes:
+        type: string
+      status:
+        example: approved
+        type: string
+    type: object
   api.ReviewStats:
     properties:
       approved_count:
@@ -634,6 +721,21 @@ definitions:
       weight:
         example: 315
         type: number
+    type: object
+  api.UnreviewedWorkout:
+    properties:
+      athlete_id:
+        type: integer
+      athlete_name:
+        type: string
+      date:
+        type: string
+      notes:
+        type: string
+      set_count:
+        type: integer
+      workout_id:
+        type: integer
     type: object
   api.User:
     properties:
@@ -725,6 +827,25 @@ definitions:
         type: string
       notes:
         type: string
+    type: object
+  api.WorkoutReview:
+    properties:
+      coach_id:
+        type: integer
+      coach_username:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      notes:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+      workout_id:
+        type: integer
     type: object
   api.WorkoutSet:
     properties:
@@ -1272,6 +1393,98 @@ paths:
       summary: Apply TM bumps from cycle review
       tags:
       - TrainingMaxes
+  /athletes/{id}/equipment:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Equipment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List athlete's equipment
+      tags:
+      - Equipment
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Equipment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AthleteEquipmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Assign equipment to athlete
+      tags:
+      - Equipment
+  /athletes/{id}/equipment/{equipmentID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Equipment ID
+        in: path
+        name: equipmentID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Remove athlete's equipment
+      tags:
+      - Equipment
   /athletes/{id}/exercises/{exerciseID}/history:
     get:
       parameters:
@@ -1821,6 +2034,75 @@ paths:
       summary: Update workout notes
       tags:
       - Workouts
+  /athletes/{id}/workouts/{workoutID}/review:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete workout review
+      tags:
+      - Reviews
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Review
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.WorkoutReview'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Submit workout review
+      tags:
+      - Reviews
   /athletes/{id}/workouts/{workoutID}/sets:
     post:
       consumes:
@@ -1963,6 +2245,111 @@ paths:
       summary: Dashboard data
       tags:
       - Dashboard
+  /equipment:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Equipment'
+            type: array
+      summary: List equipment
+      tags:
+      - Equipment
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Equipment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.EquipmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.Equipment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create equipment
+      tags:
+      - Equipment
+  /equipment/{equipmentID}:
+    delete:
+      parameters:
+      - description: Equipment ID
+        in: path
+        name: equipmentID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete equipment
+      tags:
+      - Equipment
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Equipment ID
+        in: path
+        name: equipmentID
+        required: true
+        type: integer
+      - description: Equipment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.EquipmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Equipment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update equipment
+      tags:
+      - Equipment
   /exercises:
     get:
       parameters:
@@ -2102,6 +2489,94 @@ paths:
       summary: Update exercise
       tags:
       - Exercises
+  /exercises/{id}/equipment:
+    get:
+      parameters:
+      - description: Exercise ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.ExerciseEquipment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List exercise's equipment requirements
+      tags:
+      - Equipment
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Exercise ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Equipment link
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ExerciseEquipmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Add equipment requirement to exercise
+      tags:
+      - Equipment
+  /exercises/{id}/equipment/{equipmentID}:
+    delete:
+      parameters:
+      - description: Exercise ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Equipment ID
+        in: path
+        name: equipmentID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Remove equipment requirement from exercise
+      tags:
+      - Equipment
   /login:
     post:
       consumes:
@@ -2172,6 +2647,109 @@ paths:
       summary: Get current user
       tags:
       - Auth
+  /notifications:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Notification'
+            type: array
+      summary: List notifications
+      tags:
+      - Notifications
+  /notifications/{notificationID}/read:
+    post:
+      parameters:
+      - description: Notification ID
+        in: path
+        name: notificationID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Mark notification read
+      tags:
+      - Notifications
+  /notifications/count:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'e.g. {\"count\": 3}'
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+      summary: Unread notification count
+      tags:
+      - Notifications
+  /notifications/preferences:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: List notification preferences
+      tags:
+      - Notifications
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Preference
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.NotificationPreferenceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update notification preference for one type
+      tags:
+      - Notifications
+  /notifications/read-all:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'e.g. {\"marked\": 5}'
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+      summary: Mark all notifications read
+      tags:
+      - Notifications
   /preferences:
     get:
       produces:
@@ -2577,6 +3155,24 @@ paths:
       summary: Update prescribed set
       tags:
       - Programs
+  /reviews/pending:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.UnreviewedWorkout'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List unreviewed workouts
+      tags:
+      - Reviews
 swagger: "2.0"
 tags:
 - description: Login, logout, current user, token / passkey ceremonies

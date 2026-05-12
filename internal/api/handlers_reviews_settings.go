@@ -12,6 +12,13 @@ import (
 // --- Reviews (Coach Only) ---
 
 // ListPendingReviews returns workouts that need coach review.
+//
+//	@Summary      List unreviewed workouts
+//	@Tags         Reviews
+//	@Produce      json
+//	@Success      200  {array}   api.UnreviewedWorkout
+//	@Failure      403  {object}  api.APIError
+//	@Router       /reviews/pending [get]
 func (h *Handlers) ListPendingReviews(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

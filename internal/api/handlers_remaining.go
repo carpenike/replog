@@ -91,6 +91,12 @@ func (h *Handlers) AvatarDelete(w http.ResponseWriter, r *http.Request) {
 // --- Notification Preferences ---
 
 // ListNotificationPreferences returns the user's notification preferences.
+//
+//	@Summary      List notification preferences
+//	@Tags         Notifications
+//	@Produce      json
+//	@Success      200  {array}   map[string]interface{}
+//	@Router       /notifications/preferences [get]
 func (h *Handlers) ListNotificationPreferences(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	prefs := models.ListNotificationPreferences(h.DB, user.ID)
@@ -107,14 +113,19 @@ func (h *Handlers) ListNotificationPreferences(w http.ResponseWriter, r *http.Re
 }
 
 // UpdateNotificationPreference updates a notification preference.
+//
+//	@Summary      Update notification preference for one type
+//	@Tags         Notifications
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.NotificationPreferenceRequest  true  "Preference"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Router       /notifications/preferences [put]
 func (h *Handlers) UpdateNotificationPreference(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
-	var req struct {
-		Type     string `json:"type"`
-		InApp    bool   `json:"in_app"`
-		External bool   `json:"external"`
-	}
+	var req NotificationPreferenceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return

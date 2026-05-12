@@ -218,6 +218,12 @@ func (h *Handlers) GetTrainingMaxHistory(w http.ResponseWriter, r *http.Request)
 // --- Notifications ---
 
 // ListNotifications returns notifications for the authenticated user.
+//
+//	@Summary      List notifications
+//	@Tags         Notifications
+//	@Produce      json
+//	@Success      200  {array}   api.Notification
+//	@Router       /notifications [get]
 func (h *Handlers) ListNotifications(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
@@ -245,6 +251,12 @@ func (h *Handlers) ListNotifications(w http.ResponseWriter, r *http.Request) {
 }
 
 // UnreadNotificationCount returns the number of unread notifications.
+//
+//	@Summary      Unread notification count
+//	@Tags         Notifications
+//	@Produce      json
+//	@Success      200  {object}  map[string]int  "e.g. {\"count\": 3}"
+//	@Router       /notifications/count [get]
 func (h *Handlers) UnreadNotificationCount(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
@@ -259,6 +271,14 @@ func (h *Handlers) UnreadNotificationCount(w http.ResponseWriter, r *http.Reques
 }
 
 // MarkNotificationRead marks a notification as read.
+//
+//	@Summary      Mark notification read
+//	@Tags         Notifications
+//	@Produce      json
+//	@Param        notificationID  path      int  true  "Notification ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Router       /notifications/{notificationID}/read [post]
 func (h *Handlers) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("notificationID"), 10, 64)
@@ -277,6 +297,12 @@ func (h *Handlers) MarkNotificationRead(w http.ResponseWriter, r *http.Request) 
 }
 
 // MarkAllNotificationsRead marks all notifications as read.
+//
+//	@Summary      Mark all notifications read
+//	@Tags         Notifications
+//	@Produce      json
+//	@Success      200  {object}  map[string]int  "e.g. {\"marked\": 5}"
+//	@Router       /notifications/read-all [post]
 func (h *Handlers) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 

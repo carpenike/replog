@@ -13,6 +13,18 @@ import (
 // --- Review Submission ---
 
 // SubmitReview creates or updates a workout review. Coach only.
+//
+//	@Summary      Submit workout review
+//	@Tags         Reviews
+//	@Accept       json
+//	@Produce      json
+//	@Param        id         path      int                 true  "Athlete ID"
+//	@Param        workoutID  path      int                 true  "Workout ID"
+//	@Param        body       body      api.ReviewRequest   true  "Review"
+//	@Success      200  {object}  api.WorkoutReview
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts/{workoutID}/review [post]
 func (h *Handlers) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -36,10 +48,7 @@ func (h *Handlers) SubmitReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Status string `json:"status"`
-		Notes  string `json:"notes"`
-	}
+	var req ReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return

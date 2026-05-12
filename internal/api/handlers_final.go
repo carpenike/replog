@@ -58,6 +58,16 @@ func (h *Handlers) ReactivateAssignment(w http.ResponseWriter, r *http.Request) 
 }
 
 // DeleteReview deletes a workout review.
+//
+//	@Summary      Delete workout review
+//	@Tags         Reviews
+//	@Produce      json
+//	@Param        id         path      int  true  "Athlete ID"
+//	@Param        workoutID  path      int  true  "Workout ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts/{workoutID}/review [delete]
 func (h *Handlers) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

@@ -15,6 +15,12 @@ import (
 // --- Equipment CRUD ---
 
 // ListEquipment returns all equipment.
+//
+//	@Summary      List equipment
+//	@Tags         Equipment
+//	@Produce      json
+//	@Success      200  {array}   api.Equipment
+//	@Router       /equipment [get]
 func (h *Handlers) ListEquipment(w http.ResponseWriter, r *http.Request) {
 	equipment, err := models.ListEquipment(h.DB)
 	if err != nil {
@@ -31,6 +37,16 @@ func (h *Handlers) ListEquipment(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateEquipment creates a new equipment item. Coach only.
+//
+//	@Summary      Create equipment
+//	@Tags         Equipment
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.EquipmentRequest  true  "Equipment"
+//	@Success      201  {object}  api.Equipment
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /equipment [post]
 func (h *Handlers) CreateEquipment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -38,10 +54,7 @@ func (h *Handlers) CreateEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
+	var req EquipmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -62,6 +75,15 @@ func (h *Handlers) CreateEquipment(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteEquipment deletes an equipment item. Coach only.
+//
+//	@Summary      Delete equipment
+//	@Tags         Equipment
+//	@Produce      json
+//	@Param        equipmentID  path      int  true  "Equipment ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /equipment/{equipmentID} [delete]
 func (h *Handlers) DeleteEquipment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -87,6 +109,14 @@ func (h *Handlers) DeleteEquipment(w http.ResponseWriter, r *http.Request) {
 // --- Exercise Equipment ---
 
 // ListExerciseEquipment returns equipment linked to an exercise.
+//
+//	@Summary      List exercise's equipment requirements
+//	@Tags         Equipment
+//	@Produce      json
+//	@Param        id   path      int  true  "Exercise ID"
+//	@Success      200  {array}   api.ExerciseEquipment
+//	@Failure      400  {object}  api.APIError
+//	@Router       /exercises/{id}/equipment [get]
 func (h *Handlers) ListExerciseEquipment(w http.ResponseWriter, r *http.Request) {
 	exerciseID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -105,6 +135,17 @@ func (h *Handlers) ListExerciseEquipment(w http.ResponseWriter, r *http.Request)
 }
 
 // AddExerciseEquipment links equipment to an exercise.
+//
+//	@Summary      Add equipment requirement to exercise
+//	@Tags         Equipment
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                            true  "Exercise ID"
+//	@Param        body  body      api.ExerciseEquipmentRequest   true  "Equipment link"
+//	@Success      201  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /exercises/{id}/equipment [post]
 func (h *Handlers) AddExerciseEquipment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -118,10 +159,7 @@ func (h *Handlers) AddExerciseEquipment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var req struct {
-		EquipmentID int64 `json:"equipment_id"`
-		Optional    bool  `json:"optional"`
-	}
+	var req ExerciseEquipmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -137,6 +175,16 @@ func (h *Handlers) AddExerciseEquipment(w http.ResponseWriter, r *http.Request) 
 }
 
 // RemoveExerciseEquipment unlinks equipment from an exercise.
+//
+//	@Summary      Remove equipment requirement from exercise
+//	@Tags         Equipment
+//	@Produce      json
+//	@Param        id           path      int  true  "Exercise ID"
+//	@Param        equipmentID  path      int  true  "Equipment ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /exercises/{id}/equipment/{equipmentID} [delete]
 func (h *Handlers) RemoveExerciseEquipment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -168,6 +216,15 @@ func (h *Handlers) RemoveExerciseEquipment(w http.ResponseWriter, r *http.Reques
 // --- Athlete Equipment ---
 
 // ListAthleteEquipment returns equipment owned by an athlete.
+//
+//	@Summary      List athlete's equipment
+//	@Tags         Equipment
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {array}   api.Equipment
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/equipment [get]
 func (h *Handlers) ListAthleteEquipment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -191,6 +248,17 @@ func (h *Handlers) ListAthleteEquipment(w http.ResponseWriter, r *http.Request) 
 }
 
 // AddAthleteEquipment assigns equipment to an athlete.
+//
+//	@Summary      Assign equipment to athlete
+//	@Tags         Equipment
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                          true  "Athlete ID"
+//	@Param        body  body      api.AthleteEquipmentRequest  true  "Equipment"
+//	@Success      201  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/equipment [post]
 func (h *Handlers) AddAthleteEquipment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -203,9 +271,7 @@ func (h *Handlers) AddAthleteEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		EquipmentID int64 `json:"equipment_id"`
-	}
+	var req AthleteEquipmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -221,6 +287,16 @@ func (h *Handlers) AddAthleteEquipment(w http.ResponseWriter, r *http.Request) {
 }
 
 // RemoveAthleteEquipment removes equipment from an athlete.
+//
+//	@Summary      Remove athlete's equipment
+//	@Tags         Equipment
+//	@Produce      json
+//	@Param        id           path      int  true  "Athlete ID"
+//	@Param        equipmentID  path      int  true  "Equipment ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/equipment/{equipmentID} [delete]
 func (h *Handlers) RemoveAthleteEquipment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

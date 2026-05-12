@@ -13,6 +13,18 @@ import (
 )
 
 // UpdateEquipment updates an equipment item. Coach only.
+//
+//	@Summary      Update equipment
+//	@Tags         Equipment
+//	@Accept       json
+//	@Produce      json
+//	@Param        equipmentID  path      int                   true  "Equipment ID"
+//	@Param        body         body      api.EquipmentRequest  true  "Equipment"
+//	@Success      200  {object}  api.Equipment
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /equipment/{equipmentID} [put]
 func (h *Handlers) UpdateEquipment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -26,10 +38,7 @@ func (h *Handlers) UpdateEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
+	var req EquipmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
