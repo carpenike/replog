@@ -78,7 +78,7 @@ func GetProgramTemplateByID(db *sql.DB, id int64) (*ProgramTemplate, error) {
 	).Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("models: program template %d not found", id)
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("models: get program template %d: %w", id, err)
 	}

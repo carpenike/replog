@@ -153,6 +153,24 @@ func setupTest(t *testing.T) *testEnv {
 			r.Post("/athletes/{id}/assignments/{assignmentID}/deactivate", h.DeactivateAssignment)
 			r.Post("/athletes/{id}/assignments/reactivate", h.ReactivateAssignment)
 
+			// Program templates (catalog).
+			r.Get("/programs", h.ListProgramTemplates)
+			r.Post("/programs", h.CreateProgramTemplate)
+			r.Get("/programs/{id}", h.GetProgramTemplate)
+			r.Put("/programs/{id}", h.UpdateProgramTemplate)
+			r.Delete("/programs/{id}", h.DeleteProgramTemplate)
+			r.Post("/programs/{id}/copy-week", h.CopyWeek)
+
+			// Prescribed sets.
+			r.Post("/programs/{id}/sets", h.AddPrescribedSet)
+			r.Put("/programs/{id}/sets/{setID}", h.UpdatePrescribedSet)
+			r.Delete("/programs/{id}/sets/{setID}", h.DeletePrescribedSet)
+
+			// Progression rules.
+			r.Get("/programs/{id}/rules", h.ListProgressionRules)
+			r.Post("/programs/{id}/rules", h.SetProgressionRule)
+			r.Delete("/programs/{id}/rules/{ruleID}", h.DeleteProgressionRule)
+
 			r.Get("/users", h.ListUsers)
 			r.Post("/users", h.CreateUser)
 			r.Get("/users/{userID}", h.GetUser)
