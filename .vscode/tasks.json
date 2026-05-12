@@ -2,6 +2,42 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Dev (server + frontend)",
+            "type": "shell",
+            "command": "just dev",
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "group": "dev"
+            }
+        },
+        {
+            "label": "Run Server",
+            "type": "shell",
+            "command": "just dev-backend",
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "group": "dev"
+            }
+        },
+        {
+            "label": "Vite Dev Server",
+            "type": "shell",
+            "command": "just dev-frontend",
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "group": "dev"
+            }
+        },
+        {
             "label": "Build",
             "type": "shell",
             "command": "go build ./cmd/replog",
@@ -9,6 +45,17 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "problemMatcher": ["$go"],
+            "presentation": {
+                "reveal": "silent",
+                "revealProblems": "onProblem"
+            }
+        },
+        {
+            "label": "Vet",
+            "type": "shell",
+            "command": "go vet ./...",
+            "group": "build",
             "problemMatcher": ["$go"],
             "presentation": {
                 "reveal": "silent",
@@ -39,70 +86,13 @@
             }
         },
         {
-            "label": "Vet",
+            "label": "Quality Gates (build + vet + test)",
             "type": "shell",
-            "command": "go vet ./...",
+            "command": "just qa",
             "group": "build",
             "problemMatcher": ["$go"],
             "presentation": {
-                "reveal": "silent",
-                "revealProblems": "onProblem"
-            }
-        },
-        {
-            "label": "Quality Gates (build + vet + test)",
-            "dependsOn": ["Build", "Vet", "Test All"],
-            "dependsOrder": "sequence",
-            "group": "build",
-            "problemMatcher": []
-        },
-        {
-            "label": "Run Server",
-            "type": "shell",
-            "command": "go run ./cmd/replog",
-            "options": {
-                "env": {
-                    "REPLOG_ADDR": ":8080",
-                    "REPLOG_DB_PATH": "${workspaceFolder}/dev.db",
-                    "REPLOG_ADMIN_USER": "admin",
-                    "REPLOG_ADMIN_PASS": "admin",
-                    "REPLOG_ADMIN_EMAIL": "admin@localhost",
-                    "REPLOG_SECRET_KEY": "dev-only-secret-key-not-for-prod!",
-                    "REPLOG_WEBAUTHN_RPID": "localhost",
-                    "REPLOG_WEBAUTHN_ORIGINS": "http://localhost:5173,http://localhost:8080"
-                }
-            },
-            "isBackground": true,
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "group": "dev"
-            }
-        },
-        {
-            "label": "Vite Dev Server",
-            "type": "shell",
-            "command": "npm run dev",
-            "options": {
-                "cwd": "${workspaceFolder}/web"
-            },
-            "isBackground": true,
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "group": "dev"
-            }
-        },
-        {
-            "label": "Dev (server + frontend)",
-            "dependsOn": ["Run Server", "Vite Dev Server"],
-            "dependsOrder": "parallel",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "group": "dev"
+                "reveal": "always"
             }
         }
     ]
