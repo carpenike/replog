@@ -35,6 +35,21 @@ func fmtTime(t time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
+// fmtDate normalizes a date string from the model layer to YYYY-MM-DD.
+//
+// SQLite columns declared as DATE are returned by modernc.org/sqlite as
+// time.Time values; when scanned into a Go string they format as RFC3339
+// timestamps (e.g. "2026-05-12T00:00:00Z"). The API contract for date-only
+// fields is YYYY-MM-DD, so we trim the time portion here. Already-trimmed
+// strings (e.g. literal "2026-05-12" passed in by the caller) pass through
+// unchanged.
+func fmtDate(s string) string {
+	if len(s) >= 10 && s[4] == '-' && s[7] == '-' {
+		return s[:10]
+	}
+	return s
+}
+
 func fmtNullTime(nt sql.NullTime) *time.Time {
 	if !nt.Valid {
 		return nil
@@ -47,6 +62,15 @@ func fmtNullTimeStr(nt sql.NullTime) *string {
 		return nil
 	}
 	s := nt.Time.Format(time.RFC3339)
+	return &s
+}
+
+// fmtNullDate normalizes a nullable date string from the model layer.
+func fmtNullDate(ns sql.NullString) *string {
+	if !ns.Valid {
+		return nil
+	}
+	s := fmtDate(ns.String)
 	return &s
 }
 
@@ -75,7 +99,7 @@ func AthleteCardFromModel(m *models.AthleteCardInfo) *AthleteCard {
 		Name:              m.Name,
 		Tier:              nullStr(m.Tier),
 		ActiveAssignments: m.ActiveAssignments,
-		LastWorkoutDate:   nullStr(m.LastWorkoutDate),
+		LastWorkoutDate:   fmtNullDate(m.LastWorkoutDate),
 		WeekStreak:        m.WeekStreak,
 		BWTrend:           m.BWTrend,
 		TrackBodyWeight:   m.TrackBodyWeight,
@@ -119,7 +143,7 @@ func WorkoutFromModel(m *models.Workout) *Workout {
 	return &Workout{
 		ID:           m.ID,
 		AthleteID:    m.AthleteID,
-		Date:         m.Date,
+		Date:         fmtDate(m.Date),
 		AssignmentID: nullInt(m.AssignmentID),
 		Notes:        nullStr(m.Notes),
 		CreatedAt:    fmtTime(m.CreatedAt),
@@ -170,7 +194,7 @@ func TrainingMaxFromModel(m *models.TrainingMax) *TrainingMax {
 		AthleteID:     m.AthleteID,
 		ExerciseID:    m.ExerciseID,
 		Weight:        m.Weight,
-		EffectiveDate: m.EffectiveDate,
+		EffectiveDate: fmtDate(m.EffectiveDate),
 		Notes:         nullStr(m.Notes),
 		CreatedAt:     fmtTime(m.CreatedAt),
 		ExerciseName:  m.ExerciseName,
@@ -182,7 +206,7 @@ func BodyWeightFromModel(m *models.BodyWeight) *BodyWeight {
 	return &BodyWeight{
 		ID:        m.ID,
 		AthleteID: m.AthleteID,
-		Date:      m.Date,
+		Date:      fmtDate(m.Date),
 		Weight:    m.Weight,
 		Notes:     nullStr(m.Notes),
 		CreatedAt: fmtTime(m.CreatedAt),
@@ -245,7 +269,7 @@ func AthleteProgramFromModel(m *models.AthleteProgram) *AthleteProgram {
 		ID:           m.ID,
 		AthleteID:    m.AthleteID,
 		TemplateID:   m.TemplateID,
-		StartDate:    m.StartDate,
+		StartDate:    fmtDate(m.StartDate),
 		Active:       m.Active,		DeactivatedAt: fmtNullTimeStr(m.DeactivatedAt),		Role:         m.Role,
 		Schedule:     nullStr(m.Schedule),
 		Notes:        nullStr(m.Notes),
@@ -317,7 +341,7 @@ func WorkoutReviewFromModel(m *models.WorkoutReview) *WorkoutReview {
 // JournalEntryFromModel converts a models.JournalEntry to an API JournalEntry.
 func JournalEntryFromModel(m *models.JournalEntry) *JournalEntry {
 	return &JournalEntry{
-		Date:      m.Date,
+		Date:      fmtDate(m.Date),
 		Type:      m.Type,
 		Summary:   m.Summary,
 		ID:        m.ID,

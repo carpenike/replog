@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
+import { formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -115,14 +116,14 @@ export function WorkoutDetail() {
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">Athlete</Link>
+        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{workout.athlete_name || 'Athlete'}</Link>
         {' / '}
         <Link to={`/athletes/${athleteId}/workouts`} className="hover:text-foreground">Workouts</Link>
         {' / '}
-        {workout.date}
+        {formatDate(workout.date)}
       </p>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold mb-2">{workout.date}</h1>
+        <h1 className="text-2xl font-bold mb-2">{formatDate(workout.date)}</h1>
         <Button variant="ghost" onClick={async () => {
             if (await confirm({ title: 'Delete Workout', description: 'Delete this workout and all its sets? This cannot be undone.', confirmLabel: 'Delete', variant: 'danger' }))
               deleteWorkoutMutation.mutate()
