@@ -293,6 +293,12 @@ func (h *Handlers) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Reque
 // --- Programs ---
 
 // ListProgramTemplates returns all program templates.
+//
+//	@Summary      List program templates
+//	@Tags         Programs
+//	@Produce      json
+//	@Success      200  {array}   api.ProgramTemplate
+//	@Router       /programs [get]
 func (h *Handlers) ListProgramTemplates(w http.ResponseWriter, r *http.Request) {
 	programs, err := models.ListProgramTemplates(h.DB)
 	if err != nil {
@@ -309,6 +315,16 @@ func (h *Handlers) ListProgramTemplates(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetProgramTemplate returns a single program template.
+//
+//	@Summary      Get program template
+//	@Description  Returns the template metadata plus its prescribed sets.
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id   path      int  true  "Program ID"
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      400  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /programs/{id} [get]
 func (h *Handlers) GetProgramTemplate(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -345,7 +361,15 @@ func (h *Handlers) GetProgramTemplate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ListAthletePrograms returns programs assigned to an athlete.
+// ListAthletePrograms returns programs assigned to an athlete.//
+//	@Summary      List athlete's program assignments
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {array}   api.AthleteProgram
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/programs [get]
 func (h *Handlers) ListAthletePrograms(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

@@ -14,6 +14,16 @@ import (
 // --- Program Template CRUD ---
 
 // CreateProgramTemplate creates a new program template. Coach only.
+//
+//	@Summary      Create program template
+//	@Tags         Programs
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.ProgramTemplateRequest  true  "Template"
+//	@Success      201  {object}  api.ProgramTemplate
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /programs [post]
 func (h *Handlers) CreateProgramTemplate(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -21,15 +31,7 @@ func (h *Handlers) CreateProgramTemplate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var req struct {
-		AthleteID   *int64 `json:"athlete_id"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		NumWeeks    int    `json:"num_weeks"`
-		NumDays     int    `json:"num_days"`
-		IsLoop      bool   `json:"is_loop"`
-		Audience    string `json:"audience"`
-	}
+	var req ProgramTemplateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -50,6 +52,18 @@ func (h *Handlers) CreateProgramTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 // UpdateProgramTemplate updates a program template. Coach only.
+//
+//	@Summary      Update program template
+//	@Tags         Programs
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                                true  "Program ID"
+//	@Param        body  body      api.ProgramTemplateUpdateRequest   true  "Template"
+//	@Success      200  {object}  api.ProgramTemplate
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /programs/{id} [put]
 func (h *Handlers) UpdateProgramTemplate(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -63,13 +77,7 @@ func (h *Handlers) UpdateProgramTemplate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var req struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		NumWeeks    int    `json:"num_weeks"`
-		NumDays     int    `json:"num_days"`
-		IsLoop      bool   `json:"is_loop"`
-	}
+	var req ProgramTemplateUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -94,6 +102,15 @@ func (h *Handlers) UpdateProgramTemplate(w http.ResponseWriter, r *http.Request)
 }
 
 // DeleteProgramTemplate deletes a program template. Coach only.
+//
+//	@Summary      Delete program template
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id   path      int  true  "Program ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /programs/{id} [delete]
 func (h *Handlers) DeleteProgramTemplate(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -119,6 +136,17 @@ func (h *Handlers) DeleteProgramTemplate(w http.ResponseWriter, r *http.Request)
 // --- Prescribed Sets CRUD ---
 
 // AddPrescribedSet adds a prescribed set to a program template.
+//
+//	@Summary      Add prescribed set
+//	@Tags         Programs
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                       true  "Program ID"
+//	@Param        body  body      api.PrescribedSetRequest  true  "Set"
+//	@Success      201  {object}  api.PrescribedSet
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /programs/{id}/sets [post]
 func (h *Handlers) AddPrescribedSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -132,18 +160,7 @@ func (h *Handlers) AddPrescribedSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		ExerciseID     int64    `json:"exercise_id"`
-		Week           int      `json:"week"`
-		Day            int      `json:"day"`
-		SetNumber      int      `json:"set_number"`
-		Reps           *int     `json:"reps"`
-		Percentage     *float64 `json:"percentage"`
-		AbsoluteWeight *float64 `json:"absolute_weight"`
-		SortOrder      int      `json:"sort_order"`
-		RepType        string   `json:"rep_type"`
-		Notes          string   `json:"notes"`
-	}
+	var req PrescribedSetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -167,6 +184,19 @@ func (h *Handlers) AddPrescribedSet(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdatePrescribedSet updates a prescribed set.
+//
+//	@Summary      Update prescribed set
+//	@Tags         Programs
+//	@Accept       json
+//	@Produce      json
+//	@Param        id     path      int                              true  "Program ID"
+//	@Param        setID  path      int                              true  "Set ID"
+//	@Param        body   body      api.PrescribedSetUpdateRequest   true  "Set"
+//	@Success      200  {object}  api.PrescribedSet
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /programs/{id}/sets/{setID} [put]
 func (h *Handlers) UpdatePrescribedSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -180,16 +210,7 @@ func (h *Handlers) UpdatePrescribedSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		ExerciseID     int64    `json:"exercise_id"`
-		SetNumber      int      `json:"set_number"`
-		Reps           *int     `json:"reps"`
-		Percentage     *float64 `json:"percentage"`
-		AbsoluteWeight *float64 `json:"absolute_weight"`
-		SortOrder      int      `json:"sort_order"`
-		RepType        string   `json:"rep_type"`
-		Notes          string   `json:"notes"`
-	}
+	var req PrescribedSetUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -213,6 +234,16 @@ func (h *Handlers) UpdatePrescribedSet(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeletePrescribedSet deletes a prescribed set.
+//
+//	@Summary      Delete prescribed set
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id     path      int  true  "Program ID"
+//	@Param        setID  path      int  true  "Set ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /programs/{id}/sets/{setID} [delete]
 func (h *Handlers) DeletePrescribedSet(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -247,6 +278,14 @@ type ProgressionRuleResponse struct {
 }
 
 // ListProgressionRules returns progression rules for a template.
+//
+//	@Summary      List progression rules
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id   path      int  true  "Program ID"
+//	@Success      200  {array}   api.ProgressionRuleResponse
+//	@Failure      400  {object}  api.APIError
+//	@Router       /programs/{id}/rules [get]
 func (h *Handlers) ListProgressionRules(w http.ResponseWriter, r *http.Request) {
 	templateID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
@@ -275,6 +314,17 @@ func (h *Handlers) ListProgressionRules(w http.ResponseWriter, r *http.Request) 
 }
 
 // SetProgressionRule sets a progression rule for an exercise in a template.
+//
+//	@Summary      Set progression rule
+//	@Tags         Programs
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                          true  "Program ID"
+//	@Param        body  body      api.ProgressionRuleRequest   true  "Rule"
+//	@Success      201  {object}  api.ProgressionRuleResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /programs/{id}/rules [post]
 func (h *Handlers) SetProgressionRule(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -288,10 +338,7 @@ func (h *Handlers) SetProgressionRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		ExerciseID int64   `json:"exercise_id"`
-		Increment  float64 `json:"increment"`
-	}
+	var req ProgressionRuleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -317,6 +364,16 @@ func (h *Handlers) SetProgressionRule(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteProgressionRule deletes a progression rule.
+//
+//	@Summary      Delete progression rule
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id      path      int  true  "Program ID"
+//	@Param        ruleID  path      int  true  "Rule ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /programs/{id}/rules/{ruleID} [delete]
 func (h *Handlers) DeleteProgressionRule(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -342,6 +399,16 @@ func (h *Handlers) DeleteProgressionRule(w http.ResponseWriter, r *http.Request)
 // --- Athlete Promotion ---
 
 // PromoteAthlete promotes an athlete to the next tier. Coach only.
+//
+//	@Summary      Promote athlete to next tier
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {object}  api.Athlete
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/promote [post]
 func (h *Handlers) PromoteAthlete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

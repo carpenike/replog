@@ -11,6 +11,33 @@ definitions:
       error:
         type: string
     type: object
+  api.AssignExerciseRequest:
+    properties:
+      exercise_id:
+        example: 42
+        type: integer
+      target_reps:
+        example: 5
+        type: integer
+    type: object
+  api.AssignProgramRequest:
+    properties:
+      goal:
+        type: string
+      notes:
+        type: string
+      role:
+        example: primary
+        type: string
+      schedule:
+        type: string
+      start_date:
+        example: "2026-05-12"
+        type: string
+      template_id:
+        example: 7
+        type: integer
+    type: object
   api.Athlete:
     properties:
       avatar_url:
@@ -63,6 +90,62 @@ definitions:
       week_streak:
         type: integer
     type: object
+  api.AthleteExercise:
+    properties:
+      active:
+        type: boolean
+      assigned_at:
+        type: string
+      athlete_id:
+        type: integer
+      deactivated_at:
+        type: string
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      exercise_tier:
+        type: string
+      id:
+        type: integer
+      target_reps:
+        type: integer
+    type: object
+  api.AthleteProgram:
+    properties:
+      active:
+        type: boolean
+      athlete_id:
+        type: integer
+      created_at:
+        type: string
+      deactivated_at:
+        type: string
+      goal:
+        type: string
+      id:
+        type: integer
+      is_loop:
+        type: boolean
+      notes:
+        type: string
+      num_days:
+        type: integer
+      num_weeks:
+        type: integer
+      role:
+        type: string
+      schedule:
+        type: string
+      start_date:
+        type: string
+      template_id:
+        type: integer
+      template_name:
+        type: string
+      updated_at:
+        type: string
+    type: object
   api.AthleteRequest:
     properties:
       date_of_birth:
@@ -86,6 +169,22 @@ definitions:
         type: string
       track_body_weight:
         type: boolean
+    type: object
+  api.BatchTMEntry:
+    properties:
+      exercise_id:
+        example: 42
+        type: integer
+      weight:
+        example: 315
+        type: number
+    type: object
+  api.BatchTMRequest:
+    properties:
+      maxes:
+        items:
+          $ref: '#/definitions/api.BatchTMEntry'
+        type: array
     type: object
   api.BodyWeight:
     properties:
@@ -121,6 +220,45 @@ definitions:
       weight:
         example: 185.5
         type: number
+    type: object
+  api.CompatibilityResponse:
+    properties:
+      exercises:
+        items:
+          $ref: '#/definitions/api.ExerciseCompatibilityResponse'
+        type: array
+      ready:
+        type: boolean
+      ready_count:
+        type: integer
+      template_id:
+        type: integer
+      template_name:
+        type: string
+      total_count:
+        type: integer
+    type: object
+  api.CopyWeekRequest:
+    properties:
+      source_week:
+        example: 1
+        type: integer
+      target_week:
+        example: 2
+        type: integer
+    type: object
+  api.CycleSummaryResponse:
+    properties:
+      cycle_end:
+        type: string
+      cycle_number:
+        type: integer
+      cycle_start:
+        type: string
+      suggestions:
+        items:
+          $ref: '#/definitions/api.TMSuggestionResponse'
+        type: array
     type: object
   api.DashboardResponse:
     properties:
@@ -166,6 +304,15 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  api.ExerciseCompatibilityResponse:
+    properties:
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      has_required:
+        type: boolean
     type: object
   api.ExerciseHistoryDay:
     properties:
@@ -243,6 +390,174 @@ definitions:
         example: lbs
         type: string
     type: object
+  api.PrescribedSet:
+    properties:
+      absolute_weight:
+        type: number
+      day:
+        type: integer
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      id:
+        type: integer
+      notes:
+        type: string
+      percentage:
+        type: number
+      rep_type:
+        type: string
+      reps:
+        type: integer
+      set_number:
+        type: integer
+      sort_order:
+        type: integer
+      target_weight:
+        type: number
+      template_id:
+        type: integer
+      week:
+        type: integer
+    type: object
+  api.PrescribedSetRequest:
+    properties:
+      absolute_weight:
+        type: number
+      day:
+        example: 1
+        type: integer
+      exercise_id:
+        example: 42
+        type: integer
+      notes:
+        type: string
+      percentage:
+        example: 0.65
+        type: number
+      rep_type:
+        example: reps
+        type: string
+      reps:
+        example: 5
+        type: integer
+      set_number:
+        example: 1
+        type: integer
+      sort_order:
+        type: integer
+      week:
+        example: 1
+        type: integer
+    type: object
+  api.PrescribedSetUpdateRequest:
+    properties:
+      absolute_weight:
+        type: number
+      exercise_id:
+        example: 42
+        type: integer
+      notes:
+        type: string
+      percentage:
+        type: number
+      rep_type:
+        type: string
+      reps:
+        type: integer
+      set_number:
+        example: 1
+        type: integer
+      sort_order:
+        type: integer
+    type: object
+  api.ProgramTemplate:
+    properties:
+      athlete_count:
+        type: integer
+      athlete_id:
+        type: integer
+      athlete_name:
+        type: string
+      audience:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_loop:
+        type: boolean
+      name:
+        type: string
+      num_days:
+        type: integer
+      num_weeks:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  api.ProgramTemplateRequest:
+    properties:
+      athlete_id:
+        type: integer
+      audience:
+        example: adult
+        type: string
+      description:
+        type: string
+      is_loop:
+        type: boolean
+      name:
+        example: 5/3/1 BBB
+        type: string
+      num_days:
+        example: 4
+        type: integer
+      num_weeks:
+        example: 3
+        type: integer
+    type: object
+  api.ProgramTemplateUpdateRequest:
+    properties:
+      description:
+        type: string
+      is_loop:
+        type: boolean
+      name:
+        example: 5/3/1 BBB
+        type: string
+      num_days:
+        example: 4
+        type: integer
+      num_weeks:
+        example: 3
+        type: integer
+    type: object
+  api.ProgressionRuleRequest:
+    properties:
+      exercise_id:
+        example: 42
+        type: integer
+      increment:
+        example: 5
+        type: number
+    type: object
+  api.ProgressionRuleResponse:
+    properties:
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      id:
+        type: integer
+      increment:
+        type: number
+      template_id:
+        type: integer
+    type: object
   api.ReviewStats:
     properties:
       approved_count:
@@ -257,6 +572,35 @@ definitions:
       status:
         example: ok
         type: string
+    type: object
+  api.TMBump:
+    properties:
+      exercise_id:
+        example: 42
+        type: integer
+      new_weight:
+        example: 320
+        type: number
+    type: object
+  api.TMBumpsRequest:
+    properties:
+      bumps:
+        items:
+          $ref: '#/definitions/api.TMBump'
+        type: array
+    type: object
+  api.TMSuggestionResponse:
+    properties:
+      current_tm:
+        type: number
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      increment:
+        type: number
+      suggested_tm:
+        type: number
     type: object
   api.TrainingMax:
     properties:
@@ -607,6 +951,170 @@ paths:
       summary: Update athlete
       tags:
       - Athletes
+  /athletes/{id}/assignments:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.AthleteExercise'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List exercise assignments
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      description: Schema enforces UNIQUE WHERE active=1 — a duplicate active assignment
+        for the same exercise is rejected.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assignment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AssignExerciseRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.AthleteExercise'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Assign exercise to athlete
+      tags:
+      - Athletes
+  /athletes/{id}/assignments/{assignmentID}/deactivate:
+    post:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assignment ID
+        in: path
+        name: assignmentID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Deactivate exercise assignment
+      tags:
+      - Athletes
+  /athletes/{id}/assignments/reactivate:
+    post:
+      consumes:
+      - application/json
+      description: Creates a fresh active row for the athlete+exercise pair (the previous
+        one stays as history).
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assignment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AssignExerciseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.AthleteExercise'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Reactivate exercise assignment
+      tags:
+      - Athletes
+  /athletes/{id}/batch-tms:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Maxes
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.BatchTMRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Batch set training maxes
+      tags:
+      - TrainingMaxes
   /athletes/{id}/body-weights:
     get:
       parameters:
@@ -701,6 +1209,69 @@ paths:
       summary: Delete body weight
       tags:
       - Athletes
+  /athletes/{id}/cycle-review:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CycleSummaryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Cycle review (TM bump suggestions)
+      tags:
+      - TrainingMaxes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Bumps
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.TMBumpsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Apply TM bumps from cycle review
+      tags:
+      - TrainingMaxes
   /athletes/{id}/exercises/{exerciseID}/history:
     get:
       parameters:
@@ -769,6 +1340,256 @@ paths:
       summary: Get training max history
       tags:
       - TrainingMaxes
+  /athletes/{id}/missing-tms:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Exercise'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List exercises missing a training max
+      tags:
+      - TrainingMaxes
+  /athletes/{id}/program-compatibility:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Program template ID
+        in: query
+        name: template_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CompatibilityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Check program equipment compatibility for an athlete
+      tags:
+      - Programs
+  /athletes/{id}/programs:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.AthleteProgram'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List athlete's program assignments
+      tags:
+      - Programs
+    post:
+      consumes:
+      - application/json
+      description: Auto-deactivates any existing active program in the same role (per
+        ADR 010).
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assignment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AssignProgramRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.AthleteProgram'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Assign program to athlete
+      tags:
+      - Programs
+  /athletes/{id}/programs/{programID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Program assignment ID
+        in: path
+        name: programID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete athlete program assignment
+      tags:
+      - Programs
+  /athletes/{id}/programs/{programID}/deactivate:
+    post:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Program assignment ID
+        in: path
+        name: programID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Deactivate athlete program
+      tags:
+      - Programs
+  /athletes/{id}/programs/{programID}/reactivate:
+    post:
+      description: Auto-deactivates any other active program in the same role.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Program assignment ID
+        in: path
+        name: programID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Reactivate athlete program
+      tags:
+      - Programs
+  /athletes/{id}/promote:
+    post:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Athlete'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Promote athlete to next tier
+      tags:
+      - Athletes
   /athletes/{id}/training-maxes:
     get:
       parameters:
@@ -1395,6 +2216,367 @@ paths:
       summary: Update preferences
       tags:
       - Preferences
+  /programs:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.ProgramTemplate'
+            type: array
+      summary: List program templates
+      tags:
+      - Programs
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Template
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ProgramTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.ProgramTemplate'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create program template
+      tags:
+      - Programs
+  /programs/{id}:
+    delete:
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete program template
+      tags:
+      - Programs
+    get:
+      description: Returns the template metadata plus its prescribed sets.
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Get program template
+      tags:
+      - Programs
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Template
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ProgramTemplateUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ProgramTemplate'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update program template
+      tags:
+      - Programs
+  /programs/{id}/copy-week:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Source/target weeks
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CopyWeekRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Copy week of prescribed sets
+      tags:
+      - Programs
+  /programs/{id}/rules:
+    get:
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.ProgressionRuleResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List progression rules
+      tags:
+      - Programs
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Rule
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ProgressionRuleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.ProgressionRuleResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Set progression rule
+      tags:
+      - Programs
+  /programs/{id}/rules/{ruleID}:
+    delete:
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Rule ID
+        in: path
+        name: ruleID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete progression rule
+      tags:
+      - Programs
+  /programs/{id}/sets:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Set
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.PrescribedSetRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.PrescribedSet'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Add prescribed set
+      tags:
+      - Programs
+  /programs/{id}/sets/{setID}:
+    delete:
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Set ID
+        in: path
+        name: setID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete prescribed set
+      tags:
+      - Programs
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Set ID
+        in: path
+        name: setID
+        required: true
+        type: integer
+      - description: Set
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.PrescribedSetUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PrescribedSet'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update prescribed set
+      tags:
+      - Programs
 swagger: "2.0"
 tags:
 - description: Login, logout, current user, token / passkey ceremonies

@@ -12,6 +12,18 @@ import (
 )
 
 // ReactivateAssignment reactivates a deactivated exercise assignment.
+//
+//	@Summary      Reactivate exercise assignment
+//	@Description  Creates a fresh active row for the athlete+exercise pair (the previous one stays as history).
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                        true  "Athlete ID"
+//	@Param        body  body      api.AssignExerciseRequest  true  "Assignment"
+//	@Success      200  {object}  api.AthleteExercise
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/assignments/reactivate [post]
 func (h *Handlers) ReactivateAssignment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -25,10 +37,7 @@ func (h *Handlers) ReactivateAssignment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var req struct {
-		ExerciseID int64 `json:"exercise_id"`
-		TargetReps int   `json:"target_reps"`
-	}
+	var req AssignExerciseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return

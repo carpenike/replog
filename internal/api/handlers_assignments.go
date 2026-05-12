@@ -13,6 +13,16 @@ import (
 // --- Exercise Assignments ---
 
 // ListAssignments returns active exercise assignments for an athlete.
+// ListAssignments returns all exercise assignments for an athlete (active and inactive).
+//
+//	@Summary      List exercise assignments
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {array}   api.AthleteExercise
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/assignments [get]
 func (h *Handlers) ListAssignments(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -40,6 +50,18 @@ func (h *Handlers) ListAssignments(w http.ResponseWriter, r *http.Request) {
 }
 
 // AssignExercise assigns an exercise to an athlete. Coach only.
+//
+//	@Summary      Assign exercise to athlete
+//	@Description  Schema enforces UNIQUE WHERE active=1 — a duplicate active assignment for the same exercise is rejected.
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                        true  "Athlete ID"
+//	@Param        body  body      api.AssignExerciseRequest  true  "Assignment"
+//	@Success      201  {object}  api.AthleteExercise
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/assignments [post]
 func (h *Handlers) AssignExercise(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -53,10 +75,7 @@ func (h *Handlers) AssignExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		ExerciseID int64 `json:"exercise_id"`
-		TargetReps int   `json:"target_reps"`
-	}
+	var req AssignExerciseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -77,6 +96,16 @@ func (h *Handlers) AssignExercise(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeactivateAssignment deactivates an exercise assignment. Coach only.
+//
+//	@Summary      Deactivate exercise assignment
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id            path      int  true  "Athlete ID"
+//	@Param        assignmentID  path      int  true  "Assignment ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/assignments/{assignmentID}/deactivate [post]
 func (h *Handlers) DeactivateAssignment(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -119,6 +148,16 @@ type ExerciseCompatibilityResponse struct {
 }
 
 // CheckProgramCompatibility checks equipment compatibility for a program assignment.
+//
+//	@Summary      Check program equipment compatibility for an athlete
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id           path      int  true  "Athlete ID"
+//	@Param        template_id  query     int  true  "Program template ID"
+//	@Success      200  {object}  api.CompatibilityResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/program-compatibility [get]
 func (h *Handlers) CheckProgramCompatibility(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

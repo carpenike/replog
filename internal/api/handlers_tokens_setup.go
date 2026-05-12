@@ -20,6 +20,16 @@ type MissingTMResponse struct {
 }
 
 // ListMissingTMs returns exercises in a program that need training maxes set.
+// ListMissingTMs returns exercises that need a training max set for an athlete's program.
+//
+//	@Summary      List exercises missing a training max
+//	@Tags         TrainingMaxes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {array}   api.Exercise
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/missing-tms [get]
 func (h *Handlers) ListMissingTMs(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -54,6 +64,18 @@ func (h *Handlers) ListMissingTMs(w http.ResponseWriter, r *http.Request) {
 }
 
 // BatchSetTMs sets multiple training maxes at once.
+// BatchSetTMs sets several training maxes at once for an athlete (TM Setup wizard).
+//
+//	@Summary      Batch set training maxes
+//	@Tags         TrainingMaxes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                  true  "Athlete ID"
+//	@Param        body  body      api.BatchTMRequest   true  "Maxes"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/batch-tms [post]
 func (h *Handlers) BatchSetTMs(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

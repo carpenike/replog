@@ -132,6 +132,18 @@ func (h *Handlers) UpdateNotificationPreference(w http.ResponseWriter, r *http.R
 // --- Program Copy Week ---
 
 // CopyWeek copies prescribed sets from one week to another.
+// CopyWeek copies all prescribed sets from one week to another within a template.
+//
+//	@Summary      Copy week of prescribed sets
+//	@Tags         Programs
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                  true  "Program ID"
+//	@Param        body  body      api.CopyWeekRequest  true  "Source/target weeks"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /programs/{id}/copy-week [post]
 func (h *Handlers) CopyWeek(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

@@ -62,6 +62,18 @@ func (h *Handlers) SubmitReview(w http.ResponseWriter, r *http.Request) {
 // --- Program Assignment ---
 
 // AssignProgramToAthlete assigns a program template to an athlete. Coach only.
+//
+//	@Summary      Assign program to athlete
+//	@Description  Auto-deactivates any existing active program in the same role (per ADR 010).
+//	@Tags         Programs
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                       true  "Athlete ID"
+//	@Param        body  body      api.AssignProgramRequest  true  "Assignment"
+//	@Success      201  {object}  api.AthleteProgram
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/programs [post]
 func (h *Handlers) AssignProgramToAthlete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -79,14 +91,7 @@ func (h *Handlers) AssignProgramToAthlete(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var req struct {
-		TemplateID int64  `json:"template_id"`
-		StartDate  string `json:"start_date"`
-		Notes      string `json:"notes"`
-		Goal       string `json:"goal"`
-		Role       string `json:"role"`
-		Schedule   string `json:"schedule"`
-	}
+	var req AssignProgramRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -125,6 +130,16 @@ func (h *Handlers) AssignProgramToAthlete(w http.ResponseWriter, r *http.Request
 }
 
 // DeactivateAthleteProgram deactivates an athlete's program. Coach only.
+//
+//	@Summary      Deactivate athlete program
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id         path      int  true  "Athlete ID"
+//	@Param        programID  path      int  true  "Program assignment ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/programs/{programID}/deactivate [post]
 func (h *Handlers) DeactivateAthleteProgram(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -159,6 +174,18 @@ func (h *Handlers) DeactivateAthleteProgram(w http.ResponseWriter, r *http.Reque
 
 // ReactivateAthleteProgram reactivates a deactivated program assignment.
 // POST /api/athletes/{id}/programs/{programID}/reactivate
+//
+//	@Summary      Reactivate athlete program
+//	@Description  Auto-deactivates any other active program in the same role.
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id         path      int  true  "Athlete ID"
+//	@Param        programID  path      int  true  "Program assignment ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/programs/{programID}/reactivate [post]
 func (h *Handlers) ReactivateAthleteProgram(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -208,6 +235,16 @@ func (h *Handlers) ReactivateAthleteProgram(w http.ResponseWriter, r *http.Reque
 
 // DeleteAthleteProgram removes a program assignment entirely.
 // DELETE /api/athletes/{id}/programs/{programID}
+//
+//	@Summary      Delete athlete program assignment
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id         path      int  true  "Athlete ID"
+//	@Param        programID  path      int  true  "Program assignment ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/programs/{programID} [delete]
 func (h *Handlers) DeleteAthleteProgram(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

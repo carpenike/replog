@@ -268,6 +268,16 @@ type TMSuggestionResponse struct {
 }
 
 // GetCycleReview returns cycle summary with TM bump suggestions. Coach only.
+//
+//	@Summary      Cycle review (TM bump suggestions)
+//	@Tags         TrainingMaxes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {object}  api.CycleSummaryResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/cycle-review [get]
 func (h *Handlers) GetCycleReview(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -323,6 +333,17 @@ func (h *Handlers) GetCycleReview(w http.ResponseWriter, r *http.Request) {
 }
 
 // ApplyTMBumps applies selected training max bumps. Coach only.
+//
+//	@Summary      Apply TM bumps from cycle review
+//	@Tags         TrainingMaxes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                 true  "Athlete ID"
+//	@Param        body  body      api.TMBumpsRequest  true  "Bumps"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/cycle-review [post]
 func (h *Handlers) ApplyTMBumps(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
