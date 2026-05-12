@@ -182,6 +182,15 @@ func setupTest(t *testing.T) *testEnv {
 			r.Put("/admin/settings", h.UpdateSetting)
 			r.Post("/admin/settings/test-llm", h.TestLLMConnection)
 			r.Post("/admin/settings/test-notify", h.TestNotifyConnection)
+
+			// Catalog import/export.
+			r.Get("/catalog/export", h.CatalogExportJSON)
+			r.Post("/catalog/import/upload", h.CatalogImportUpload)
+			r.Post("/catalog/import/execute", h.CatalogImportExecute)
+
+			// Workout import (per athlete).
+			r.Post("/athletes/{id}/import/upload", h.ImportUpload)
+			r.Post("/athletes/{id}/import/execute", h.ImportExecute)
 		})
 	})
 

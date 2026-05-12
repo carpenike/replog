@@ -5,6 +5,7 @@ package api
 
 import (
 	"database/sql"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"log"
@@ -13,9 +14,19 @@ import (
 	"sync"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/carpenike/replog/internal/importers"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 )
+
+func init() {
+	// scs serializes session values via encoding/gob. The import flow stashes
+	// an *importers.MappingState in the session between the upload and
+	// execute steps; without this registration, scs fails to encode the
+	// session on save and the handler's "OK" response is followed by a
+	// 500 from the LoadAndSave middleware.
+	gob.Register(&importers.MappingState{})
+}
 
 // Handlers holds dependencies for API handlers.
 type Handlers struct {
