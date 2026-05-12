@@ -27,26 +27,38 @@ Self-hosted workout tracking for kids' resistance training progression and perso
 
 ## Tech Stack
 
-- **Go** (1.25+) with `html/template` — server-side rendering, no frontend framework
-- **htmx** — all interactivity via `hx-get`, `hx-post`, `hx-swap` attributes; no JS build step
+### Backend
+- **Go** (1.25+) — single static binary serving a JSON REST API
+- **chi** — HTTP router with group-based middleware (`github.com/go-chi/chi/v5`)
 - **SQLite** (WAL mode) via `modernc.org/sqlite` — pure-Go driver, no CGO
-- **chi** — lightweight HTTP router with group-based middleware (`github.com/go-chi/chi/v5`)
-- **Pico CSS** — classless CSS framework for semantic HTML styling
 - **WebAuthn** — passkey authentication via `go-webauthn/webauthn`
 - **Shoutrrr** — external notification dispatch (Slack, Discord, email, etc.)
-- **Nix flake** — builds a single static binary for NixOS deployment
 
-See [ADR 001](docs/adr/001-tech-stack.md) for rationale.
+### Frontend
+- **React 19 + TypeScript** with **Vite** — component-based SPA
+- **shadcn/ui** + **Tailwind CSS v4** — styling and components
+- **TanStack Query** — server state and caching
+- **React Router v7** — client-side routing
+
+### Deployment
+- **Nix flake** — builds the Vite frontend then `go build`s the binary with `web/dist` embedded
+- **Single static binary** for NixOS deployment
+
+See [ADR 001](docs/adr/001-tech-stack.md) for the original Go/htmx rationale and [ADR 011](docs/adr/011-api-spa-frontend.md) for the move to a REST API + React SPA.
 
 ## Development
 
 ```bash
-# Prerequisites: Go 1.25+, Nix (optional, for flake build)
+# Prerequisites: Go 1.25+, Node.js 22+, Nix (optional, for flake build)
 
-# Run locally
+# Run backend (serves the embedded SPA from web/dist if built)
 go run ./cmd/replog
 
-# Build
+# Run frontend dev server (proxies /api to backend)
+cd web && npm install && npm run dev
+
+# Build everything
+cd web && npm run build && cd ..
 go build -o replog ./cmd/replog
 
 # Run tests

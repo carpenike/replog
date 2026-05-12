@@ -10,13 +10,12 @@ export function TokenLoginPage() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [error, setError] = useState('')
+  // Initialize error synchronously when token is missing so we never
+  // call setState during an effect on first render.
+  const [error, setError] = useState(token ? '' : 'Invalid login link')
 
   useEffect(() => {
-    if (!token) {
-      setError('Invalid login link')
-      return
-    }
+    if (!token) return
 
     async function authenticate() {
       try {

@@ -1,6 +1,6 @@
 # ADR 007 — LLM-Assisted Program Generation
 
-> Status: **Proposed** · Date: 2026-02-19
+> Status: **Accepted** · Date: 2026-02-19
 
 ## Context
 

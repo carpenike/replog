@@ -1,6 +1,6 @@
 # ADR 010: Supplemental Programs — Multiple Active Programs Per Athlete
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-02-22
 
 ## Context

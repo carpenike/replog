@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"embed"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -26,19 +25,13 @@ import (
 
 	"github.com/carpenike/replog/internal/api"
 	"github.com/carpenike/replog/internal/database"
-	"github.com/carpenike/replog/internal/handlers"
 	"github.com/carpenike/replog/internal/importers"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/passkeys"
 	"github.com/carpenike/replog/internal/scheduler"
 	frontend "github.com/carpenike/replog/web"
 )
-
-//go:embed all:templates
-var templateFS embed.FS
-
-//go:embed all:static
-var staticFS embed.FS
 
 // Build-time variables injected via ldflags (e.g., by GoReleaser).
 var (
@@ -80,7 +73,6 @@ func main() {
 	log.Printf("Database ready: %s", filepath.Clean(dbPath))
 
 	// Bootstrap secret key for encrypting sensitive settings.
-	// Generates and stores a key automatically if REPLOG_SECRET_KEY is not set.
 	if _, source, err := models.GetOrCreateSecretKey(db); err != nil {
 		log.Printf("Warning: secret key not available — sensitive settings will not be encrypted: %v", err)
 	} else {
@@ -108,17 +100,7 @@ func main() {
 	maintenance := scheduler.New(db)
 	maintenance.Start()
 
-	// Parse templates once at startup.
-	tc, err := handlers.NewTemplateCache(templateFS)
-	if err != nil {
-		log.Fatalf("Failed to parse templates: %v", err)
-	}
-
-	// Initialize cached app name from settings.
-	handlers.InitAppName(models.GetAppName(db))
-
 	// Determine base URL for generating absolute URLs (e.g. login token links).
-	// When behind a reverse proxy, set this to the external URL (e.g. https://replog.example.com).
 	baseURL := strings.TrimRight(os.Getenv("REPLOG_BASE_URL"), "/")
 	if baseURL != "" {
 		if _, err := url.Parse(baseURL); err != nil {
@@ -143,111 +125,11 @@ func main() {
 		sessionManager.Cookie.Secure = true
 	}
 
-	// Initialize handlers.
-	auth := &handlers.Auth{
-		DB:        db,
-		Sessions:  sessionManager,
-		Templates: tc,
-	}
-	pages := &handlers.Pages{
-		DB:        db,
-		Templates: tc,
-		Scheduler: maintenance,
-	}
-	athletes := &handlers.Athletes{
-		DB:        db,
-		Templates: tc,
-	}
-	exercises := &handlers.Exercises{
-		DB:        db,
-		Templates: tc,
-	}
-	assignments := &handlers.Assignments{
-		DB:        db,
-		Templates: tc,
-	}
-	trainingMaxes := &handlers.TrainingMaxes{
-		DB:        db,
-		Templates: tc,
-	}
-	workouts := &handlers.Workouts{
-		DB:        db,
-		Templates: tc,
-	}
-	users := &handlers.Users{
-		DB:        db,
-		Sessions:  sessionManager,
-		Templates: tc,
-		BaseURL:   baseURL,
-	}
-	bodyWeights := &handlers.BodyWeights{
-		DB:        db,
-		Templates: tc,
-	}
-	programs := &handlers.Programs{
-		DB:        db,
-		Templates: tc,
-	}
-	preferences := &handlers.Preferences{
-		DB:        db,
-		Templates: tc,
-	}
-	loginTokens := &handlers.LoginTokens{
-		DB:        db,
-		Sessions:  sessionManager,
-		Templates: tc,
-		BaseURL:   baseURL,
-	}
-	reviews := &handlers.Reviews{
-		DB:        db,
-		Templates: tc,
-	}
-	journal := &handlers.Journal{
-		DB:        db,
-		Templates: tc,
-	}
-	equipmentH := &handlers.Equipment{
-		DB:        db,
-		Templates: tc,
-	}
-	accessories := &handlers.Accessories{
-		DB:        db,
-		Templates: tc,
-	}
-	avatars := &handlers.Avatars{
-		DB:        db,
-		Templates: tc,
-		AvatarDir: avatarDir,
-	}
-	importExport := &handlers.ImportExport{
-		DB:        db,
-		Sessions:  sessionManager,
-		Templates: tc,
-	}
-	settings := &handlers.Settings{
-		DB:        db,
-		Templates: tc,
-	}
-	generate := &handlers.Generate{
-		DB:        db,
-		Sessions:  sessionManager,
-		Templates: tc,
-	}
-	notifications := &handlers.Notifications{
-		DB:        db,
-		Templates: tc,
-	}
-	setup := &handlers.Setup{
-		DB:        db,
-		Sessions:  sessionManager,
-		Templates: tc,
-	}
-
-	// Configure WebAuthn for passkey support.
+	// Configure WebAuthn for passkey support (optional).
 	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
 	rpOrigins := os.Getenv("REPLOG_WEBAUTHN_ORIGINS")
 
-	var passkeys *handlers.Passkeys
+	var passkeysHandler *passkeys.Handler
 	if rpID != "" && rpOrigins != "" {
 		origins := strings.Split(rpOrigins, ",")
 		for i := range origins {
@@ -266,21 +148,14 @@ func main() {
 			log.Fatalf("Failed to configure WebAuthn: %v", err)
 		}
 
-		passkeys = &handlers.Passkeys{
-			DB:        db,
-			Sessions:  sessionManager,
-			WebAuthn:  wa,
-			Templates: tc,
+		passkeysHandler = &passkeys.Handler{
+			DB:       db,
+			Sessions: sessionManager,
+			WebAuthn: wa,
 		}
 		log.Printf("WebAuthn enabled: RPID=%s, Origins=%v", rpID, origins)
 	} else {
 		log.Printf("WebAuthn disabled: set REPLOG_WEBAUTHN_RPID and REPLOG_WEBAUTHN_ORIGINS to enable passkeys")
-	}
-
-	// Wire passkey setup into handlers that need it (if WebAuthn is enabled).
-	if passkeys != nil {
-		loginTokens.Setup = setup
-		pages.Setup = setup
 	}
 
 	// Initialize API handlers.
@@ -289,6 +164,9 @@ func main() {
 		Sessions:  sessionManager,
 		AvatarDir: avatarDir,
 	}
+
+	// Avatar file server (public — no auth required to load avatar images).
+	avatarFS := http.FileServer(http.Dir(avatarDir))
 
 	// Set up router.
 	r := chi.NewRouter()
@@ -303,78 +181,7 @@ func main() {
 		log.Printf("CORS enabled for origins: %v", corsCfg.AllowedOrigins)
 	}
 
-	// SPA middleware — intercept browser navigation and serve the React SPA.
-	// This runs before SSR route matching so the SPA handles all page loads.
-	// API, auth, passkeys, static assets, and other non-HTML requests pass through.
-	spaHandler := spaFallbackHandler()
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Only intercept GET requests that accept HTML (browser navigation).
-			if r.Method != http.MethodGet {
-				next.ServeHTTP(w, r)
-				return
-			}
-			if !strings.Contains(r.Header.Get("Accept"), "text/html") {
-				next.ServeHTTP(w, r)
-				return
-			}
-			// Let these paths pass through to their own handlers.
-			path := r.URL.Path
-			switch {
-			case strings.HasPrefix(path, "/api/"):
-				next.ServeHTTP(w, r)
-			case strings.HasPrefix(path, "/static/"):
-				next.ServeHTTP(w, r)
-			case strings.HasPrefix(path, "/avatars/"):
-				next.ServeHTTP(w, r)
-			case path == "/health" || path == "/healthz" || path == "/readyz":
-				next.ServeHTTP(w, r)
-			default:
-				// Serve the SPA for all other browser navigation.
-				spaHandler.ServeHTTP(w, r)
-			}
-		})
-	})
-
-	// Custom error page for method-not-allowed. Wrapped with session loading so
-	// logged-in users still see the sidebar navigation on error pages.
-	r.MethodNotAllowed(sessionManager.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tc.RenderErrorPage(w, r, http.StatusMethodNotAllowed, "Method Not Allowed",
-			"The requested method is not supported for this URL.")
-	})).ServeHTTP)
-
-	// Error page renderer for middleware — uses the template cache to render
-	// styled error pages instead of plain text responses.
-	renderError := middleware.ErrorRenderer(tc.RenderErrorPage)
-
-	// Middleware adapters — convert existing middleware to chi-compatible middleware.
-	withAuth := func(next http.Handler) http.Handler {
-		return middleware.RequireAuth(sessionManager, db, next)
-	}
-	withCSRF := func(next http.Handler) http.Handler {
-		return middleware.CSRFProtect(sessionManager, next)
-	}
-	withCoach := func(next http.Handler) http.Handler {
-		return middleware.RequireCoach(renderError, next)
-	}
-	withAdmin := func(next http.Handler) http.Handler {
-		return middleware.RequireAdmin(renderError, next)
-	}
-
-	// --- Public routes — no auth required ---
-	r.Handle("/static/*", staticCacheControl(http.FileServerFS(staticFS)))
-	r.Get("/health", handleHealthz)
-	r.Get("/healthz", handleHealthz)
-	r.Get("/readyz", handleReadyz(db))
-	r.Get("/avatars/{filename}", avatars.Serve)
-
-	// API documentation (public).
-	r.Get("/api/docs", api.DocsHandler)
-	r.Get("/api/docs/openapi.yaml", api.SpecHandler)
-
 	// Rate limiter for authentication endpoints — 10 attempts per minute per IP.
-	// REPLOG_TRUSTED_PROXIES is a comma-separated list of CIDRs or IPs whose
-	// X-Forwarded-For headers should be trusted (e.g., "127.0.0.1,10.0.0.0/8").
 	var trustedProxies []string
 	if tp := os.Getenv("REPLOG_TRUSTED_PROXIES"); tp != "" {
 		for _, p := range strings.Split(tp, ",") {
@@ -386,260 +193,27 @@ func main() {
 	}
 	authLimiter := middleware.NewRateLimiter(10, time.Minute, trustedProxies...)
 
-	// --- Session-loaded routes — login/logout/token auth ---
-	r.Group(func(r chi.Router) {
-		r.Use(sessionManager.LoadAndSave)
-		r.Use(authLimiter.Limit)
+	// Middleware adapter — converts existing RequireAuth middleware to chi-compatible.
+	withAuth := func(next http.Handler) http.Handler {
+		return middleware.RequireAuth(sessionManager, db, next)
+	}
 
-		r.Get("/login", auth.LoginPage)
-		r.Post("/login", auth.LoginSubmit)
-		r.Post("/logout", auth.Logout)
-		r.Get("/auth/token/{token}", loginTokens.TokenLogin)
+	// --- Health checks (public) ---
+	r.Get("/health", handleHealthz)
+	r.Get("/healthz", handleHealthz)
+	r.Get("/readyz", handleReadyz(db))
 
-		// Passkey login ceremony (unauthenticated, session required).
-		if passkeys != nil {
-			r.Get("/passkeys/login/begin", passkeys.BeginLogin)
-			r.Post("/passkeys/login/finish", passkeys.FinishLogin)
-		}
+	// --- Avatars (public — image responses, no auth required) ---
+	r.Get("/avatars/{filename}", func(w http.ResponseWriter, r *http.Request) {
+		// Strip the route prefix and serve from the avatar directory.
+		http.StripPrefix("/avatars/", avatarFS).ServeHTTP(w, r)
 	})
 
-	// --- Authenticated routes — RequireAuth + CSRF ---
-	r.Group(func(r chi.Router) {
-		r.Use(withAuth)
-		r.Use(withCSRF)
+	// --- API documentation (public) ---
+	r.Get("/api/docs", api.DocsHandler)
+	r.Get("/api/docs/openapi.yaml", api.SpecHandler)
 
-		r.Get("/", pages.Index)
-
-		// Setup / onboarding wizard routes (authenticated, no coach role needed).
-		r.Get("/setup/passkey", setup.PasskeySetup)
-		r.Post("/setup/passkey/skip", setup.PasskeySetupSkip)
-
-		// User Preferences (self-service — any authenticated user).
-		r.Get("/preferences", preferences.EditForm)
-		r.Post("/preferences", preferences.Update)
-
-		// Avatar upload/delete (self-service — any authenticated user).
-		r.Post("/avatars/upload", avatars.Upload)
-		r.Post("/avatars/delete", avatars.Delete)
-
-		// Athletes — read access.
-		r.Get("/athletes", athletes.List)
-		r.Get("/athletes/{id}", athletes.Show)
-
-		// Exercises — read access.
-		r.Get("/exercises", exercises.List)
-		r.Get("/exercises/{id}", exercises.Show)
-
-		// Equipment — read access.
-		r.Get("/equipment", equipmentH.List)
-
-		// Athlete Equipment — self-service.
-		r.Get("/athletes/{id}/equipment", equipmentH.AthleteEquipmentPage)
-		r.Post("/athletes/{id}/equipment", equipmentH.AddAthleteEquipment)
-		r.Post("/athletes/{id}/equipment/{equipmentID}/delete", equipmentH.RemoveAthleteEquipment)
-
-		// Accessory Plans.
-		r.Get("/athletes/{id}/accessories", accessories.List)
-		r.Post("/athletes/{id}/accessories", accessories.Create)
-		r.Post("/athletes/{id}/accessories/{planID}/update", accessories.Update)
-		r.Post("/athletes/{id}/accessories/{planID}/deactivate", accessories.Deactivate)
-		r.Post("/athletes/{id}/accessories/{planID}/delete", accessories.Delete)
-
-		// Training Max history — read access.
-		r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes", trainingMaxes.History)
-
-		// Exercise History per athlete — read access.
-		r.Get("/athletes/{id}/exercises/{exerciseID}/history", exercises.ExerciseHistory)
-
-		// Body Weights.
-		r.Get("/athletes/{id}/body-weights", bodyWeights.List)
-		r.Post("/athletes/{id}/body-weights", bodyWeights.Create)
-		r.Post("/athletes/{id}/body-weights/{bwID}/delete", bodyWeights.Delete)
-
-		// Workouts — athlete self-service.
-		r.Get("/athletes/{id}/workouts", workouts.List)
-		r.Get("/athletes/{id}/workouts/new", workouts.NewForm)
-		r.Post("/athletes/{id}/workouts", workouts.Create)
-		r.Get("/athletes/{id}/workouts/{workoutID}", workouts.Show)
-		r.Post("/athletes/{id}/workouts/{workoutID}/notes", workouts.UpdateNotes)
-		r.Post("/athletes/{id}/workouts/{workoutID}/sets", workouts.AddSet)
-		r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/edit", workouts.EditSetForm)
-		r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}", workouts.UpdateSet)
-		r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/delete", workouts.DeleteSet)
-		r.Post("/athletes/{id}/workouts/{workoutID}/delete", workouts.Delete)
-
-		// Athlete Programs — prescription view (athlete self-service).
-		r.Get("/athletes/{id}/prescription", programs.Prescription)
-		r.Get("/athletes/{id}/report", programs.CycleReport)
-
-		// Journal — unified athlete timeline.
-		r.Get("/athletes/{id}/journal", journal.Timeline)
-
-		// Goal — self-service editing.
-		r.Post("/athletes/{id}/goal", athletes.UpdateGoal)
-
-		// Journal Notes — self-service (athletes can add their own notes).
-		r.Post("/athletes/{id}/notes", journal.CreateNote)
-		r.Post("/athletes/{id}/notes/{noteID}", journal.UpdateNote)
-
-		// Export — self-service for own athlete data.
-		r.Get("/athletes/{id}/export", importExport.ExportPage)
-		r.Get("/athletes/{id}/export/json", importExport.ExportJSON)
-		r.Get("/athletes/{id}/export/csv", importExport.ExportCSV)
-
-		// Passkey registration (requires auth, not coach/admin).
-		if passkeys != nil {
-			r.Get("/passkeys/register/begin", passkeys.BeginRegistration)
-			r.Post("/passkeys/register/finish", passkeys.FinishRegistration)
-			r.Post("/passkeys/register/label", passkeys.SetLabel)
-
-			// Credential management — handler checks ownership internally.
-			r.Post("/users/{id}/passkeys/{credentialID}/delete", passkeys.DeleteCredential)
-		}
-
-		// Notifications — self-service for any authenticated user.
-		r.Get("/notifications", notifications.List)
-		r.Get("/notifications/count", notifications.UnreadCount)
-		r.Get("/notifications/toast", notifications.Toast)
-		r.Post("/notifications/{id}/read", notifications.MarkRead)
-		r.Post("/notifications/read-all", notifications.MarkAllRead)
-		r.Get("/notifications/preferences", notifications.Preferences)
-		r.Post("/notifications/preferences", notifications.UpdatePreferences)
-	})
-
-	// --- Coach-only routes — RequireAuth + CSRF + RequireCoach ---
-	r.Group(func(r chi.Router) {
-		r.Use(withAuth)
-		r.Use(withCSRF)
-		r.Use(withCoach)
-
-		// Athletes — management.
-		r.Get("/athletes/new", athletes.NewForm)
-		r.Post("/athletes", athletes.Create)
-		r.Get("/athletes/{id}/edit", athletes.EditForm)
-		r.Post("/athletes/{id}", athletes.Update)
-		r.Post("/athletes/{id}/delete", athletes.Delete)
-		r.Post("/athletes/{id}/promote", athletes.Promote)
-
-		// Exercises — management.
-		r.Get("/exercises/new", exercises.NewForm)
-		r.Post("/exercises", exercises.Create)
-		r.Get("/exercises/{id}/edit", exercises.EditForm)
-		r.Post("/exercises/{id}", exercises.Update)
-		r.Post("/exercises/{id}/delete", exercises.Delete)
-
-		// Exercise Equipment — management.
-		r.Post("/exercises/{id}/equipment", equipmentH.AddExerciseEquipment)
-		r.Post("/exercises/{id}/equipment/{equipmentID}/delete", equipmentH.RemoveExerciseEquipment)
-
-		// Equipment catalog — management.
-		r.Get("/equipment/new", equipmentH.NewForm)
-		r.Post("/equipment", equipmentH.Create)
-		r.Get("/equipment/{id}/edit", equipmentH.EditForm)
-		r.Post("/equipment/{id}", equipmentH.Update)
-		r.Post("/equipment/{id}/delete", equipmentH.Delete)
-
-		// Assignments (coach only).
-		r.Get("/athletes/{id}/assignments/new", assignments.AssignForm)
-		r.Post("/athletes/{id}/assignments", assignments.Assign)
-		r.Post("/athletes/{id}/assignments/{assignmentID}/deactivate", assignments.Deactivate)
-		r.Post("/athletes/{id}/assignments/reactivate", assignments.Reactivate)
-
-		// Training Maxes — management.
-		r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes/new", trainingMaxes.NewForm)
-		r.Post("/athletes/{id}/exercises/{exerciseID}/training-maxes", trainingMaxes.Create)
-
-		// Workout Reviews (coach-only).
-		r.Get("/reviews/pending", reviews.PendingReviews)
-		r.Post("/athletes/{id}/workouts/{workoutID}/review", reviews.SubmitReview)
-		r.Post("/athletes/{id}/workouts/{workoutID}/review/delete", reviews.DeleteReview)
-
-		// Athlete Notes — delete is coach-only.
-		r.Post("/athletes/{id}/notes/{noteID}/delete", journal.DeleteNote)
-
-		// Program Templates (coach-only for management).
-		r.Get("/programs", programs.List)
-		r.Get("/programs/new", programs.NewForm)
-		r.Post("/programs", programs.Create)
-		r.Get("/programs/{id}", programs.Show)
-		r.Get("/programs/{id}/edit", programs.EditForm)
-		r.Post("/programs/{id}", programs.Update)
-		r.Post("/programs/{id}/delete", programs.Delete)
-		r.Post("/programs/{id}/sets", programs.AddSet)
-		r.Post("/programs/{id}/sets/{setID}/update", programs.UpdateSet)
-		r.Post("/programs/{id}/sets/{setID}/delete", programs.DeleteSet)
-		r.Post("/programs/{id}/copy-week", programs.CopyWeek)
-
-		// Progression Rules (coach-only).
-		r.Post("/programs/{id}/progression", programs.AddProgressionRule)
-		r.Post("/programs/{id}/progression/{ruleID}/delete", programs.DeleteProgressionRule)
-
-		// Athlete Programs — assignment (coach-only).
-		r.Get("/athletes/{id}/program/assign", programs.AssignProgramForm)
-		r.Get("/athletes/{id}/program/compatibility", programs.ProgramCompatibility)
-		r.Post("/athletes/{id}/program", programs.AssignProgram)
-		r.Post("/athletes/{id}/program/deactivate", programs.DeactivateProgram)
-
-		// Training Max Setup — batch TM entry after program assignment (coach-only).
-		r.Get("/athletes/{id}/training-maxes/setup", programs.TMSetupForm)
-		r.Post("/athletes/{id}/training-maxes/setup", programs.TMSetupSave)
-
-		// Cycle Review — TM bump suggestions (coach-only).
-		r.Get("/athletes/{id}/cycle-review", programs.CycleReview)
-		r.Post("/athletes/{id}/cycle-review", programs.ApplyTMBumps)
-
-		// AI Coach — program generation (coach-only).
-		r.Get("/athletes/{id}/programs/generate", generate.Form)
-		r.Post("/athletes/{id}/programs/generate", generate.Submit)
-		r.Get("/athletes/{id}/programs/generate/preview", generate.Preview)
-		r.Post("/athletes/{id}/programs/generate/preview", generate.SaveEdits)
-		r.Post("/athletes/{id}/programs/generate/execute", generate.Execute)
-		r.Get("/athletes/{id}/context.json", generate.ContextJSON)
-
-		// Import — coach-only.
-		r.Get("/athletes/{id}/import", importExport.ImportPage)
-		r.Post("/athletes/{id}/import/upload", importExport.Upload)
-		r.Get("/athletes/{id}/import/map", importExport.MapPage)
-		r.Post("/athletes/{id}/import/preview", importExport.Preview)
-		r.Post("/athletes/{id}/import/execute", importExport.Execute)
-
-	})
-
-	// --- Admin-only routes — RequireAuth + CSRF + RequireAdmin ---
-	r.Group(func(r chi.Router) {
-		r.Use(withAuth)
-		r.Use(withCSRF)
-		r.Use(withAdmin)
-
-		// Users management.
-		r.Get("/users", users.List)
-		r.Get("/users/new", users.NewForm)
-		r.Post("/users", users.Create)
-		r.Get("/users/{id}/edit", users.EditForm)
-		r.Post("/users/{id}", users.Update)
-		r.Post("/users/{id}/delete", users.Delete)
-
-		// Login Token management.
-		r.Post("/users/{id}/tokens", loginTokens.GenerateToken)
-		r.Post("/users/{id}/tokens/{tokenID}/delete", loginTokens.DeleteToken)
-
-		// Catalog import/export — admin-only.
-		r.Get("/catalog", importExport.CatalogExportPage)
-		r.Get("/catalog/export/json", importExport.CatalogExportJSON)
-		r.Get("/catalog/import", importExport.CatalogImportPage)
-		r.Post("/catalog/import/upload", importExport.CatalogUpload)
-		r.Get("/catalog/import/map", importExport.CatalogMapPage)
-		r.Post("/catalog/import/preview", importExport.CatalogPreview)
-		r.Post("/catalog/import/execute", importExport.CatalogExecute)
-
-		// Application settings — admin-only.
-		r.Get("/admin/settings", settings.Show)
-		r.Post("/admin/settings", settings.Update)
-		r.Post("/admin/settings/test-llm", settings.TestConnection)
-		r.Post("/admin/settings/test-notify", notifications.TestNotify)
-	})
-
-	// --- JSON API routes (for SPA frontend) ---
+	// --- JSON API routes ---
 	r.Route("/api", func(r chi.Router) {
 		r.Use(sessionManager.LoadAndSave)
 
@@ -649,9 +223,9 @@ func main() {
 			r.Post("/login", apiHandlers.Login)
 			r.Get("/auth/token/{token}", apiHandlers.TokenLogin)
 			// Passkey login ceremony (unauthenticated).
-			if passkeys != nil {
-				r.Get("/passkeys/login/begin", passkeys.BeginLogin)
-				r.Post("/passkeys/login/finish", passkeys.FinishLogin)
+			if passkeysHandler != nil {
+				r.Get("/passkeys/login/begin", passkeysHandler.BeginLogin)
+				r.Post("/passkeys/login/finish", passkeysHandler.FinishLogin)
 			}
 		})
 
@@ -844,9 +418,9 @@ func main() {
 			r.Get("/passkeys", apiHandlers.ListPasskeys)
 			r.Delete("/passkeys/{id}", apiHandlers.DeletePasskey)
 			r.Post("/passkeys/label", apiHandlers.SetPasskeyLabel)
-			if passkeys != nil {
-				r.Get("/passkeys/register/begin", passkeys.BeginRegistration)
-				r.Post("/passkeys/register/finish", passkeys.FinishRegistration)
+			if passkeysHandler != nil {
+				r.Get("/passkeys/register/begin", passkeysHandler.BeginRegistration)
+				r.Post("/passkeys/register/finish", passkeysHandler.FinishRegistration)
 			}
 
 			// Setup wizard.
@@ -859,20 +433,25 @@ func main() {
 		})
 	})
 
-	// Fallback — unmatched routes.
+	// --- SPA fallback for all other routes ---
+	// React Router handles client-side routing; the SPA serves all browser navigation.
+	spaHandler := spaFallbackHandler()
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		// API routes that don't match should return 404 JSON, not the SPA.
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			api.WriteError(w, http.StatusNotFound, "endpoint not found")
 			return
 		}
-		// Non-HTML requests get a plain 404.
-		if !strings.Contains(r.Header.Get("Accept"), "text/html") {
-			http.NotFound(w, r)
+		spaHandler.ServeHTTP(w, r)
+	})
+
+	// Method-not-allowed responses: JSON for /api/, plain text otherwise.
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			api.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
 		}
-		// HTML requests get the SPA (client-side routing handles 404).
-		spaHandler.ServeHTTP(w, r)
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	})
 
 	// Start server with graceful shutdown.
@@ -1018,14 +597,6 @@ func handleReadyz(db *sql.DB) http.HandlerFunc {
 		}
 		fmt.Fprintln(w, "ok")
 	}
-}
-
-// staticCacheControl wraps a handler to set Cache-Control headers on static assets.
-func staticCacheControl(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=86400")
-		next.ServeHTTP(w, r)
-	})
 }
 
 // spaFallbackHandler returns a handler that serves the React SPA from the

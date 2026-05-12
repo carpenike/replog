@@ -42,6 +42,136 @@ interface LayoutProps {
   onToggleTheme: () => void
 }
 
+interface NavLinksProps {
+  user: User
+  pathname: string
+  unreadCount: number
+  onNavigate?: () => void
+}
+
+function isActive(user: User, pathname: string, href: string) {
+  if (href === '/') return pathname === '/'
+  // Exact match for list pages and athlete profile to avoid false highlights
+  if (
+    href === '/athletes' ||
+    href === '/exercises' ||
+    href === '/programs' ||
+    href === '/equipment' ||
+    href === '/notifications'
+  ) {
+    return pathname === href
+  }
+  // My Profile: exact match only (don't highlight for sub-pages like /prescription)
+  if (user.athlete_id && href === `/athletes/${user.athlete_id}`) {
+    return pathname === href
+  }
+  return pathname.startsWith(href)
+}
+
+function NavLinks({ user, pathname, unreadCount, onNavigate }: NavLinksProps) {
+  return (
+    <>
+      {user.athlete_id && (
+        <>
+          <p className="px-3 py-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+            My Training
+          </p>
+          {[
+            { href: `/athletes/${user.athlete_id}/prescription`, label: "Today's Workout", icon: '📋' },
+            { href: `/athletes/${user.athlete_id}/workouts`, label: 'My Workouts', icon: '📝' },
+            { href: `/athletes/${user.athlete_id}/journal`, label: 'My Journal', icon: '📖' },
+            { href: `/athletes/${user.athlete_id}`, label: 'My Profile', icon: '👤' },
+          ].map(item => (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={onNavigate}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                isActive(user, pathname, item.href)
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`}
+            >
+              <span>{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+          <Separator className="my-2" />
+        </>
+      )}
+
+      {navItems.map(item => (
+        <Link
+          key={item.href}
+          to={item.href}
+          onClick={onNavigate}
+          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+            isActive(user, pathname, item.href)
+              ? 'bg-primary/10 text-primary font-medium'
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+          }`}
+        >
+          <span>{item.icon}</span>
+          {item.label}
+          {item.href === '/notifications' && unreadCount > 0 && (
+            <Badge variant="default" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+              {unreadCount}
+            </Badge>
+          )}
+        </Link>
+      ))}
+
+      {(user.is_coach || user.is_admin) && (
+        <>
+          <Separator className="my-2" />
+          <p className="px-3 py-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+            Coaching
+          </p>
+          {coachItems.map(item => (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={onNavigate}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                isActive(user, pathname, item.href)
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`}
+            >
+              <span>{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+        </>
+      )}
+
+      {user.is_admin && (
+        <>
+          <Separator className="my-2" />
+          <p className="px-3 py-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+            Admin
+          </p>
+          {adminItems.map(item => (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={onNavigate}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                isActive(user, pathname, item.href)
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`}
+            >
+              <span>{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
+        </>
+      )}
+    </>
+  )
+}
+
 export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -53,19 +183,6 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
     queryFn: () => api.unreadCount(),
     refetchInterval: 60_000,
   })
-
-  function isActive(href: string) {
-    if (href === '/') return location.pathname === '/'
-    // Exact match for list pages and athlete profile to avoid false highlights
-    if (href === '/athletes' || href === '/exercises' || href === '/programs' || href === '/equipment' || href === '/notifications') {
-      return location.pathname === href
-    }
-    // My Profile: exact match only (don't highlight for sub-pages like /prescription)
-    if (user.athlete_id && href === `/athletes/${user.athlete_id}`) {
-      return location.pathname === href
-    }
-    return location.pathname.startsWith(href)
-  }
 
   async function handleLogout() {
     try {
@@ -80,110 +197,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
   const initials = user.username.slice(0, 2).toUpperCase()
   const displayName = user.name ?? user.username
   const roleLabel = user.is_admin ? 'Admin' : user.is_coach ? 'Coach' : 'Athlete'
-
-  function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
-    return (
-      <>
-        {user.athlete_id && (
-          <>
-            <p className="px-3 py-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-              My Training
-            </p>
-            {[
-              { href: `/athletes/${user.athlete_id}/prescription`, label: "Today's Workout", icon: '📋' },
-              { href: `/athletes/${user.athlete_id}/workouts`, label: 'My Workouts', icon: '📝' },
-              { href: `/athletes/${user.athlete_id}/journal`, label: 'My Journal', icon: '📖' },
-              { href: `/athletes/${user.athlete_id}`, label: 'My Profile', icon: '👤' },
-            ].map(item => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={onNavigate}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive(item.href)
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                }`}
-              >
-                <span>{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-            <Separator className="my-2" />
-          </>
-        )}
-
-        {navItems.map(item => (
-          <Link
-            key={item.href}
-            to={item.href}
-            onClick={onNavigate}
-            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-              isActive(item.href)
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-            }`}
-          >
-            <span>{item.icon}</span>
-            {item.label}
-            {item.href === '/notifications' && unread && unread.count > 0 && (
-              <Badge variant="default" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                {unread.count}
-              </Badge>
-            )}
-          </Link>
-        ))}
-
-        {(user.is_coach || user.is_admin) && (
-          <>
-            <Separator className="my-2" />
-            <p className="px-3 py-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-              Coaching
-            </p>
-            {coachItems.map(item => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={onNavigate}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive(item.href)
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                }`}
-              >
-                <span>{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-          </>
-        )}
-
-        {user.is_admin && (
-          <>
-            <Separator className="my-2" />
-            <p className="px-3 py-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-              Admin
-            </p>
-            {adminItems.map(item => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={onNavigate}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive(item.href)
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                }`}
-              >
-                <span>{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-          </>
-        )}
-      </>
-    )
-  }
+  const unreadCount = unread?.count ?? 0
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -200,7 +214,12 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
               RepLog
             </SheetTitle>
             <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-              <NavLinks onNavigate={() => setSheetOpen(false)} />
+              <NavLinks
+                user={user}
+                pathname={location.pathname}
+                unreadCount={unreadCount}
+                onNavigate={() => setSheetOpen(false)}
+              />
             </nav>
           </SheetContent>
         </Sheet>
@@ -215,7 +234,7 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
         </div>
 
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          <NavLinks />
+          <NavLinks user={user} pathname={location.pathname} unreadCount={unreadCount} />
         </nav>
 
         <div className="p-3 border-t border-border">

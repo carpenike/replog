@@ -36,3 +36,15 @@ internal/
 - The DDL in `docs/data-model.md` becomes the initial `0001_initial_schema.sql` migration
 - All schema changes go through numbered migration files — no ad-hoc `ALTER TABLE` in app code
 - Rollbacks are possible via goose's down migrations but not expected in practice (single-user system, just fix forward)
+
+## Pre-Production Policy (Current)
+
+Until the first production deployment, schema changes are made by **editing `0001_initial_schema.sql` in place** and re-initializing the dev database. This avoids carrying a long migration history for a schema that is still being shaped.
+
+Once the app is deployed to a real environment, this policy flips:
+
+- `0001_initial_schema.sql` becomes immutable
+- All further schema changes are added as new files (`0002_*.sql`, `0003_*.sql`, ...)
+- Goose tracks applied migrations in `goose_db_version` so each new file runs exactly once
+
+The transition point is the first `go build` artifact that runs against a database we are not willing to destroy.

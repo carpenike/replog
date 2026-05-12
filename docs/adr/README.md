@@ -10,7 +10,7 @@ Architecture Decision Records for RepLog.
 | [004](004-ui-pico-css.md) | UI Framework: Pico CSS v2 | Accepted | 2026-06-19 |
 | [005](005-chi-router.md) | Adopt chi Router for Group-Based Middleware | Accepted | 2026-02-17 |
 | [006](006-import-export.md) | Workout Import / Export | Accepted | 2026-02-17 |
-| [007](007-llm-coach.md) | LLM-Assisted Program Generation | Proposed | 2026-02-19 |
+| [007](007-llm-coach.md) | LLM-Assisted Program Generation | Accepted | 2026-02-19 |
 | [008](008-notifications.md) | Notification System | Accepted | 2026-02-20 |
 | [009](009-wizard-framework.md) | Wizard Framework for Setup Flows | Accepted | 2026-02-21 |
-| [010](010-supplemental-programs.md) | Supplemental Programs: Multiple Active Programs Per Athlete | Proposed | 2026-02-22 |
+| [010](010-supplemental-programs.md) | Supplemental Programs: Multiple Active Programs Per Athlete | Accepted | 2026-02-22 |

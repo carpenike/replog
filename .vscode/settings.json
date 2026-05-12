@@ -33,7 +33,7 @@
         "editor.defaultFormatter": "golang.go"
     },
 
-    // HTML/template files
+    // HTML files (used by web/index.html)
     "[html]": {
         "editor.tabSize": 4,
         "editor.formatOnSave": false
@@ -43,12 +43,6 @@
     "[sql]": {
         "editor.tabSize": 4,
         "editor.formatOnSave": false
-    },
-
-    // File associations — Go templates use HTML syntax
-    "files.associations": {
-        "*.gohtml": "html",
-        "*.tmpl": "html"
     },
 
     // Exclude build artifacts and DB files from explorer/search
