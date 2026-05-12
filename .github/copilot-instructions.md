@@ -72,7 +72,7 @@ docs/
   openapi/                  # Generated OpenAPI spec (do not edit by hand)
     swagger.yaml            # Run `just openapi` to regenerate from swag annotations
   seed-catalog.md             # Exercise seed data format
-  adr/                        # Architecture decision records (11 ADRs)
+  adr/                        # Architecture decision records (13 ADRs)
 
 flake.nix                     # Nix build (frontend + backend)
 ```
@@ -92,6 +92,8 @@ Read the ADRs before making changes that affect these areas:
 - [ADR 009](docs/adr/009-wizard-framework.md) — Wizard framework for setup flows
 - [ADR 010](docs/adr/010-supplemental-programs.md) — Supplemental programs: multiple active programs per athlete
 - [ADR 011](docs/adr/011-api-spa-frontend.md) — REST API + React SPA frontend (current architecture)
+- [ADR 012](docs/adr/012-api-test-harness.md) — Shared API test harness (`internal/api/handlers_test.go`)
+- [ADR 013](docs/adr/013-openapi-swag.md) — OpenAPI spec generated via `swaggo/swag` annotations
 
 ## Database Schema
 
@@ -202,6 +204,6 @@ When ending a work session, complete ALL steps. Work is NOT complete until `git 
 - `docs/data-model.md` — complete schema, ERD, DDL, seed data, operational notes
 - `docs/requirements.md` — all v1.0 user stories with acceptance criteria
 - `docs/ui-design.md` — design system and component patterns
-- `internal/api/openapi/swagger.yaml` — generated OpenAPI spec for the REST API (also at `/api/docs`); regenerate with `just openapi`
+- `internal/api/openapi/swagger.yaml` — generate3 OpenAPI spec for the REST API (also at `/api/docs`); regenerate with `just openapi`
 - `docs/seed-catalog.md` — exercise seed data format
 - `docs/adr/` — architecture decision records (10 ADRs)

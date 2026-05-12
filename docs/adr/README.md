@@ -14,3 +14,6 @@ Architecture Decision Records for RepLog.
 | [008](008-notifications.md) | Notification System | Accepted | 2026-02-20 |
 | [009](009-wizard-framework.md) | Wizard Framework for Setup Flows | Accepted | 2026-02-21 |
 | [010](010-supplemental-programs.md) | Supplemental Programs: Multiple Active Programs Per Athlete | Accepted | 2026-02-22 |
+| [011](011-api-spa-frontend.md) | REST API + SPA Frontend | Accepted | 2026-03-07 |
+| [012](012-api-test-harness.md) | Shared API Test Harness | Accepted | 2026-05-12 |
+| [013](013-openapi-swag.md) | OpenAPI Generation via swag Annotations | Accepted | 2026-05-12 |
