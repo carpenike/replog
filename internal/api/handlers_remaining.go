@@ -18,6 +18,16 @@ import (
 // --- Avatar Upload/Delete ---
 
 // AvatarUpload handles avatar file upload for the authenticated user.
+// AvatarUpload handles avatar file upload for the authenticated user.
+//
+//	@Summary      Upload avatar
+//	@Description  Multipart upload; field name is 'file'. Server returns the new avatar URL.
+//	@Tags         Avatars
+//	@Accept       multipart/form-data
+//	@Produce      json
+//	@Success      200  {object}  map[string]string  "e.g. {\"avatar_url\": \"/avatars/abc.jpg\"}"
+//	@Failure      400  {object}  api.APIError
+//	@Router       /avatars/upload [post]
 func (h *Handlers) AvatarUpload(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
@@ -71,6 +81,13 @@ func (h *Handlers) AvatarUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 // AvatarDelete deletes the authenticated user's avatar.
+// AvatarDelete deletes the authenticated user's avatar file.
+//
+//	@Summary      Delete avatar
+//	@Tags         Avatars
+//	@Produce      json
+//	@Success      200  {object}  api.StatusResponse
+//	@Router       /avatars/delete [post]
 func (h *Handlers) AvatarDelete(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
@@ -168,10 +185,7 @@ func (h *Handlers) CopyWeek(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		SourceWeek int `json:"source_week"`
-		TargetWeek int `json:"target_week"`
-	}
+	var req CopyWeekRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -194,6 +208,20 @@ func (h *Handlers) CopyWeek(w http.ResponseWriter, r *http.Request) {
 // --- Accessory Plan Update & Deactivate ---
 
 // UpdateAccessoryPlan updates an accessory plan.
+// UpdateAccessoryPlan updates an accessory plan.
+//
+//	@Summary      Update accessory plan
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id      path      int                              true  "Athlete ID"
+//	@Param        planID  path      int                              true  "Plan ID"
+//	@Param        body    body      api.AccessoryPlanUpdateRequest   true  "Plan"
+//	@Success      200  {object}  api.AccessoryPlan
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/accessories/{planID} [put]
 func (h *Handlers) UpdateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -207,14 +235,7 @@ func (h *Handlers) UpdateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		TargetSets   int     `json:"target_sets"`
-		TargetRepMin int     `json:"target_rep_min"`
-		TargetRepMax int     `json:"target_rep_max"`
-		TargetWeight float64 `json:"target_weight"`
-		Notes        string  `json:"notes"`
-		SortOrder    int     `json:"sort_order"`
-	}
+	var req AccessoryPlanUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -230,6 +251,17 @@ func (h *Handlers) UpdateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeactivateAccessoryPlan deactivates an accessory plan.
+// DeactivateAccessoryPlan marks an accessory plan as inactive.
+//
+//	@Summary      Deactivate accessory plan
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id      path      int  true  "Athlete ID"
+//	@Param        planID  path      int  true  "Plan ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/accessories/{planID}/deactivate [post]
 func (h *Handlers) DeactivateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

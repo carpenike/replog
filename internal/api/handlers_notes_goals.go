@@ -14,6 +14,18 @@ import (
 // --- Athlete Notes ---
 
 // CreateAthleteNote creates a journal note for an athlete.
+// CreateAthleteNote adds a journal note to an athlete.
+//
+//	@Summary      Create athlete journal note
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                     true  "Athlete ID"
+//	@Param        body  body      api.AthleteNoteRequest  true  "Note"
+//	@Success      201  {object}  api.AthleteNote
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/notes [post]
 func (h *Handlers) CreateAthleteNote(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -26,11 +38,7 @@ func (h *Handlers) CreateAthleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Content   string `json:"content"`
-		IsPrivate bool   `json:"is_private"`
-		Pinned    bool   `json:"pinned"`
-	}
+	var req AthleteNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -61,6 +69,18 @@ func (h *Handlers) CreateAthleteNote(w http.ResponseWriter, r *http.Request) {
 // --- Athlete Goal ---
 
 // UpdateAthleteGoal updates an athlete's goal text.
+// UpdateAthleteGoal updates an athlete's goal text.
+//
+//	@Summary      Update athlete goal
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int              true  "Athlete ID"
+//	@Param        body  body      api.GoalRequest  true  "Goal"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/goal [put]
 func (h *Handlers) UpdateAthleteGoal(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -73,9 +93,7 @@ func (h *Handlers) UpdateAthleteGoal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Goal string `json:"goal"`
-	}
+	var req GoalRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return

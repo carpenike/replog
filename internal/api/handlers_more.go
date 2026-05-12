@@ -525,6 +525,18 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request) {
 // --- Journal ---
 
 // ListJournalEntries returns the athlete's journal timeline.
+// ListJournalEntries returns the athlete's journal timeline.
+//
+//	@Summary      Athlete journal timeline
+//	@Description  Combined timeline of workouts, notes, body weights, and goals. Coaches see private notes; non-coach linked athletes do not.
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id     path      int  true   "Athlete ID"
+//	@Param        limit  query     int  false  "Page size (default 50)"
+//	@Success      200  {array}   api.JournalEntry
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/journal [get]
 func (h *Handlers) ListJournalEntries(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

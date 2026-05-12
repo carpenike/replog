@@ -39,6 +39,18 @@ type PrescriptionResponse struct {
 }
 
 // GetPrescription returns today's workout prescription for an athlete.
+// GetPrescription returns today's workout prescription for an athlete.
+//
+//	@Summary      Today's prescription
+//	@Description  Returns the day's prescribed sets from the athlete's active program (if any), with TM-resolved weights.
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/prescription [get]
 func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

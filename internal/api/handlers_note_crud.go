@@ -11,6 +11,20 @@ import (
 )
 
 // UpdateAthleteNote updates an existing journal note.
+// UpdateAthleteNote updates an athlete note.
+//
+//	@Summary      Update athlete note
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id      path      int                     true  "Athlete ID"
+//	@Param        noteID  path      int                     true  "Note ID"
+//	@Param        body    body      api.AthleteNoteRequest  true  "Note"
+//	@Success      200  {object}  api.AthleteNote
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/notes/{noteID} [put]
 func (h *Handlers) UpdateAthleteNote(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -29,11 +43,7 @@ func (h *Handlers) UpdateAthleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Content   string `json:"content"`
-		IsPrivate bool   `json:"is_private"`
-		Pinned    bool   `json:"pinned"`
-	}
+	var req AthleteNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -59,6 +69,17 @@ func (h *Handlers) UpdateAthleteNote(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteAthleteNote deletes a journal note.
+// DeleteAthleteNote deletes an athlete note.
+//
+//	@Summary      Delete athlete note
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id      path      int  true  "Athlete ID"
+//	@Param        noteID  path      int  true  "Note ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/notes/{noteID} [delete]
 func (h *Handlers) DeleteAthleteNote(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

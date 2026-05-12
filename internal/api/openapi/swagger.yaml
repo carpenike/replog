@@ -11,6 +11,76 @@ definitions:
       error:
         type: string
     type: object
+  api.AccessoryPlan:
+    properties:
+      active:
+        type: boolean
+      athlete_id:
+        type: integer
+      created_at:
+        type: string
+      day:
+        type: integer
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      id:
+        type: integer
+      notes:
+        type: string
+      sort_order:
+        type: integer
+      target_rep_max:
+        type: integer
+      target_rep_min:
+        type: integer
+      target_sets:
+        type: integer
+      target_weight:
+        type: number
+      updated_at:
+        type: string
+    type: object
+  api.AccessoryPlanRequest:
+    properties:
+      day:
+        example: 1
+        type: integer
+      exercise_id:
+        example: 42
+        type: integer
+      notes:
+        type: string
+      sort_order:
+        type: integer
+      target_rep_max:
+        example: 12
+        type: integer
+      target_rep_min:
+        example: 8
+        type: integer
+      target_sets:
+        example: 3
+        type: integer
+      target_weight:
+        type: number
+    type: object
+  api.AccessoryPlanUpdateRequest:
+    properties:
+      notes:
+        type: string
+      sort_order:
+        type: integer
+      target_rep_max:
+        type: integer
+      target_rep_min:
+        type: integer
+      target_sets:
+        type: integer
+      target_weight:
+        type: number
+    type: object
   api.AssignExerciseRequest:
     properties:
       exercise_id:
@@ -116,6 +186,36 @@ definitions:
         type: integer
       target_reps:
         type: integer
+    type: object
+  api.AthleteNote:
+    properties:
+      athlete_id:
+        type: integer
+      author:
+        type: string
+      author_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_private:
+        type: boolean
+      pinned:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  api.AthleteNoteRequest:
+    properties:
+      content:
+        type: string
+      is_private:
+        type: boolean
+      pinned:
+        type: boolean
     type: object
   api.AthleteProgram:
     properties:
@@ -417,6 +517,34 @@ definitions:
         example: foundational
         type: string
     type: object
+  api.GoalRequest:
+    properties:
+      goal:
+        type: string
+    type: object
+  api.JournalEntry:
+    properties:
+      author:
+        type: string
+      author_id:
+        type: integer
+      date:
+        type: string
+      detail:
+        type: string
+      id:
+        type: integer
+      is_private:
+        type: boolean
+      pinned:
+        type: boolean
+      second_id:
+        type: integer
+      summary:
+        type: string
+      type:
+        type: string
+    type: object
   api.LoginRequest:
     properties:
       password:
@@ -456,6 +584,27 @@ definitions:
       type:
         example: workout_review
         type: string
+    type: object
+  api.PasskeyLabelRequest:
+    properties:
+      label:
+        example: My YubiKey
+        type: string
+    type: object
+  api.PasskeyResponse:
+    properties:
+      backup_state:
+        type: boolean
+      created_at:
+        type: string
+      id:
+        type: integer
+      label:
+        type: string
+      last_used_at:
+        type: string
+      use_count:
+        type: integer
     type: object
   api.PreferencesRequest:
     properties:
@@ -1072,6 +1221,171 @@ paths:
       summary: Update athlete
       tags:
       - Athletes
+  /athletes/{id}/accessories:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.AccessoryPlan'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List accessory plans
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Plan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AccessoryPlanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.AccessoryPlan'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create accessory plan
+      tags:
+      - Athletes
+  /athletes/{id}/accessories/{planID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Plan ID
+        in: path
+        name: planID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete accessory plan
+      tags:
+      - Athletes
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Plan ID
+        in: path
+        name: planID
+        required: true
+        type: integer
+      - description: Plan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AccessoryPlanUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.AccessoryPlan'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update accessory plan
+      tags:
+      - Athletes
+  /athletes/{id}/accessories/{planID}/deactivate:
+    post:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Plan ID
+        in: path
+        name: planID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Deactivate accessory plan
+      tags:
+      - Athletes
   /athletes/{id}/assignments:
     get:
       parameters:
@@ -1553,6 +1867,74 @@ paths:
       summary: Get training max history
       tags:
       - TrainingMaxes
+  /athletes/{id}/goal:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Goal
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.GoalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update athlete goal
+      tags:
+      - Athletes
+  /athletes/{id}/journal:
+    get:
+      description: Combined timeline of workouts, notes, body weights, and goals.
+        Coaches see private notes; non-coach linked athletes do not.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Page size (default 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.JournalEntry'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Athlete journal timeline
+      tags:
+      - Athletes
   /athletes/{id}/missing-tms:
     get:
       parameters:
@@ -1581,6 +1963,146 @@ paths:
       summary: List exercises missing a training max
       tags:
       - TrainingMaxes
+  /athletes/{id}/notes:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Note
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AthleteNoteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.AthleteNote'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create athlete journal note
+      tags:
+      - Athletes
+  /athletes/{id}/notes/{noteID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Note ID
+        in: path
+        name: noteID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete athlete note
+      tags:
+      - Athletes
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Note ID
+        in: path
+        name: noteID
+        required: true
+        type: integer
+      - description: Note
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.AthleteNoteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.AthleteNote'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update athlete note
+      tags:
+      - Athletes
+  /athletes/{id}/prescription:
+    get:
+      description: Returns the day's prescribed sets from the athlete's active program
+        (if any), with TM-resolved weights.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Today's prescription
+      tags:
+      - Athletes
   /athletes/{id}/program-compatibility:
     get:
       parameters:
@@ -2227,6 +2749,65 @@ paths:
       summary: Update set
       tags:
       - Workouts
+  /auth/token/{token}:
+    get:
+      description: Single-use token issued by an admin (POST /users/{userID}/tokens).
+        Creates a session on success.
+      parameters:
+      - description: Login token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User + redirect URL
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Log in via magic-link token
+      tags:
+      - Auth
+  /avatars/delete:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+      summary: Delete avatar
+      tags:
+      - Avatars
+  /avatars/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Multipart upload; field name is 'file'. Server returns the new
+        avatar URL.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'e.g. {\"avatar_url\": \"/avatars/abc.jpg\"}'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Upload avatar
+      tags:
+      - Avatars
   /dashboard:
     get:
       description: Returns athlete cards plus aggregated stats (only available to
@@ -2750,6 +3331,79 @@ paths:
       summary: Mark all notifications read
       tags:
       - Notifications
+  /passkeys:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.PasskeyResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List user's passkeys
+      tags:
+      - Passkeys
+  /passkeys/{id}:
+    delete:
+      description: Idempotent — returns 200 even if the credential is already gone
+        or belongs to another user (does NOT leak existence).
+      parameters:
+      - description: Credential ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete passkey
+      tags:
+      - Passkeys
+  /passkeys/label:
+    post:
+      consumes:
+      - application/json
+      description: Called by the SPA right before BeginRegistration so the label is
+        paired to the credential being created.
+      parameters:
+      - description: Label
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.PasskeyLabelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Stash passkey label for the in-flight ceremony
+      tags:
+      - Passkeys
   /preferences:
     get:
       produces:
@@ -3173,6 +3827,22 @@ paths:
       summary: List unreviewed workouts
       tags:
       - Reviews
+  /setup/passkey/skip:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Skip passkey setup
+      tags:
+      - Auth
 swagger: "2.0"
 tags:
 - description: Login, logout, current user, token / passkey ceremonies

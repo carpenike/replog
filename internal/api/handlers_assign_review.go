@@ -309,6 +309,16 @@ func AccessoryPlanFromModel(m *models.AccessoryPlan) *AccessoryPlan {
 }
 
 // ListAccessoryPlans returns all accessory plans for an athlete.
+// ListAccessoryPlans returns all accessory plans for an athlete.
+//
+//	@Summary      List accessory plans
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {array}   api.AccessoryPlan
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/accessories [get]
 func (h *Handlers) ListAccessoryPlans(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -336,6 +346,18 @@ func (h *Handlers) ListAccessoryPlans(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateAccessoryPlan creates a new accessory plan. Coach only.
+// CreateAccessoryPlan creates a new accessory plan for an athlete.
+//
+//	@Summary      Create accessory plan
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                       true  "Athlete ID"
+//	@Param        body  body      api.AccessoryPlanRequest  true  "Plan"
+//	@Success      201  {object}  api.AccessoryPlan
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/accessories [post]
 func (h *Handlers) CreateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
@@ -353,16 +375,7 @@ func (h *Handlers) CreateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Day          int     `json:"day"`
-		ExerciseID   int64   `json:"exercise_id"`
-		TargetSets   int     `json:"target_sets"`
-		TargetRepMin int     `json:"target_rep_min"`
-		TargetRepMax int     `json:"target_rep_max"`
-		TargetWeight float64 `json:"target_weight"`
-		Notes        string  `json:"notes"`
-		SortOrder    int     `json:"sort_order"`
-	}
+	var req AccessoryPlanRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -383,6 +396,17 @@ func (h *Handlers) CreateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteAccessoryPlan deletes an accessory plan. Coach only.
+// DeleteAccessoryPlan permanently removes an accessory plan.
+//
+//	@Summary      Delete accessory plan
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id      path      int  true  "Athlete ID"
+//	@Param        planID  path      int  true  "Plan ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/accessories/{planID} [delete]
 func (h *Handlers) DeleteAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {

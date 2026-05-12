@@ -9,6 +9,16 @@ import (
 
 // TokenLogin validates a magic link token and creates a session.
 // GET /api/auth/token/{token}
+// TokenLogin authenticates a user via a magic-link token.
+//
+//	@Summary      Log in via magic-link token
+//	@Description  Single-use token issued by an admin (POST /users/{userID}/tokens). Creates a session on success.
+//	@Tags         Auth
+//	@Produce      json
+//	@Param        token  path      string  true  "Login token"
+//	@Success      200  {object}  map[string]interface{}  "User + redirect URL"
+//	@Failure      401  {object}  api.APIError
+//	@Router       /auth/token/{token} [get]
 func (h *Handlers) TokenLogin(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	if token == "" {
@@ -61,6 +71,14 @@ func (h *Handlers) TokenLogin(w http.ResponseWriter, r *http.Request) {
 
 // SkipPasskeySetup marks passkey setup as skipped for this session.
 // POST /api/auth/setup/passkey/skip
+// SkipPasskeySetup marks the setup wizard's passkey step as skipped.
+//
+//	@Summary      Skip passkey setup
+//	@Tags         Auth
+//	@Produce      json
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      401  {object}  api.APIError
+//	@Router       /setup/passkey/skip [post]
 func (h *Handlers) SkipPasskeySetup(w http.ResponseWriter, r *http.Request) {
 	h.Sessions.Put(r.Context(), "passkey_setup_skipped", true)
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})

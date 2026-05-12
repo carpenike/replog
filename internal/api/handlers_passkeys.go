@@ -24,6 +24,13 @@ type PasskeyResponse struct {
 
 // ListPasskeys returns the current user's registered passkey credentials.
 // GET /api/passkeys
+//
+//	@Summary      List user's passkeys
+//	@Tags         Passkeys
+//	@Produce      json
+//	@Success      200  {array}   api.PasskeyResponse
+//	@Failure      401  {object}  api.APIError
+//	@Router       /passkeys [get]
 func (h *Handlers) ListPasskeys(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if user == nil {
@@ -64,6 +71,16 @@ func (h *Handlers) ListPasskeys(w http.ResponseWriter, r *http.Request) {
 
 // DeletePasskey removes one of the current user's passkey credentials.
 // DELETE /api/passkeys/{id}
+//
+//	@Summary      Delete passkey
+//	@Description  Idempotent — returns 200 even if the credential is already gone or belongs to another user (does NOT leak existence).
+//	@Tags         Passkeys
+//	@Produce      json
+//	@Param        id   path      int  true  "Credential ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      401  {object}  api.APIError
+//	@Router       /passkeys/{id} [delete]
 func (h *Handlers) DeletePasskey(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if user == nil {
@@ -96,10 +113,18 @@ func (h *Handlers) DeletePasskey(w http.ResponseWriter, r *http.Request) {
 
 // SetPasskeyLabel stores the passkey label in the session before the ceremony.
 // POST /api/passkeys/label
+//
+//	@Summary      Stash passkey label for the in-flight ceremony
+//	@Description  Called by the SPA right before BeginRegistration so the label is paired to the credential being created.
+//	@Tags         Passkeys
+//	@Accept       json
+//	@Produce      json
+//	@Param        body  body      api.PasskeyLabelRequest  true  "Label"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Router       /passkeys/label [post]
 func (h *Handlers) SetPasskeyLabel(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Label string `json:"label"`
-	}
+	var body PasskeyLabelRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
