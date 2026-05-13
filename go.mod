@@ -2,18 +2,24 @@ module github.com/carpenike/replog
 
 go 1.25.6
 
+// Pin the toolchain to a patched 1.25.x so builds pick up the stdlib
+// fixes for GO-2026-4982 / GO-2026-4980 (html/template XSS escaper
+// bypass), GO-2026-4971 (net.Dial NUL-byte panic on Windows), and
+// GO-2026-4918 (HTTP/2 SETTINGS_MAX_FRAME_SIZE infinite loop).
+toolchain go1.25.10
+
 require (
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de
 	github.com/alexedwards/scs/v2 v2.9.0
+	github.com/containrrr/shoutrrr v0.8.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-webauthn/webauthn v0.15.0
 	github.com/pressly/goose/v3 v3.26.0
-	golang.org/x/crypto v0.43.0
+	golang.org/x/crypto v0.45.0
 	modernc.org/sqlite v1.45.0
 )
 
 require (
-	github.com/containrrr/shoutrrr v0.8.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect

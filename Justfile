@@ -133,3 +133,18 @@ go-tidy:
 # Audit npm packages for vulnerabilities.
 npm-audit:
     cd web && npm audit
+
+# Run the same vulnerability scan CI runs (govulncheck on Go,
+# npm audit on the frontend). Installs govulncheck on first run.
+vulncheck:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    GOBIN="$(go env GOPATH)/bin"
+    if [[ ! -x "$GOBIN/govulncheck" ]]; then
+        echo "→ Installing govulncheck..."
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+    fi
+    "$GOBIN/govulncheck" ./...
+    cd web && npm audit --omit=dev --audit-level=moderate
+    npm audit --audit-level=high
+    echo "→ Vulnerability scan clean"
