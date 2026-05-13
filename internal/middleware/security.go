@@ -18,6 +18,35 @@ func EnableHSTS(enabled bool) {
 	hstsEnabled = enabled
 }
 
+// spaScriptSrc holds the script-src directive value for SPA responses.
+// Built at startup from inline-script SHA-256 hashes extracted from
+// web/dist/index.html (see SetSPAScriptHashes). Falls back to a permissive
+// 'unsafe-inline' when no hashes are supplied — that path is hit only
+// in dev when the frontend has not been built yet.
+var spaScriptSrc = "'self' 'unsafe-inline'"
+
+// SetSPAScriptHashes accepts the base64 SHA-256 hashes (without the
+// "sha256-" prefix) of every inline <script> body in the SPA's
+// index.html and rebuilds the script-src directive used by
+// SecurityHeaders for SPA responses. Pass an empty slice to fall back
+// to 'unsafe-inline' (suitable for dev-server / unbuilt-frontend
+// scenarios). Should be called once at startup, before any requests
+// are served.
+//
+// Hashes are quoted per the CSP spec: 'sha256-<base64>'.
+func SetSPAScriptHashes(hashes []string) {
+	if len(hashes) == 0 {
+		spaScriptSrc = "'self' 'unsafe-inline'"
+		return
+	}
+	parts := make([]string, 0, len(hashes)+1)
+	parts = append(parts, "'self'")
+	for _, h := range hashes {
+		parts = append(parts, "'sha256-"+h+"'")
+	}
+	spaScriptSrc = strings.Join(parts, " ")
+}
+
 // SecurityHeaders sets standard security response headers on every request.
 // These provide defense-in-depth against common web attacks:
 //   - X-Frame-Options: DENY prevents clickjacking
@@ -28,11 +57,17 @@ func EnableHSTS(enabled bool) {
 //     is enabled — see EnableHSTS)
 //   - Content-Security-Policy: restricts resource loading origins
 //
-// Note: script-src includes 'unsafe-inline' because index.html has a small
-// inline theme-bootstrap script that runs before React hydrates. Migrating
-// to a SHA-256 hash is tracked separately. style-src includes 'unsafe-inline'
-// because index.html also inlines a body-background style and Vite injects
-// runtime <style> tags for HMR/CSS-modules.
+// CSP details:
+//   - script-src for SPA responses is built at startup from SHA-256
+//     hashes of every inline <script> in web/dist/index.html (via
+//     SetSPAScriptHashes). When the frontend has not been built we
+//     fall back to 'unsafe-inline'.
+//   - style-src still includes 'unsafe-inline' because index.html has
+//     an inline <style> block and shadcn/Radix portals inject runtime
+//     stylesheets. Migrating that off 'unsafe-inline' is a separate
+//     unsolved problem.
+//   - The /api/docs (Swagger UI) endpoints get a relaxed CSP because
+//     Swagger UI loads scripts and styles from unpkg.com.
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Frame-Options", "DENY")
@@ -58,7 +93,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 			w.Header().Set("Content-Security-Policy",
 				"default-src 'self'; "+
 					"style-src 'self' 'unsafe-inline'; "+
-					"script-src 'self' 'unsafe-inline'; "+
+					"script-src "+spaScriptSrc+"; "+
 					"img-src 'self' data:; "+
 					"connect-src 'self'; "+
 					"frame-ancestors 'none'; "+

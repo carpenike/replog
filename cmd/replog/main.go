@@ -130,6 +130,10 @@ func main() {
 	// plaintext localhost dev (default off).
 	middleware.EnableHSTS(sessionManager.Cookie.Secure)
 
+	// Compute CSP script-src allow-list from the embedded SPA's
+	// inline scripts so we can drop 'unsafe-inline' (issue #8).
+	configureCSPFromFrontend()
+
 	// Configure WebAuthn for passkey support (optional).
 	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
 	rpOrigins := os.Getenv("REPLOG_WEBAUTHN_ORIGINS")
