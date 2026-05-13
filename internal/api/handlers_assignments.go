@@ -74,6 +74,10 @@ func (h *Handlers) AssignExercise(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
 		return
 	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "not your athlete")
+		return
+	}
 
 	var req AssignExerciseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

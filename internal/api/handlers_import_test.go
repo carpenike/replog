@@ -331,3 +331,32 @@ func TestCatalogExportJSON_NonAdminForbidden(t *testing.T) {
 	rr := env.do(t, "GET", "/api/catalog/export", nil, cookies)
 	requireStatus(t, rr, http.StatusForbidden)
 }
+
+// --- IDOR coverage (issue #5) ---
+
+func TestImportUpload_OtherCoachForbidden(t *testing.T) {
+	env := setupTest(t)
+	coachA := env.createUser(t, "coachA", true, false)
+	coachB := env.createUser(t, "coachB", true, false)
+	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
+	cookies := env.loginAs(t, coachB)
+
+	body, ct := uploadFile(t, "x.csv", strongCSVSample, map[string]string{"format": "strong"})
+	rr := env.doMultipart(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/import/upload", athleteOfA.ID),
+		body, ct, cookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}
+
+func TestImportExecute_OtherCoachForbidden(t *testing.T) {
+	env := setupTest(t)
+	coachA := env.createUser(t, "coachA", true, false)
+	coachB := env.createUser(t, "coachB", true, false)
+	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
+	cookies := env.loginAs(t, coachB)
+
+	rr := env.do(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/import/execute", athleteOfA.ID),
+		`{}`, cookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}

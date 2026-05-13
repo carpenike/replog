@@ -277,3 +277,39 @@ func TestGenerateExecute_NonCoachForbidden(t *testing.T) {
 	rr := env.do(t, "POST", "/api/athletes/1/generate/execute", nil, cookies)
 	requireStatus(t, rr, http.StatusForbidden)
 }
+
+// --- IDOR coverage (issue #5) ---
+
+func TestGenerateFormData_OtherCoachForbidden(t *testing.T) {
+	env := setupTest(t)
+	coachA := env.createUser(t, "coachA", true, false)
+	coachB := env.createUser(t, "coachB", true, false)
+	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
+	cookies := env.loginAs(t, coachB)
+
+	rr := env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", athleteOfA.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}
+
+func TestGenerateSubmit_OtherCoachForbidden(t *testing.T) {
+	env := setupTest(t)
+	coachA := env.createUser(t, "coachA", true, false)
+	coachB := env.createUser(t, "coachB", true, false)
+	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
+	cookies := env.loginAs(t, coachB)
+
+	body := `{"program_name":"Test","num_days":3,"num_weeks":4}`
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athleteOfA.ID), body, cookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}
+
+func TestGenerateExecute_OtherCoachForbidden(t *testing.T) {
+	env := setupTest(t)
+	coachA := env.createUser(t, "coachA", true, false)
+	coachB := env.createUser(t, "coachB", true, false)
+	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
+	cookies := env.loginAs(t, coachB)
+
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate/execute", athleteOfA.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}

@@ -48,6 +48,10 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
 		return
 	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "not your athlete")
+		return
+	}
 
 	// Check if LLM is configured.
 	provider := models.GetSetting(h.DB, "llm.provider")
@@ -131,6 +135,10 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "not your athlete")
 		return
 	}
 
@@ -251,6 +259,10 @@ func (h *Handlers) GenerateExecute(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "not your athlete")
 		return
 	}
 

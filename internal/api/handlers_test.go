@@ -153,6 +153,10 @@ func setupTest(t *testing.T) *testEnv {
 			r.Post("/athletes/{id}/assignments/{assignmentID}/deactivate", h.DeactivateAssignment)
 			r.Post("/athletes/{id}/assignments/reactivate", h.ReactivateAssignment)
 
+			// TM Setup wizard.
+			r.Get("/athletes/{id}/missing-tms", h.ListMissingTMs)
+			r.Post("/athletes/{id}/batch-tms", h.BatchSetTMs)
+
 			// Program templates (catalog).
 			r.Get("/programs", h.ListProgramTemplates)
 			r.Post("/programs", h.CreateProgramTemplate)

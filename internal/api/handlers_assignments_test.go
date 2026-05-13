@@ -173,3 +173,31 @@ func TestReactivateAssignment_Success(t *testing.T) {
 		t.Errorf("expected exactly 1 active assignment after reactivate, got %d", activeCount)
 	}
 }
+
+// --- IDOR coverage (issue #5) ---
+
+func TestAssignExercise_OtherCoachForbidden(t *testing.T) {
+	env := setupTest(t)
+	coachA := env.createUser(t, "coachA", true, false)
+	coachB := env.createUser(t, "coachB", true, false)
+	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
+	exercise := env.createExercise(t, "Bench Press")
+	cookies := env.loginAs(t, coachB)
+
+	body := fmt.Sprintf(`{"exercise_id":%d,"target_reps":5}`, exercise.ID)
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/assignments", athleteOfA.ID), body, cookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}
+
+func TestReactivateAssignment_OtherCoachForbidden(t *testing.T) {
+	env := setupTest(t)
+	coachA := env.createUser(t, "coachA", true, false)
+	coachB := env.createUser(t, "coachB", true, false)
+	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
+	exercise := env.createExercise(t, "Bench Press")
+	cookies := env.loginAs(t, coachB)
+
+	body := fmt.Sprintf(`{"exercise_id":%d,"target_reps":5}`, exercise.ID)
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/assignments/reactivate", athleteOfA.ID), body, cookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}

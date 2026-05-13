@@ -42,6 +42,10 @@ func (h *Handlers) ListMissingTMs(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
 		return
 	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "not your athlete")
+		return
+	}
 
 	templateID, err := strconv.ParseInt(r.URL.Query().Get("template_id"), 10, 64)
 	if err != nil || templateID == 0 {
@@ -86,6 +90,10 @@ func (h *Handlers) BatchSetTMs(w http.ResponseWriter, r *http.Request) {
 	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "not your athlete")
 		return
 	}
 
