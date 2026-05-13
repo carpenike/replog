@@ -9,6 +9,7 @@ import (
 
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/notify"
 )
 
 // --- TM Setup ---
@@ -205,6 +206,19 @@ func (h *Handlers) CreateLoginToken(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusInternalServerError, "failed to create token")
 		return
 	}
+
+	// Notify the user that a magic-link login token was issued for them
+	// (ADR 008). The link points to the token-login URL the admin shares
+	// with the recipient. The notification itself is in-app + (optional)
+	// external; it does not contain the token bytes (those live in the
+	// link only).
+	notify.Send(h.DB, notify.Request{
+		UserID:  userID,
+		Type:    models.NotifyMagicLinkSent,
+		Title:   "Login link issued",
+		Message: "An admin generated a single-use login link for your account.",
+		Link:    "/auth/token/" + token.Token,
+	})
 
 	WriteJSON(w, http.StatusCreated, map[string]any{
 		"id":    token.ID,

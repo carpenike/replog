@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -64,6 +65,16 @@ func (h *Handlers) SubmitReview(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusInternalServerError, "failed to submit review")
 		return
 	}
+
+	// Notify the athlete's linked user that a review landed (ADR 008).
+	var title string
+	if req.Status == "approved" {
+		title = "Workout approved"
+	} else {
+		title = "Workout needs work"
+	}
+	h.notifyAthlete(athleteID, models.NotifyReviewSubmitted, title, req.Notes,
+		fmt.Sprintf("/athletes/%d/workouts/%d", athleteID, workoutID))
 
 	WriteJSON(w, http.StatusOK, WorkoutReviewFromModel(review))
 }
@@ -134,6 +145,18 @@ func (h *Handlers) AssignProgramToAthlete(w http.ResponseWriter, r *http.Request
 		WriteError(w, http.StatusInternalServerError, "failed to assign program")
 		return
 	}
+
+	// Notify the athlete that a new program was assigned (ADR 008). Look up
+	// the template name for the title; fall back to a generic message if
+	// the lookup fails (the notify is best-effort).
+	programName := "a new program"
+	if tpl, terr := models.GetProgramTemplateByID(h.DB, req.TemplateID); terr == nil && tpl != nil {
+		programName = tpl.Name
+	}
+	h.notifyAthlete(athleteID, models.NotifyProgramAssigned,
+		"New program assigned",
+		fmt.Sprintf("%s — starting %s", programName, req.StartDate),
+		fmt.Sprintf("/athletes/%d/programs", athleteID))
 
 	WriteJSON(w, http.StatusCreated, AthleteProgramFromModel(ap))
 }

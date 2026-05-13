@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -50,6 +51,17 @@ func (h *Handlers) CreateTrainingMax(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusInternalServerError, "failed to set training max")
 		return
 	}
+
+	// Notify the athlete that a training max changed (ADR 008). Best-effort
+	// exercise-name lookup for the title; falls back to ID if unavailable.
+	exerciseName := fmt.Sprintf("exercise #%d", req.ExerciseID)
+	if ex, eerr := models.GetExerciseByID(h.DB, req.ExerciseID); eerr == nil && ex != nil {
+		exerciseName = ex.Name
+	}
+	h.notifyAthlete(athleteID, models.NotifyTMUpdated,
+		"Training max updated",
+		fmt.Sprintf("%s: %g lbs", exerciseName, req.Weight),
+		fmt.Sprintf("/athletes/%d/training-maxes", athleteID))
 
 	WriteJSON(w, http.StatusCreated, TrainingMaxFromModel(tm))
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -118,6 +119,17 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		log.Printf("api: create workout for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to create workout")
 		return
+	}
+
+	// Notify the athlete's coach that a workout was logged (ADR 008).
+	// Skip when the coach is also the one calling the endpoint — they
+	// already know they just made the workout (no point pinging them).
+	if athlete, aerr := models.GetAthleteByID(h.DB, athleteID); aerr == nil &&
+		athlete.CoachID.Valid && athlete.CoachID.Int64 != user.ID {
+		h.notifyCoach(athleteID, models.NotifyWorkoutLogged,
+			fmt.Sprintf("%s logged a workout", h.athleteDisplayName(athleteID)),
+			req.Date,
+			fmt.Sprintf("/athletes/%d/workouts/%d", athleteID, workout.ID))
 	}
 
 	WriteJSON(w, http.StatusCreated, WorkoutFromModel(workout))

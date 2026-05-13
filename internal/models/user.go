@@ -145,6 +145,29 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	return u, nil
 }
 
+// GetUserByAthleteID returns the user linked to the given athlete (if any).
+// Returns ErrNotFound when no user is linked — that's expected for athletes
+// who don't have their own login (e.g. young kids whose parent logs sets on
+// their behalf). Callers in the notification path should treat ErrNotFound
+// as "skip the notify"; it is not an error condition.
+//
+// users.athlete_id has a partial unique index (`WHERE athlete_id IS NOT NULL`),
+// so at most one user per athlete.
+func GetUserByAthleteID(db *sql.DB, athleteID int64) (*User, error) {
+	u := &User{}
+	err := db.QueryRow(
+		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, avatar_path, created_at, updated_at
+		 FROM users WHERE athlete_id = ?`, athleteID,
+	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("models: get user by athlete %d: %w", athleteID, err)
+	}
+	return u, nil
+}
+
 // GetUserByUsername retrieves a user by username (case-insensitive).
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	u := &User{}

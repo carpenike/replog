@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -54,6 +55,17 @@ func (h *Handlers) CreateAthleteNote(w http.ResponseWriter, r *http.Request) {
 		log.Printf("api: create athlete note for %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to create note")
 		return
+	}
+
+	// Notify the athlete only when the note is public AND the author is
+	// not the athlete themselves (ADR 008). A coach making notes on a kid
+	// fires; a kid leaving themselves a private note does not.
+	if !req.IsPrivate {
+		if recipient, lerr := models.GetUserByAthleteID(h.DB, athleteID); lerr == nil && recipient.ID != user.ID {
+			h.notifyAthlete(athleteID, models.NotifyNoteAdded,
+				"Coach left a note", req.Content,
+				fmt.Sprintf("/athletes/%d/journal", athleteID))
+		}
 	}
 
 	WriteJSON(w, http.StatusCreated, map[string]any{
