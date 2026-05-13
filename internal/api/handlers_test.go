@@ -157,6 +157,63 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/missing-tms", h.ListMissingTMs)
 			r.Post("/athletes/{id}/batch-tms", h.BatchSetTMs)
 
+			// Accessory plans.
+			r.Get("/athletes/{id}/accessories", h.ListAccessoryPlans)
+			r.Post("/athletes/{id}/accessories", h.CreateAccessoryPlan)
+			r.Put("/athletes/{id}/accessories/{planID}", h.UpdateAccessoryPlan)
+			r.Post("/athletes/{id}/accessories/{planID}/deactivate", h.DeactivateAccessoryPlan)
+			r.Delete("/athletes/{id}/accessories/{planID}", h.DeleteAccessoryPlan)
+
+			// Athlete equipment.
+			r.Get("/athletes/{id}/equipment", h.ListAthleteEquipment)
+			r.Post("/athletes/{id}/equipment", h.AddAthleteEquipment)
+			r.Delete("/athletes/{id}/equipment/{equipmentID}", h.RemoveAthleteEquipment)
+
+			// Exercise equipment.
+			r.Get("/exercises/{id}/equipment", h.ListExerciseEquipment)
+			r.Post("/exercises/{id}/equipment", h.AddExerciseEquipment)
+			r.Delete("/exercises/{id}/equipment/{equipmentID}", h.RemoveExerciseEquipment)
+
+			// Equipment catalog.
+			r.Get("/equipment", h.ListEquipment)
+			r.Post("/equipment", h.CreateEquipment)
+			r.Put("/equipment/{equipmentID}", h.UpdateEquipment)
+			r.Delete("/equipment/{equipmentID}", h.DeleteEquipment)
+
+			// Exercise history (per athlete).
+			r.Get("/athletes/{id}/exercises/{exerciseID}/history", h.ListExerciseHistory)
+
+			// Program compatibility check.
+			r.Get("/athletes/{id}/program-compatibility", h.CheckProgramCompatibility)
+
+			// Cycle review.
+			r.Get("/athletes/{id}/cycle-review", h.GetCycleReview)
+			r.Post("/athletes/{id}/cycle-review", h.ApplyTMBumps)
+
+			// Notifications.
+			r.Get("/notifications", h.ListNotifications)
+			r.Get("/notifications/count", h.UnreadNotificationCount)
+			r.Post("/notifications/{notificationID}/read", h.MarkNotificationRead)
+			r.Post("/notifications/read-all", h.MarkAllNotificationsRead)
+
+			// Workout reviews (coach approval flow).
+			r.Get("/reviews/pending", h.ListPendingReviews)
+			r.Post("/athletes/{id}/workouts/{workoutID}/review", h.SubmitReview)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/review", h.DeleteReview)
+
+			// Login tokens (admin).
+			r.Get("/users/{userID}/tokens", h.ListLoginTokens)
+			r.Post("/users/{userID}/tokens", h.CreateLoginToken)
+			r.Delete("/users/{userID}/tokens/{tokenID}", h.DeleteLoginToken)
+
+			// Impersonation.
+			r.Post("/admin/impersonate/{userId}", h.StartImpersonation)
+			r.Post("/admin/stop-impersonating", h.StopImpersonation)
+			r.Get("/admin/impersonateable", h.ImpersonateableUsers)
+
+			// Setup wizard.
+			r.Post("/setup/passkey/skip", h.SkipPasskeySetup)
+
 			// Program templates (catalog).
 			r.Get("/programs", h.ListProgramTemplates)
 			r.Post("/programs", h.CreateProgramTemplate)
