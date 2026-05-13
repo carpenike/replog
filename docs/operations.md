@@ -23,7 +23,8 @@ in production.
 8. [Reverse proxy notes](#reverse-proxy-notes)
 9. [Disaster recovery](#disaster-recovery)
 10. [Routine maintenance](#routine-maintenance)
-11. [Security checklist](#security-checklist)
+11. [Repository hardening (GitHub)](#repository-hardening-github)
+12. [Security checklist](#security-checklist)
 
 ---
 
@@ -607,6 +608,97 @@ file, plug in `logrotate`:
 
 (`copytruncate` because the binary holds the log fd open and there is
 no SIGHUP-reopen handler today.)
+
+---
+
+## Repository hardening (GitHub)
+
+The runtime hardening above protects the deployed binary; this section
+covers protecting the source tree itself. None of the items below are
+files in the repo — they're GitHub web-UI / API settings that need to
+be applied once and then audited periodically.
+
+### Branch protection on `main`
+
+The CI workflow has four required gates today:
+
+- **Build & Test** — frontend build, ESLint, `go vet`, `go test -race`.
+- **Lint** — `golangci-lint`.
+- **OpenAPI spec is up to date** — fails on a stale `swagger.yaml`.
+- **Vulnerability scan** — `govulncheck` + two-tier `npm audit`.
+- **Workflow lint (actionlint)** — catches workflow YAML mistakes.
+
+None of those are doing useful work unless they actually *block*
+merges. Apply via *Settings → Branches → Branch protection rules →
+`main`*:
+
+- [x] Require a pull request before merging.
+- [x] Require status checks to pass before merging.
+- [x] Require branches to be up to date before merging.
+- [x] Required checks: `Build & Test`, `Lint`, `OpenAPI spec is up to date`, `Vulnerability scan`, `Workflow lint (actionlint)`.
+- [x] Require conversation resolution before merging.
+- [x] Do not allow bypassing the above settings (even for admins).
+
+If the protection is set up via the GitHub CLI, the equivalent
+command is:
+
+```bash
+gh api -X PUT repos/carpenike/replog/branches/main/protection \
+  --input - <<'JSON'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": [
+      "Build & Test",
+      "Lint",
+      "OpenAPI spec is up to date",
+      "Vulnerability scan",
+      "Workflow lint (actionlint)"
+    ]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": null,
+  "restrictions": null,
+  "required_conversation_resolution": true
+}
+JSON
+```
+
+(`required_pull_request_reviews: null` because this is a single-author
+repo — a self-review requirement would make every change require a
+dummy second account. Adjust if the contributor list grows.)
+
+### Renovate
+
+[`.github/renovate.json5`](../.github/renovate.json5) defines the
+dependency-update policy: minor + digest bumps automerge after CI
+passes, majors land as PRs for manual review, vulnerability alerts
+get their own immediate non-grouped PRs. Renovate runs as a GitHub App
+(install once at the org/repo level via the marketplace).
+
+`flake.lock` is **not** maintained by Renovate —
+`lockFileMaintenance` is disabled in the config so nixpkgs bumps stay
+as deliberate `nix flake update` commits (see the
+[flake.lock commit](../flake.lock) for rationale).
+
+### Secret scanning + push protection
+
+GitHub's native secret scanning is free for public repos. Enable both
+**secret scanning** and **push protection** under *Settings → Code
+security*. Push protection rejects commits that contain known secret
+patterns (AWS keys, GitHub tokens, etc.) before they're ever pushed,
+which is much more useful than scanning history after the fact.
+
+### Dependabot security updates
+
+Even with Renovate driving dependency updates, leave Dependabot
+**security updates** enabled (*Settings → Code security → Dependabot
+security updates*). Renovate handles the routine; Dependabot is a
+belt-and-suspenders second opinion specifically for advisories. Both
+will PR a fix; the duplicate is harmless and the redundancy is cheap.
+
+Dependabot **version updates** stay disabled — Renovate handles those
+and running both creates duplicate PRs.
 
 ---
 

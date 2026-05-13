@@ -33,6 +33,9 @@ jobs:
       - name: Build frontend
         run: cd web && npm ci && npm run build
 
+      - name: Lint frontend (ESLint)
+        run: cd web && npm run lint
+
       - name: Download dependencies
         run: go mod download
 
@@ -139,3 +142,18 @@ jobs:
       - name: npm audit (all deps, high+)
         working-directory: web
         run: npm audit --audit-level=high
+
+  actionlint:
+    name: Workflow lint (actionlint)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # actionlint catches typos, missing-key errors, shell quoting
+      # bugs in `run:` blocks, and similar workflow-level mistakes
+      # before they reach `main`. Tiny + fast (no Go/Node setup).
+      # Defaults: fail-on-error=true, matcher=true, shellcheck=true.
+      - name: Run actionlint
+        uses: raven-actions/actionlint@v2

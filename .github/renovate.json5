@@ -1,0 +1,100 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+
+  // Inherits the well-known recommended Renovate baseline plus three
+  // automerge presets — digest bumps, minor bumps, and PRs that pass
+  // status checks all merge themselves. Major bumps still require
+  // manual review (which is what we want — Vite/React/Tailwind majors
+  // can move fast).
+  extends: [
+    'config:recommended',
+    ':automergeDigest',
+    ':automergeMinor',
+    ':automergePr',
+  ],
+
+  // Tighten Renovate's noise. Five concurrent PRs is plenty for a
+  // single-family app; ten branches caps how aggressively Renovate
+  // hammers GitHub Actions minutes.
+  prConcurrentLimit: 5,
+  branchConcurrentLimit: 10,
+
+  labels: [
+    'dependencies',
+  ],
+
+  // Conventional-commit prefixes per ecosystem so the commit log stays
+  // greppable and so a future release-please / changelog generator can
+  // sort updates into Features / Build / etc. Mirrors the convention
+  // used in carpenike/nix-config so contributors see the same shape
+  // across the two repos.
+  packageRules: [
+    {
+      description: 'Go module updates',
+      matchManagers: ['gomod'],
+      semanticCommits: 'enabled',
+      commitMessagePrefix: 'feat(go):',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: 'to {{newVersion}}',
+      labels: ['dependencies', 'go'],
+    },
+    {
+      description: 'npm package updates (frontend)',
+      matchManagers: ['npm'],
+      semanticCommits: 'enabled',
+      commitMessagePrefix: 'feat(npm):',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: 'to {{newVersion}}',
+      labels: ['dependencies', 'npm'],
+    },
+    {
+      description: 'GitHub Actions — auto-merge so workflow bumps land without ceremony',
+      matchManagers: ['github-actions'],
+      semanticCommits: 'enabled',
+      commitMessagePrefix: 'chore(actions):',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: 'to {{newVersion}}',
+      automerge: true,
+      automergeType: 'pr',
+      labels: ['dependencies', 'github-actions'],
+    },
+    {
+      description: 'Nix flake inputs (nixpkgs, flake-utils, ...)',
+      matchManagers: ['nix'],
+      semanticCommits: 'enabled',
+      commitMessagePrefix: 'feat(nix):',
+      commitMessageTopic: '{{depName}}',
+      commitMessageExtra: 'to {{newVersion}}',
+      labels: ['dependencies', 'nix'],
+    },
+    {
+      description: 'Group all npm patch + minor bumps to keep PR noise down',
+      matchManagers: ['npm'],
+      matchUpdateTypes: ['minor', 'patch'],
+      groupName: 'frontend (npm minor + patch)',
+    },
+    {
+      description: 'Group all Go module patch bumps to keep PR noise down',
+      matchManagers: ['gomod'],
+      matchUpdateTypes: ['patch'],
+      groupName: 'backend (go modules patch)',
+    },
+  ],
+
+  // Vulnerability alerts get their own non-grouped PRs immediately so
+  // they aren't swallowed by the weekly minor/patch group above.
+  vulnerabilityAlerts: {
+    enabled: true,
+    labels: ['dependencies', 'security'],
+    commitMessagePrefix: 'security(deps):',
+  },
+
+  // The committed flake.lock is updated by `nix flake update` runs.
+  // Renovate won't touch flake.lock itself; bumping nixpkgs requires
+  // a manual `nix flake update` commit (the design choice in the
+  // 'commit flake.lock' commit message). If we add a separate
+  // update-flake-lock workflow later, this stays disabled.
+  lockFileMaintenance: {
+    enabled: false,
+  },
+}
