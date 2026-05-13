@@ -161,6 +161,54 @@ func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	return u, nil
 }
 
+// ErrLocked is returned by Authenticate when the account is currently
+// locked due to too many recent wrong-password attempts. Use
+// errors.As to extract the *LockoutError and call its RetryAfter()
+// for the HTTP Retry-After hint.
+var ErrLocked = &LockoutError{}
+
+// LockoutError carries the remaining lockout duration so callers can
+// surface it in the response (e.g. HTTP Retry-After). Implements error
+// and unwraps to ErrLocked so errors.Is(err, ErrLocked) works.
+type LockoutError struct {
+	Remaining time.Duration
+}
+
+func (e *LockoutError) Error() string { return "account temporarily locked" }
+
+// Is reports whether target is the sentinel ErrLocked. This lets
+// errors.Is(err, ErrLocked) match any *LockoutError instance regardless
+// of the embedded Remaining duration.
+func (e *LockoutError) Is(target error) bool {
+	_, ok := target.(*LockoutError)
+	return ok
+}
+
+// RetryAfter returns the lockout window remaining, rounded up to the
+// next whole second so HTTP Retry-After is never 0 while still locked.
+func (e *LockoutError) RetryAfter() int {
+	if e.Remaining <= 0 {
+		return 1
+	}
+	secs := int(e.Remaining / time.Second)
+	if e.Remaining%time.Second != 0 {
+		secs++
+	}
+	if secs < 1 {
+		secs = 1
+	}
+	return secs
+}
+
+// LockoutThreshold is the number of consecutive wrong-password attempts
+// against a known account that triggers a lockout. See ADR 014.
+const LockoutThreshold = 5
+
+// LockoutDuration is how long an account stays locked after exceeding
+// LockoutThreshold. The window slides — every additional wrong attempt
+// while locked extends locked_until by another LockoutDuration. See ADR 014.
+const LockoutDuration = 15 * time.Minute
+
 // dummyBcryptHash is a bcrypt hash of an internal value that no real account
 // will ever hold. Generated lazily on first use so the cost stays in sync
 // with bcrypt.DefaultCost without hard-coding a literal hash. We compare
@@ -185,15 +233,25 @@ func dummyHash() []byte {
 }
 
 // Authenticate verifies a username/password combination and returns the user
-// if valid. Returns ErrNotFound if credentials are wrong, or ErrNoPassword
-// if the account has no password set (passwordless-only).
+// if valid.
 //
-// On the user-not-found and passwordless-account paths we still run a bcrypt
-// compare against a fixed dummy hash so that the response time does not
-// depend on whether the username exists or has a password. Without this,
-// the wrong-username path returns in microseconds while the wrong-password
-// path takes ~80ms — trivial to distinguish from a remote client and use to
-// enumerate accounts.
+// Possible errors:
+//   - ErrNotFound: unknown username, or known username with wrong password
+//   - ErrNoPassword: account exists but has no password (passwordless-only)
+//   - ErrLocked: account is temporarily locked due to too many recent
+//     wrong-password attempts (see ADR 014). Use LockoutRemaining for the
+//     Retry-After hint.
+//
+// Timing defenses: on user-not-found and passwordless-account paths we run
+// a bcrypt compare against a fixed dummy hash so that the response time
+// does not reveal whether the username exists or has a password.
+//
+// Lockout defenses: after LockoutThreshold consecutive wrong-password
+// attempts against a known account, the account is locked for
+// LockoutDuration. The window slides — every additional wrong attempt
+// while locked extends locked_until. Successful login resets the counter.
+// Unknown-username attempts do NOT consume any per-account budget so
+// attackers cannot DoS arbitrary accounts knowing only the username.
 func Authenticate(db *sql.DB, username, password string) (*User, error) {
 	u, err := GetUserByUsername(db, username)
 	if err != nil {
@@ -207,10 +265,80 @@ func Authenticate(db *sql.DB, username, password string) (*User, error) {
 		_ = bcrypt.CompareHashAndPassword(dummyHash(), []byte(password))
 		return nil, ErrNoPassword
 	}
+
+	// Account-level lockout check. If currently locked, refuse without
+	// running bcrypt — that keeps the locked response cheap and removes
+	// any "still locked, but right password" timing oracle.
+	if remaining, err := checkAndExtendLockout(db, u.ID); err != nil {
+		return nil, err
+	} else if remaining > 0 {
+		return nil, &LockoutError{Remaining: remaining}
+	}
+
 	if !CheckPassword(u.PasswordHash, password) {
+		// Increment the failure counter; trip the lock if we just hit
+		// the threshold. Best-effort: if the UPDATE fails we still
+		// return the auth failure (better to refuse login than to leak
+		// success on an unrelated DB error).
+		_ = recordFailedLogin(db, u.ID)
 		return nil, ErrNotFound
 	}
+
+	// Success — clear any leftover failure state.
+	_ = clearFailedLogin(db, u.ID)
 	return u, nil
+}
+
+// checkAndExtendLockout returns the remaining lockout duration when the
+// account is currently locked; in that case it ALSO extends locked_until
+// by LockoutDuration so the attacker cannot wait out the window in the
+// background by spreading attempts across accounts. Returns 0 when not
+// locked.
+func checkAndExtendLockout(db *sql.DB, userID int64) (time.Duration, error) {
+	var lockedUntil sql.NullTime
+	err := db.QueryRow(`SELECT locked_until FROM users WHERE id = ?`, userID).Scan(&lockedUntil)
+	if err != nil {
+		return 0, fmt.Errorf("models: read lockout state for user %d: %w", userID, err)
+	}
+	if !lockedUntil.Valid || !lockedUntil.Time.After(time.Now()) {
+		return 0, nil
+	}
+	// Slide the window: another attempt during a lockout pushes the
+	// unlock further out. We do NOT increment the counter here; the
+	// counter exists to trip the lock, not to track attempts during.
+	newUntil := time.Now().Add(LockoutDuration)
+	_, _ = db.Exec(`UPDATE users SET locked_until = ? WHERE id = ?`, newUntil, userID)
+	return LockoutDuration, nil
+}
+
+// recordFailedLogin increments failed_login_count and, if it crosses
+// LockoutThreshold, sets locked_until = now + LockoutDuration.
+func recordFailedLogin(db *sql.DB, userID int64) error {
+	// Single statement — atomic under SQLite's single-writer model.
+	// CASE expression decides whether to set locked_until in the same
+	// UPDATE based on the post-increment count.
+	_, err := db.Exec(`
+		UPDATE users
+		   SET failed_login_count = failed_login_count + 1,
+		       locked_until = CASE
+		           WHEN failed_login_count + 1 >= ? THEN ?
+		           ELSE locked_until
+		       END
+		 WHERE id = ?`,
+		LockoutThreshold,
+		time.Now().Add(LockoutDuration),
+		userID,
+	)
+	return err
+}
+
+// clearFailedLogin resets failure counter and lockout on successful login.
+func clearFailedLogin(db *sql.DB, userID int64) error {
+	_, err := db.Exec(
+		`UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE id = ?`,
+		userID,
+	)
+	return err
 }
 
 // CountUsers returns the total number of users in the database.
@@ -300,13 +428,22 @@ func UpdateUser(db *sql.DB, id int64, username, name, email string, athleteID sq
 	return GetUserByID(db, id)
 }
 
-// UpdatePassword changes a user's password hash.
+// UpdatePassword changes a user's password hash. Also clears any lockout
+// state (failed_login_count + locked_until) — a successful password change
+// is the canonical recovery path from a forgotten-password lockout.
 func UpdatePassword(db *sql.DB, id int64, newPassword string) error {
 	hash, err := HashPassword(newPassword)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, hash, id)
+	result, err := db.Exec(
+		`UPDATE users
+		    SET password_hash = ?,
+		        failed_login_count = 0,
+		        locked_until = NULL
+		  WHERE id = ?`,
+		hash, id,
+	)
 	if err != nil {
 		return fmt.Errorf("models: update password for user %d: %w", id, err)
 	}

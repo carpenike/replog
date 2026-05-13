@@ -72,7 +72,7 @@ docs/
   openapi/                  # Generated OpenAPI spec (do not edit by hand)
     swagger.yaml            # Run `just openapi` to regenerate from swag annotations
   seed-catalog.md             # Exercise seed data format
-  adr/                        # Architecture decision records (13 ADRs)
+  adr/                        # Architecture decision records (14 ADRs)
 
 flake.nix                     # Nix build (frontend + backend)
 ```
@@ -94,6 +94,7 @@ Read the ADRs before making changes that affect these areas:
 - [ADR 011](docs/adr/011-api-spa-frontend.md) — REST API + React SPA frontend (current architecture)
 - [ADR 012](docs/adr/012-api-test-harness.md) — Shared API test harness (`internal/api/handlers_test.go`)
 - [ADR 013](docs/adr/013-openapi-swag.md) — OpenAPI spec generated via `swaggo/swag` annotations
+- [ADR 014](docs/adr/014-login-lockout.md) — Per-account login lockout (5 fails / 15 min, sliding window)
 
 ## Database Schema
 
@@ -207,4 +208,4 @@ When ending a work session, complete ALL steps. Work is NOT complete until `git 
 - `docs/operations.md` — production deployment, backups, secret-key handling, upgrades
 - `internal/api/openapi/swagger.yaml` — generate3 OpenAPI spec for the REST API (also at `/api/docs`); regenerate with `just openapi`
 - `docs/seed-catalog.md` — exercise seed data format
-- `docs/adr/` — architecture decision records (10 ADRs)
+- `docs/adr/` — architecture decision records (14 ADRs)

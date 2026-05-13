@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"testing"
 	"time"
 )
@@ -133,6 +134,176 @@ func TestAuthenticate(t *testing.T) {
 				unknown, wrong)
 		}
 	})
+}
+
+// --- Per-account login lockout (ADR 014) ---
+
+func TestAuthenticate_LocksAfterThreshold(t *testing.T) {
+	db := testDB(t)
+	CreateUser(db, "victim", "", "correct", "", false, false, sql.NullInt64{})
+
+	// LockoutThreshold-1 wrong attempts should NOT lock.
+	for i := 0; i < LockoutThreshold-1; i++ {
+		_, err := Authenticate(db, "victim", "nope")
+		if err != ErrNotFound {
+			t.Fatalf("attempt %d: err = %v, want ErrNotFound", i+1, err)
+		}
+	}
+	// The right password still works at threshold-1.
+	if _, err := Authenticate(db, "victim", "correct"); err != nil {
+		t.Fatalf("right password at threshold-1: err = %v", err)
+	}
+	// Successful login resets the counter, so we should be able to fail
+	// LockoutThreshold-1 more times without locking.
+	for i := 0; i < LockoutThreshold-1; i++ {
+		if _, err := Authenticate(db, "victim", "nope"); err != ErrNotFound {
+			t.Fatalf("post-reset attempt %d: err = %v, want ErrNotFound", i+1, err)
+		}
+	}
+
+	// The Nth (== threshold) wrong attempt trips the lock. The error from
+	// that attempt is still ErrNotFound (the password WAS wrong), but the
+	// next attempt — even with the right password — must return ErrLocked.
+	if _, err := Authenticate(db, "victim", "nope"); err != ErrNotFound {
+		t.Fatalf("threshold attempt: err = %v, want ErrNotFound", err)
+	}
+
+	_, err := Authenticate(db, "victim", "correct")
+	if !errors.Is(err, ErrLocked) {
+		t.Fatalf("post-threshold with correct password: err = %v, want ErrLocked", err)
+	}
+	var le *LockoutError
+	if !errors.As(err, &le) {
+		t.Fatalf("expected *LockoutError, got %T", err)
+	}
+	if le.Remaining <= 0 || le.Remaining > LockoutDuration {
+		t.Errorf("Remaining = %v, want in (0, %v]", le.Remaining, LockoutDuration)
+	}
+	if le.RetryAfter() < 1 {
+		t.Errorf("RetryAfter() = %d, want >= 1", le.RetryAfter())
+	}
+}
+
+func TestAuthenticate_LockoutWindowSlides(t *testing.T) {
+	db := testDB(t)
+	CreateUser(db, "victim", "", "correct", "", false, false, sql.NullInt64{})
+
+	// Trip the lock.
+	for i := 0; i < LockoutThreshold; i++ {
+		_, _ = Authenticate(db, "victim", "nope")
+	}
+
+	// Read locked_until twice with a wrong-password attempt in between
+	// and confirm it slid forward (the second value must be strictly
+	// later than the first).
+	var firstUntil, secondUntil sql.NullTime
+	if err := db.QueryRow(`SELECT locked_until FROM users WHERE username = 'victim'`).Scan(&firstUntil); err != nil {
+		t.Fatalf("read first locked_until: %v", err)
+	}
+	time.Sleep(20 * time.Millisecond) // ensure clock moves
+	_, _ = Authenticate(db, "victim", "still wrong")
+	if err := db.QueryRow(`SELECT locked_until FROM users WHERE username = 'victim'`).Scan(&secondUntil); err != nil {
+		t.Fatalf("read second locked_until: %v", err)
+	}
+
+	if !firstUntil.Valid || !secondUntil.Valid {
+		t.Fatalf("expected both timestamps valid, got %v / %v", firstUntil, secondUntil)
+	}
+	if !secondUntil.Time.After(firstUntil.Time) {
+		t.Errorf("locked_until did not slide: first=%v, second=%v", firstUntil.Time, secondUntil.Time)
+	}
+}
+
+func TestAuthenticate_LockoutDoesNotApplyToUnknownUser(t *testing.T) {
+	db := testDB(t)
+	// No user named "ghost" exists. Hammering ErrNotFound on an unknown
+	// username must NOT create / lock any per-account state — otherwise
+	// an attacker who knows real usernames can DoS them by submitting
+	// usernames that don't exist (cheap) and still tripping a lock.
+	for i := 0; i < LockoutThreshold*2; i++ {
+		_, err := Authenticate(db, "ghost", "anything")
+		if err != ErrNotFound {
+			t.Fatalf("attempt %d: err = %v, want ErrNotFound", i+1, err)
+		}
+	}
+	// Sanity: the row count is unchanged.
+	var n int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n)
+	if n != 0 {
+		t.Errorf("user count = %d, want 0", n)
+	}
+}
+
+func TestAuthenticate_PassthroughWhenLockExpired(t *testing.T) {
+	db := testDB(t)
+	user, _ := CreateUser(db, "victim", "", "correct", "", false, false, sql.NullInt64{})
+
+	// Manually expire a lockout to simulate "15 minutes have passed".
+	past := time.Now().Add(-1 * time.Second)
+	if _, err := db.Exec(
+		`UPDATE users SET failed_login_count = ?, locked_until = ? WHERE id = ?`,
+		LockoutThreshold, past, user.ID,
+	); err != nil {
+		t.Fatalf("manually expire lock: %v", err)
+	}
+
+	// A correct-password attempt must succeed and reset state.
+	if _, err := Authenticate(db, "victim", "correct"); err != nil {
+		t.Fatalf("post-expiry login: err = %v", err)
+	}
+
+	var count int
+	var lockedUntil sql.NullTime
+	_ = db.QueryRow(`SELECT failed_login_count, locked_until FROM users WHERE id = ?`, user.ID).
+		Scan(&count, &lockedUntil)
+	if count != 0 || lockedUntil.Valid {
+		t.Errorf("post-success state: count=%d, locked_until=%v, want 0/NULL", count, lockedUntil)
+	}
+}
+
+func TestUpdatePassword_ClearsLockout(t *testing.T) {
+	db := testDB(t)
+	user, _ := CreateUser(db, "victim", "", "old-password", "", false, false, sql.NullInt64{})
+
+	// Trip the lock.
+	for i := 0; i < LockoutThreshold; i++ {
+		_, _ = Authenticate(db, "victim", "nope")
+	}
+	// Confirm it's locked.
+	if _, err := Authenticate(db, "victim", "old-password"); !errors.Is(err, ErrLocked) {
+		t.Fatalf("pre-reset: err = %v, want ErrLocked", err)
+	}
+
+	// Admin resets the password — that must also clear the lockout.
+	if err := UpdatePassword(db, user.ID, "new-password"); err != nil {
+		t.Fatalf("update password: %v", err)
+	}
+
+	// New password works immediately — no lockout in the way.
+	if _, err := Authenticate(db, "victim", "new-password"); err != nil {
+		t.Errorf("post-reset login: err = %v, want nil", err)
+	}
+}
+
+func TestLockoutError_RetryAfter(t *testing.T) {
+	cases := []struct {
+		remaining time.Duration
+		want      int
+	}{
+		{0, 1},                   // never < 1
+		{-5 * time.Second, 1},    // expired but still surfaced as 1
+		{500 * time.Millisecond, 1},
+		{1 * time.Second, 1},
+		{1500 * time.Millisecond, 2}, // round up
+		{30 * time.Second, 30},
+		{15 * time.Minute, 900},
+	}
+	for _, tc := range cases {
+		got := (&LockoutError{Remaining: tc.remaining}).RetryAfter()
+		if got != tc.want {
+			t.Errorf("RetryAfter(%v) = %d, want %d", tc.remaining, got, tc.want)
+		}
+	}
 }
 
 func TestHasPassword(t *testing.T) {

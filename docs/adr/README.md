@@ -17,3 +17,4 @@ Architecture Decision Records for RepLog.
 | [011](011-api-spa-frontend.md) | REST API + SPA Frontend | Accepted | 2026-03-07 |
 | [012](012-api-test-harness.md) | Shared API Test Harness | Accepted | 2026-05-12 |
 | [013](013-openapi-swag.md) | OpenAPI Generation via swag Annotations | Accepted | 2026-05-12 |
+| [014](014-login-lockout.md) | Per-Account Login Lockout | Accepted | 2026-05-12 |

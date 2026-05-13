@@ -16,17 +16,23 @@ CREATE TABLE IF NOT EXISTS athletes (
 );
 
 CREATE TABLE IF NOT EXISTS users (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    username        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-    name            TEXT,
-    email           TEXT    UNIQUE COLLATE NOCASE,
-    password_hash   TEXT,
-    athlete_id      INTEGER REFERENCES athletes(id) ON DELETE SET NULL,
-    is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
-    is_admin        INTEGER NOT NULL DEFAULT 0 CHECK(is_admin IN (0, 1)),
-    avatar_path     TEXT,
-    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    username             TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    name                 TEXT,
+    email                TEXT    UNIQUE COLLATE NOCASE,
+    password_hash        TEXT,
+    athlete_id           INTEGER REFERENCES athletes(id) ON DELETE SET NULL,
+    is_coach             INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
+    is_admin             INTEGER NOT NULL DEFAULT 0 CHECK(is_admin IN (0, 1)),
+    avatar_path          TEXT,
+    -- Per-account login lockout (ADR 014). Counter increments on
+    -- consecutive wrong-password attempts; reset on successful login.
+    -- locked_until is NULL when not locked, or a future timestamp when
+    -- the account is temporarily blocked from password login.
+    failed_login_count   INTEGER NOT NULL DEFAULT 0,
+    locked_until         DATETIME,
+    created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS user_preferences (

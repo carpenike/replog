@@ -3824,6 +3824,10 @@ paths:
         fixation, and sets a `HttpOnly`, `SameSite=Lax` session cookie.
         Subsequent requests in the same browser are authenticated
         automatically.
+
+        After 5 consecutive wrong-password attempts the account is
+        temporarily locked for 15 minutes (ADR 014). Locked
+        responses are 429 with a `Retry-After` header in seconds.
       parameters:
       - description: Credentials
         in: body
@@ -3848,6 +3852,10 @@ paths:
             $ref: '#/definitions/api.APIError'
         "403":
           description: account uses passwordless login
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "429":
+          description: account temporarily locked (Retry-After header set)
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Log in with username and password

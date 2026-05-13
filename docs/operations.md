@@ -540,6 +540,29 @@ on the configured interval (default 24 h) and:
 Both interval and retention are admin-tunable in the Settings page; the
 defaults are fine.
 
+### Clearing a per-account login lockout
+
+Per [ADR 014](adr/014-login-lockout.md), an account is temporarily
+locked for **15 minutes** after **5 consecutive wrong-password
+attempts**. Locked logins return `429 Too Many Requests` with a
+`Retry-After` header. The lockout slides on each additional attempt.
+
+Most users should just wait 15 minutes. To clear a lockout manually
+(e.g. an admin needs in immediately and the password is known):
+
+```bash
+sqlite3 /var/lib/replog/replog.db <<'SQL'
+UPDATE users
+   SET failed_login_count = 0,
+       locked_until       = NULL
+ WHERE username = 'admin';   -- adjust as needed
+SQL
+```
+
+A successful password change via the admin UI also clears the lockout
+(`UpdatePassword` resets both columns), so the supported recovery path
+without DB access is "have an admin reset the password."
+
 ### `PRAGMA optimize`
 
 The binary runs `PRAGMA optimize` on graceful shutdown so the next

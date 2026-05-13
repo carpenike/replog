@@ -89,6 +89,10 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 //	@Description  fixation, and sets a `HttpOnly`, `SameSite=Lax` session cookie.
 //	@Description  Subsequent requests in the same browser are authenticated
 //	@Description  automatically.
+//	@Description
+//	@Description  After 5 consecutive wrong-password attempts the account is
+//	@Description  temporarily locked for 15 minutes (ADR 014). Locked
+//	@Description  responses are 429 with a `Retry-After` header in seconds.
 //	@Tags         Auth
 //	@Accept       json
 //	@Produce      json
@@ -97,6 +101,7 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 //	@Failure      400  {object}  api.APIError  "missing or malformed credentials"
 //	@Failure      401  {object}  api.APIError  "invalid username or password"
 //	@Failure      403  {object}  api.APIError  "account uses passwordless login"
+//	@Failure      429  {object}  api.APIError  "account temporarily locked (Retry-After header set)"
 //	@Router       /login [post]
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
@@ -111,9 +116,14 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := models.Authenticate(h.DB, req.Username, req.Password)
 	if err != nil {
-		if errors.Is(err, models.ErrNoPassword) {
+		var lockErr *models.LockoutError
+		switch {
+		case errors.As(err, &lockErr):
+			w.Header().Set("Retry-After", strconv.Itoa(lockErr.RetryAfter()))
+			WriteError(w, http.StatusTooManyRequests, "account temporarily locked — try again later")
+		case errors.Is(err, models.ErrNoPassword):
 			WriteError(w, http.StatusForbidden, "this account uses passwordless login")
-		} else {
+		default:
 			WriteError(w, http.StatusUnauthorized, "invalid username or password")
 		}
 		return
