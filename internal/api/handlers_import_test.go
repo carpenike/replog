@@ -360,3 +360,71 @@ func TestImportExecute_OtherCoachForbidden(t *testing.T) {
 		`{}`, cookies)
 	requireStatus(t, rr, http.StatusForbidden)
 }
+
+// TestImportUpload_SurfacesValidationWarnings regresses #11 follow-up:
+// the data-quality validator (models.ValidateImportData) was previously
+// only reachable from the dead BuildImportPreview wrapper. After cleanup
+// it is wired into ImportUpload's response so the SPA can show users
+// problems in their CSV before they commit.
+//
+// We use a Strong CSV with a future-dated workout, which the parser does
+// NOT silently drop (unlike negative weights or out-of-range RPE — the
+// Strong parser sanitizes those at parse time). The validator's full
+// rule coverage is exercised in models/import_execute_test.go; this test
+// only confirms warnings flow through to the HTTP response.
+func TestImportUpload_SurfacesValidationWarnings(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	const futureDate = "2999-01-01 08:00:00"
+	badCSV := `Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes,RPE
+` + futureDate + `,Morning,30m,Squat,1,225,3,,,,,8
+`
+
+	body, ct := uploadFile(t, "future.csv", badCSV, map[string]string{"format": "strong"})
+	rr := env.doMultipart(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/import/upload", athlete.ID),
+		body, ct, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got ImportUploadResponse
+	decodeJSON(t, rr, &got)
+	if len(got.Warnings) == 0 {
+		t.Fatalf("expected at least 1 warning for future-dated workout, got 0")
+	}
+	var sawDateWarning bool
+	for _, w := range got.Warnings {
+		if w.Field == "date" && w.Entity == "workout" {
+			sawDateWarning = true
+		}
+		if w.Message == "" {
+			t.Errorf("warning has empty message: %+v", w)
+		}
+	}
+	if !sawDateWarning {
+		t.Errorf("expected a workout/date warning in response, got %+v", got.Warnings)
+	}
+}
+
+// TestImportUpload_NoWarningsOnCleanCSV confirms the warnings field is
+// omitted (omitempty) when the data passes validation.
+func TestImportUpload_NoWarningsOnCleanCSV(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	body, ct := uploadFile(t, "clean.csv", strongCSVSample, map[string]string{"format": "strong"})
+	rr := env.doMultipart(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/import/upload", athlete.ID),
+		body, ct, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got ImportUploadResponse
+	decodeJSON(t, rr, &got)
+	if len(got.Warnings) != 0 {
+		t.Errorf("expected 0 warnings on clean sample, got %d:\n%+v", len(got.Warnings), got.Warnings)
+	}
+}

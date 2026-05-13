@@ -20,7 +20,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 0 {
 			t.Errorf("expected no warnings, got %d: %v", len(warnings), warnings)
 		}
@@ -38,7 +38,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 1 {
 			t.Fatalf("expected 1 warning, got %d", len(warnings))
 		}
@@ -58,7 +58,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 1 {
 			t.Fatalf("expected 1 warning, got %d", len(warnings))
 		}
@@ -79,7 +79,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 1 {
 			t.Fatalf("expected 1 warning, got %d", len(warnings))
 		}
@@ -100,7 +100,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) == 0 {
 			t.Fatal("expected warning for negative RPE, got none")
 		}
@@ -120,7 +120,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 1 {
 			t.Fatalf("expected 1 warning, got %d", len(warnings))
 		}
@@ -140,7 +140,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 1 {
 			t.Fatalf("expected 1 warning, got %d", len(warnings))
 		}
@@ -155,7 +155,7 @@ func TestValidateImportData(t *testing.T) {
 				{Exercise: "Bench Press", Weight: -100, EffectiveDate: "2025-01-15"},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 1 {
 			t.Fatalf("expected 1 warning, got %d", len(warnings))
 		}
@@ -171,7 +171,7 @@ func TestValidateImportData(t *testing.T) {
 				{Date: "2025-01-16", Weight: -5.0},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 2 {
 			t.Fatalf("expected 2 warnings, got %d", len(warnings))
 		}
@@ -201,7 +201,7 @@ func TestValidateImportData(t *testing.T) {
 				{Date: "2025-01-01", Weight: -10},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		// future date + negative weight + negative reps + RPE out of range + invalid rep type + negative TM + invalid BW
 		if len(warnings) != 7 {
 			t.Errorf("expected 7 warnings, got %d", len(warnings))
@@ -224,7 +224,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 0 {
 			t.Errorf("expected no warnings for valid rep types, got %d", len(warnings))
 		}
@@ -242,7 +242,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 0 {
 			t.Errorf("expected no warnings for zero weight (bodyweight exercise), got %d", len(warnings))
 		}
@@ -259,7 +259,7 @@ func TestValidateImportData(t *testing.T) {
 				},
 			},
 		}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 0 {
 			t.Errorf("expected no warnings for nil weight/RPE, got %d", len(warnings))
 		}
@@ -267,7 +267,7 @@ func TestValidateImportData(t *testing.T) {
 
 	t.Run("empty parsed file returns no warnings", func(t *testing.T) {
 		pf := &importers.ParsedFile{}
-		warnings := validateImportData(pf)
+		warnings := ValidateImportData(pf)
 		if len(warnings) != 0 {
 			t.Errorf("expected no warnings for empty file, got %d", len(warnings))
 		}

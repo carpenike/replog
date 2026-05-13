@@ -11,86 +11,6 @@ import (
 	"github.com/carpenike/replog/internal/importers"
 )
 
-// BuildImportPreview generates a preview of what an import will do without
-// making any changes. The mapping must have all entities resolved (MappedID > 0
-// or Create = true).
-func BuildImportPreview(db *sql.DB, athleteID int64, ms *importers.MappingState) (*ImportPreview, error) {
-	pf := ms.Parsed
-	p := &ImportPreview{}
-
-	// Count exercises.
-	for _, m := range ms.Exercises {
-		if m.Create {
-			p.ExercisesNew++
-		} else {
-			p.ExercisesMapped++
-		}
-	}
-
-	// Count equipment (RepLog JSON only).
-	for _, m := range ms.Equipment {
-		if m.Create {
-			p.EquipmentNew++
-		} else {
-			p.EquipmentMapped++
-		}
-	}
-
-	// Count programs (RepLog JSON only).
-	for _, m := range ms.Programs {
-		if m.Create {
-			p.ProgramsNew++
-		} else {
-			p.ProgramsMapped++
-		}
-	}
-
-	// Count sets and check for date conflicts.
-	var minDate, maxDate string
-	for _, w := range pf.Workouts {
-		p.WorkoutCount++
-		p.SetCount += len(w.Sets)
-
-		date := normalizeDate(w.Date)
-		if minDate == "" || date < minDate {
-			minDate = date
-		}
-		if maxDate == "" || date > maxDate {
-			maxDate = date
-		}
-
-		// Check for existing workout on this date.
-		_, err := GetWorkoutByAthleteDate(db, athleteID, date)
-		if err == nil {
-			p.ConflictDates = append(p.ConflictDates, date)
-		}
-	}
-	if minDate != "" && maxDate != "" {
-		p.DateRange = minDate + " to " + maxDate
-	}
-
-	// Count reviews.
-	for _, w := range pf.Workouts {
-		if w.Review != nil {
-			p.ReviewCount++
-		}
-	}
-
-	p.AssignmentCount = len(pf.Assignments)
-	p.TrainingMaxCount = len(pf.TrainingMaxes)
-	p.BodyWeightCount = len(pf.BodyWeights)
-
-	// Computed aggregate counts for template display.
-	p.ExerciseCount = p.ExercisesNew + p.ExercisesMapped
-	p.EquipmentCount = p.EquipmentNew + p.EquipmentMapped
-	p.ProgramCount = p.ProgramsNew + p.ProgramsMapped
-
-	// Validate data quality.
-	p.Warnings = validateImportData(pf)
-
-	return p, nil
-}
-
 // validRepTypes are the allowed values for rep_type.
 var validRepTypes = map[string]bool{
 	"reps":      true,
@@ -98,9 +18,10 @@ var validRepTypes = map[string]bool{
 	"each_side": true,
 }
 
-// validateImportData checks parsed data for quality issues and returns warnings.
-// Warnings do not prevent import but are shown in the preview for user review.
-func validateImportData(pf *importers.ParsedFile) []ValidationWarning {
+// ValidateImportData checks parsed data for quality issues and returns warnings.
+// Warnings do not prevent import but are surfaced in the upload response so
+// the user can review them before committing.
+func ValidateImportData(pf *importers.ParsedFile) []ValidationWarning {
 	var warnings []ValidationWarning
 	today := time.Now().Format("2006-01-02")
 
@@ -727,16 +648,6 @@ func findParsedExercise(exercises []importers.ParsedExercise, name string) *impo
 
 // --- Catalog Import (global — no athlete) ---
 
-// CatalogImportPreview summarizes what a catalog import will do.
-type CatalogImportPreview struct {
-	ExercisesNew    int
-	ExercisesMapped int
-	EquipmentNew    int
-	EquipmentMapped int
-	ProgramsNew     int
-	ProgramsMapped  int
-}
-
 // CatalogImportResult summarizes what was imported.
 type CatalogImportResult struct {
 	ExercisesCreated    int
@@ -747,35 +658,6 @@ type CatalogImportResult struct {
 	ProgressionRules    int
 	ExerciseEquipLinks  int
 	CreatedTemplateIDs  []int64 // template IDs created, for post-import exercise auto-assignment
-}
-
-// BuildCatalogImportPreview generates a preview of a catalog import.
-func BuildCatalogImportPreview(ms *importers.MappingState) *CatalogImportPreview {
-	p := &CatalogImportPreview{}
-
-	for _, m := range ms.Exercises {
-		if m.Create {
-			p.ExercisesNew++
-		} else {
-			p.ExercisesMapped++
-		}
-	}
-	for _, m := range ms.Equipment {
-		if m.Create {
-			p.EquipmentNew++
-		} else {
-			p.EquipmentMapped++
-		}
-	}
-	for _, m := range ms.Programs {
-		if m.Create {
-			p.ProgramsNew++
-		} else {
-			p.ProgramsMapped++
-		}
-	}
-
-	return p
 }
 
 // ExecuteCatalogImport creates equipment, exercises, and program templates

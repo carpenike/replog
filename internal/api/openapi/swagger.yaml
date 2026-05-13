@@ -632,6 +632,21 @@ definitions:
         items:
           $ref: '#/definitions/api.ImportMappingItem'
         type: array
+      warnings:
+        items:
+          $ref: '#/definitions/api.ImportWarningItem'
+        type: array
+    type: object
+  api.ImportWarningItem:
+    properties:
+      entity:
+        description: '"workout" | "set" | "training_max" | "body_weight"'
+        type: string
+      field:
+        description: '"weight" | "reps" | "rpe" | "date" | "rep_type"'
+        type: string
+      message:
+        type: string
     type: object
   api.JournalEntry:
     properties:

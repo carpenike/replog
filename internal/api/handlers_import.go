@@ -15,10 +15,20 @@ import (
 
 // ImportUploadResponse is returned after parsing an uploaded file.
 type ImportUploadResponse struct {
-	Format    string                `json:"format"`
-	Exercises []ImportMappingItem   `json:"exercises"`
-	Equipment []ImportMappingItem   `json:"equipment,omitempty"`
-	Programs  []ImportMappingItem   `json:"programs,omitempty"`
+	Format    string                  `json:"format"`
+	Exercises []ImportMappingItem     `json:"exercises"`
+	Equipment []ImportMappingItem     `json:"equipment,omitempty"`
+	Programs  []ImportMappingItem     `json:"programs,omitempty"`
+	Warnings  []ImportWarningItem     `json:"warnings,omitempty"`
+}
+
+// ImportWarningItem is a non-blocking data quality issue found during upload
+// (e.g. negative weight, RPE out of range, future-dated workout). The user
+// sees these on the upload review screen and can choose to commit anyway.
+type ImportWarningItem struct {
+	Entity  string `json:"entity"`  // "workout" | "set" | "training_max" | "body_weight"
+	Field   string `json:"field"`   // "weight" | "reps" | "rpe" | "date" | "rep_type"
+	Message string `json:"message"`
 }
 
 // importMaxBytes is the hard cap on workout / catalog import request bodies.
@@ -149,6 +159,15 @@ func (h *Handlers) ImportUpload(w http.ResponseWriter, r *http.Request) {
 	for _, ex := range ms.Exercises {
 		resp.Exercises = append(resp.Exercises, ImportMappingItem{
 			Name: ex.ImportName, MappedID: ex.MappedID, Create: ex.Create,
+		})
+	}
+
+	// Surface data-quality warnings (negative weights, RPE out of range,
+	// future-dated workouts, unknown rep types, ...) so the user can spot
+	// problems on the review screen before committing.
+	for _, w := range models.ValidateImportData(ms.Parsed) {
+		resp.Warnings = append(resp.Warnings, ImportWarningItem{
+			Entity: w.Entity, Field: w.Field, Message: w.Message,
 		})
 	}
 	if ms.Equipment != nil {
