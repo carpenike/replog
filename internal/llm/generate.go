@@ -377,18 +377,18 @@ func buildUserPrompt(athleteCtx *AthleteContext, req GenerationRequest) (string,
 		b.WriteString("\n\n")
 	}
 
-	b.WriteString(fmt.Sprintf("REQUEST:\nGenerate \"%s\" — a %d-day/week",
-		req.ProgramName, req.NumDays))
+	fmt.Fprintf(&b, "REQUEST:\nGenerate \"%s\" — a %d-day/week",
+		req.ProgramName, req.NumDays)
 	if req.IsLoop {
 		b.WriteString(", looping")
 	} else {
-		b.WriteString(fmt.Sprintf(", %d-week", req.NumWeeks))
+		fmt.Fprintf(&b, ", %d-week", req.NumWeeks)
 	}
-	b.WriteString(fmt.Sprintf(" program for %s.\n", athleteCtx.Athlete.Name))
+	fmt.Fprintf(&b, " program for %s.\n", athleteCtx.Athlete.Name)
 
 	// Add tier-aware instructions.
 	if athleteCtx.Athlete.Tier != nil {
-		b.WriteString(fmt.Sprintf("This athlete is at the %s tier. ", *athleteCtx.Athlete.Tier))
+		fmt.Fprintf(&b, "This athlete is at the %s tier. ", *athleteCtx.Athlete.Tier)
 		b.WriteString("Follow the tier-specific rules from the system instructions strictly.\n")
 	}
 

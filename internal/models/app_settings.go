@@ -249,20 +249,6 @@ func GetSettingDefinition(key string) *SettingDefinition {
 	return findDefinition(key)
 }
 
-// GetSettingValue returns the full SettingValue (with source, mask, etc.) for a key.
-func GetSettingValue(db *sql.DB, key string) SettingValue {
-	def := findDefinition(key)
-	if def == nil {
-		return SettingValue{Key: key}
-	}
-	return resolveSettingValue(db, *def)
-}
-
-// IsAICoachConfigured returns true if an AI Coach provider is configured.
-func IsAICoachConfigured(db *sql.DB) bool {
-	return GetSetting(db, "llm.provider") != ""
-}
-
 // GetDefaultWeightUnit returns the configured default weight unit from app settings,
 // falling back to the hardcoded constant.
 func GetDefaultWeightUnit(db *sql.DB) string {

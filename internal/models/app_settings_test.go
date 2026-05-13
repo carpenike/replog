@@ -171,21 +171,6 @@ func TestSensitiveWithoutSecretKey(t *testing.T) {
 	}
 }
 
-func TestIsAICoachConfigured(t *testing.T) {
-	db := testDB(t)
-
-	if IsAICoachConfigured(db) {
-		t.Error("expected AI Coach not configured in fresh DB")
-	}
-
-	if err := SetSetting(db, "llm.provider", "ollama"); err != nil {
-		t.Fatalf("set: %v", err)
-	}
-	if !IsAICoachConfigured(db) {
-		t.Error("expected AI Coach configured after setting provider")
-	}
-}
-
 func TestMaskValue(t *testing.T) {
 	tests := []struct {
 		value    string

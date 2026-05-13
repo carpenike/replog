@@ -98,13 +98,6 @@ func PrefsFromContext(ctx context.Context) *models.UserPreferences {
 	return p
 }
 
-// UnreadCountFromContext retrieves the user's unread notification count from context.
-// Returns 0 if not set.
-func UnreadCountFromContext(ctx context.Context) int {
-	count, _ := ctx.Value(UnreadCountContextKey).(int)
-	return count
-}
-
 // CanAccessAthlete checks whether the authenticated user is allowed to access
 // the given athlete. Admins can access any athlete; coaches can access athletes
 // assigned to them; non-coaches can only access their own linked athlete.

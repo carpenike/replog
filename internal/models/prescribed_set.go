@@ -28,50 +28,6 @@ type PrescribedSet struct {
 	TargetWeight *float64
 }
 
-// TargetWeightLabel returns the formatted target weight for this set, or "" if none.
-// Returns "BW" when the weight is zero (bodyweight exercise).
-func (ps *PrescribedSet) TargetWeightLabel() string {
-	if ps.TargetWeight == nil {
-		return ""
-	}
-	w := *ps.TargetWeight
-	if w == 0 {
-		return "BW"
-	}
-	if w == float64(int(w)) {
-		return fmt.Sprintf("%.0f", w)
-	}
-	return fmt.Sprintf("%.1f", w)
-}
-
-// AbsoluteWeightLabel returns the formatted absolute weight for this set, or "" if none.
-// Returns "BW" when the weight is zero (bodyweight exercise).
-func (ps *PrescribedSet) AbsoluteWeightLabel() string {
-	if !ps.AbsoluteWeight.Valid {
-		return ""
-	}
-	w := ps.AbsoluteWeight.Float64
-	if w == 0 {
-		return "BW"
-	}
-	if w == float64(int(w)) {
-		return fmt.Sprintf("%.0f", w)
-	}
-	return fmt.Sprintf("%.1f", w)
-}
-
-// PercentageLabel returns a formatted percentage string (e.g. "75%"), or "" if none.
-func (ps *PrescribedSet) PercentageLabel() string {
-	if !ps.Percentage.Valid {
-		return ""
-	}
-	pct := ps.Percentage.Float64
-	if pct == float64(int(pct)) {
-		return fmt.Sprintf("%.0f%%", pct)
-	}
-	return fmt.Sprintf("%.1f%%", pct)
-}
-
 // RepsLabel returns a display string for reps (e.g. "5", "5/ea", "30s", "30yd", or "AMRAP").
 func (ps *PrescribedSet) RepsLabel() string {
 	if !ps.Reps.Valid {

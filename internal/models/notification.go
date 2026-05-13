@@ -274,13 +274,3 @@ func scanNotifications(rows *sql.Rows) ([]*Notification, error) {
 	}
 	return notifications, rows.Err()
 }
-
-// NotificationTypeLabel returns the human-readable label for a notification type.
-func NotificationTypeLabel(nType string) string {
-	for _, nt := range AllNotificationTypes {
-		if nt.Type == nType {
-			return nt.Label
-		}
-	}
-	return nType
-}

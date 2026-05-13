@@ -49,25 +49,6 @@ func (ap *AthleteProgram) ScheduleDays() []int {
 	return days
 }
 
-// ScheduleLabel returns a human-readable label for the schedule (e.g., "Mon, Wed, Fri").
-func (ap *AthleteProgram) ScheduleLabel() string {
-	days := ap.ScheduleDays()
-	if days == nil {
-		return "Any day"
-	}
-	names := map[int]string{1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
-	label := ""
-	for i, d := range days {
-		if i > 0 {
-			label += ", "
-		}
-		if n, ok := names[d]; ok {
-			label += n
-		}
-	}
-	return label
-}
-
 // AssignProgram assigns a program template to an athlete.
 // role must be "primary" or "supplemental". schedule is a JSON weekday array (e.g. "[2,4]") or empty.
 // Only one active primary is allowed. Supplemental schedules are validated against existing assignments.

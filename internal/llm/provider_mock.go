@@ -12,11 +12,6 @@ type MockProvider struct {
 	GenerateErr  error
 }
 
-// NewMockProvider creates a mock provider with a canned CatalogJSON response.
-func NewMockProvider(catalogJSON string) *MockProvider {
-	return &MockProvider{FixedContent: catalogJSON}
-}
-
 func (p *MockProvider) Name() string { return "Mock" }
 
 func (p *MockProvider) Ping(_ context.Context) error {
