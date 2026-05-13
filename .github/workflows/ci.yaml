@@ -64,6 +64,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
+          # renovate: datasource=github-releases depName=golangci/golangci-lint
           version: v2.6.2
 
   openapi:
@@ -80,6 +81,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Install swag
+        # renovate: datasource=go depName=github.com/swaggo/swag
         run: go install github.com/swaggo/swag/cmd/swag@v1.16.6
 
       - name: Regenerate spec

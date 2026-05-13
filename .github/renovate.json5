@@ -1,100 +1,158 @@
 {
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
 
-  // Inherits the well-known recommended Renovate baseline plus three
-  // automerge presets — digest bumps, minor bumps, and PRs that pass
-  // status checks all merge themselves. Major bumps still require
-  // manual review (which is what we want — Vite/React/Tailwind majors
-  // can move fast).
+  // Sensible defaults + GitHub PR auto-merge for the rules that opt in.
+  // Notably we do NOT extend :automergeMinor — minor updates in active
+  // libraries (TanStack Query, react-router, chi, modernc/sqlite) regularly
+  // contain backward-compatible-by-version-but-different behavior. We have
+  // 175 tests but no canary deploy, so a bad minor lands on main between
+  // Sunday night and Monday morning with nobody watching. The 'major' rule
+  // below holds the line for breaking changes; everything else is a manual
+  // merge after a 30-second changelog skim.
   extends: [
     'config:recommended',
     ':automergeDigest',
-    ':automergeMinor',
     ':automergePr',
   ],
 
-  // Tighten Renovate's noise. Five concurrent PRs is plenty for a
-  // single-family app; ten branches caps how aggressively Renovate
-  // hammers GitHub Actions minutes.
+  // Batch routine PRs to one window per week so they don't trickle in
+  // throughout the workday. Vulnerability alerts override this — see below.
+  schedule: ['before 6am on Monday'],
+
+  // One always-up-to-date issue summarizing pending / in-progress / blocked
+  // Renovate work. Costs one issue, saves a tab.
+  dependencyDashboard: true,
+
+  // Layer OSV advisories on top of GitHub's. Particularly valuable for Go
+  // modules where OSV is the canonical source — GitHub's advisory database
+  // tends to lag for non-CVE Go security issues.
+  osvVulnerabilityAlerts: true,
+
   prConcurrentLimit: 5,
   branchConcurrentLimit: 10,
 
-  labels: [
-    'dependencies',
-  ],
+  labels: ['dependencies'],
 
-  // Conventional-commit prefixes per ecosystem so the commit log stays
-  // greppable and so a future release-please / changelog generator can
-  // sort updates into Features / Build / etc. Mirrors the convention
-  // used in carpenike/nix-config so contributors see the same shape
-  // across the two repos.
+  // Conventional Commits (https://www.conventionalcommits.org): dependency
+  // bumps are 'chore(deps)', NOT 'feat:' which would pollute the Features
+  // section of any future changelog generator. Vulnerability fixes use
+  // 'fix(deps):' below to land in the Fixes section instead.
+  commitMessagePrefix: 'chore(deps):',
+  commitMessageAction: 'update',
+  commitMessageTopic: '{{depName}}',
+  commitMessageExtra: 'to {{newVersion}}',
+
   packageRules: [
+    // --- Per-ecosystem labels ---
+    // (Commit message template inherits from the global config above.)
     {
-      description: 'Go module updates',
+      description: 'Go modules (go.mod / go.sum)',
       matchManagers: ['gomod'],
-      semanticCommits: 'enabled',
-      commitMessagePrefix: 'feat(go):',
-      commitMessageTopic: '{{depName}}',
-      commitMessageExtra: 'to {{newVersion}}',
       labels: ['dependencies', 'go'],
     },
     {
-      description: 'npm package updates (frontend)',
+      description: 'Frontend npm packages (web/package.json)',
       matchManagers: ['npm'],
-      semanticCommits: 'enabled',
-      commitMessagePrefix: 'feat(npm):',
-      commitMessageTopic: '{{depName}}',
-      commitMessageExtra: 'to {{newVersion}}',
       labels: ['dependencies', 'npm'],
     },
     {
-      description: 'GitHub Actions — auto-merge so workflow bumps land without ceremony',
-      matchManagers: ['github-actions'],
-      semanticCommits: 'enabled',
-      commitMessagePrefix: 'chore(actions):',
-      commitMessageTopic: '{{depName}}',
-      commitMessageExtra: 'to {{newVersion}}',
-      automerge: true,
-      automergeType: 'pr',
-      labels: ['dependencies', 'github-actions'],
+      description: 'Container base images (Dockerfile + Dockerfile.goreleaser)',
+      matchManagers: ['dockerfile'],
+      labels: ['dependencies', 'docker'],
     },
     {
-      description: 'Nix flake inputs (nixpkgs, flake-utils, ...)',
+      description: 'Nix flake inputs (currently tracks unstable channels — no-op until pinned)',
       matchManagers: ['nix'],
-      semanticCommits: 'enabled',
-      commitMessagePrefix: 'feat(nix):',
-      commitMessageTopic: '{{depName}}',
-      commitMessageExtra: 'to {{newVersion}}',
       labels: ['dependencies', 'nix'],
     },
     {
-      description: 'Group all npm patch + minor bumps to keep PR noise down',
-      matchManagers: ['npm'],
-      matchUpdateTypes: ['minor', 'patch'],
-      groupName: 'frontend (npm minor + patch)',
+      description: 'GitHub Actions — auto-merge non-major after CI passes',
+      // Action bumps have a tiny blast radius (worst case: next CI run is
+      // broken, immediate signal, easy revert). Auto-merge is appropriate.
+      // The 'major' rule below overrides this for major bumps.
+      matchManagers: ['github-actions'],
+      labels: ['dependencies', 'github-actions'],
+      automerge: true,
+      automergeType: 'pr',
     },
     {
-      description: 'Group all Go module patch bumps to keep PR noise down',
+      description: 'Pinned tooling versions in workflows (custom regex)',
+      matchManagers: ['custom.regex'],
+      labels: ['dependencies', 'tooling'],
+    },
+
+    // --- Grouping (patch only) ---
+    // Minors get individual PRs so we can read the changelog before merging.
+    {
+      description: 'Group npm patches into one weekly PR',
+      matchManagers: ['npm'],
+      matchUpdateTypes: ['patch'],
+      groupName: 'frontend (npm patch)',
+    },
+    {
+      description: 'Group Go module patches into one weekly PR',
       matchManagers: ['gomod'],
       matchUpdateTypes: ['patch'],
-      groupName: 'backend (go modules patch)',
+      groupName: 'backend (gomod patch)',
+    },
+
+    // --- Risk gate ---
+    // Major bumps always need eyes, regardless of ecosystem. Placed LAST
+    // so it overrides automerge:true on the github-actions rule above.
+    {
+      description: 'Major bumps need manual review',
+      matchUpdateTypes: ['major'],
+      labels: ['dependencies', 'breaking'],
+      automerge: false,
     },
   ],
 
-  // Vulnerability alerts get their own non-grouped PRs immediately so
-  // they aren't swallowed by the weekly minor/patch group above.
+  // Vulnerability alerts get their own immediate, non-grouped PR with
+  // 'fix(deps):' so they aren't swallowed by the weekly group above and
+  // a future changelog categorizes them as fixes, not chores.
   vulnerabilityAlerts: {
     enabled: true,
     labels: ['dependencies', 'security'],
-    commitMessagePrefix: 'security(deps):',
+    commitMessagePrefix: 'fix(deps):',
+    schedule: ['at any time'],
   },
 
-  // The committed flake.lock is updated by `nix flake update` runs.
-  // Renovate won't touch flake.lock itself; bumping nixpkgs requires
-  // a manual `nix flake update` commit (the design choice in the
-  // 'commit flake.lock' commit message). If we add a separate
-  // update-flake-lock workflow later, this stays disabled.
+  // flake.lock bumps stay deliberate 'nix flake update' commits — see the
+  // commit that introduced flake.lock for the full rationale.
   lockFileMaintenance: {
     enabled: false,
   },
+
+  // --- Custom regex managers ---
+  // Renovate's standard managers don't see version pins embedded in
+  // workflow YAML or shell snippets. Use the well-known
+  //   # renovate: datasource=X depName=Y [versioning=Z]
+  // marker pattern (mirrors carpenike/nix-config) so each pin's intent
+  // is unambiguous and the regex stays simple.
+  //
+  // Currently covers:
+  //   - golangci-lint binary version pinned to golangci/golangci-lint-action
+  //   - swag CLI version installed in the OpenAPI CI job
+  // Floating pins (govulncheck@latest, goreleaser version:latest) need
+  // no manager — they're already tracking head.
+  customManagers: [
+    {
+      customType: 'regex',
+      description: 'Tool versions pinned via "# renovate:" markers in workflows',
+      managerFilePatterns: ['/^\\.github/workflows/.*\\.ya?ml$/'],
+      matchStrings: [
+        // Match a comment marker followed (on the next non-blank line) by
+        // a version literal preceded either by '@' (go install) or ':' /
+        // ': ' (YAML key). The optional 'v' prefix is consumed; the bare
+        // semver is captured into currentValue.
+        //
+        // currentValue must start with a digit so the regex doesn't lock
+        // onto an earlier ':' on the line (e.g. 'run:' or 'with:') and
+        // capture the wrong identifier.
+        '#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(\\s+versioning=(?<versioning>\\S+))?\\s*\\n[^\\n]*?[@:]\\s*v?(?<currentValue>\\d[\\w.]*)',
+      ],
+      datasourceTemplate: '{{datasource}}',
+      versioningTemplate: '{{#if versioning}}{{versioning}}{{else}}semver{{/if}}',
+    },
+  ],
 }
