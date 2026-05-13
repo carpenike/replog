@@ -238,8 +238,16 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(withAuth)
 
-			// CSRF protection is handled by SameSite=Lax session cookies.
-			// No explicit CSRF middleware needed for same-origin SPA.
+			// CSRF protection comes from the session cookie's SameSite=Lax
+			// attribute plus same-origin deployment (the SPA is served from
+			// this same binary in production). A cross-site form post or
+			// fetch from another origin will not include the session
+			// cookie, so no token check is needed at the handler layer.
+			//
+			// If we ever ship a non-same-origin client (mobile WebView,
+			// desktop wrapper, third-party automation) we will need an
+			// explicit CSRF token middleware — see git history for a
+			// previous implementation.
 
 			r.Get("/me", apiHandlers.Me)
 			r.Post("/logout", apiHandlers.Logout)

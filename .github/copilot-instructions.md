@@ -204,6 +204,7 @@ When ending a work session, complete ALL steps. Work is NOT complete until `git 
 - `docs/data-model.md` — complete schema, ERD, DDL, seed data, operational notes
 - `docs/requirements.md` — all v1.0 user stories with acceptance criteria
 - `docs/ui-design.md` — design system and component patterns
+- `docs/operations.md` — production deployment, backups, secret-key handling, upgrades
 - `internal/api/openapi/swagger.yaml` — generate3 OpenAPI spec for the REST API (also at `/api/docs`); regenerate with `just openapi`
 - `docs/seed-catalog.md` — exercise seed data format
 - `docs/adr/` — architecture decision records (10 ADRs)

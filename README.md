@@ -168,6 +168,7 @@ When deploying behind a reverse proxy (Caddy, nginx, etc.):
 
 ## Documentation
 
+- [Operations Guide](docs/operations.md) — production deployment, backups, secret-key handling, upgrades, disaster recovery
 - [Requirements](docs/requirements.md) — user stories and acceptance criteria
 - [Data Model](docs/data-model.md) — schema, relationships, DDL
 - [UI Design](docs/ui-design.md) — design system and component patterns
