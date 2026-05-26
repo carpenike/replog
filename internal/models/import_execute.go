@@ -661,9 +661,20 @@ type CatalogImportResult struct {
 }
 
 // ExecuteCatalogImport creates equipment, exercises, and program templates
-// from a parsed catalog file. athleteID scopes new program templates: nil =
-// global, non-nil = athlete-specific (e.g. AI-generated).
-func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int64) (*CatalogImportResult, error) {
+// from a parsed catalog file.
+//
+// athleteID scopes new program templates: nil = global (visible to all
+// coaches), non-nil = athlete-specific (program_templates.athlete_id set).
+//
+// autoAssign controls what happens AFTER the template is created when
+// athleteID is non-nil. When true, the importer also deactivates the
+// athlete's current active primary program and inserts a new active
+// athlete_programs row — today's file-upload import behavior. When false,
+// only the template is created and the athlete's programs are left alone
+// — the "approve-as-draft" path the AI Coach uses so the coach can edit
+// before explicitly assigning via POST /athletes/{id}/programs (ADR 007,
+// HOF-001 #13). The flag is a no-op when athleteID is nil.
+func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int64, autoAssign bool) (*CatalogImportResult, error) {
 	if ms == nil {
 		return nil, fmt.Errorf("models: catalog import called with nil MappingState")
 	}
@@ -793,8 +804,11 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 		result.ProgramsCreated++
 		result.CreatedTemplateIDs = append(result.CreatedTemplateIDs, templateID)
 
-		// Assign the program to the athlete when scoped to one.
-		if athleteID != nil {
+		// Assign the program to the athlete when scoped to one AND the
+		// caller opted in. AI-coach drafts pass autoAssign=false so the
+		// template lands unassigned and the coach reviews/edits/assigns
+		// explicitly (ADR 007, HOF-001 #13).
+		if athleteID != nil && autoAssign {
 			// Deactivate any currently active primary program first (unique index enforces one active primary).
 			_, _ = tx.Exec(`UPDATE athlete_programs SET active = 0 WHERE athlete_id = ? AND active = 1 AND role = 'primary'`, *athleteID)
 

@@ -28,7 +28,7 @@ func TestSeedCatalogImport(t *testing.T) {
 		Parsed:    parsed,
 	}
 
-	result, err := ExecuteCatalogImport(db, ms, nil)
+	result, err := ExecuteCatalogImport(db, ms, nil, false)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestSeedCatalogImport_Idempotent(t *testing.T) {
 		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
 		Parsed:    parsed,
 	}
-	first, err := ExecuteCatalogImport(db, ms, nil)
+	first, err := ExecuteCatalogImport(db, ms, nil, false)
 	if err != nil {
 		t.Fatalf("first import: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestSeedCatalogImport_Idempotent(t *testing.T) {
 		Programs:  importers.BuildProgramMappings(parsed2.Programs, existingPr),
 		Parsed:    parsed2,
 	}
-	second, err := ExecuteCatalogImport(db, ms2, nil)
+	second, err := ExecuteCatalogImport(db, ms2, nil, false)
 	if err != nil {
 		t.Fatalf("second import: %v", err)
 	}
@@ -217,7 +217,7 @@ func TestCatalogImport_AssignsToAthlete(t *testing.T) {
 	}
 
 	// Import with athlete ID — should create template AND assign it.
-	result, err := ExecuteCatalogImport(db, ms, &athlete.ID)
+	result, err := ExecuteCatalogImport(db, ms, &athlete.ID, true)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
@@ -303,7 +303,7 @@ func TestCatalogImport_DeactivatesPriorProgram(t *testing.T) {
 		Parsed:    parsed,
 	}
 
-	result, err := ExecuteCatalogImport(db, ms, &athlete.ID)
+	result, err := ExecuteCatalogImport(db, ms, &athlete.ID, true)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
@@ -371,7 +371,7 @@ func TestCatalogImport_NilAthlete_NoAssignment(t *testing.T) {
 		Parsed:    parsed,
 	}
 
-	result, err := ExecuteCatalogImport(db, ms, nil)
+	result, err := ExecuteCatalogImport(db, ms, nil, false)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}

@@ -28,6 +28,7 @@ import (
 	"github.com/carpenike/replog/internal/importers"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/notify"
 	"github.com/carpenike/replog/internal/passkeys"
 	"github.com/carpenike/replog/internal/scheduler"
 	frontend "github.com/carpenike/replog/web"
@@ -75,10 +76,34 @@ func main() {
 	// Mark any AI Coach generations left in pending/running by a previous
 	// process as failed. The detached goroutines that owned them are gone,
 	// so without this the SPA would show them as forever-spinning drafts.
+	// List the affected rows BEFORE the UPDATE so we still have the
+	// (id, athlete_id, requested_by) tuples needed to notify each
+	// requester — the SPA promises a notification will arrive on failure
+	// and the startup sweep is one of those failure paths (HOF-001 #13).
+	// Race-free: the HTTP server isn't accepting requests yet and any
+	// prior process's goroutines are dead.
+	stale, err := models.ListStaleRunningGenerations(db)
+	if err != nil {
+		log.Printf("Warning: list stale generations failed: %v", err)
+	}
 	if reset, err := models.ResetStaleRunningGenerations(db); err != nil {
 		log.Printf("Warning: reset stale generations failed: %v", err)
 	} else if reset > 0 {
 		log.Printf("Reset %d stale AI Coach generation(s) from prior process", reset)
+	}
+	for _, g := range stale {
+		athleteName := "athlete"
+		if a, err := models.GetAthleteByID(db, g.AthleteID); err == nil && a != nil {
+			athleteName = a.Name
+		}
+		notify.Send(db, notify.Request{
+			UserID:    g.RequestedBy,
+			Type:      models.NotifyGenerationFailed,
+			Title:     fmt.Sprintf("AI Coach draft failed for %s", athleteName),
+			Message:   "Server restarted during generation. Please try again.",
+			Link:      fmt.Sprintf("/athletes/%d/generate", g.AthleteID),
+			AthleteID: sql.NullInt64{Int64: g.AthleteID, Valid: true},
+		})
 	}
 
 	// Bootstrap secret key for encrypting sensitive settings.
@@ -611,7 +636,7 @@ func bootstrapCatalog(db *sql.DB) error {
 		Parsed:    parsed,
 	}
 
-	result, err := models.ExecuteCatalogImport(db, ms, nil)
+	result, err := models.ExecuteCatalogImport(db, ms, nil, false)
 	if err != nil {
 		return fmt.Errorf("execute seed catalog import: %w", err)
 	}

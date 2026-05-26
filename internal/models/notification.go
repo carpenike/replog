@@ -15,6 +15,7 @@ const (
 	NotifyWorkoutLogged      = "workout_logged"
 	NotifyMagicLinkSent      = "magic_link_sent"
 	NotifyGenerationComplete = "generation_complete"
+	NotifyGenerationFailed   = "generation_failed"
 )
 
 // AllNotificationTypes lists all known notification types for preference UI.
@@ -26,6 +27,7 @@ var AllNotificationTypes = []NotificationType{
 	{Type: NotifyWorkoutLogged, Label: "Workout Logged", Description: "When an athlete logs a workout"},
 	{Type: NotifyMagicLinkSent, Label: "Login Link Sent", Description: "When a login link is generated for you"},
 	{Type: NotifyGenerationComplete, Label: "AI Coach Draft Ready", Description: "When an AI Coach program draft finishes generating"},
+	{Type: NotifyGenerationFailed, Label: "AI Coach Draft Failed", Description: "When an AI Coach program draft fails to generate"},
 }
 
 // NotificationType describes a notification type for preference UI.

@@ -404,6 +404,15 @@ definitions:
       week_volume:
         type: number
     type: object
+  api.DayPreview:
+    properties:
+      day:
+        type: integer
+      sets:
+        items:
+          $ref: '#/definitions/api.PrescribedSetPreview'
+        type: array
+    type: object
   api.Equipment:
     properties:
       created_at:
@@ -533,6 +542,10 @@ definitions:
     type: object
   api.GenerateExecuteResponse:
     properties:
+      created_template_ids:
+        items:
+          type: integer
+        type: array
       exercises_created:
         type: integer
       prescribed_sets:
@@ -586,6 +599,17 @@ definitions:
       status:
         type: string
     type: object
+  api.GenerationPreview:
+    properties:
+      programs:
+        items:
+          $ref: '#/definitions/api.ProgramPreview'
+        type: array
+      progression_rules:
+        items:
+          $ref: '#/definitions/api.ProgressionRulePreview'
+        type: array
+    type: object
   api.GenerationResponse:
     properties:
       athlete_id:
@@ -606,6 +630,13 @@ definitions:
         type: integer
       model:
         type: string
+      preview:
+        allOf:
+        - $ref: '#/definitions/api.GenerationPreview'
+        description: |-
+          Preview is the set-level projection of catalog_json — present only
+          on succeeded generations. Lets the SPA render the actual prescribed
+          program (per week/day) before the coach approves.
       programs:
         type: integer
       reasoning:
@@ -826,6 +857,23 @@ definitions:
       week:
         type: integer
     type: object
+  api.PrescribedSetPreview:
+    properties:
+      absolute_weight:
+        type: number
+      exercise:
+        type: string
+      notes:
+        type: string
+      percentage:
+        type: number
+      rep_type:
+        type: string
+      reps:
+        type: integer
+      set_number:
+        type: integer
+    type: object
   api.PrescribedSetRequest:
     properties:
       absolute_weight:
@@ -876,6 +924,23 @@ definitions:
         type: integer
       sort_order:
         type: integer
+    type: object
+  api.ProgramPreview:
+    properties:
+      description:
+        type: string
+      is_loop:
+        type: boolean
+      name:
+        type: string
+      num_days:
+        type: integer
+      num_weeks:
+        type: integer
+      weeks:
+        items:
+          $ref: '#/definitions/api.WeekPreview'
+        type: array
     type: object
   api.ProgramTemplate:
     properties:
@@ -940,6 +1005,15 @@ definitions:
       num_weeks:
         example: 3
         type: integer
+    type: object
+  api.ProgressionRulePreview:
+    properties:
+      exercise:
+        type: string
+      increment:
+        type: number
+      program:
+        type: string
     type: object
   api.ProgressionRuleRequest:
     properties:
@@ -1211,6 +1285,15 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  api.WeekPreview:
+    properties:
+      days:
+        items:
+          $ref: '#/definitions/api.DayPreview'
+        type: array
+      week:
+        type: integer
     type: object
   api.Workout:
     properties:
@@ -2348,6 +2431,10 @@ paths:
             $ref: '#/definitions/api.APIError'
         "403":
           description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: A draft is already in flight for this athlete
           schema:
             $ref: '#/definitions/api.APIError'
         "500":

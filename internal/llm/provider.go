@@ -112,6 +112,14 @@ type GenerationResult struct {
 	Duration    time.Duration
 	Model       string
 	StopReason  string // "end_turn"/"stop" = complete, "max_tokens"/"length" = truncated
+
+	// Audit payload — what we actually sent to the provider. Persisted on
+	// the generation row (context_json + prompt columns, migration 0003)
+	// so we can answer "what did the LLM see about this minor?" later.
+	// ContextJSON is the marshalled AthleteContext; Prompt is the system
+	// prompt followed by a delimiter and the user prompt.
+	ContextJSON []byte
+	Prompt      string
 }
 
 // NewProviderFromSettings creates a Provider using the current app_settings

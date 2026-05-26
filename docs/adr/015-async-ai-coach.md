@@ -141,3 +141,69 @@ endpoint exposes `latest_generation` for resume).
 - ADR 007 — LLM-Assisted Program Generation (the human-reviews-everything principle)
 - ADR 008 — Notification System (the channel `generation_complete` uses)
 - ADR 013 — OpenAPI generation via swag (CI gate that catches stale specs)
+
+## Amendment 2026-05-26 — Audit completeness + failure notifications + dup guard (HOF-001, issue #13)
+
+A review of the shipped flow against ADR 007 found four edges that needed
+closing. Three were audit/UX correctness; one was a documented-but-not-true
+claim. The decision to close them is recorded here; the *what changed* on
+the human-in-the-loop side (approve-as-draft, no auto-assign) lives in
+the ADR 007 amendment.
+
+### What changed
+
+- **Persist context + prompt (audit, real).** Migration 0003 adds
+  `context_json TEXT` and `prompt TEXT` columns to `generations`.
+  `llm.Generate` now returns the marshalled `AthleteContext` and the
+  final `system_prompt + delimiter + user_prompt` it sent to the
+  provider; `CompleteGeneration` persists both. This corrects the
+  "prompt snapshot" claim in the original 0002 comment block — that
+  benefit was *aspirational* in the shipped version; now it's real.
+  We can answer "what did this LLM call see about this minor?" after
+  the fact.
+- **Notify on failure.** Adds `NotifyGenerationFailed` to the
+  notification registry. Every persisted-failure path in `runGeneration`
+  (provider error, empty output, parse failure) fires a notification
+  via the existing `notify.Send` pipeline. The startup
+  `ResetStaleRunningGenerations` sweep now enumerates rows first (new
+  `ListStaleRunningGenerations`) and fires one notification per
+  reset row. The SPA's "safe to close this tab — a notification will
+  arrive when it's ready" promise now holds on failure paths too.
+- **Duplicate-submit guard.** `POST /athletes/{id}/generate` now
+  returns `409 Conflict` if the athlete already has a generation in
+  `pending` or `running` state. Uses the existing
+  `idx_generations_athlete_status` index. Prevents two parallel
+  goroutines burning tokens for the same athlete and keeps the
+  resume-on-reload logic deterministic.
+- **Truncation hint.** When the LLM returns an empty or unparseable
+  catalog AND `stop_reason` is `max_tokens` or `length`, the failure
+  message now reads "Output was truncated — increase max_tokens in AI
+  Coach settings and try again" instead of the generic "empty output"
+  / "failed to parse" string. Folded into the error message at the
+  call site; `FailGeneration`'s signature is unchanged.
+
+### Schema additions (migration 0003)
+
+```
+ALTER TABLE generations ADD COLUMN context_json TEXT;
+ALTER TABLE generations ADD COLUMN prompt       TEXT;
+```
+
+Additive only per ADR 002's pre-prod policy. Existing rows keep NULL for
+both columns; only generations created after this migration carry the
+audit payload.
+
+### What did NOT change
+
+- The async lifecycle (`pending → running → succeeded | failed | cancelled`).
+- The 5-minute generation timeout (decoupled from the HTTP `WriteTimeout`).
+- The `WaitForGenerations` graceful-shutdown discipline.
+- Cancel-propagation deferred (the coroutine still owns the LLM call
+  context; cancel marks the row and lets the goroutine no-op on completion).
+- The 2 s SPA polling interval.
+
+### References
+
+- HOF-001 — basic-memory `handoff/HOF-001` (review + decision log)
+- GitHub issue #13
+- ADR 007 amendment (approve-as-draft, no auto-assign)
