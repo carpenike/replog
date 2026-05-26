@@ -1,10 +1,13 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
@@ -101,6 +104,13 @@ func (h *Handlers) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// testNotifyTimeout caps each individual SMTP/webhook test send. Same
+// rationale as testLLMPingTimeout (handlers_remaining.go): shoutrrr's
+// default socket timeouts can exceed the HTTP server's WriteTimeout, which
+// would silently turn into Caddy 502s with replog logging 200. Exposed as
+// a var so tests can shrink it.
+var testNotifyTimeout = 30 * time.Second
+
 // TestNotifyConnection tests the notification provider connection.
 //
 //	@Summary      Test notification provider connection (admin)
@@ -117,8 +127,15 @@ func (h *Handlers) TestNotifyConnection(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := notify.TestConnection(h.DB); err != nil {
-		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": err.Error()})
+	ctx, cancel := context.WithTimeout(r.Context(), testNotifyTimeout)
+	defer cancel()
+
+	if err := notify.TestConnection(ctx, h.DB); err != nil {
+		msg := err.Error()
+		if errors.Is(err, context.DeadlineExceeded) {
+			msg = "Notification provider did not respond in time. Check SMTP host and broadcast URLs."
+		}
+		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": msg})
 		return
 	}
 

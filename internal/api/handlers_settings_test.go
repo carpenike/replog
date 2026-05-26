@@ -8,6 +8,7 @@ import (
 
 	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/notify"
 )
 
 // withSecretKey ensures REPLOG_SECRET_KEY is set for the duration of a test
@@ -240,6 +241,60 @@ func TestTestLLMConnection_TimesOutWhenProviderHangs(t *testing.T) {
 
 	start := time.Now()
 	rr := env.do(t, "POST", "/api/admin/settings/test-llm", nil, cookies)
+	elapsed := time.Since(start)
+
+	requireStatus(t, rr, http.StatusOK)
+	if elapsed > 2*time.Second {
+		t.Errorf("handler took %v — timeout cap is not being honored", elapsed)
+	}
+
+	var got map[string]any
+	decodeJSON(t, rr, &got)
+	if got["success"] != false {
+		t.Errorf("expected success=false on timeout, got %v", got["success"])
+	}
+	errMsg, _ := got["error"].(string)
+	if !strings.Contains(strings.ToLower(errMsg), "respond") {
+		t.Errorf("expected friendly timeout message, got %q", errMsg)
+	}
+}
+
+// TestTestNotifyConnection_TimesOutWhenChannelHangs verifies the same
+// 60s-WriteTimeout-vs-slow-send trap is closed for /admin/settings/test-notify.
+// shoutrrr.Send doesn't honor a context, so notify.TestConnection races the
+// send against ctx.Done and leaks the inner goroutine; this test substitutes
+// a sendFn that blocks for 5s (well past the 50ms cap) and asserts the
+// handler returns promptly with the friendly timeout message.
+func TestTestNotifyConnection_TimesOutWhenChannelHangs(t *testing.T) {
+	orig := testNotifyTimeout
+	testNotifyTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { testNotifyTimeout = orig })
+
+	// Stub shoutrrr.Send to simulate a hung SMTP server.
+	restore := notify.SetSendFnForTesting(func(_, _ string) error {
+		time.Sleep(5 * time.Second)
+		return nil
+	})
+	t.Cleanup(restore)
+
+	env := setupTest(t)
+	withSecretKey(t)
+	// Configure SMTP so TestConnection takes the SMTP-send branch.
+	for k, v := range map[string]string{
+		"smtp.host": "smtp.example.invalid",
+		"smtp.port": "587",
+		"smtp.from": "noreply@example.invalid",
+	} {
+		if err := models.SetSetting(env.DB, k, v); err != nil {
+			t.Fatalf("set %q: %v", k, err)
+		}
+	}
+
+	admin := env.createUser(t, "admin", true, true)
+	cookies := env.loginAs(t, admin)
+
+	start := time.Now()
+	rr := env.do(t, "POST", "/api/admin/settings/test-notify", nil, cookies)
 	elapsed := time.Since(start)
 
 	requireStatus(t, rr, http.StatusOK)

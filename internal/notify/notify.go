@@ -9,7 +9,9 @@
 package notify
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -140,9 +142,55 @@ func SendBroadcast(db *sql.DB, body string) {
 	sendBroadcast(db, body)
 }
 
+// sendFn is the package's reference to shoutrrr.Send, swapped by tests to
+// simulate slow/hung upstream endpoints without real network calls.
+var sendFn = shoutrrr.Send
+
+// SetSendFnForTesting replaces the package's send function and returns a
+// restore func. Tests in dependent packages use this to inject a stub
+// (typically one that blocks on ctx.Done) without touching the network.
+//
+//	restore := notify.SetSendFnForTesting(myStub)
+//	t.Cleanup(restore)
+func SetSendFnForTesting(fn func(url, message string) error) func() {
+	prev := sendFn
+	sendFn = fn
+	return func() { sendFn = prev }
+}
+
+// sendWithContext invokes sendFn in a goroutine and races it against
+// ctx.Done. If ctx fires first, returns ctx.Err() immediately. The inner
+// goroutine is left to finish on its own and its result is logged via
+// `label` (it cannot exceed the underlying socket timeouts: ~30s for SMTP,
+// the HTTP client default for webhooks).
+//
+// This is the contract documented in issue #12: shoutrrr does not honor
+// a context, so the only way to bound it is to race + leak. We accept
+// the bounded leak in exchange for never blocking the HTTP server past
+// its WriteTimeout.
+func sendWithContext(ctx context.Context, urlStr, body, label string) error {
+	done := make(chan error, 1)
+	go func() { done <- sendFn(urlStr, body) }()
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		go func() {
+			if err := <-done; err != nil {
+				log.Printf("notify: %s send finished after timeout with error: %v", label, err)
+			}
+		}()
+		return ctx.Err()
+	}
+}
+
 // TestConnection tests all configured notification channels.
 // Tests SMTP by sending to the from address, and each broadcast URL.
-func TestConnection(db *sql.DB) error {
+//
+// Each individual send is bounded by ctx — a hung SMTP server or webhook
+// returns ctx.Err() as a per-channel failure rather than blocking the whole
+// admin test-connection request past the HTTP server's WriteTimeout.
+func TestConnection(ctx context.Context, db *sql.DB) error {
 	var errs []string
 
 	// Test SMTP if configured.
@@ -154,8 +202,12 @@ func TestConnection(db *sql.DB) error {
 			// Send test to the from address itself.
 			testURL := buildSMTPURLDirect(db, fromAddr, "RepLog SMTP Test", false)
 			if testURL != "" {
-				if err := shoutrrr.Send(testURL, "If you see this, RepLog SMTP is working!"); err != nil {
-					errs = append(errs, fmt.Sprintf("SMTP: %v", err))
+				if err := sendWithContext(ctx, testURL, "If you see this, RepLog SMTP is working!", "SMTP test"); err != nil {
+					if errors.Is(err, context.DeadlineExceeded) {
+						errs = append(errs, "SMTP: server did not respond in time")
+					} else {
+						errs = append(errs, fmt.Sprintf("SMTP: %v", err))
+					}
 				}
 			}
 		}
@@ -165,8 +217,12 @@ func TestConnection(db *sql.DB) error {
 	urlsStr := models.GetSetting(db, "notify.urls")
 	if urlsStr != "" {
 		for _, u := range parseURLs(urlsStr) {
-			if err := shoutrrr.Send(u, "RepLog test — if you see this, notifications are working!"); err != nil {
-				errs = append(errs, fmt.Sprintf("Broadcast %s: %v", maskURL(u), err))
+			if err := sendWithContext(ctx, u, "RepLog test — if you see this, notifications are working!", "broadcast "+maskURL(u)); err != nil {
+				if errors.Is(err, context.DeadlineExceeded) {
+					errs = append(errs, fmt.Sprintf("Broadcast %s: did not respond in time", maskURL(u)))
+				} else {
+					errs = append(errs, fmt.Sprintf("Broadcast %s: %v", maskURL(u), err))
+				}
 			}
 		}
 	}
