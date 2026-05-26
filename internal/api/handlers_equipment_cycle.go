@@ -388,6 +388,13 @@ func (h *Handlers) GetCycleReview(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusInternalServerError, "failed to get cycle summary")
 		return
 	}
+	if summary == nil {
+		// No completed cycle to review yet (program just started, mid-cycle 1,
+		// or no logged workouts on this assignment). Return an empty summary
+		// so the UI can render an explanatory empty state.
+		WriteJSON(w, http.StatusOK, CycleSummaryResponse{Suggestions: []TMSuggestionResponse{}})
+		return
+	}
 
 	suggestions := make([]TMSuggestionResponse, len(summary.Suggestions))
 	for i, s := range summary.Suggestions {
