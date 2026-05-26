@@ -61,29 +61,11 @@
 let
   cfg = config.services.replog;
 
-  # If baseUrl is set and the user hasn't pinned the WebAuthn settings
-  # themselves, derive them. Keeps the three coupled env vars in lock
-  # step without taking control away.
-  baseUrlAttrs =
-    if cfg.baseUrl == null then
-      { }
-    else
-      let
-        # Parse out the host part (everything between the scheme and the
-        # first '/' or ':port'). RPID must be a bare hostname, no scheme,
-        # no port. Origins is the full origin (scheme + host + optional
-        # port), no trailing slash.
-        stripped = lib.removePrefix "https://" (lib.removePrefix "http://" cfg.baseUrl);
-        host = lib.head (lib.splitString "/" (lib.head (lib.splitString ":" stripped)));
-        origin = lib.head (lib.splitString "/" cfg.baseUrl);
-      in
-      {
-        REPLOG_BASE_URL = cfg.baseUrl;
-      } // lib.optionalAttrs (! (cfg.settings ? REPLOG_WEBAUTHN_RPID)) {
-        REPLOG_WEBAUTHN_RPID = host;
-      } // lib.optionalAttrs (! (cfg.settings ? REPLOG_WEBAUTHN_ORIGINS)) {
-        REPLOG_WEBAUTHN_ORIGINS = origin;
-      };
+  # baseUrl → WebAuthn env derivation. Extracted to nix/lib so it can
+  # be unit-tested without standing up the full NixOS module system.
+  # See nix/tests/module-baseurl.nix for the regression suite that
+  # gates `nix flake check`.
+  baseUrlAttrs = import ./lib/derive-webauthn.nix lib cfg.baseUrl cfg.settings;
 
   # Final environment merged into the systemd unit. Order matters:
   # bake-in defaults < baseUrl-derived < user-supplied settings.

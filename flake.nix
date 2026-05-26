@@ -49,10 +49,15 @@
       });
 
       # `nix flake check` will build the package on every supported
-      # system. Tests are NOT re-run here — `just qa` in CI is the
-      # authoritative test gate (see nix/package.nix → doCheck).
-      checks = forAllSystems ({ system, ... }: {
+      # system and run the lightweight module eval-checks. Go tests are
+      # NOT re-run here — `just qa` in CI is the authoritative test gate
+      # (see nix/package.nix → doCheck).
+      checks = forAllSystems ({ pkgs, system, ... }: {
         package = self.packages.${system}.default;
+        module-baseurl = import ./nix/tests/module-baseurl.nix {
+          inherit (pkgs) lib;
+          inherit pkgs;
+        };
       });
 
       devShells = forAllSystems ({ pkgs, ... }: {
