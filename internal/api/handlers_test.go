@@ -256,7 +256,9 @@ func setupTest(t *testing.T) *testEnv {
 			// AI Coach generation (per athlete).
 			r.Get("/athletes/{id}/generate", h.GenerateFormData)
 			r.Post("/athletes/{id}/generate", h.GenerateSubmit)
-			r.Post("/athletes/{id}/generate/execute", h.GenerateExecute)
+			r.Get("/athletes/{id}/generations/{genID}", h.GenerationStatus)
+			r.Post("/athletes/{id}/generations/{genID}/cancel", h.GenerationCancel)
+			r.Post("/athletes/{id}/generations/{genID}/execute", h.GenerationExecute)
 
 			// Passkeys (user's own credentials).
 			r.Get("/passkeys", h.ListPasskeys)

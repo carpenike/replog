@@ -40,9 +40,10 @@ type Handlers struct {
 	// app_settings). Tests override this to inject llm.MockProvider.
 	LLMProviderFactory func(*sql.DB) (llm.Provider, error)
 
-	// generateCache holds in-progress generation results keyed by athlete ID.
-	// Used instead of session storage to avoid gob encoding large structs.
-	generateCache sync.Map
+	// genWG tracks in-flight AI Coach generation goroutines so the server
+	// can wait for them to finish (and tests can sync on them) without
+	// leaking work or losing token spend across a restart.
+	genWG sync.WaitGroup
 }
 
 // llmProvider returns the configured LLM provider, falling back to the
@@ -52,6 +53,13 @@ func (h *Handlers) llmProvider() (llm.Provider, error) {
 		return h.LLMProviderFactory(h.DB)
 	}
 	return llm.NewProviderFromSettings(h.DB)
+}
+
+// WaitForGenerations blocks until every in-flight AI Coach generation
+// goroutine has finished. Called at shutdown (best effort, with a deadline)
+// and at the end of tests that need deterministic generation results.
+func (h *Handlers) WaitForGenerations() {
+	h.genWG.Wait()
 }
 
 // Me returns the currently authenticated user.

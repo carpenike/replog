@@ -72,6 +72,15 @@ func main() {
 
 	log.Printf("Database ready: %s", filepath.Clean(dbPath))
 
+	// Mark any AI Coach generations left in pending/running by a previous
+	// process as failed. The detached goroutines that owned them are gone,
+	// so without this the SPA would show them as forever-spinning drafts.
+	if reset, err := models.ResetStaleRunningGenerations(db); err != nil {
+		log.Printf("Warning: reset stale generations failed: %v", err)
+	} else if reset > 0 {
+		log.Printf("Reset %d stale AI Coach generation(s) from prior process", reset)
+	}
+
 	// Bootstrap secret key for encrypting sensitive settings.
 	if _, source, err := models.GetOrCreateSecretKey(db); err != nil {
 		log.Printf("Warning: secret key not available — sensitive settings will not be encrypted: %v", err)
@@ -429,7 +438,9 @@ func main() {
 			// AI Coach Generation (coach only — handler checks internally).
 			r.Get("/athletes/{id}/generate", apiHandlers.GenerateFormData)
 			r.Post("/athletes/{id}/generate", apiHandlers.GenerateSubmit)
-			r.Post("/athletes/{id}/generate/execute", apiHandlers.GenerateExecute)
+			r.Get("/athletes/{id}/generations/{genID}", apiHandlers.GenerationStatus)
+			r.Post("/athletes/{id}/generations/{genID}/cancel", apiHandlers.GenerationCancel)
+			r.Post("/athletes/{id}/generations/{genID}/execute", apiHandlers.GenerationExecute)
 
 			// Passkeys (user's own credentials).
 			r.Get("/passkeys", apiHandlers.ListPasskeys)
@@ -507,6 +518,21 @@ func main() {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Forced shutdown: %v", err)
+	}
+
+	// Wait for in-flight AI Coach generation goroutines to land their
+	// results in the DB. Bounded by generationTimeout (5 min) but in
+	// practice provider calls finish fast and any stragglers will be
+	// reset on next startup by ResetStaleRunningGenerations.
+	genDone := make(chan struct{})
+	go func() {
+		apiHandlers.WaitForGenerations()
+		close(genDone)
+	}()
+	select {
+	case <-genDone:
+	case <-time.After(10 * time.Second):
+		log.Printf("Warning: AI Coach generations still running at shutdown; will reset on next start")
 	}
 
 	// Run SQLite optimize on shutdown — updates query planner statistics

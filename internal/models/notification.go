@@ -8,12 +8,13 @@ import (
 
 // Notification types — used as the `type` column in the notifications table.
 const (
-	NotifyReviewSubmitted = "review_submitted"
-	NotifyProgramAssigned = "program_assigned"
-	NotifyTMUpdated       = "tm_updated"
-	NotifyNoteAdded       = "note_added"
-	NotifyWorkoutLogged   = "workout_logged"
-	NotifyMagicLinkSent   = "magic_link_sent"
+	NotifyReviewSubmitted    = "review_submitted"
+	NotifyProgramAssigned    = "program_assigned"
+	NotifyTMUpdated          = "tm_updated"
+	NotifyNoteAdded          = "note_added"
+	NotifyWorkoutLogged      = "workout_logged"
+	NotifyMagicLinkSent      = "magic_link_sent"
+	NotifyGenerationComplete = "generation_complete"
 )
 
 // AllNotificationTypes lists all known notification types for preference UI.
@@ -24,6 +25,7 @@ var AllNotificationTypes = []NotificationType{
 	{Type: NotifyNoteAdded, Label: "Coach Note Added", Description: "When a coach adds a public note"},
 	{Type: NotifyWorkoutLogged, Label: "Workout Logged", Description: "When an athlete logs a workout"},
 	{Type: NotifyMagicLinkSent, Label: "Login Link Sent", Description: "When a login link is generated for you"},
+	{Type: NotifyGenerationComplete, Label: "AI Coach Draft Ready", Description: "When an AI Coach program draft finishes generating"},
 }
 
 // NotificationType describes a notification type for preference UI.

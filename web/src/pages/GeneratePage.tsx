@@ -10,32 +10,52 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
+
+// Backend GenerationResponse shape (see internal/api/handlers_generate.go).
+// Kept inline so this page can run without waiting on `just openapi` to
+// regenerate the typed client.
+interface Generation {
+  id: number
+  athlete_id: number
+  status: 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled'
+  reasoning?: string
+  model?: string
+  tokens_used?: number
+  duration?: string
+  truncated?: boolean
+  programs?: number
+  exercises?: number
+  error?: string
+  executed?: boolean
+  created_at: string
+  started_at?: string
+  completed_at?: string
+}
+
 interface GenerateFormData {
   configured: boolean
   reference_programs: { id: number; name: string }[]
   default_days: number
   default_weeks: number
+  latest_generation?: Generation
 }
-interface GenerateResult {
-  reasoning: string
-  model: string
-  tokens_used: number
-  duration: string
-  truncated: boolean
-  programs: number
-  exercises: number
-}
+
 interface ExecuteResult {
   programs_created: number
   exercises_created: number
   prescribed_sets: number
   progression_rules: number
 }
+
+const TERMINAL_STATUSES: Generation['status'][] = ['succeeded', 'failed', 'cancelled']
+
 export function GeneratePage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const queryClient = useQueryClient()
+  // 'form' = entry; 'generating' = polling status; 'preview' = succeeded,
+  // awaiting coach approval; 'result' = executed/imported.
   const [step, setStep] = useState<'form' | 'generating' | 'preview' | 'result'>('form')
   const [programName, setProgramName] = useState('')
   const [numDays, setNumDays] = useState('3')
@@ -44,33 +64,94 @@ export function GeneratePage() {
   const [coachDirections, setCoachDirections] = useState('')
   const [focusAreas, setFocusAreas] = useState('')
   const [referenceIds, setReferenceIds] = useState<number[]>([])
-  const [genResult, setGenResult] = useState<GenerateResult | null>(null)
+  const [generationId, setGenerationId] = useState<number | null>(null)
+  const [generation, setGeneration] = useState<Generation | null>(null)
   const [execResult, setExecResult] = useState<ExecuteResult | null>(null)
   const [error, setError] = useState('')
+
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
     enabled: !isNaN(athleteId),
   })
+
   const { data: formData } = useQuery({
     queryKey: ['generate-form', athleteId],
-    queryFn: () => fetch(`/api/athletes/${athleteId}/generate`, { credentials: 'include', headers: { Accept: 'application/json' } }).then(r => r.json()) as Promise<GenerateFormData>,
+    queryFn: () => fetch(`/api/athletes/${athleteId}/generate`, {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    }).then(r => r.json()) as Promise<GenerateFormData>,
     enabled: !isNaN(athleteId) && step === 'form',
   })
-  // Set defaults from form data
+
+  // Apply defaults from form data once.
   const [defaultsApplied, setDefaultsApplied] = useState(false)
   if (formData && !defaultsApplied) {
     setDefaultsApplied(true)
     setNumDays(formData.default_days.toString())
     setNumWeeks(formData.default_weeks.toString())
   }
+
+  // Resume an in-flight or recent generation if the SPA loaded fresh.
+  // Skip rows already imported — the coach is done with those. Uses the
+  // same render-phase setState + useState-flag pattern as the defaults
+  // block above (AGENTS.md: "no setState in useEffect for derivable values"
+  // — React's official guidance, not arbitrary).
+  const [resumeChecked, setResumeChecked] = useState(false)
+  if (formData && !resumeChecked) {
+    setResumeChecked(true)
+    const latest = formData.latest_generation
+    if (latest && !latest.executed) {
+      setGenerationId(latest.id)
+      setGeneration(latest)
+      if (latest.status === 'pending' || latest.status === 'running') {
+        setStep('generating')
+      } else if (latest.status === 'succeeded') {
+        setStep('preview')
+      } else if (latest.status === 'failed') {
+        setError(latest.error ?? 'Generation failed')
+      }
+    }
+  }
+
+  // Poll the status endpoint while the generation is in flight. TanStack
+  // Query halts further polling when refetchInterval returns false.
+  useQuery({
+    queryKey: ['generation', athleteId, generationId],
+    queryFn: async () => {
+      const res = await fetch(`/api/athletes/${athleteId}/generations/${generationId}`, {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      })
+      if (!res.ok) throw new ApiError('failed to poll', res.status)
+      const data = (await res.json()) as Generation
+      setGeneration(data)
+      if (data.status === 'succeeded') {
+        setStep('preview')
+      } else if (data.status === 'failed') {
+        setError(data.error ?? 'Generation failed')
+        setStep('form')
+      } else if (data.status === 'cancelled') {
+        setError('Generation was cancelled')
+        setStep('form')
+      }
+      return data
+    },
+    enabled: generationId != null && step === 'generating',
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (!data || TERMINAL_STATUSES.includes(data.status)) return false
+      return 2000
+    },
+  })
+
   const generateMutation = useMutation({
     mutationFn: async () => {
-      setStep('generating')
+      setError('')
       const res = await fetch(`/api/athletes/${athleteId}/generate`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({
           program_name: programName,
           num_days: parseInt(numDays),
@@ -85,23 +166,52 @@ export function GeneratePage() {
         const err = await res.json()
         throw new ApiError(err.error ?? 'Generation failed', res.status)
       }
-      return res.json() as Promise<GenerateResult>
+      return res.json() as Promise<{ generation_id: number; status: Generation['status'] }>
     },
     onSuccess: (data) => {
-      setGenResult(data)
-      setStep('preview')
+      setGenerationId(data.generation_id)
+      setGeneration({
+        id: data.generation_id,
+        athlete_id: athleteId,
+        status: data.status,
+        created_at: new Date().toISOString(),
+      })
+      setStep('generating')
+      // Drop the cached form-data so resume picks up the fresh row next visit.
+      queryClient.invalidateQueries({ queryKey: ['generate-form', athleteId] })
     },
     onError: (err) => {
       setError(err instanceof ApiError ? err.message : 'Generation failed')
       setStep('form')
     },
   })
-  const executeMutation = useMutation({
+
+  const cancelMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/athletes/${athleteId}/generate/execute`, {
+      const res = await fetch(`/api/athletes/${athleteId}/generations/${generationId}/cancel`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        headers: { Accept: 'application/json' },
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new ApiError(err.error ?? 'Cancel failed', res.status)
+      }
+      return res.json() as Promise<Generation>
+    },
+    onSuccess: () => {
+      setStep('form')
+      setGenerationId(null)
+      setGeneration(null)
+    },
+  })
+
+  const executeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/athletes/${athleteId}/generations/${generationId}/execute`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: '{}',
       })
       if (!res.ok) {
@@ -120,6 +230,7 @@ export function GeneratePage() {
       setError(err instanceof ApiError ? err.message : 'Failed to save program')
     },
   })
+
   return (
     <div className="max-w-2xl">
       <p className="text-sm text-muted-foreground mb-1">
@@ -165,7 +276,7 @@ export function GeneratePage() {
           </div>
           <div>
             <Label >Coach Directions</Label>
-            <Textarea value={coachDirections} onChange={e => setCoachDirections(e.target.value)} 
+            <Textarea value={coachDirections} onChange={e => setCoachDirections(e.target.value)}
               placeholder="Specific instructions for the AI coach..." />
           </div>
           <div>
@@ -196,26 +307,36 @@ export function GeneratePage() {
           </Button>
         </form>
       )}
-      {/* Step 2: Generating */}
+      {/* Step 2: Generating (polling) */}
       {step === 'generating' && (
         <div className="text-center py-12">
           <Spinner />
-          <p className="text-muted-foreground mt-4">AI Coach is generating your program...</p>
-          <p className="text-xs text-muted-foreground mt-1">This may take up to a minute.</p>
+          <p className="text-muted-foreground mt-4">
+            {generation?.status === 'running' ? 'AI Coach is generating your program...' : 'Queued — starting shortly...'}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Safe to close this tab — the draft will keep generating and a notification will arrive when it's ready.
+          </p>
+          <div className="mt-6">
+            <Button variant="outline" size="sm" onClick={() => cancelMutation.mutate()}
+              disabled={cancelMutation.isPending}>
+              Cancel
+            </Button>
+          </div>
         </div>
       )}
       {/* Step 3: Preview */}
-      {step === 'preview' && genResult && (
+      {step === 'preview' && generation && (
         <div>
           <Card className="mb-6">
             <CardContent>
             <h2 className="font-semibold mb-2">AI Coach Reasoning</h2>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{genResult.reasoning}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{generation.reasoning}</p>
             <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
-              <span>Model: {genResult.model}</span>
-              <span>{genResult.tokens_used} tokens</span>
-              <span>{genResult.duration}</span>
-              {genResult.truncated && <span className="text-warning">⚠ Output was truncated</span>}
+              {generation.model && <span>Model: {generation.model}</span>}
+              {generation.tokens_used != null && <span>{generation.tokens_used} tokens</span>}
+              {generation.duration && <span>{generation.duration}</span>}
+              {generation.truncated && <span className="text-warning">⚠ Output was truncated</span>}
             </div>
             </CardContent>
           </Card>
@@ -225,11 +346,11 @@ export function GeneratePage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Programs</p>
-                <p className="text-lg font-bold">{genResult.programs}</p>
+                <p className="text-lg font-bold">{generation.programs ?? 0}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Exercises</p>
-                <p className="text-lg font-bold">{genResult.exercises}</p>
+                <p className="text-lg font-bold">{generation.exercises ?? 0}</p>
               </div>
             </div>
             </CardContent>
@@ -240,7 +361,12 @@ export function GeneratePage() {
               >
               {executeMutation.isPending ? 'Saving...' : 'Save Program'}
             </Button>
-            <Button variant="ghost" onClick={() => { setStep('form'); setGenResult(null); setError('') }}
+            <Button variant="ghost" onClick={() => {
+                setStep('form')
+                setGeneration(null)
+                setGenerationId(null)
+                setError('')
+              }}
               >
               Start Over
             </Button>

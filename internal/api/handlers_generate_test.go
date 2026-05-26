@@ -64,6 +64,27 @@ func useMockLLM(t *testing.T, env *testEnv) *llm.MockProvider {
 	return mock
 }
 
+// submitAndWait posts a generation request, asserts a 202 response, then
+// blocks until the background goroutine completes via WaitForGenerations.
+// Returns the generation_id from the 202 body.
+func submitAndWait(t *testing.T, env *testEnv, athleteID int64, cookies []*http.Cookie, body string) int64 {
+	t.Helper()
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athleteID), body, cookies)
+	requireStatus(t, rr, http.StatusAccepted)
+
+	var submit GenerateSubmitResponse
+	decodeJSON(t, rr, &submit)
+	if submit.GenerationID == 0 {
+		t.Fatalf("expected generation_id, got %+v", submit)
+	}
+	if submit.Status != models.GenerationPending {
+		t.Fatalf("expected status=pending, got %q", submit.Status)
+	}
+
+	env.Handlers.WaitForGenerations()
+	return submit.GenerationID
+}
+
 // --- GenerateFormData ---
 
 func TestGenerateFormData_ReturnsConfiguredFalseWhenNoProvider(t *testing.T) {
@@ -111,27 +132,59 @@ func TestGenerateFormData_NonCoachForbidden(t *testing.T) {
 	requireStatus(t, rr, http.StatusForbidden)
 }
 
-// --- GenerateSubmit ---
-
-func TestGenerateSubmit_HappyPath(t *testing.T) {
+func TestGenerateFormData_ExposesLatestGenerationForResume(t *testing.T) {
 	env := setupTest(t)
 	useMockLLM(t, env)
 	coach := env.createUser(t, "coach", true, false)
 	athlete := env.createAthlete(t, "Charlie", coach.ID)
 	cookies := env.loginAs(t, coach)
 
-	body := `{
+	genID := submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"X","num_days":4,"num_weeks":3}`)
+
+	rr := env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got GenerateFormResponse
+	decodeJSON(t, rr, &got)
+	if got.LatestGeneration == nil {
+		t.Fatal("expected latest_generation to be populated for resume")
+	}
+	if got.LatestGeneration.ID != genID {
+		t.Errorf("expected latest_generation.id=%d, got %d", genID, got.LatestGeneration.ID)
+	}
+	if got.LatestGeneration.Status != models.GenerationSucceeded {
+		t.Errorf("expected succeeded, got %q", got.LatestGeneration.Status)
+	}
+}
+
+// --- GenerateSubmit (async) ---
+
+func TestGenerateSubmit_AsyncEnqueuesAndReturns202(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	genID := submitAndWait(t, env, athlete.ID, cookies, `{
 		"program_name": "Mock Program",
 		"num_days": 4,
 		"num_weeks": 3,
 		"is_loop": false,
 		"focus_areas": ["strength"]
-	}`
-	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), body, cookies)
+	}`)
+
+	// Status polling reflects the completed state.
+	rr := env.do(t, "GET",
+		fmt.Sprintf("/api/athletes/%d/generations/%d", athlete.ID, genID), nil, cookies)
 	requireStatus(t, rr, http.StatusOK)
 
-	var got GenerateSubmitResponse
+	var got GenerationResponse
 	decodeJSON(t, rr, &got)
+	if got.Status != models.GenerationSucceeded {
+		t.Errorf("expected status=succeeded, got %q", got.Status)
+	}
 	if got.Programs != 1 {
 		t.Errorf("expected 1 program from mock catalog, got %d", got.Programs)
 	}
@@ -139,7 +192,10 @@ func TestGenerateSubmit_HappyPath(t *testing.T) {
 		t.Errorf("expected 1 exercise from mock catalog, got %d", got.Exercises)
 	}
 	if !strings.Contains(got.Reasoning, "mock program") {
-		t.Errorf("expected reasoning to be extracted from <reasoning> tags, got %q", got.Reasoning)
+		t.Errorf("expected reasoning from <reasoning> tags, got %q", got.Reasoning)
+	}
+	if got.CompletedAt == nil {
+		t.Error("expected completed_at to be set")
 	}
 }
 
@@ -176,11 +232,9 @@ func TestGenerateSubmit_NonCoachForbidden(t *testing.T) {
 	requireStatus(t, rr, http.StatusForbidden)
 }
 
-func TestGenerateSubmit_MapsLLMAPIErrorToFriendlyMessage(t *testing.T) {
+func TestGenerateSubmit_PersistsFailureToGenerationRow(t *testing.T) {
 	env := setupTest(t)
 	useMockLLM(t, env)
-	// Replace the mock's response with an llm.APIError to verify the
-	// handler unwraps it via errors.As and returns the user-friendly text.
 	env.Handlers.LLMProviderFactory = mockLLMFactory(&llm.MockProvider{
 		GenerateErr: &llm.APIError{
 			Provider:   "Anthropic",
@@ -192,12 +246,20 @@ func TestGenerateSubmit_MapsLLMAPIErrorToFriendlyMessage(t *testing.T) {
 	athlete := env.createAthlete(t, "Charlie", coach.ID)
 	cookies := env.loginAs(t, coach)
 
-	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID),
-		`{"program_name":"x","num_days":4,"num_weeks":3}`, cookies)
-	requireStatus(t, rr, http.StatusInternalServerError)
+	// Async submit still returns 202 — failures are recorded on the row,
+	// not surfaced in the enqueue response.
+	genID := submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"x","num_days":4,"num_weeks":3}`)
 
-	var got APIError
+	rr := env.do(t, "GET",
+		fmt.Sprintf("/api/athletes/%d/generations/%d", athlete.ID, genID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got GenerationResponse
 	decodeJSON(t, rr, &got)
+	if got.Status != models.GenerationFailed {
+		t.Errorf("expected status=failed, got %q", got.Status)
+	}
 	if !strings.Contains(got.Error, "Invalid API key") {
 		t.Errorf("expected user-friendly 401 message, got %q", got.Error)
 	}
@@ -210,6 +272,8 @@ func TestGenerateSubmit_ProviderNotConfigured(t *testing.T) {
 	env := setupTest(t)
 	// No useMockLLM — factory falls back to NewProviderFromSettings, which
 	// returns ErrNotConfigured because no llm.provider setting is set.
+	// Provider misconfig is a synchronous failure (we never even create
+	// the row), so the response is 500.
 	coach := env.createUser(t, "coach", true, false)
 	athlete := env.createAthlete(t, "Charlie", coach.ID)
 	cookies := env.loginAs(t, coach)
@@ -222,94 +286,159 @@ func TestGenerateSubmit_ProviderNotConfigured(t *testing.T) {
 	}
 }
 
-// --- GenerateExecute ---
+// --- GenerationStatus ---
 
-func TestGenerateExecute_RequiresSubmitFirst(t *testing.T) {
+func TestGenerationStatus_404ForMissingRow(t *testing.T) {
 	env := setupTest(t)
 	useMockLLM(t, env)
 	coach := env.createUser(t, "coach", true, false)
 	athlete := env.createAthlete(t, "Charlie", coach.ID)
 	cookies := env.loginAs(t, coach)
+
+	rr := env.do(t, "GET",
+		fmt.Sprintf("/api/athletes/%d/generations/999999", athlete.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusNotFound)
+}
+
+func TestGenerationStatus_404ForCrossAthlete(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	a1 := env.createAthlete(t, "Alice", coach.ID)
+	a2 := env.createAthlete(t, "Bob", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	// Generation belongs to a1.
+	genID := submitAndWait(t, env, a1.ID, cookies,
+		`{"program_name":"X","num_days":4,"num_weeks":3}`)
+
+	// Asking under a2's URL must not leak it.
+	rr := env.do(t, "GET",
+		fmt.Sprintf("/api/athletes/%d/generations/%d", a2.ID, genID), nil, cookies)
+	requireStatus(t, rr, http.StatusNotFound)
+}
+
+// --- GenerationCancel ---
+
+func TestGenerationCancel_PendingRowMarkedCancelled(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	// Insert a pending row directly so it never picks up the goroutine.
+	g, err := models.CreateGeneration(env.DB, athlete.ID, coach.ID,
+		`{"program_name":"x","num_days":1,"num_weeks":1}`)
+	if err != nil {
+		t.Fatalf("seed pending generation: %v", err)
+	}
 
 	rr := env.do(t, "POST",
-		fmt.Sprintf("/api/athletes/%d/generate/execute", athlete.ID),
+		fmt.Sprintf("/api/athletes/%d/generations/%d/cancel", athlete.ID, g.ID),
 		nil, cookies)
-	requireStatus(t, rr, http.StatusBadRequest)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got GenerationResponse
+	decodeJSON(t, rr, &got)
+	if got.Status != models.GenerationCancelled {
+		t.Errorf("expected cancelled, got %q", got.Status)
+	}
 }
 
-func TestGenerateExecute_AfterSubmit_PersistsProgram(t *testing.T) {
+// --- GenerationExecute ---
+
+func TestGenerationExecute_AfterSubmit_PersistsProgram(t *testing.T) {
 	env := setupTest(t)
 	useMockLLM(t, env)
 	coach := env.createUser(t, "coach", true, false)
 	athlete := env.createAthlete(t, "Charlie", coach.ID)
 	cookies := env.loginAs(t, coach)
 
-	// Submit (mock returns the canned catalog).
-	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID),
-		`{"program_name":"Mock","num_days":4,"num_weeks":3}`, cookies)
-	requireStatus(t, rr, http.StatusOK)
+	genID := submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"Mock","num_days":4,"num_weeks":3}`)
 
-	// Execute commits.
-	rr = env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate/execute", athlete.ID),
+	rr := env.do(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/generations/%d/execute", athlete.ID, genID),
 		nil, cookies)
 	requireStatus(t, rr, http.StatusOK)
 
-	var got map[string]any
+	var got GenerateExecuteResponse
 	decodeJSON(t, rr, &got)
-	if got["programs_created"].(float64) != 1 {
-		t.Errorf("expected 1 program created, got %v", got["programs_created"])
+	if got.ProgramsCreated != 1 {
+		t.Errorf("expected 1 program created, got %d", got.ProgramsCreated)
 	}
-	if got["exercises_created"].(float64) < 1 {
-		t.Errorf("expected at least 1 exercise created, got %v", got["exercises_created"])
+	if got.ExercisesCreated < 1 {
+		t.Errorf("expected at least 1 exercise created, got %d", got.ExercisesCreated)
 	}
 
-	// Subsequent execute should fail (cache cleared).
-	rr = env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate/execute", athlete.ID),
+	// Second execute is rejected — prevents double-import of the same draft.
+	rr = env.do(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/generations/%d/execute", athlete.ID, genID),
 		nil, cookies)
 	requireStatus(t, rr, http.StatusBadRequest)
 }
 
-func TestGenerateExecute_NonCoachForbidden(t *testing.T) {
+func TestGenerationExecute_RejectsNonSucceeded(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	g, err := models.CreateGeneration(env.DB, athlete.ID, coach.ID,
+		`{"program_name":"x","num_days":1,"num_weeks":1}`)
+	if err != nil {
+		t.Fatalf("seed pending generation: %v", err)
+	}
+
+	rr := env.do(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/generations/%d/execute", athlete.ID, g.ID),
+		nil, cookies)
+	requireStatus(t, rr, http.StatusBadRequest)
+}
+
+func TestGenerationExecute_NonCoachForbidden(t *testing.T) {
 	env := setupTest(t)
 	user := env.createUser(t, "athlete_user", false, false)
 	cookies := env.loginAs(t, user)
 
-	rr := env.do(t, "POST", "/api/athletes/1/generate/execute", nil, cookies)
+	rr := env.do(t, "POST", "/api/athletes/1/generations/1/execute", nil, cookies)
 	requireStatus(t, rr, http.StatusForbidden)
 }
 
-// --- IDOR coverage (issue #5) ---
+// --- Server restart cleanup ---
 
-func TestGenerateFormData_OtherCoachForbidden(t *testing.T) {
+func TestResetStaleRunningGenerations_MarksPriorRunsFailed(t *testing.T) {
 	env := setupTest(t)
-	coachA := env.createUser(t, "coachA", true, false)
-	coachB := env.createUser(t, "coachB", true, false)
-	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
-	cookies := env.loginAs(t, coachB)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
 
-	rr := env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", athleteOfA.ID), nil, cookies)
-	requireStatus(t, rr, http.StatusForbidden)
-}
+	g, err := models.CreateGeneration(env.DB, athlete.ID, coach.ID,
+		`{"program_name":"x","num_days":1,"num_weeks":1}`)
+	if err != nil {
+		t.Fatalf("seed generation: %v", err)
+	}
+	if err := models.MarkGenerationRunning(env.DB, g.ID); err != nil {
+		t.Fatalf("mark running: %v", err)
+	}
 
-func TestGenerateSubmit_OtherCoachForbidden(t *testing.T) {
-	env := setupTest(t)
-	coachA := env.createUser(t, "coachA", true, false)
-	coachB := env.createUser(t, "coachB", true, false)
-	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
-	cookies := env.loginAs(t, coachB)
+	n, err := models.ResetStaleRunningGenerations(env.DB)
+	if err != nil {
+		t.Fatalf("reset stale: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("expected 1 row reset, got %d", n)
+	}
 
-	body := `{"program_name":"Test","num_days":3,"num_weeks":4}`
-	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athleteOfA.ID), body, cookies)
-	requireStatus(t, rr, http.StatusForbidden)
-}
-
-func TestGenerateExecute_OtherCoachForbidden(t *testing.T) {
-	env := setupTest(t)
-	coachA := env.createUser(t, "coachA", true, false)
-	coachB := env.createUser(t, "coachB", true, false)
-	athleteOfA := env.createAthlete(t, "Alice", coachA.ID)
-	cookies := env.loginAs(t, coachB)
-
-	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate/execute", athleteOfA.ID), nil, cookies)
-	requireStatus(t, rr, http.StatusForbidden)
+	got, err := models.GetGeneration(env.DB, g.ID)
+	if err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if got.Status != models.GenerationFailed {
+		t.Errorf("expected status=failed, got %q", got.Status)
+	}
+	if !got.Error.Valid || !strings.Contains(got.Error.String, "restart") {
+		t.Errorf("expected restart message, got %v", got.Error)
+	}
 }

@@ -18,3 +18,4 @@ Architecture Decision Records for RepLog.
 | [012](012-api-test-harness.md) | Shared API Test Harness | Accepted | 2026-05-12 |
 | [013](013-openapi-swag.md) | OpenAPI Generation via swag Annotations | Accepted | 2026-05-12 |
 | [014](014-login-lockout.md) | Per-Account Login Lockout | Accepted | 2026-05-12 |
+| [015](015-async-ai-coach.md) | Async AI Coach Generation | Accepted | 2026-05-26 |

@@ -531,6 +531,17 @@ definitions:
         example: foundational
         type: string
     type: object
+  api.GenerateExecuteResponse:
+    properties:
+      exercises_created:
+        type: integer
+      prescribed_sets:
+        type: integer
+      programs_created:
+        type: integer
+      progression_rules:
+        type: integer
+    type: object
   api.GenerateFormResponse:
     properties:
       athlete_context: {}
@@ -540,12 +551,14 @@ definitions:
         type: integer
       default_weeks:
         type: integer
+      latest_generation:
+        $ref: '#/definitions/api.GenerationResponse'
       reference_programs:
         items:
           $ref: '#/definitions/api.ProgramTemplate'
         type: array
     type: object
-  api.GenerateRequest:
+  api.GenerateSubmitRequest:
     properties:
       coach_directions:
         type: string
@@ -556,13 +569,10 @@ definitions:
       is_loop:
         type: boolean
       num_days:
-        example: 4
         type: integer
       num_weeks:
-        example: 3
         type: integer
       program_name:
-        example: Sport Performance Block 4
         type: string
       reference_ids:
         items:
@@ -571,15 +581,38 @@ definitions:
     type: object
   api.GenerateSubmitResponse:
     properties:
+      generation_id:
+        type: integer
+      status:
+        type: string
+    type: object
+  api.GenerationResponse:
+    properties:
+      athlete_id:
+        type: integer
+      completed_at:
+        type: string
+      created_at:
+        type: string
       duration:
         type: string
+      error:
+        type: string
+      executed:
+        type: boolean
       exercises:
+        type: integer
+      id:
         type: integer
       model:
         type: string
       programs:
         type: integer
       reasoning:
+        type: string
+      started_at:
+        type: string
+      status:
         type: string
       tokens_used:
         type: integer
@@ -2275,7 +2308,8 @@ paths:
     get:
       description: 'Returns the inputs the SPA needs to render the generation form:
         athlete context, default days/weeks from active program, list of reference
-        programs. `configured=false` if no LLM provider is set up.'
+        programs, and the latest generation (if any) so the SPA can resume a still-running
+        draft after page reload. `configured=false` if no LLM provider is set up.'
       parameters:
       - description: Athlete ID
         in: path
@@ -2303,9 +2337,11 @@ paths:
     post:
       consumes:
       - application/json
-      description: Calls the configured LLM provider, parses the response as CatalogJSON,
-        and stashes the parsed program in memory for the execute step. May take up
-        to 5 minutes for large generations.
+      description: Validates the request, inserts a generation row in 'pending' state,
+        and spawns a background goroutine that calls the configured LLM provider with
+        a context detached from the HTTP request. Returns 202 with the generation_id;
+        the SPA polls GET /generations/{id} until the status is terminal, then commits
+        via POST /generations/{id}/execute.
       parameters:
       - description: Athlete ID
         in: path
@@ -2317,12 +2353,12 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/api.GenerateRequest'
+          $ref: '#/definitions/api.GenerateSubmitRequest'
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "202":
+          description: Accepted
           schema:
             $ref: '#/definitions/api.GenerateSubmitResponse'
         "400":
@@ -2334,20 +2370,26 @@ paths:
           schema:
             $ref: '#/definitions/api.APIError'
         "500":
-          description: LLM provider error (user-friendly message)
+          description: AI Coach not configured
           schema:
             $ref: '#/definitions/api.APIError'
-      summary: Submit AI Coach generation
+      summary: Enqueue an AI Coach generation
       tags:
       - Athletes
-  /athletes/{id}/generate/execute:
-    post:
-      description: Requires a prior successful Submit (cached in memory keyed by athlete
-        ID). Auto-assigns the new program's exercises to the athlete.
+  /athletes/{id}/generations/{genID}:
+    get:
+      description: Returns the current status, plus reasoning/preview metrics when
+        succeeded or the error message when failed. The SPA polls this endpoint while
+        the generation is pending or running.
       parameters:
       - description: Athlete ID
         in: path
         name: id
+        required: true
+        type: integer
+      - description: Generation ID
+        in: path
+        name: genID
         required: true
         type: integer
       produces:
@@ -2356,8 +2398,74 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.GenerationResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Get AI Coach generation status
+      tags:
+      - Athletes
+  /athletes/{id}/generations/{genID}/cancel:
+    post:
+      description: Idempotent cancel. If the generation has already reached a terminal
+        state this is a no-op and the current row is returned.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Generation ID
+        in: path
+        name: genID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GenerationResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Cancel an AI Coach generation
+      tags:
+      - Athletes
+  /athletes/{id}/generations/{genID}/execute:
+    post:
+      description: Parses the stored CatalogJSON, runs ExecuteCatalogImport, and auto-assigns
+        the new program's exercises to the athlete. The generation must be in 'succeeded'
+        state and not already executed.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Generation ID
+        in: path
+        name: genID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GenerateExecuteResponse'
         "400":
           description: Bad Request
           schema:
@@ -2366,7 +2474,11 @@ paths:
           description: Forbidden
           schema:
             $ref: '#/definitions/api.APIError'
-      summary: Commit AI-generated program
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Commit an AI Coach generation
       tags:
       - Athletes
   /athletes/{id}/goal:
