@@ -1,119 +1,63 @@
 {
-  description = "RepLog — self-hosted workout tracking";
+  description = "RepLog — self-hosted workout tracking for a single family";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Pinned to nixos-25.11 to match the consumer channel
+    # (carpenike/nix-config). Override with
+    #   inputs.replog.inputs.nixpkgs.follows = "nixpkgs";
+    # if your consumer is on a different channel.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs = { self, nixpkgs, flake-utils }:
     let
-      # NixOS module — importable in your system configuration.
-      nixosModule = { config, lib, pkgs, ... }:
-        let
-          cfg = config.services.replog;
-        in
-        {
-          options.services.replog = {
-            enable = lib.mkEnableOption "RepLog workout tracker";
+      # The deployment target is NixOS on x86_64-linux (Forge). The
+      # aarch64-linux and aarch64-darwin entries exist so dev machines
+      # (M-series Macs, rydev/nixpi) can `nix run` for smoke testing.
+      # Adding more systems is cheap — modernc.org/sqlite is pure Go,
+      # so the binary builds on every Go target without CGO.
+      supportedSystems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
+      forAllSystems = f:
+        nixpkgs.lib.genAttrs supportedSystems
+          (system: f {
+            inherit system;
+            pkgs = import nixpkgs { inherit system; };
+          });
 
-            package = lib.mkOption {
-              type = lib.types.package;
-              default = self.packages.${pkgs.system}.default;
-              description = "The RepLog package to use.";
-            };
-
-            port = lib.mkOption {
-              type = lib.types.port;
-              default = 8080;
-              description = "TCP port to listen on.";
-            };
-
-            dataDir = lib.mkOption {
-              type = lib.types.path;
-              default = "/var/lib/replog";
-              description = "Directory for database and avatar storage.";
-            };
-
-            environment = lib.mkOption {
-              type = lib.types.attrsOf lib.types.str;
-              default = { };
-              description = "Extra environment variables for RepLog.";
-              example = {
-                REPLOG_BASE_URL = "https://replog.example.com";
-                REPLOG_WEBAUTHN_RPID = "replog.example.com";
-                REPLOG_WEBAUTHN_ORIGINS = "https://replog.example.com";
-              };
-            };
-
-            environmentFile = lib.mkOption {
-              type = lib.types.nullOr lib.types.path;
-              default = null;
-              description = "File containing secret environment variables (e.g., REPLOG_SECRET_KEY).";
-            };
-          };
-
-          config = lib.mkIf cfg.enable {
-            systemd.services.replog = {
-              description = "RepLog workout tracker";
-              after = [ "network.target" ];
-              wantedBy = [ "multi-user.target" ];
-
-              environment = {
-                REPLOG_DB_PATH = "${cfg.dataDir}/replog.db";
-                REPLOG_AVATAR_DIR = "${cfg.dataDir}/avatars";
-                REPLOG_ADDR = ":${toString cfg.port}";
-              } // cfg.environment;
-
-              serviceConfig = {
-                Type = "simple";
-                ExecStart = "${cfg.package}/bin/replog";
-                Restart = "on-failure";
-                RestartSec = 5;
-
-                # Hardening.
-                DynamicUser = true;
-                StateDirectory = "replog";
-                StateDirectoryMode = "0750";
-                ProtectSystem = "strict";
-                ProtectHome = true;
-                PrivateTmp = true;
-                NoNewPrivileges = true;
-                ReadWritePaths = [ cfg.dataDir ];
-              } // lib.optionalAttrs (cfg.environmentFile != null) {
-                EnvironmentFile = cfg.environmentFile;
-              };
-            };
-          };
-        };
+      mkPackage = pkgs: pkgs.callPackage ./nix/package.nix {
+        # Bake the flake's revision into the binary so `replog --version`
+        # (and any future build-info endpoint) report the deployed
+        # commit. Falls through to `dirtyRev` for uncommitted source
+        # trees, then "unknown" when neither is available.
+        gitRev = self.rev or self.dirtyRev or "unknown";
+        buildTime = self.lastModifiedDate or "unknown";
+      };
     in
-    (flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in
-      {
-        packages.default = pkgs.buildGoModule {
-          pname = "replog";
-          version = "0.1.0";
-          src = ./.;
-          vendorHash = "sha256-DI5kP09H/IrMMioqtCA3E5Wv9gqY0GoNchalBpYP8AU=";
-          subPackages = [ "cmd/replog" ];
+    {
+      packages = forAllSystems ({ pkgs, ... }: {
+        default = mkPackage pkgs;
+        replog = mkPackage pkgs;
+      });
 
-          # The React frontend in web/dist/ is pre-built before `nix build`:
-          # - CI: `cd web && npm ci && npm run build` runs before `go build`
-          # - Docker: multi-stage build runs Node first
-          # - Local: `cd web && npm run build` populates web/dist/
-          # The Go binary embeds web/dist/ via //go:embed in web/embed.go.
-
-          meta = with pkgs.lib; {
-            description = "Self-hosted workout tracking";
-            license = licenses.mit;
-            mainProgram = "replog";
-          };
+      # `nix run github:carpenike/replog`
+      apps = forAllSystems ({ system, ... }: {
+        default = {
+          type = "app";
+          program = "${self.packages.${system}.default}/bin/replog";
         };
+      });
 
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
+      # `nix flake check` will build the package on every supported
+      # system. Tests are NOT re-run here — `just qa` in CI is the
+      # authoritative test gate (see nix/package.nix → doCheck).
+      checks = forAllSystems ({ system, ... }: {
+        package = self.packages.${system}.default;
+      });
+
+      devShells = forAllSystems ({ pkgs, ... }: {
+        default = pkgs.mkShell {
+          packages = with pkgs; [
             go
             gopls
             gotools
@@ -123,10 +67,24 @@
             sqlite
             nodejs_22
             just
+            # Refresh web/package-lock.json hash in nix/package.nix with:
+            #   nix-shell -p prefetch-npm-deps --run \
+            #     "prefetch-npm-deps ./web/package-lock.json"
+            prefetch-npm-deps
           ];
         };
-      }
-    )) // {
-      nixosModules.default = nixosModule;
+      });
+
+      # NixOS module — import via:
+      #   imports = [ inputs.replog.nixosModules.default ];
+      # Then enable + configure under `services.replog`.
+      nixosModules.default = import ./nix/module.nix;
+
+      # Convenience overlay so callers can do `pkgs.replog` after
+      # adding `inputs.replog.overlays.default` to their nixpkgs
+      # config.
+      overlays.default = final: _prev: {
+        replog = mkPackage final;
+      };
     };
 }

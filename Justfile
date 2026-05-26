@@ -124,6 +124,20 @@ build-release:
 build-nix:
     nix build
 
+# Print the npmDepsHash that nix/package.nix should pin for the current
+# web/package-lock.json. Run after `npm install` changes the lockfile;
+# paste the printed sha256 into nix/package.nix.
+nix-npm-hash:
+    @nix-shell -p prefetch-npm-deps --run "prefetch-npm-deps ./web/package-lock.json"
+
+# Print the vendorHash nix/package.nix should pin for the current go.sum.
+# Forces a rebuild against `lib.fakeHash` and extracts the "got:" line
+# from the resulting hash-mismatch error. Run after `go mod tidy`.
+nix-vendor-hash:
+    @nix build .#default --no-link 2>&1 \
+        | awk '/got:/ {print $2; exit}' \
+        || true
+
 # --- Maintenance ---
 
 # Update Go dependencies.
