@@ -442,3 +442,233 @@ func TestResetStaleRunningGenerations_MarksPriorRunsFailed(t *testing.T) {
 		t.Errorf("expected restart message, got %v", got.Error)
 	}
 }
+
+// --- HOF-001: duplicate-submit guard ---
+
+func TestGenerateSubmit_DuplicateRejectedWith409(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	// Seed a pending generation for this athlete WITHOUT waiting on it,
+	// to simulate "a draft is in flight". We bypass the handler so the
+	// goroutine doesn't race the second submit.
+	if _, err := models.CreateGeneration(env.DB, athlete.ID, coach.ID,
+		`{"program_name":"first","num_days":3,"num_weeks":2}`); err != nil {
+		t.Fatalf("seed pending generation: %v", err)
+	}
+
+	// Second submit must fail fast — same athlete, draft in flight.
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID),
+		`{"program_name":"second","num_days":4,"num_weeks":3}`, cookies)
+	requireStatus(t, rr, http.StatusConflict)
+}
+
+// --- HOF-001: no auto-assign ---
+
+func TestGenerationExecute_DoesNotAssignProgramToAthlete(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	genID := submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"Mock","num_days":4,"num_weeks":3}`)
+
+	rr := env.do(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/generations/%d/execute", athlete.ID, genID),
+		nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	// The athlete must have NO active program after approving the draft —
+	// ADR 007 / HOF-001: approve creates an unassigned template; explicit
+	// assignment via POST /athletes/{id}/programs is a separate coach step.
+	progs, err := models.ListAthletePrograms(env.DB, athlete.ID)
+	if err != nil {
+		t.Fatalf("ListAthletePrograms: %v", err)
+	}
+	for _, p := range progs {
+		if p.Active {
+			t.Errorf("expected no active athlete_programs row after execute, got %+v", p)
+		}
+	}
+
+	// The template SHOULD have been created (athlete-scoped via athlete_id).
+	templates, err := models.ListProgramTemplates(env.DB)
+	if err != nil {
+		t.Fatalf("ListProgramTemplates: %v", err)
+	}
+	found := false
+	for _, tpl := range templates {
+		if tpl.Name == "Generated Program" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected template 'Generated Program' to be created (athlete-scoped, unassigned)")
+	}
+}
+
+// --- HOF-001: notify on failure ---
+
+func TestRunGeneration_NotifiesOnProviderFailure(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	env.Handlers.LLMProviderFactory = mockLLMFactory(&llm.MockProvider{
+		GenerateErr: &llm.APIError{Provider: "Anthropic", StatusCode: 401, Message: "invalid api key"},
+	})
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"x","num_days":4,"num_weeks":3}`)
+
+	notifs, err := models.ListNotifications(env.DB, coach.ID, 50, 0)
+	if err != nil {
+		t.Fatalf("ListNotifications: %v", err)
+	}
+	found := false
+	for _, n := range notifs {
+		if n.Type == models.NotifyGenerationFailed {
+			found = true
+			if !strings.Contains(n.Title, "Charlie") {
+				t.Errorf("expected athlete name in title, got %q", n.Title)
+			}
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected NotifyGenerationFailed notification, got %+v", notifs)
+	}
+}
+
+// --- HOF-001: truncation hint ---
+
+func TestRunGeneration_TruncationHintInError(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	// Return invalid JSON with stop_reason=max_tokens to trigger the
+	// truncation-specific error message.
+	env.Handlers.LLMProviderFactory = mockLLMFactory(&llm.MockProvider{
+		FixedContent:    "<reasoning>truncated</reasoning>\n{\"version\":\"1\",\"type\":\"catalog\",\"programs\":[",
+		FixedStopReason: "max_tokens",
+	})
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	genID := submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"x","num_days":4,"num_weeks":3}`)
+
+	g, err := models.GetGeneration(env.DB, genID)
+	if err != nil {
+		t.Fatalf("reload generation: %v", err)
+	}
+	if g.Status != models.GenerationFailed {
+		t.Fatalf("expected failed, got %q", g.Status)
+	}
+	if !g.Error.Valid || !strings.Contains(g.Error.String, "truncated") {
+		t.Errorf("expected truncation hint, got %q", g.Error.String)
+	}
+	if !strings.Contains(g.Error.String, "max_tokens") {
+		t.Errorf("expected actionable advice mentioning max_tokens, got %q", g.Error.String)
+	}
+}
+
+// --- HOF-001: set-level preview ---
+
+func TestGenerationStatus_IncludesSetLevelPreviewOnSuccess(t *testing.T) {
+	env := setupTest(t)
+	// Use a richer mock catalog with prescribed sets so we can verify
+	// the per-day projection.
+	const richCatalog = `{
+  "version": "1",
+  "type": "catalog",
+  "exercises": [{"name": "Bench Press"}],
+  "equipment": [],
+  "programs": [
+    {
+      "name": "Preview Program",
+      "num_weeks": 2,
+      "num_days": 1,
+      "is_loop": false,
+      "prescribed_sets": [
+        {"exercise": "Bench Press", "week": 1, "day": 1, "set_number": 1, "reps": 5, "percentage": 0.70, "sort_order": 1},
+        {"exercise": "Bench Press", "week": 1, "day": 1, "set_number": 2, "reps": 5, "percentage": 0.80, "sort_order": 1},
+        {"exercise": "Bench Press", "week": 2, "day": 1, "set_number": 1, "reps": 3, "percentage": 0.85, "sort_order": 1}
+      ],
+      "progression_rules": [{"exercise": "Bench Press", "increment": 5.0}]
+    }
+  ]
+}`
+	useMockLLM(t, env)
+	env.Handlers.LLMProviderFactory = mockLLMFactory(&llm.MockProvider{
+		FixedContent: "<reasoning>preview test</reasoning>\n" + richCatalog,
+	})
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	genID := submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"x","num_days":1,"num_weeks":2}`)
+
+	rr := env.do(t, "GET",
+		fmt.Sprintf("/api/athletes/%d/generations/%d", athlete.ID, genID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got GenerationResponse
+	decodeJSON(t, rr, &got)
+	if got.Status != models.GenerationSucceeded {
+		t.Fatalf("expected succeeded, got %q (err: %q)", got.Status, got.Error)
+	}
+	if got.Preview == nil {
+		t.Fatalf("expected preview to be populated on success")
+	}
+	if len(got.Preview.Programs) != 1 {
+		t.Fatalf("expected 1 program in preview, got %d", len(got.Preview.Programs))
+	}
+	pp := got.Preview.Programs[0]
+	if pp.Name != "Preview Program" {
+		t.Errorf("expected program name 'Preview Program', got %q", pp.Name)
+	}
+	if len(pp.Weeks) != 2 {
+		t.Fatalf("expected 2 weeks, got %d", len(pp.Weeks))
+	}
+	if len(pp.Weeks[0].Days) != 1 || len(pp.Weeks[0].Days[0].Sets) != 2 {
+		t.Errorf("expected week 1 day 1 to have 2 sets, got %+v", pp.Weeks[0].Days)
+	}
+	if len(got.Preview.ProgressionRules) != 1 {
+		t.Errorf("expected 1 progression rule, got %d", len(got.Preview.ProgressionRules))
+	}
+}
+
+// --- HOF-001: prompt + context persisted ---
+
+func TestGenerationExecute_PersistsContextAndPrompt(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	genID := submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"Mock","num_days":4,"num_weeks":3}`)
+
+	g, err := models.GetGeneration(env.DB, genID)
+	if err != nil {
+		t.Fatalf("reload generation: %v", err)
+	}
+	if g.Status != models.GenerationSucceeded {
+		t.Fatalf("expected succeeded, got %q", g.Status)
+	}
+	if !g.ContextJSON.Valid || g.ContextJSON.String == "" {
+		t.Errorf("expected context_json to be persisted, got %v", g.ContextJSON)
+	}
+	if !g.Prompt.Valid || !strings.Contains(g.Prompt.String, "USER PROMPT") {
+		t.Errorf("expected prompt to be persisted with system+user delimiter, got %q", g.Prompt.String)
+	}
+}

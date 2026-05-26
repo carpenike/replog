@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -57,7 +58,9 @@ type GenerateSubmitRequest struct {
 //
 // On status='succeeded' the Programs and Exercises counts are populated
 // by parsing the stored catalog_json so the coach sees the same preview
-// metrics the old synchronous flow returned.
+// metrics the old synchronous flow returned. Preview is also populated
+// with the per-day prescribed-set projection so the coach can review the
+// actual program before approving it (HOF-001 #13).
 type GenerationResponse struct {
 	ID         int64  `json:"id"`
 	AthleteID  int64  `json:"athlete_id"`
@@ -72,9 +75,62 @@ type GenerationResponse struct {
 	Error      string `json:"error,omitempty"`
 	Executed   bool   `json:"executed,omitempty"`
 
+	// Preview is the set-level projection of catalog_json — present only
+	// on succeeded generations. Lets the SPA render the actual prescribed
+	// program (per week/day) before the coach approves.
+	Preview *GenerationPreview `json:"preview,omitempty"`
+
 	CreatedAt   time.Time  `json:"created_at"`
 	StartedAt   *time.Time `json:"started_at,omitempty"`
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
+}
+
+// GenerationPreview is the human-reviewable projection of a generated
+// program built from the stored catalog_json — what the coach sees on
+// the preview step before clicking "approve as draft".
+type GenerationPreview struct {
+	Programs         []ProgramPreview         `json:"programs"`
+	ProgressionRules []ProgressionRulePreview `json:"progression_rules,omitempty"`
+}
+
+// ProgramPreview is one program template within a generation preview.
+type ProgramPreview struct {
+	Name        string        `json:"name"`
+	Description string        `json:"description,omitempty"`
+	NumWeeks    int           `json:"num_weeks"`
+	NumDays     int           `json:"num_days"`
+	IsLoop      bool          `json:"is_loop"`
+	Weeks       []WeekPreview `json:"weeks"`
+}
+
+// WeekPreview groups prescribed sets by training week.
+type WeekPreview struct {
+	Week int          `json:"week"`
+	Days []DayPreview `json:"days"`
+}
+
+// DayPreview groups prescribed sets by training day within a week.
+type DayPreview struct {
+	Day  int                    `json:"day"`
+	Sets []PrescribedSetPreview `json:"sets"`
+}
+
+// PrescribedSetPreview is one prescribed set in the preview projection.
+type PrescribedSetPreview struct {
+	Exercise       string   `json:"exercise"`
+	SetNumber      int      `json:"set_number"`
+	Reps           *int     `json:"reps,omitempty"`
+	RepType        string   `json:"rep_type,omitempty"`
+	Percentage     *float64 `json:"percentage,omitempty"`
+	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	Notes          string   `json:"notes,omitempty"`
+}
+
+// ProgressionRulePreview is one TM-progression rule attached to a program.
+type ProgressionRulePreview struct {
+	Program   string  `json:"program"`
+	Exercise  string  `json:"exercise"`
+	Increment float64 `json:"increment"`
 }
 
 // GenerateSubmitResponse is the body of the 202 response from POST
@@ -86,11 +142,17 @@ type GenerateSubmitResponse struct {
 }
 
 // GenerateExecuteResponse is the body of POST /generations/{id}/execute.
+//
+// CreatedTemplateIDs lets the SPA navigate the coach straight to the new
+// (athlete-scoped, unassigned) template's edit page after approving the
+// draft. The coach is expected to edit then explicitly assign via
+// POST /athletes/{id}/programs (HOF-001 #13, ADR 007).
 type GenerateExecuteResponse struct {
-	ProgramsCreated  int `json:"programs_created"`
-	ExercisesCreated int `json:"exercises_created"`
-	PrescribedSets   int `json:"prescribed_sets"`
-	ProgressionRules int `json:"progression_rules"`
+	ProgramsCreated    int     `json:"programs_created"`
+	ExercisesCreated   int     `json:"exercises_created"`
+	PrescribedSets     int     `json:"prescribed_sets"`
+	ProgressionRules   int     `json:"progression_rules"`
+	CreatedTemplateIDs []int64 `json:"created_template_ids"`
 }
 
 // --- GET /athletes/{id}/generate ---
@@ -180,6 +242,7 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 //	@Success      202   {object}  api.GenerateSubmitResponse
 //	@Failure      400   {object}  api.APIError
 //	@Failure      403   {object}  api.APIError
+//	@Failure      409   {object}  api.APIError  "A draft is already in flight for this athlete"
 //	@Failure      500   {object}  api.APIError  "AI Coach not configured"
 //	@Router       /athletes/{id}/generate [post]
 func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
@@ -214,6 +277,19 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	provider, err := h.llmProvider()
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "AI Coach not configured: "+err.Error())
+		return
+	}
+
+	// Duplicate-submit guard: reject if this athlete already has a draft
+	// in flight. The unique-per-athlete pending/running invariant keeps
+	// the SPA's resume-on-reload logic deterministic and prevents two
+	// goroutines burning tokens for the same athlete in parallel.
+	if existing, lookupErr := models.PendingOrRunningGenerationForAthlete(h.DB, athleteID); lookupErr != nil {
+		log.Printf("api: check in-flight generation for athlete %d: %v", athleteID, lookupErr)
+		WriteError(w, http.StatusInternalServerError, "failed to check in-flight generations")
+		return
+	} else if existing != nil {
+		WriteError(w, http.StatusConflict, fmt.Sprintf("a draft is already in flight for this athlete (generation %d, status %s)", existing.ID, existing.Status))
 		return
 	}
 
@@ -260,12 +336,15 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 // runGeneration executes one generation in the background. All errors are
-// recorded on the generation row — never returned to the caller.
+// recorded on the generation row — never returned to the caller. Every
+// terminal-failure path also fires a NotifyGenerationFailed so the SPA's
+// "safe to close this tab — a notification will arrive" promise holds.
 func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.Provider, req llm.GenerationRequest) {
 	start := time.Now()
 
 	// Move the row to 'running'. If this fails with ErrNotFound the row
-	// was cancelled (or vanished) — log and bail without burning tokens.
+	// was cancelled (or vanished) — log and bail without burning tokens
+	// or notifying (the coach saw the cancel they themselves clicked).
 	if err := models.MarkGenerationRunning(h.DB, genID); err != nil {
 		if !errors.Is(err, models.ErrNotFound) {
 			log.Printf("api: mark generation %d running: %v", genID, err)
@@ -283,37 +362,45 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 		if errors.As(err, &apiErr) {
 			msg = apiErr.UserMessage()
 		}
-		if failErr := models.FailGeneration(h.DB, genID, msg, durationMS); failErr != nil &&
-			!errors.Is(failErr, models.ErrNotFound) {
-			log.Printf("api: persist failure for generation %d: %v", genID, failErr)
-		}
+		h.failAndNotify(genID, msg, durationMS)
 		return
 	}
 
 	if result.CatalogJSON == nil {
-		_ = models.FailGeneration(h.DB, genID, "LLM returned empty output", durationMS)
+		msg := "LLM returned empty output"
+		if result.StopReason == "max_tokens" || result.StopReason == "length" {
+			msg = "Output was truncated — increase max_tokens in AI Coach settings and try again. (No CatalogJSON found in the response.)"
+		}
+		h.failAndNotify(genID, msg, durationMS)
 		return
 	}
 
 	// Validate the catalog parses before we mark this succeeded — a
 	// successful-but-unparseable response is failure from the coach's
-	// perspective.
+	// perspective. If we know the response was truncated, fold an
+	// actionable hint into the error message — FailGeneration doesn't
+	// persist stop_reason, so the SPA only sees the error string.
 	if _, parseErr := importers.ParseCatalogJSON(bytes.NewReader(result.CatalogJSON)); parseErr != nil {
 		log.Printf("api: parse generated catalog for %d: %v", genID, parseErr)
-		_ = models.FailGeneration(h.DB, genID, "Failed to parse LLM output: "+parseErr.Error(), durationMS)
+		msg := "Failed to parse LLM output: " + parseErr.Error()
+		if result.StopReason == "max_tokens" || result.StopReason == "length" {
+			msg = "Output was truncated — increase max_tokens in AI Coach settings and try again. (Parse error: " + parseErr.Error() + ")"
+		}
+		h.failAndNotify(genID, msg, durationMS)
 		return
 	}
 
 	if err := models.CompleteGeneration(h.DB, genID,
 		string(result.CatalogJSON), result.Reasoning, result.Model, result.StopReason,
-		result.TokensUsed, durationMS); err != nil {
+		result.TokensUsed, durationMS,
+		string(result.ContextJSON), result.Prompt); err != nil {
 		if !errors.Is(err, models.ErrNotFound) {
 			log.Printf("api: complete generation %d: %v", genID, err)
 		}
 		return
 	}
 
-	// Notify the coach.
+	// Notify the coach the draft is ready for review.
 	gen, err := models.GetGeneration(h.DB, genID)
 	if err != nil {
 		log.Printf("api: post-complete reload generation %d: %v", genID, err)
@@ -325,6 +412,35 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 		Type:      models.NotifyGenerationComplete,
 		Title:     fmt.Sprintf("AI Coach draft ready for %s", athleteName),
 		Message:   fmt.Sprintf("Review and approve the generated program for %s.", athleteName),
+		Link:      fmt.Sprintf("/athletes/%d/generate", gen.AthleteID),
+		AthleteID: sql.NullInt64{Int64: gen.AthleteID, Valid: true},
+	})
+}
+
+// failAndNotify persists a generation failure and notifies the requester.
+// Safe to call on a row that vanished between MarkGenerationRunning and
+// here (cancelled) — FailGeneration is no-op on non-running rows and we
+// suppress the notification in that case.
+func (h *Handlers) failAndNotify(genID int64, msg string, durationMS int) {
+	if err := models.FailGeneration(h.DB, genID, msg, durationMS); err != nil {
+		if !errors.Is(err, models.ErrNotFound) {
+			log.Printf("api: persist failure for generation %d: %v", genID, err)
+		}
+		// Row was cancelled or missing — don't notify (the coach who
+		// cancelled doesn't need to hear about it as a failure).
+		return
+	}
+	gen, err := models.GetGeneration(h.DB, genID)
+	if err != nil {
+		log.Printf("api: post-failure reload generation %d: %v", genID, err)
+		return
+	}
+	athleteName := h.athleteDisplayName(gen.AthleteID)
+	notify.Send(h.DB, notify.Request{
+		UserID:    gen.RequestedBy,
+		Type:      models.NotifyGenerationFailed,
+		Title:     fmt.Sprintf("AI Coach draft failed for %s", athleteName),
+		Message:   msg,
 		Link:      fmt.Sprintf("/athletes/%d/generate", gen.AthleteID),
 		AthleteID: sql.NullInt64{Int64: gen.AthleteID, Valid: true},
 	})
@@ -445,29 +561,28 @@ func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
 		ms.Programs = importers.BuildProgramMappings(parsed.Programs, nil)
 	}
 
-	result, err := models.ExecuteCatalogImport(h.DB, ms, &gen.AthleteID)
+	result, err := models.ExecuteCatalogImport(h.DB, ms, &gen.AthleteID, false)
 	if err != nil {
 		log.Printf("api: execute generation %d for athlete %d: %v", gen.ID, gen.AthleteID, err)
 		WriteError(w, http.StatusInternalServerError, "Failed to save program: "+err.Error())
 		return
 	}
 
-	// Auto-assign exercises for created programs.
-	for _, templateID := range result.CreatedTemplateIDs {
-		if _, err := models.AssignProgramExercises(h.DB, gen.AthleteID, templateID); err != nil {
-			log.Printf("api: auto-assign exercises for template %d: %v", templateID, err)
-		}
-	}
+	// IMPORTANT: do NOT auto-assign exercises or activate the program.
+	// Approving the draft creates an athlete-scoped but UNASSIGNED template;
+	// the coach edits via PUT /programs/{id} + sets/rules and then explicitly
+	// assigns via POST /athletes/{id}/programs (HOF-001 #13, ADR 007).
 
 	if err := models.MarkGenerationExecuted(h.DB, gen.ID); err != nil && !errors.Is(err, models.ErrNotFound) {
 		log.Printf("api: mark generation %d executed: %v", gen.ID, err)
 	}
 
 	WriteJSON(w, http.StatusOK, GenerateExecuteResponse{
-		ProgramsCreated:  result.ProgramsCreated,
-		ExercisesCreated: result.ExercisesCreated,
-		PrescribedSets:   result.PrescribedSets,
-		ProgressionRules: result.ProgressionRules,
+		ProgramsCreated:    result.ProgramsCreated,
+		ExercisesCreated:   result.ExercisesCreated,
+		PrescribedSets:     result.PrescribedSets,
+		ProgressionRules:   result.ProgressionRules,
+		CreatedTemplateIDs: result.CreatedTemplateIDs,
 	})
 }
 
@@ -555,12 +670,92 @@ func generationToResponse(g *models.Generation) *GenerationResponse {
 		resp.Error = g.Error.String
 	}
 
-	// Best-effort preview counts — only matter on success.
+	// Best-effort preview projection — only on success. Counts mirror the
+	// old synchronous flow's metrics; preview is the new per-day set-level
+	// projection the coach reviews before approving (HOF-001 #13).
 	if g.Status == models.GenerationSucceeded && g.CatalogJSON.Valid {
 		if parsed, err := importers.ParseCatalogJSON(bytes.NewReader([]byte(g.CatalogJSON.String))); err == nil {
 			resp.Programs = len(parsed.Programs)
 			resp.Exercises = len(parsed.Exercises)
+			resp.Preview = buildGenerationPreview(parsed)
 		}
 	}
 	return resp
+}
+
+// buildGenerationPreview projects a parsed catalog into the per-week,
+// per-day shape the SPA renders. Empty programs are skipped; sets within
+// a day are sorted by (sort_order, set_number) so the coach sees them in
+// the intended order regardless of how the LLM emitted them.
+func buildGenerationPreview(parsed *importers.ParsedFile) *GenerationPreview {
+	if parsed == nil || len(parsed.Programs) == 0 {
+		return nil
+	}
+	preview := &GenerationPreview{}
+	for _, prog := range parsed.Programs {
+		pt := prog.Template
+		pp := ProgramPreview{
+			Name:     pt.Name,
+			NumWeeks: pt.NumWeeks,
+			NumDays:  pt.NumDays,
+			IsLoop:   pt.IsLoop,
+		}
+		if pt.Description != nil {
+			pp.Description = *pt.Description
+		}
+
+		// Group: week → day → ordered sets. We use slices instead of maps
+		// so the JSON keeps a stable order.
+		type dayKey struct{ week, day int }
+		byDay := make(map[dayKey][]importers.ParsedPrescribedSet)
+		for _, ps := range pt.PrescribedSets {
+			k := dayKey{ps.Week, ps.Day}
+			byDay[k] = append(byDay[k], ps)
+		}
+		for w := 1; w <= pt.NumWeeks; w++ {
+			wk := WeekPreview{Week: w}
+			anyDay := false
+			for d := 1; d <= pt.NumDays; d++ {
+				sets := byDay[dayKey{w, d}]
+				if len(sets) == 0 {
+					continue
+				}
+				anyDay = true
+				sort.SliceStable(sets, func(i, j int) bool {
+					if sets[i].SortOrder != sets[j].SortOrder {
+						return sets[i].SortOrder < sets[j].SortOrder
+					}
+					return sets[i].SetNumber < sets[j].SetNumber
+				})
+				dp := DayPreview{Day: d}
+				for _, ps := range sets {
+					sp := PrescribedSetPreview{
+						Exercise:       ps.Exercise,
+						SetNumber:      ps.SetNumber,
+						Reps:           ps.Reps,
+						RepType:        ps.RepType,
+						Percentage:     ps.Percentage,
+						AbsoluteWeight: ps.AbsoluteWeight,
+					}
+					if ps.Notes != nil {
+						sp.Notes = *ps.Notes
+					}
+					dp.Sets = append(dp.Sets, sp)
+				}
+				wk.Days = append(wk.Days, dp)
+			}
+			if anyDay {
+				pp.Weeks = append(pp.Weeks, wk)
+			}
+		}
+		for _, rule := range pt.ProgressionRules {
+			preview.ProgressionRules = append(preview.ProgressionRules, ProgressionRulePreview{
+				Program:   pt.Name,
+				Exercise:  rule.Exercise,
+				Increment: rule.Increment,
+			})
+		}
+		preview.Programs = append(preview.Programs, pp)
+	}
+	return preview
 }

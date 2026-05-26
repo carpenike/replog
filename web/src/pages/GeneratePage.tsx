@@ -14,6 +14,46 @@ import { Alert } from '@/components/ui/alert'
 // Backend GenerationResponse shape (see internal/api/handlers_generate.go).
 // Kept inline so this page can run without waiting on `just openapi` to
 // regenerate the typed client.
+interface PrescribedSetPreview {
+  exercise: string
+  set_number: number
+  reps?: number
+  rep_type?: string
+  percentage?: number
+  absolute_weight?: number
+  notes?: string
+}
+
+interface DayPreview {
+  day: number
+  sets: PrescribedSetPreview[]
+}
+
+interface WeekPreview {
+  week: number
+  days: DayPreview[]
+}
+
+interface ProgramPreview {
+  name: string
+  description?: string
+  num_weeks: number
+  num_days: number
+  is_loop: boolean
+  weeks: WeekPreview[]
+}
+
+interface ProgressionRulePreview {
+  program: string
+  exercise: string
+  increment: number
+}
+
+interface GenerationPreview {
+  programs: ProgramPreview[]
+  progression_rules?: ProgressionRulePreview[]
+}
+
 interface Generation {
   id: number
   athlete_id: number
@@ -27,6 +67,7 @@ interface Generation {
   exercises?: number
   error?: string
   executed?: boolean
+  preview?: GenerationPreview
   created_at: string
   started_at?: string
   completed_at?: string
@@ -45,6 +86,7 @@ interface ExecuteResult {
   exercises_created: number
   prescribed_sets: number
   progression_rules: number
+  created_template_ids: number[]
 }
 
 const TERMINAL_STATUSES: Generation['status'][] = ['succeeded', 'failed', 'cancelled']
@@ -328,6 +370,11 @@ export function GeneratePage() {
       {/* Step 3: Preview */}
       {step === 'preview' && generation && (
         <div>
+          <Alert className="mb-4">
+            <strong>This is a proposal.</strong> Review the prescribed sets below. Approving saves an
+            unassigned program template — you'll edit it and assign it to {athlete?.name ?? 'the athlete'}
+            {' '}as separate steps. Nothing reaches the athlete until you explicitly assign.
+          </Alert>
           <Card className="mb-6">
             <CardContent>
             <h2 className="font-semibold mb-2">AI Coach Reasoning</h2>
@@ -340,26 +387,88 @@ export function GeneratePage() {
             </div>
             </CardContent>
           </Card>
-          <Card className="mb-6">
-            <CardContent>
-            <h2 className="font-semibold mb-2">Generated Content</h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Programs</p>
-                <p className="text-lg font-bold">{generation.programs ?? 0}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Exercises</p>
-                <p className="text-lg font-bold">{generation.exercises ?? 0}</p>
-              </div>
-            </div>
-            </CardContent>
-          </Card>
+
+          {/* Set-level preview — what the coach will get if they approve. */}
+          {generation.preview && generation.preview.programs.length > 0 ? (
+            generation.preview.programs.map((prog, pi) => (
+              <Card key={pi} className="mb-6">
+                <CardContent>
+                  <h2 className="font-semibold mb-1">{prog.name}</h2>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {prog.num_weeks} week{prog.num_weeks !== 1 ? 's' : ''} · {prog.num_days} day{prog.num_days !== 1 ? 's' : ''}/week
+                    {prog.is_loop ? ' · loops' : ''}
+                  </p>
+                  {prog.description && (
+                    <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">{prog.description}</p>
+                  )}
+                  {prog.weeks.map((wk) => (
+                    <div key={wk.week} className="mb-4">
+                      <h3 className="text-sm font-semibold mb-1">Week {wk.week}</h3>
+                      {wk.days.map((day) => (
+                        <div key={day.day} className="mb-2 pl-3 border-l-2 border-muted">
+                          <p className="text-xs text-muted-foreground mb-1">Day {day.day}</p>
+                          <ul className="text-sm space-y-0.5">
+                            {day.sets.map((s, si) => (
+                              <li key={si}>
+                                <span className="font-medium">{s.exercise}</span>
+                                {' — '}
+                                <span className="text-muted-foreground">
+                                  set {s.set_number}
+                                  {s.reps != null ? `, ${s.reps} ${s.rep_type || 'reps'}` : ''}
+                                  {s.percentage != null ? ` @ ${Math.round(s.percentage * 100)}% TM` : ''}
+                                  {s.absolute_weight != null ? ` @ ${s.absolute_weight} lb` : ''}
+                                  {s.notes ? ` (${s.notes})` : ''}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card className="mb-6">
+              <CardContent>
+                <h2 className="font-semibold mb-2">Generated Content</h2>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Programs</p>
+                    <p className="text-lg font-bold">{generation.programs ?? 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Exercises</p>
+                    <p className="text-lg font-bold">{generation.exercises ?? 0}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {generation.preview?.progression_rules && generation.preview.progression_rules.length > 0 && (
+            <Card className="mb-6">
+              <CardContent>
+                <h2 className="font-semibold mb-2">Progression Rules</h2>
+                <ul className="text-sm space-y-1">
+                  {generation.preview.progression_rules.map((r, ri) => (
+                    <li key={ri}>
+                      <span className="font-medium">{r.exercise}</span>
+                      {' — '}
+                      <span className="text-muted-foreground">+{r.increment} lb per cycle</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => executeMutation.mutate()}
               disabled={executeMutation.isPending}
               >
-              {executeMutation.isPending ? 'Saving...' : 'Save Program'}
+              {executeMutation.isPending ? 'Saving...' : 'Approve as Draft'}
             </Button>
             <Button variant="ghost" onClick={() => {
                 setStep('form')
@@ -378,9 +487,13 @@ export function GeneratePage() {
         <Card className="text-center">
           <CardContent>
           <span className="text-4xl block mb-3">✅</span>
-          <h2 className="text-lg font-semibold mb-2">Program Created!</h2>
+          <h2 className="text-lg font-semibold mb-2">Draft Saved</h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            The program template was created but is <strong>not yet assigned</strong> to {athlete?.name ?? 'the athlete'}.
+            Review and edit the template, then assign it from the athlete page.
+          </p>
           <div className="text-sm text-muted-foreground space-y-1">
-            <p>{execResult.programs_created} program template{execResult.programs_created !== 1 ? 's' : ''}</p>
+            <p>{execResult.programs_created} program template{execResult.programs_created !== 1 ? 's' : ''} created</p>
             <p>{execResult.prescribed_sets} prescribed sets</p>
             {execResult.exercises_created > 0 && (
               <p>{execResult.exercises_created} new exercise{execResult.exercises_created !== 1 ? 's' : ''}</p>
@@ -389,12 +502,17 @@ export function GeneratePage() {
               <p>{execResult.progression_rules} progression rule{execResult.progression_rules !== 1 ? 's' : ''}</p>
             )}
           </div>
-          <div className="mt-4 flex gap-3 justify-center">
-            <Button onClick={() => navigate(`/athletes/${athleteId}`)}>
-              View Athlete
+          <div className="mt-4 flex gap-3 justify-center flex-wrap">
+            {execResult.created_template_ids?.length > 0 && (
+              <Button onClick={() => navigate(`/programs/${execResult.created_template_ids[0]}/edit`)}>
+                Edit Template
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => navigate(`/athletes/${athleteId}`)}>
+              Assign to Athlete
             </Button>
-            <Button variant="outline" onClick={() => navigate('/programs')}>
-              View Programs
+            <Button variant="ghost" onClick={() => navigate('/programs')}>
+              All Programs
             </Button>
           </div>
           </CardContent>

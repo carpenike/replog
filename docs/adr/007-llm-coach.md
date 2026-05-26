@@ -736,3 +736,52 @@ than a text file for non-technical users.
 - If a coach never clicks "Generate," no LLM code runs.
 - `app_settings` is a general-purpose table that can absorb future
   configuration needs beyond LLM settings.
+
+## Amendment 2026-05-26 — Approve-as-draft, no auto-assign (HOF-001, issue #13)
+
+The originally shipped flow (per the [Implementation Plan](#implementation-plan)
+phases above and ADR 015's async refactor) committed an integrity drift
+against this ADR's core principle: approving an AI-coach draft auto-imported
+the program template AND auto-assigned it to the athlete (deactivating any
+existing primary program in the process). The coach reviewed only a counts
+summary — `programs_created`, `exercises_created` — never the actual
+prescribed sets. That made the "human reviews every LLM output" promise
+hollow: the human was clicking through a count, not reviewing the program.
+
+### What changed
+
+- **Approve-as-draft.** `POST /generations/{genID}/execute` now creates an
+  athlete-scoped but *unassigned* program template only. The athlete's
+  `athlete_programs` rows are untouched; the current active primary
+  program is **not** deactivated. The coach then edits via
+  `PUT /programs/{id}` + `/programs/{id}/sets` + `/programs/{id}/rules`,
+  and assigns explicitly via `POST /athletes/{id}/programs`. Two separate
+  steps — by design.
+- **Set-level preview.** The status response now carries a `preview` field
+  with the per-week / per-day prescribed-set projection (built from the
+  stored `catalog_json` via `importers.ParseCatalogJSON`). The SPA
+  renders this projection so the coach sees the actual program before
+  approving.
+- **`ExecuteCatalogImport` signature.** Now takes an `autoAssign bool`
+  parameter that gates the previous behavior of deactivating the current
+  primary and inserting a new active `athlete_programs` row. AI-coach
+  drafts pass `false`; the file-upload importer keeps the existing
+  `true` semantics so manual catalog imports behave unchanged.
+- **Coach Voice in the SPA.** The preview screen's CTA changed from
+  "Save Program" to "Approve as Draft" and the result screen now reads
+  "Draft Saved — not yet assigned to {athlete}". The copy mirrors the
+  no-automated-coaching line in `docs/COACH_VOICE.md`.
+
+### What did NOT change
+
+- The proposal-not-prescription posture and "human reviews every LLM
+  output" principle (now actually enforced).
+- The CatalogJSON interchange format.
+- The `app_settings`-based provider configuration.
+- The Ollama-friendly architecture.
+
+### References
+
+- HOF-001 — basic-memory `handoff/HOF-001` (review + decision log)
+- GitHub issue #13
+- ADR 015 amendment (audit + failure-notify + duplicate-submit guard)

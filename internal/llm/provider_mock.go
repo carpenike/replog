@@ -12,10 +12,11 @@ import (
 // handler-level tests that exercise the request-scoped timeout we wrap
 // around the admin "Test Connection" endpoints.
 type MockProvider struct {
-	FixedContent string
-	PingErr      error
-	PingDelay    time.Duration
-	GenerateErr  error
+	FixedContent    string
+	FixedStopReason string
+	PingErr         error
+	PingDelay       time.Duration
+	GenerateErr     error
 }
 
 func (p *MockProvider) Name() string { return "Mock" }
@@ -35,10 +36,15 @@ func (p *MockProvider) Generate(_ context.Context, _, _ string, _ Options) (*Res
 	if p.GenerateErr != nil {
 		return nil, p.GenerateErr
 	}
+	stop := p.FixedStopReason
+	if stop == "" {
+		stop = "end_turn"
+	}
 	return &Response{
 		Content:    p.FixedContent,
 		Model:      "mock",
 		TokensUsed: 100,
 		Duration:   time.Millisecond,
+		StopReason: stop,
 	}, nil
 }

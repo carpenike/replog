@@ -163,7 +163,7 @@ func (h *Handlers) CatalogImportExecute(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	result, err := models.ExecuteCatalogImport(h.DB, ms, nil)
+	result, err := models.ExecuteCatalogImport(h.DB, ms, nil, false)
 	if err != nil {
 		log.Printf("api: execute catalog import: %v", err)
 		WriteError(w, http.StatusInternalServerError, "catalog import failed: "+err.Error())

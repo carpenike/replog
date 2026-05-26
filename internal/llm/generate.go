@@ -47,6 +47,18 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 	// Step 4: Extract CatalogJSON and reasoning from response.
 	catalogJSON, reasoning := extractResponse(resp.Content)
 
+	// Capture the audit payload: marshalled context + final prompts.
+	// We use a small delimiter so a reader can split the two prompts back
+	// out later without round-tripping through JSON.
+	ctxJSON, ctxErr := json.Marshal(athleteCtx)
+	if ctxErr != nil {
+		// Non-fatal: the generation already succeeded. Log and persist a
+		// best-effort marker so the row carries SOMETHING for audit.
+		ctxJSON = []byte(fmt.Sprintf(`{"error":"marshal athlete context: %s"}`, ctxErr.Error()))
+	}
+	const promptDelim = "\n\n--- USER PROMPT ---\n\n"
+	prompt := systemPrompt + promptDelim + userPrompt
+
 	return &GenerationResult{
 		CatalogJSON: catalogJSON,
 		Reasoning:   reasoning,
@@ -55,6 +67,8 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 		Duration:    resp.Duration,
 		Model:       resp.Model,
 		StopReason:  resp.StopReason,
+		ContextJSON: ctxJSON,
+		Prompt:      prompt,
 	}, nil
 }
 
