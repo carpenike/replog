@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
@@ -354,6 +357,14 @@ func (h *Handlers) DeactivateAccessoryPlan(w http.ResponseWriter, r *http.Reques
 //	@Success      200  {object}  map[string]interface{}
 //	@Failure      403  {object}  api.APIError
 //	@Router       /admin/settings/test-llm [post]
+// testLLMPingTimeout caps Ping's wall-clock budget. The provider HTTP
+// clients allow 5 minutes by default, which exceeds the HTTP server's
+// WriteTimeout (60s in main.go) — a hung provider would otherwise leave
+// the handler still running when the TCP write deadline fires, producing
+// a reverse-proxy 502 with a misleading 200 in our access log. Exposed
+// as a var so tests can shrink it.
+var testLLMPingTimeout = 30 * time.Second
+
 func (h *Handlers) TestLLMConnection(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -367,8 +378,15 @@ func (h *Handlers) TestLLMConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := provider.Ping(r.Context()); err != nil {
-		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": err.Error()})
+	pingCtx, cancel := context.WithTimeout(r.Context(), testLLMPingTimeout)
+	defer cancel()
+
+	if err := provider.Ping(pingCtx); err != nil {
+		msg := err.Error()
+		if errors.Is(err, context.DeadlineExceeded) {
+			msg = "Provider did not respond in time. Check the base URL and network."
+		}
+		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": msg})
 		return
 	}
 

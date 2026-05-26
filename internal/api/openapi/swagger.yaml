@@ -1459,25 +1459,6 @@ paths:
       summary: Update app setting (admin)
       tags:
       - Admin
-  /admin/settings/test-llm:
-    post:
-      description: Always returns 200; check `success` field for actual result. Errors
-        are surfaced via `error` field for the SPA to display inline.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/api.APIError'
-      summary: Test LLM provider connection (admin)
-      tags:
-      - Admin
   /admin/settings/test-notify:
     post:
       description: Always returns 200; check `success` field. Errors are surfaced

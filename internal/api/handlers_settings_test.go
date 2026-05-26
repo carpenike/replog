@@ -4,7 +4,9 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -213,5 +215,45 @@ func TestTestNotifyConnection_AdminWithoutConfig(t *testing.T) {
 	// Without notify config, success should be false.
 	if got["success"] != false {
 		t.Errorf("expected success=false with no notify config, got %v", got["success"])
+	}
+}
+
+// TestTestLLMConnection_TimesOutWhenProviderHangs verifies the handler
+// caps Ping at testLLMPingTimeout so a hung provider can never sit on
+// the connection past the HTTP server's WriteTimeout (60s) — the bug
+// that caused our /generate Caddy 502s before ADR 015.
+func TestTestLLMConnection_TimesOutWhenProviderHangs(t *testing.T) {
+	orig := testLLMPingTimeout
+	testLLMPingTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { testLLMPingTimeout = orig })
+
+	env := setupTest(t)
+	if err := models.SetSetting(env.DB, "llm.provider", "anthropic"); err != nil {
+		t.Fatalf("set llm.provider: %v", err)
+	}
+	// Mock provider that respects context cancellation — simulates a hung
+	// upstream by blocking for 5s, which is well above the 50ms cap.
+	env.Handlers.LLMProviderFactory = mockLLMFactory(&llm.MockProvider{PingDelay: 5 * time.Second})
+
+	admin := env.createUser(t, "admin", true, true)
+	cookies := env.loginAs(t, admin)
+
+	start := time.Now()
+	rr := env.do(t, "POST", "/api/admin/settings/test-llm", nil, cookies)
+	elapsed := time.Since(start)
+
+	requireStatus(t, rr, http.StatusOK)
+	if elapsed > 2*time.Second {
+		t.Errorf("handler took %v — timeout cap is not being honored", elapsed)
+	}
+
+	var got map[string]any
+	decodeJSON(t, rr, &got)
+	if got["success"] != false {
+		t.Errorf("expected success=false on timeout, got %v", got["success"])
+	}
+	errMsg, _ := got["error"].(string)
+	if !strings.Contains(strings.ToLower(errMsg), "respond") {
+		t.Errorf("expected friendly timeout message, got %q", errMsg)
 	}
 }
