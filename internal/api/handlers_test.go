@@ -299,6 +299,17 @@ func (e *testEnv) createAthlete(t *testing.T, name string, coachID int64) *model
 	return athlete
 }
 
+// createAthleteWithTier is like createAthlete but binds a youth tier.
+func (e *testEnv) createAthleteWithTier(t *testing.T, name, tier string, coachID int64) *models.Athlete {
+	t.Helper()
+	athlete, err := models.CreateAthlete(e.DB, name, tier, "", "", "", "", "",
+		sql.NullInt64{Int64: coachID, Valid: coachID != 0}, false)
+	if err != nil {
+		t.Fatalf("create athlete %q: %v", name, err)
+	}
+	return athlete
+}
+
 // loginAs returns the cookies from a successful POST /api/login for the given
 // user. The user must have been created via createUser (so it has the known
 // password "password123").

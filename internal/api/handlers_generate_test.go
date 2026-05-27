@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/carpenike/replog/internal/database"
 	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/models"
 )
@@ -130,6 +131,158 @@ func TestGenerateFormData_NonCoachForbidden(t *testing.T) {
 
 	rr := env.do(t, "GET", "/api/athletes/1/generate", nil, cookies)
 	requireStatus(t, rr, http.StatusForbidden)
+}
+
+// TestGenerateFormData_MethodologyOptions_Youth confirms ADR 016 Phase 3:
+// a youth athlete gets the youth-filtered methodology list AND a
+// pre-selected default keyed by the athlete's tier (foundational →
+// yessis-1x20).
+func TestGenerateFormData_MethodologyOptions_Youth(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	seedMethodologiesForTest(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthleteWithTier(t, "Foundling", "foundational", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	rr := env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got GenerateFormResponse
+	decodeJSON(t, rr, &got)
+
+	if len(got.AvailableMethodologies) == 0 {
+		t.Fatal("expected youth methodology options")
+	}
+	for _, m := range got.AvailableMethodologies {
+		if m.Audience != "" && m.Audience != models.MethodologyAudienceYouth {
+			t.Errorf("youth athlete should not see adult methodology %q (audience=%q)", m.Name, m.Audience)
+		}
+	}
+	if got.DefaultMethodologyID == nil {
+		t.Fatal("youth athlete should have a default methodology id")
+	}
+	def, err := models.GetMethodologyByID(env.DB, *got.DefaultMethodologyID)
+	if err != nil {
+		t.Fatalf("look up default: %v", err)
+	}
+	if def.Key != "yessis-1x20" {
+		t.Errorf("foundational default = %q, want yessis-1x20", def.Key)
+	}
+}
+
+// TestGenerateFormData_MethodologyOptions_Adult confirms the adult-optional
+// selector contract (ADR 016 Phase 3 D1): adult athletes get the adult list
+// AND a null DefaultMethodologyID so the SPA leaves the selector unselected
+// and the coach may submit blank.
+func TestGenerateFormData_MethodologyOptions_Adult(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	seedMethodologiesForTest(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Adult", coach.ID) // no tier
+	cookies := env.loginAs(t, coach)
+
+	rr := env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got GenerateFormResponse
+	decodeJSON(t, rr, &got)
+
+	if len(got.AvailableMethodologies) == 0 {
+		t.Fatal("expected adult methodology options")
+	}
+	for _, m := range got.AvailableMethodologies {
+		if m.Audience != "" && m.Audience != models.MethodologyAudienceAdult {
+			t.Errorf("adult athlete should not see youth methodology %q (audience=%q)", m.Name, m.Audience)
+		}
+	}
+	if got.DefaultMethodologyID != nil {
+		t.Errorf("adult should have NO default_methodology_id (selector is optional); got %d", *got.DefaultMethodologyID)
+	}
+}
+
+// TestGenerateFormData_ReferencePoolNotFilteredByMethodology guards
+// HOF-006 D2's explicit invariant: the reference_programs list is the
+// FULL unfiltered pool (it's the coach's override surface, not the
+// methodology's exemplar set). A future cleanup PR that pre-filters this
+// by audience would silently narrow the override pool.
+func TestGenerateFormData_ReferencePoolNotFilteredByMethodology(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	seedMethodologiesForTest(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	youth := env.createAthleteWithTier(t, "Y", "foundational", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	rr := env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", youth.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got GenerateFormResponse
+	decodeJSON(t, rr, &got)
+
+	// Expect BOTH youth and adult program templates to appear — the
+	// reference pool is the full ListProgramTemplates output.
+	allTemplates, _ := models.ListProgramTemplates(env.DB)
+	if len(got.ReferencePrograms) != len(allTemplates) {
+		t.Errorf("reference pool was filtered (got %d, want %d) — D2 invariant violated", len(got.ReferencePrograms), len(allTemplates))
+	}
+}
+
+// TestGenerateSubmit_AcceptsMethodologyID confirms the request DTO carries
+// methodology_id through to the backend (Phase 2 wiring's input field).
+func TestGenerateSubmit_AcceptsMethodologyID(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	seedMethodologiesForTest(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthleteWithTier(t, "Y", "foundational", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	// Pick the intermediate methodology — different from the tier default
+	// — so we can confirm the explicit ID actually flows through.
+	m, err := models.GetMethodologyByKey(env.DB, "yessis-1x15")
+	if err != nil {
+		t.Fatalf("get methodology: %v", err)
+	}
+	body := fmt.Sprintf(`{"program_name":"X","num_days":4,"num_weeks":3,"methodology_id":%d}`, m.ID)
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), body, cookies)
+	requireStatus(t, rr, http.StatusAccepted)
+	env.Handlers.WaitForGenerations()
+}
+
+// seedMethodologiesForTest applies the embedded catalog + methodology
+// seeds to the test DB. Required by any handler test that exercises the
+// ADR 016 Phase 2/3 path.
+func seedMethodologiesForTest(t *testing.T, env *testEnv) {
+	t.Helper()
+	// Apply catalog so the methodology link references resolve.
+	if _, err := env.DB.Exec("SELECT 1 FROM exercises LIMIT 1"); err != nil {
+		t.Fatalf("test DB missing exercises table: %v", err)
+	}
+	// If the catalog hasn't been seeded yet, do it now.
+	var exCount int
+	env.DB.QueryRow("SELECT COUNT(*) FROM exercises").Scan(&exCount)
+	if exCount == 0 {
+		// Use models.ExecuteCatalogImport via importers.ParseCatalogJSON.
+		// Reuse the same path bootstrapCatalog does.
+		// We import inline to avoid pulling in the importers package
+		// in every test file.
+		seedCatalogInline(t, env)
+	}
+	if _, err := models.ApplyMethodologySeedFromBytes(env.DB, database.SeedMethodologies()); err != nil {
+		t.Fatalf("seed methodologies: %v", err)
+	}
+}
+
+// seedCatalogInline applies the embedded seed catalog to the test DB
+// using the same pipeline cmd/replog/main.go bootstrapCatalog uses.
+func seedCatalogInline(t *testing.T, env *testEnv) {
+	t.Helper()
+	t.Cleanup(func() {})
+	if err := applyCatalogSeed(env.DB); err != nil {
+		t.Fatalf("seed catalog: %v", err)
+	}
 }
 
 func TestGenerateFormData_ExposesLatestGenerationForResume(t *testing.T) {

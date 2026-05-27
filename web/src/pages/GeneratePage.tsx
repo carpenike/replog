@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 // Backend GenerationResponse shape (see internal/api/handlers_generate.go).
 // Kept inline so this page can run without waiting on `just openapi` to
@@ -79,6 +80,17 @@ interface GenerateFormData {
   default_days: number
   default_weeks: number
   latest_generation?: Generation
+  available_methodologies?: MethodologyOption[]
+  default_methodology_id?: number | null
+}
+
+interface MethodologyOption {
+  id: number
+  key: string
+  name: string
+  audience?: string
+  applicable_tiers?: string
+  philosophy?: string
 }
 
 interface ExecuteResult {
@@ -106,6 +118,12 @@ export function GeneratePage() {
   const [coachDirections, setCoachDirections] = useState('')
   const [focusAreas, setFocusAreas] = useState('')
   const [referenceIds, setReferenceIds] = useState<number[]>([])
+  // Methodology selection (ADR 016 Phase 3). null = unselected (adult
+  // path; the backend's generic-block fallback covers the unset path).
+  // Youth always lands here with a default from the form data, set by
+  // the defaults block below.
+  const [methodologyId, setMethodologyId] = useState<number | null>(null)
+  const [showAdvancedRefs, setShowAdvancedRefs] = useState(false)
   const [generationId, setGenerationId] = useState<number | null>(null)
   const [generation, setGeneration] = useState<Generation | null>(null)
   const [execResult, setExecResult] = useState<ExecuteResult | null>(null)
@@ -132,6 +150,12 @@ export function GeneratePage() {
     setDefaultsApplied(true)
     setNumDays(formData.default_days.toString())
     setNumWeeks(formData.default_weeks.toString())
+    // Youth: pre-select the tier-mapped methodology. Adults: leave null
+    // (the selector renders unselected and methodology_id is omitted
+    // from the submit body, hitting the backend's generic-block fallback).
+    if (formData.default_methodology_id != null) {
+      setMethodologyId(formData.default_methodology_id)
+    }
   }
 
   // Resume an in-flight or recent generation if the SPA loaded fresh.
@@ -190,19 +214,26 @@ export function GeneratePage() {
   const generateMutation = useMutation({
     mutationFn: async () => {
       setError('')
+      // Build the request body. methodology_id is omitted when blank so
+      // the backend's adult generic-block fallback path stays reachable
+      // (ADR 016 D1; the field is *int64 omitempty on the Go side).
+      const requestBody: Record<string, unknown> = {
+        program_name: programName,
+        num_days: parseInt(numDays),
+        num_weeks: parseInt(numWeeks),
+        is_loop: isLoop,
+        coach_directions: coachDirections,
+        focus_areas: focusAreas.split(',').map(s => s.trim()).filter(Boolean),
+        reference_ids: referenceIds,
+      }
+      if (methodologyId != null) {
+        requestBody.methodology_id = methodologyId
+      }
       const res = await fetch(`/api/athletes/${athleteId}/generate`, {
         method: 'POST',
         credentials: 'include',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          program_name: programName,
-          num_days: parseInt(numDays),
-          num_weeks: parseInt(numWeeks),
-          is_loop: isLoop,
-          coach_directions: coachDirections,
-          focus_areas: focusAreas.split(',').map(s => s.trim()).filter(Boolean),
-          reference_ids: referenceIds,
-        }),
+        body: JSON.stringify(requestBody),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -298,6 +329,46 @@ export function GeneratePage() {
       {/* Step 1: Form */}
       {step === 'form' && formData?.configured && (
         <form onSubmit={(e) => { e.preventDefault(); generateMutation.mutate() }} className="space-y-4">
+          {/* Methodology selector (ADR 016 Phase 3). Required for youth
+              (defaults to the tier-mapped methodology); optional for
+              adults (renders unselected, may submit blank). */}
+          {formData.available_methodologies && formData.available_methodologies.length > 0 && (
+            <div>
+              <Label>
+                Methodology
+                {formData.default_methodology_id != null && <span className="text-destructive"> *</span>}
+              </Label>
+              <Select
+                value={methodologyId != null ? String(methodologyId) : ''}
+                onValueChange={(val) => setMethodologyId(val ? parseInt(val) : null)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={formData.default_methodology_id == null ? 'Optional — pick a methodology or leave blank' : 'Select a methodology'}>
+                    {(value: string | null) => {
+                      if (!value) return formData.default_methodology_id == null ? 'Optional — leave blank for the default block' : 'Select a methodology'
+                      const m = formData.available_methodologies?.find(opt => String(opt.id) === value)
+                      return m?.name ?? value
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {formData.default_methodology_id == null && (
+                    <SelectItem value="">— None (use default adult block) —</SelectItem>
+                  )}
+                  {formData.available_methodologies.map(m => (
+                    <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {methodologyId != null && (() => {
+                const m = formData.available_methodologies?.find(opt => opt.id === methodologyId)
+                if (!m?.philosophy) return null
+                return (
+                  <p className="text-xs text-muted-foreground mt-1">{m.philosophy}</p>
+                )
+              })()}
+            </div>
+          )}
           <div>
             <Label >Program Name *</Label>
             <Input type="text" value={programName} onChange={e => setProgramName(e.target.value)} required placeholder="e.g. Sport Performance Block 5" />
@@ -325,22 +396,40 @@ export function GeneratePage() {
             <Label >Focus Areas</Label>
             <Input type="text" value={focusAreas} onChange={e => setFocusAreas(e.target.value)} placeholder="e.g. power, conditioning, hypertrophy (comma-separated)" />
           </div>
+          {/* Advanced: override the methodology's default reference programs.
+              When the coach selects entries here, they REPLACE (not add to)
+              the methodology's seeded exemplars — see ADR 016 D4 (the
+              backend's reference_ids overrides the methodology's exemplars). */}
           {formData.reference_programs.length > 0 && (
             <div>
-              <Label >Reference Programs</Label>
-              <div className="space-y-1 max-h-40 overflow-y-auto rounded-md border border-input p-2">
-                {formData.reference_programs.map(p => (
-                  <Label key={p.id}>
-                    <Checkbox
-                      checked={referenceIds.includes(p.id)}
-                      onCheckedChange={(checked) => setReferenceIds(prev =>
-                        checked ? [...prev, p.id] : prev.filter(id => id !== p.id)
-                      )}
-                    />
-                    {p.name}
-                  </Label>
-                ))}
-              </div>
+              <button
+                type="button"
+                className="text-sm text-muted-foreground underline hover:text-foreground"
+                onClick={() => setShowAdvancedRefs(v => !v)}
+              >
+                {showAdvancedRefs ? '▾' : '▸'} Advanced — override reference programs
+              </button>
+              {showAdvancedRefs && (
+                <div className="mt-2">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Replaces the methodology's default exemplar programs for this generation.
+                    Leave empty to use the methodology's exemplars.
+                  </p>
+                  <div className="space-y-1 max-h-40 overflow-y-auto rounded-md border border-input p-2">
+                    {formData.reference_programs.map(p => (
+                      <Label key={p.id}>
+                        <Checkbox
+                          checked={referenceIds.includes(p.id)}
+                          onCheckedChange={(checked) => setReferenceIds(prev =>
+                            checked ? [...prev, p.id] : prev.filter(id => id !== p.id)
+                          )}
+                        />
+                        {p.name}
+                      </Label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <Button size="lg" type="submit" disabled={generateMutation.isPending}

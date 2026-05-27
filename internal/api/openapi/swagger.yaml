@@ -558,9 +558,21 @@ definitions:
   api.GenerateFormResponse:
     properties:
       athlete_context: {}
+      available_methodologies:
+        items:
+          $ref: '#/definitions/api.MethodologyOption'
+        type: array
       configured:
         type: boolean
       default_days:
+        type: integer
+      default_methodology_id:
+        description: |-
+          DefaultMethodologyID is the SPA's pre-selected methodology for this
+          athlete. Youth athletes get their tier-mapped methodology
+          (foundational → yessis-1x20, intermediate → yessis-1x15,
+          sport_performance → yessis-sport-performance). Adults get null
+          (no default — the selector is optional for adults; see HOF-006 D1).
         type: integer
       default_weeks:
         type: integer
@@ -769,6 +781,21 @@ definitions:
   api.LoginTokenRequest:
     properties:
       label:
+        type: string
+    type: object
+  api.MethodologyOption:
+    properties:
+      applicable_tiers:
+        type: string
+      audience:
+        type: string
+      id:
+        type: integer
+      key:
+        type: string
+      name:
+        type: string
+      philosophy:
         type: string
     type: object
   api.Notification:

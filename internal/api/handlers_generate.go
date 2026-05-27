@@ -34,12 +34,31 @@ const generationTimeout = 5 * time.Minute
 // reload — if status is 'running' it polls; if 'succeeded' it jumps straight
 // to the preview step.
 type GenerateFormResponse struct {
-	Configured        bool                `json:"configured"`
-	AthleteContext    any                 `json:"athlete_context,omitempty"`
-	ReferencePrograms []ProgramTemplate   `json:"reference_programs,omitempty"`
-	DefaultDays       int                 `json:"default_days"`
-	DefaultWeeks      int                 `json:"default_weeks"`
-	LatestGeneration  *GenerationResponse `json:"latest_generation,omitempty"`
+	Configured             bool                  `json:"configured"`
+	AthleteContext         any                   `json:"athlete_context,omitempty"`
+	ReferencePrograms      []ProgramTemplate     `json:"reference_programs,omitempty"`
+	DefaultDays            int                   `json:"default_days"`
+	DefaultWeeks           int                   `json:"default_weeks"`
+	LatestGeneration       *GenerationResponse   `json:"latest_generation,omitempty"`
+	AvailableMethodologies []MethodologyOption   `json:"available_methodologies,omitempty"`
+	// DefaultMethodologyID is the SPA's pre-selected methodology for this
+	// athlete. Youth athletes get their tier-mapped methodology
+	// (foundational → yessis-1x20, intermediate → yessis-1x15,
+	// sport_performance → yessis-sport-performance). Adults get null
+	// (no default — the selector is optional for adults; see HOF-006 D1).
+	DefaultMethodologyID *int64 `json:"default_methodology_id,omitempty"`
+}
+
+// MethodologyOption is the slim view of a methodology shown to the coach in
+// the generate-page selector (ADR 016 Phase 3). The full definition stays
+// in the model; the UI just needs the picker labels.
+type MethodologyOption struct {
+	ID              int64  `json:"id"`
+	Key             string `json:"key"`
+	Name            string `json:"name"`
+	Audience        string `json:"audience,omitempty"`
+	ApplicableTiers string `json:"applicable_tiers,omitempty"`
+	Philosophy      string `json:"philosophy,omitempty"`
 }
 
 // GenerateSubmitRequest is the body of POST /athletes/{id}/generate.
@@ -213,7 +232,12 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 		defaultWeeks = prog.NumWeeks
 	}
 
-	// Load reference programs.
+	// Load reference programs. This stays the FULL unfiltered pool — it's
+	// the coach's advanced-override surface for `reference_ids`, not the
+	// methodology's exemplar set (ADR 016 HOF-006 D2). DO NOT pre-filter
+	// by methodology audience here; the methodology already drives default
+	// references on the backend, and narrowing this list would silently
+	// reduce the override pool.
 	refs, _ := models.ListProgramTemplates(h.DB)
 	apiRefs := make([]ProgramTemplate, len(refs))
 	for i, r := range refs {
@@ -226,14 +250,100 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 		latest = generationToResponse(g)
 	}
 
+	// Available methodologies + default selection (ADR 016 Phase 3).
+	// Audience filter is driven by the athlete's tier — youth athletes
+	// see youth methodologies; adults see adult.
+	availableMethodologies, defaultMethodologyID := h.buildMethodologyOptions(athleteID)
+
 	WriteJSON(w, http.StatusOK, GenerateFormResponse{
-		Configured:        true,
-		AthleteContext:    athleteCtx,
-		ReferencePrograms: apiRefs,
-		DefaultDays:       defaultDays,
-		DefaultWeeks:      defaultWeeks,
-		LatestGeneration:  latest,
+		Configured:             true,
+		AthleteContext:         athleteCtx,
+		ReferencePrograms:      apiRefs,
+		DefaultDays:            defaultDays,
+		DefaultWeeks:           defaultWeeks,
+		LatestGeneration:       latest,
+		AvailableMethodologies: availableMethodologies,
+		DefaultMethodologyID:   defaultMethodologyID,
 	})
+}
+
+// buildMethodologyOptions resolves the audience-filtered list of methodologies
+// for the generate-page selector AND the SPA's default selection. Returns
+// (options, defaultID) where defaultID is nil for adults (no auto-select
+// — adults may submit without picking; the backend's generic-block fallback
+// covers the unset path, see Phase 2 / ADR 016 D1).
+//
+// Tier → default methodology key mapping (youth):
+//   foundational      → yessis-1x20
+//   intermediate      → yessis-1x15
+//   sport_performance → yessis-sport-performance
+func (h *Handlers) buildMethodologyOptions(athleteID int64) ([]MethodologyOption, *int64) {
+	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+	if err != nil {
+		return nil, nil
+	}
+
+	audience := models.MethodologyAudienceAdult
+	if athlete.Tier.Valid {
+		audience = models.MethodologyAudienceYouth
+	}
+
+	methods, err := models.ListMethodologies(h.DB, audience)
+	if err != nil || len(methods) == 0 {
+		return nil, nil
+	}
+
+	options := make([]MethodologyOption, 0, len(methods))
+	for _, m := range methods {
+		opt := MethodologyOption{
+			ID:   m.ID,
+			Key:  m.Key,
+			Name: m.Name,
+		}
+		if m.Audience.Valid {
+			opt.Audience = m.Audience.String
+		}
+		if m.ApplicableTiers.Valid {
+			opt.ApplicableTiers = m.ApplicableTiers.String
+		}
+		if m.Philosophy.Valid {
+			opt.Philosophy = m.Philosophy.String
+		}
+		options = append(options, opt)
+	}
+
+	// Default selection — youth only. Adults must explicitly pick (or leave
+	// blank to get the generic-block fallback).
+	if !athlete.Tier.Valid {
+		return options, nil
+	}
+	defaultKey := tierDefaultMethodologyKey(athlete.Tier.String)
+	if defaultKey == "" {
+		return options, nil
+	}
+	for _, m := range methods {
+		if m.Key == defaultKey {
+			id := m.ID
+			return options, &id
+		}
+	}
+	return options, nil
+}
+
+// tierDefaultMethodologyKey mirrors the llm package's tier-default
+// mapping. Kept here as a small literal switch so the SPA contract is
+// independent of llm-internal helpers. Update both sides together if
+// new tiers ship.
+func tierDefaultMethodologyKey(tier string) string {
+	switch tier {
+	case "foundational":
+		return "yessis-1x20"
+	case "intermediate":
+		return "yessis-1x15"
+	case "sport_performance":
+		return "yessis-sport-performance"
+	}
+	return ""
 }
 
 // --- POST /athletes/{id}/generate ---
