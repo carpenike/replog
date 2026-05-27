@@ -670,6 +670,22 @@ func handleReadyz(db *sql.DB) http.HandlerFunc {
 // spaFallbackHandler returns a handler that serves the React SPA from the
 // embedded filesystem. For non-asset routes, it serves index.html so that
 // client-side routing works correctly.
+//
+// Cache strategy (so deploys don't strand users):
+//
+//   - /assets/* — Vite hashes the filenames, so they're safe to cache
+//     forever (immutable). On a new deploy the HTML references a new
+//     hashed name; nothing reads the old one once a fresh HTML loads.
+//   - index.html — no-cache so the browser always revalidates and
+//     picks up new chunk references on the next navigation, instead of
+//     trying to import() an asset path the server no longer has.
+//
+// Critical: when /assets/<something>.js is missing (stale cached HTML
+// from a prior deploy), we MUST return 404 — falling back to index.html
+// makes the browser try to evaluate HTML as JavaScript and emit the
+// useless "text/html is not a valid JavaScript MIME type" error. A 404
+// lets the user's hard reload (or our SW, if/when we add one) recover
+// cleanly.
 func spaFallbackHandler() http.Handler {
 	// Strip the "dist" prefix so the embedded files are served at root.
 	dist, err := fs.Sub(frontend.DistFS, "dist")
@@ -683,20 +699,37 @@ func spaFallbackHandler() http.Handler {
 	fileServer := http.FileServer(http.FS(dist))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Try to serve the exact file first (JS, CSS, images).
 		path := strings.TrimPrefix(r.URL.Path, "/")
 		if path == "" {
 			path = "index.html"
 		}
 
-		// Check if the file exists in the embedded FS.
+		// Try to serve the exact file first (JS, CSS, images).
 		if f, err := dist.Open(path); err == nil {
 			f.Close()
+			// Cache-control headers per-asset class. Set BEFORE the
+			// file server runs so they're attached to the response.
+			if strings.HasPrefix(r.URL.Path, "/assets/") {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			} else if path == "index.html" {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
 			fileServer.ServeHTTP(w, r)
 			return
 		}
 
+		// Stale-asset request from a cached HTML referencing chunks the
+		// new build no longer contains. Return 404 instead of HTML so
+		// the browser doesn't try to evaluate index.html as JavaScript.
+		if strings.HasPrefix(r.URL.Path, "/assets/") {
+			http.NotFound(w, r)
+			return
+		}
+
 		// For all other routes, serve index.html (SPA client-side routing).
+		// no-cache on the HTML so the next request picks up any new asset
+		// references after a deploy.
+		w.Header().Set("Cache-Control", "no-cache")
 		r.URL.Path = "/"
 		fileServer.ServeHTTP(w, r)
 	})
