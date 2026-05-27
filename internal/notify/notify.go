@@ -16,6 +16,7 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/carpenike/replog/internal/models"
 	"github.com/containrrr/shoutrrr"
@@ -144,7 +145,24 @@ func SendBroadcast(db *sql.DB, body string) {
 
 // sendFn is the package's reference to shoutrrr.Send, swapped by tests to
 // simulate slow/hung upstream endpoints without real network calls.
-var sendFn = shoutrrr.Send
+//
+// Guarded by sendFnMu because tests spawn a leaked goroutine that races
+// the t.Cleanup-installed restore: the inner sendWithContext goroutine
+// reads sendFn while the cleanup writes it. Using an RWMutex makes the
+// swap race-free under `go test -race` (issue #15).
+var (
+	sendFnMu sync.RWMutex
+	sendFn   = shoutrrr.Send
+)
+
+// currentSendFn snapshots the active sendFn under the read lock so callers
+// can launch goroutines with a stable local capture (no race against a
+// concurrent SetSendFnForTesting swap).
+func currentSendFn() func(url, message string) error {
+	sendFnMu.RLock()
+	defer sendFnMu.RUnlock()
+	return sendFn
+}
 
 // SetSendFnForTesting replaces the package's send function and returns a
 // restore func. Tests in dependent packages use this to inject a stub
@@ -153,9 +171,15 @@ var sendFn = shoutrrr.Send
 //	restore := notify.SetSendFnForTesting(myStub)
 //	t.Cleanup(restore)
 func SetSendFnForTesting(fn func(url, message string) error) func() {
+	sendFnMu.Lock()
 	prev := sendFn
 	sendFn = fn
-	return func() { sendFn = prev }
+	sendFnMu.Unlock()
+	return func() {
+		sendFnMu.Lock()
+		sendFn = prev
+		sendFnMu.Unlock()
+	}
 }
 
 // sendWithContext invokes sendFn in a goroutine and races it against
@@ -169,8 +193,13 @@ func SetSendFnForTesting(fn func(url, message string) error) func() {
 // the bounded leak in exchange for never blocking the HTTP server past
 // its WriteTimeout.
 func sendWithContext(ctx context.Context, urlStr, body, label string) error {
+	// Snapshot sendFn under the read lock BEFORE spawning the goroutine.
+	// The local capture survives a concurrent SetSendFnForTesting swap,
+	// which is what tests do in t.Cleanup while the inner stub is still
+	// sleeping past the ctx deadline (issue #15).
+	fn := currentSendFn()
 	done := make(chan error, 1)
-	go func() { done <- sendFn(urlStr, body) }()
+	go func() { done <- fn(urlStr, body) }()
 	select {
 	case err := <-done:
 		return err
