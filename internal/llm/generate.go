@@ -17,8 +17,14 @@ import (
 func Generate(ctx context.Context, db *sql.DB, provider Provider, req GenerationRequest) (*GenerationResult, error) {
 	now := time.Now()
 
-	// Step 1: Assemble athlete context.
-	athleteCtx, err := BuildAthleteContext(db, req.AthleteID, now, req.ReferenceTemplateIDs...)
+	// Step 1: Assemble athlete context. RequireMethodology=true means a
+	// youth athlete without a resolved methodology fails fast rather than
+	// silently generating a rules-less kid program (ADR 016 D2).
+	athleteCtx, err := BuildAthleteContext(db, req.AthleteID, now, BuildContextOptions{
+		ReferenceTemplateIDs: req.ReferenceTemplateIDs,
+		MethodologyID:        req.MethodologyID,
+		RequireMethodology:   true,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("llm: build context: %w", err)
 	}
@@ -178,89 +184,34 @@ GENERAL YOUTH RULES:
 
 `)
 
-		switch tier {
-		case "foundational":
-			b.WriteString(`FOUNDATIONAL TIER RULES (Yessis 1×20 Phase):
-This athlete is learning basic movement patterns. Use the Yessis 1×20 approach:
-- Program 15–20 exercises per session, each for 1 SET of 20 REPS.
-  This high-exercise, low-set structure develops all joint actions comprehensively.
-- Use ONLY bodyweight exercises, resistance bands, and light dumbbells (≤15 lbs per hand).
-- Do NOT use barbell exercises (no squat, bench, deadlift with barbell).
-- Do NOT use percentage-based loading — use absolute_weight only.
-- Rep range: 15–20 reps for all exercises. No sets below 10 reps.
-- ONE working set per exercise. The total session volume comes from exercise variety,
-  not multiple sets of the same movement.
-- Exercise selection should cover ALL major joint actions:
-  • Hip hinge (e.g., RDL with light dumbbells, good mornings with band)
-  • Knee extension/flexion (e.g., goblet squats, lunges, step-ups)
-  • Ankle (e.g., calf raises, single-leg balance)
-  • Shoulder push/pull (e.g., push-ups, band pull-aparts, overhead press with light DB)
-  • Elbow flexion/extension (e.g., light curls, tricep extensions — for joint health)
-  • Spine/core (e.g., planks, dead bugs, bird dogs, pallof press)
-- Target technical failure (form breakdown), NOT muscular failure.
-  When the athlete can complete 20 reps with perfect form, increase load by 1–2.5 lbs.
-- Plateau trigger: if the athlete stalls at the same weight for 2–3 sessions,
-  vary the exercise (e.g., swap goblet squat for split squat) before increasing load.
-- Sessions should feel moderate — the athlete should leave feeling capable of more.
-- Include form_notes on every prescribed set emphasizing technique cues.
-- Training frequency: 2–3 sessions per week with the SAME exercises to build
-  motor learning through repetition.
-
-`)
-		case "intermediate":
-			b.WriteString(`INTERMEDIATE TIER RULES (Yessis 1×15 Phase):
-This athlete has demonstrated foundational movement competency. Transition to
-the Yessis 1×15 approach — the second foundational phase that introduces
-weighted and barbell variations over the 1×20 base:
-- Program 12–15 exercises per session, each for 1 SET of 15 REPS.
-  Same high-variety, low-set structure as 1×20 with a modest intensity bump.
-- Replace bodyweight versions with weighted variations where appropriate
-  (e.g., weighted push-up replaces push-up, KB staggered RDL replaces band good
-  morning, step-up with knee drive replaces step-up, front squat replaces goblet
-  squat).
-- May introduce light barbell work for main lifts (front squat, bench press,
-  trap bar deadlift, barbell row) with technique-first loading — start with the
-  empty bar or light loads and add 2.5–5 lbs only when 15 reps are clean.
-- Dumbbells/kettlebells up to ~25–30 lbs per implement are appropriate.
-- Do NOT use percentage-based loading — use absolute_weight only.
-- Rep range: 15 reps for all exercises (matching the 1×15 phase name and the
-  seeded Foundations 1×15 program). No sets below 12 reps.
-- ONE working set per exercise remains the standard. Do NOT add additional sets
-  unless the coach explicitly requests it for a specific main lift.
-- Continue comprehensive joint action coverage — barbell movements supplement,
-  they don't replace, the accessory and isolation work.
-- Progression increments: 2.5 lbs for dumbbell/kettlebell lifts, 5 lbs for
-  barbell lifts when 15 reps are completed with good form for 2 consecutive
-  sessions.
-- Plateau trigger: if the athlete stalls at the same weight for 2–3 sessions,
-  vary the exercise (e.g., swap front squat for a goblet squat variation)
-  before pushing the load.
-- Target technical failure (form breakdown), NOT muscular failure. Sessions
-  should still feel moderate — the intent is durable adaptation over fatigue.
-- Include form_notes on barbell lifts emphasizing technique cues.
-- Training frequency: 2 sessions per week with the SAME exercises (looping
-  format, matching the seeded Foundations 1×15 program).
-
-`)
-		case "sport_performance":
-			b.WriteString(`SPORT PERFORMANCE TIER RULES:
-This athlete has solid technique on compound lifts and is ready for
-structured percentage-based programming:
-- May use percentage-based loading IF the athlete has training maxes set.
-  If no training maxes exist, use absolute_weight and note in reasoning
-  that TMs should be established.
-- Rep range: 5–10 for main lifts, 8–12 for accessories.
-- Maximum 5–6 exercises per session, 3–4 working sets for main lifts.
-- Can include power-oriented work (box jumps, med ball throws, light
-  Olympic lift variations) with controlled volume (2–3 sets of 3–5 reps).
-- Progression increments: 5 lbs for upper body, 5–10 lbs for lower body.
-- Program periodization: use linear or simple block periodization.
-  Undulating periodization only if training age > 12 months.
-
-`)
+		// ADR 016 Phase 2 — per-tier specifics are sourced from the
+		// resolved methodology's stored Definition (previously a hardcoded
+		// switch over tier in this file at L181-L262). The seeded
+		// definitions are byte-equivalent to the prior switch bodies — we
+		// append a trailing "\n" to preserve the blank-line separator the
+		// prior WriteString chain produced (so the youth prompt stays
+		// byte-identical to pre-Phase-2 for the same tier).
+		//
+		// Generate() resolves the methodology with RequireMethodology=true
+		// and BuildAthleteContext returns an error for any youth athlete
+		// without a mapped methodology — by the time we get here a youth
+		// athlete is guaranteed to have ctx.methodology set. The defensive
+		// nil-check below is for unit-test callers of buildSystemPrompt
+		// that hand-build an AthleteContext without resolving one.
+		if ctx.methodology != nil {
+			b.WriteString(ctx.methodology.Definition + "\n")
 		}
+	} else if ctx.methodology != nil {
+		// Adult athlete with a coach-selected methodology (Phase 3 UI).
+		// The methodology's Definition supplies the adult prompt block;
+		// no in-code generic block is needed.
+		b.WriteString(ctx.methodology.Definition + "\n")
 	} else {
-		// Adult athlete — no tier.
+		// Adult athlete with no methodology selection — emit the in-code
+		// generic block. This is the pre-Phase-3 escape hatch that keeps
+		// adult generation working before the SPA gains a methodology
+		// selector, and is also the long-term path for adults who don't
+		// want a specific methodology.
 		b.WriteString(`═══════════════════════════════════════════════════════════════
 ADULT ATHLETE PROGRAMMING RULES
 ═══════════════════════════════════════════════════════════════
@@ -431,6 +382,12 @@ func buildUserPrompt(athleteCtx *AthleteContext, req GenerationRequest) (string,
 				fmt.Fprintf(&b, "The primary structural exemplar is %q (the on-tier youth reference); other youth references are adjacent phases shown for context.\n", primary.Name)
 			}
 		}
+	}
+
+	// Name the selected methodology so the LLM knows which definition block
+	// in the system prompt to follow (ADR 016 Phase 2).
+	if athleteCtx.Methodology != nil {
+		fmt.Fprintf(&b, "Selected methodology: %s (key=%s). The methodology-specific per-tier rules in the system prompt apply.\n", athleteCtx.Methodology.Name, athleteCtx.Methodology.Key)
 	}
 
 	// Note training max availability.

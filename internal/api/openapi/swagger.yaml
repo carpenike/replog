@@ -581,6 +581,15 @@ definitions:
         type: array
       is_loop:
         type: boolean
+      methodology_id:
+        description: |-
+          MethodologyID is the coach-selected program-design methodology
+          (ADR 016 Phase 2). Nullable on the wire: youth selectors are
+          required (the Phase-3 SPA always sends a value); adult selectors
+          are optional and may omit the field, in which case the backend
+          falls back to the generic adult block. See llm.GenerationRequest
+          for the resolution semantics.
+        type: integer
       num_days:
         type: integer
       num_weeks:

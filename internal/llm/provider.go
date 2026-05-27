@@ -101,6 +101,24 @@ type GenerationRequest struct {
 	FocusAreas           []string // e.g. ["power", "conditioning"]
 	CoachDirections      string   // free-text instructions for the LLM
 	ReferenceTemplateIDs []int64  // coach-selected reference program IDs (empty = none)
+
+	// MethodologyID is the coach-selected program-design methodology
+	// (ADR 016 Phase 2). When set, BuildAthleteContext loads it and uses
+	// its `definition` as the per-tier prompt block and its allow-lists
+	// to scope the exercise catalog. When nil:
+	//   - YOUTH (tier != nil): resolved by the athlete's tier
+	//     (foundational → yessis-1x20, intermediate → yessis-1x15,
+	//     sport_performance → yessis-sport-performance). If the tier has
+	//     no mapped methodology, generation FAILS — a youth program is
+	//     never generated rules-less.
+	//   - ADULT (no tier): fall back to the in-code generic adult block
+	//     (existing behavior, unchanged from Phase 1). This is the
+	//     escape hatch that keeps adult generation working before the
+	//     Phase-3 UI ships a selector.
+	//
+	// Pointer with omitempty so an unset value (the adult-fallback path)
+	// is distinguishable from id=0.
+	MethodologyID *int64 `json:",omitempty"`
 }
 
 // GenerationResult holds the complete output from a generation.

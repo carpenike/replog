@@ -9,6 +9,8 @@ import (
 
 func TestGenerate_MockProvider(t *testing.T) {
 	db := testDB(t)
+	seedCatalogForTest(t, db)
+	seedMethodologies(t, db)
 	athleteID := seedAthlete(t, db, "TestGen", "foundational", "get strong")
 
 	mockJSON := `{"version": "1.0", "type": "catalog", "exercises": [], "programs": [{"name": "Test Program", "description": "A test", "num_weeks": 4, "num_days": 3, "is_loop": false, "prescribed_sets": [], "progression_rules": []}]}`
@@ -173,6 +175,7 @@ func TestBuildSystemPrompt(t *testing.T) {
 		ctx := &AthleteContext{
 			Athlete: AthleteProfile{Name: "Youth", Tier: &tier},
 		}
+		ctx.methodology = loadSeededMethodology(t, "yessis-1x20")
 		prompt := buildSystemPrompt(ctx)
 		if !strings.Contains(prompt, "YOUTH ATHLETE SAFETY RULES") {
 			t.Error("youth prompt should contain youth safety rules")
@@ -205,6 +208,7 @@ func TestBuildSystemPrompt(t *testing.T) {
 		ctx := &AthleteContext{
 			Athlete: AthleteProfile{Name: "Youth", Tier: &tier},
 		}
+		ctx.methodology = loadSeededMethodology(t, "yessis-1x15")
 		prompt := buildSystemPrompt(ctx)
 		if !strings.Contains(prompt, "INTERMEDIATE TIER RULES") {
 			t.Error("intermediate prompt should contain intermediate rules")
@@ -235,6 +239,7 @@ func TestBuildSystemPrompt(t *testing.T) {
 		ctx := &AthleteContext{
 			Athlete: AthleteProfile{Name: "Youth", Tier: &tier},
 		}
+		ctx.methodology = loadSeededMethodology(t, "yessis-sport-performance")
 		prompt := buildSystemPrompt(ctx)
 		if !strings.Contains(prompt, "SPORT PERFORMANCE TIER RULES") {
 			t.Error("sport_performance prompt should contain sport performance rules")

@@ -51,6 +51,14 @@ type GenerateSubmitRequest struct {
 	CoachDirections string   `json:"coach_directions"`
 	FocusAreas      []string `json:"focus_areas"`
 	ReferenceIDs    []int64  `json:"reference_ids"`
+
+	// MethodologyID is the coach-selected program-design methodology
+	// (ADR 016 Phase 2). Nullable on the wire: youth selectors are
+	// required (the Phase-3 SPA always sends a value); adult selectors
+	// are optional and may omit the field, in which case the backend
+	// falls back to the generic adult block. See llm.GenerationRequest
+	// for the resolution semantics.
+	MethodologyID *int64 `json:"methodology_id,omitempty"`
 }
 
 // GenerationResponse is the polling shape returned by the status endpoint
@@ -193,7 +201,7 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build athlete context for the form preview.
-	athleteCtx, err := llm.BuildAthleteContext(h.DB, athleteID, time.Now())
+	athleteCtx, err := llm.BuildAthleteContext(h.DB, athleteID, time.Now(), llm.BuildContextOptions{})
 	if err != nil {
 		log.Printf("api: build athlete context %d: %v", athleteID, err)
 	}
@@ -326,6 +334,7 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 			FocusAreas:           req.FocusAreas,
 			CoachDirections:      req.CoachDirections,
 			ReferenceTemplateIDs: req.ReferenceIDs,
+			MethodologyID:        req.MethodologyID,
 		})
 	}()
 

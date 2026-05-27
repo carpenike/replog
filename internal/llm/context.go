@@ -30,6 +30,43 @@ type AthleteContext struct {
 	RecentWorkouts    []WorkoutSummary   `json:"recent_workouts"`
 	ReferencePrograms []ReferenceProgramSummary `json:"reference_programs"`
 	PriorTemplates    []TemplateSummary  `json:"prior_templates"`
+
+	// Methodology is a lean projection of the selected program-design
+	// methodology (ADR 016 Phase 2). When non-nil, the LLM was given a
+	// methodology-specific per-tier prompt block sourced from
+	// methodology.definition and an exercise catalog scoped to the
+	// methodology's allow-lists.
+	//
+	// This intentionally OMITS the full `definition` text — that text
+	// is already persisted on the generation row's `prompt` column;
+	// duplicating it into `context_json` would grow the audit table
+	// linearly with definition copy edits. The full
+	// *models.MethodologyWithLinks is held in the unexported
+	// `methodology` field below for in-process use by buildSystemPrompt,
+	// buildUserPrompt, and buildExerciseCatalog.
+	Methodology *MethodologyProjection `json:"methodology,omitempty"`
+
+	// methodology is the full struct used by the prompt + scoping helpers
+	// within this package. Unexported so it never leaks into context_json
+	// or out to the SPA, and intentionally kept off the marshalled
+	// AthleteContext above. Same package can access via ctx.methodology.
+	methodology *models.MethodologyWithLinks
+}
+
+// MethodologyProjection is the lean view of a methodology that ships in
+// the marshalled AthleteContext (ADR 016 Phase 2 — keep audit rows small).
+// The full `definition` lives in the prompt column on the generation row.
+type MethodologyProjection struct {
+	ID                  int64   `json:"id"`
+	Key                 string  `json:"key"`
+	Name                string  `json:"name"`
+	Audience            string  `json:"audience,omitempty"`
+	ApplicableTiers     string  `json:"applicable_tiers,omitempty"`
+	Philosophy          string  `json:"philosophy,omitempty"`
+	AllowedPatterns     []string `json:"allowed_patterns,omitempty"`
+	AllowedEquipmentN   int     `json:"allowed_equipment_count"`
+	AllowedExercisesN   int     `json:"allowed_exercises_count"`
+	ReferenceProgramsN  int     `json:"reference_programs_count"`
 }
 
 // AthleteProfile contains the athlete's identity and summary stats.
@@ -192,7 +229,46 @@ type PrescribedSetSummary struct {
 // If referenceTemplateIDs is non-empty, only those specific templates are
 // included as reference programs. Otherwise all audience-matching global
 // templates are included (audience inferred from the athlete's tier).
-func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTemplateIDs ...int64) (*AthleteContext, error) {
+// BuildContextOptions controls how BuildAthleteContext resolves the data
+// package for a generation. All fields are optional; the zero value
+// preserves pre-ADR-016-Phase-2 behavior (no methodology resolution, no
+// catalog scoping, audience-filtered references).
+type BuildContextOptions struct {
+	// ReferenceTemplateIDs, when non-empty, overrides BOTH the
+	// methodology's default exemplars and the audience-filtered fallback.
+	// This is the coach's explicit "use exactly these reference programs"
+	// path.
+	ReferenceTemplateIDs []int64
+
+	// MethodologyID, when set, names the methodology to resolve. When nil
+	// AND RequireMethodology is true AND the athlete is youth, the methodology
+	// is resolved by tier (foundational → yessis-1x20, intermediate →
+	// yessis-1x15, sport_performance → yessis-sport-performance). When nil
+	// for adults, no methodology is bound and the LLM falls back to the
+	// in-code generic adult block.
+	MethodologyID *int64
+
+	// RequireMethodology gates the youth tier-default resolution AND the
+	// "no methodology configured for this athlete" error. Generation paths
+	// set this to true; form-preview / audit-replay paths leave it false
+	// because they don't need a fully-resolved methodology.
+	RequireMethodology bool
+}
+
+// BuildAthleteContext gathers all relevant data for one athlete into the
+// LLM-facing AthleteContext. When opts.MethodologyID is set OR
+// opts.RequireMethodology is true for a youth athlete, the resolved
+// methodology drives:
+//
+//   - the per-tier prompt block (definition flows through ctx.methodology)
+//   - the exercise catalog scope (allow-list filters in buildExerciseCatalog)
+//   - the default reference programs (methodology's exemplars; empty-exemplar
+//     fallback to today's audience-filtered behavior when both override list
+//     AND exemplars are empty).
+//
+// Coach-supplied ReferenceTemplateIDs always override the methodology's
+// default exemplars.
+func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, opts BuildContextOptions) (*AthleteContext, error) {
 	ctx := &AthleteContext{}
 
 	// Athlete profile.
@@ -247,8 +323,21 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTe
 	// Goals (with history from goal_history table).
 	ctx.Goals = buildGoals(db, profile, athleteID)
 
-	// Exercise catalog (filtered by equipment compatibility).
-	exercises, err := buildExerciseCatalog(db, athleteID)
+	// Resolve methodology (ADR 016 Phase 2). MUST run before
+	// buildExerciseCatalog because the catalog is scoped to the
+	// methodology's allow-lists when one is bound.
+	methodology, err := resolveMethodology(db, profile, opts)
+	if err != nil {
+		return nil, err
+	}
+	ctx.methodology = methodology
+	if methodology != nil {
+		ctx.Methodology = projectMethodology(methodology)
+	}
+
+	// Exercise catalog (filtered by equipment compatibility + methodology
+	// allow-lists when a methodology is bound).
+	exercises, err := buildExerciseCatalog(db, athleteID, methodology)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build exercise catalog: %w", err)
 	}
@@ -271,12 +360,19 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTe
 	}
 	ctx.PriorTemplates = templates
 
-	// Reference programs: either coach-selected specific templates, or all
-	// global seed templates filtered by audience (youth vs adult).
+	// Reference programs:
+	//   1. coach-supplied ReferenceTemplateIDs override everything;
+	//   2. else if methodology has exemplars, use those;
+	//   3. else fall back to today's audience-filtered behavior (so a
+	//      methodology like int-youth-gpp with no seeded exemplars
+	//      doesn't ship zero references — see ADR 016 D4).
 	var refProgs []ReferenceProgramSummary
-	if len(referenceTemplateIDs) > 0 {
-		refProgs, err = buildReferenceProgramsByIDs(db, referenceTemplateIDs)
-	} else {
+	switch {
+	case len(opts.ReferenceTemplateIDs) > 0:
+		refProgs, err = buildReferenceProgramsByIDs(db, opts.ReferenceTemplateIDs)
+	case methodology != nil && len(methodology.ReferenceProgramIDs) > 0:
+		refProgs, err = buildReferenceProgramsByIDs(db, methodology.ReferenceProgramIDs)
+	default:
 		audience := "adult"
 		if profile.Tier != nil {
 			audience = "youth"
@@ -296,6 +392,81 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTe
 	ctx.ReferencePrograms = refProgs
 
 	return ctx, nil
+}
+
+// tierMethodologyKey maps a youth tier to its default methodology key.
+// Returns "" for tiers with no default mapping (adult / unmapped values).
+func tierMethodologyKey(tier string) string {
+	switch tier {
+	case "foundational":
+		return "yessis-1x20"
+	case "intermediate":
+		return "yessis-1x15"
+	case "sport_performance":
+		return "yessis-sport-performance"
+	}
+	return ""
+}
+
+// resolveMethodology returns the methodology (with links) bound to this
+// generation, or nil if none is bound. Encodes the ADR 016 D1/D2 rules:
+//
+//   - explicit MethodologyID always wins (returns ErrNotFound if it
+//     doesn't resolve);
+//   - else if youth AND RequireMethodology: look up by tier-mapped key,
+//     fail if not found — youth never generates rules-less;
+//   - else (adult, or non-RequireMethodology path): return nil and let
+//     the caller fall back to in-code defaults.
+func resolveMethodology(db *sql.DB, profile *AthleteProfile, opts BuildContextOptions) (*models.MethodologyWithLinks, error) {
+	if opts.MethodologyID != nil {
+		m, err := models.LoadMethodologyWithLinks(db, *opts.MethodologyID)
+		if err != nil {
+			return nil, fmt.Errorf("llm: load methodology %d: %w", *opts.MethodologyID, err)
+		}
+		return m, nil
+	}
+	if !opts.RequireMethodology {
+		return nil, nil
+	}
+	if profile.Tier == nil {
+		// Adult — adult fallback to the in-code generic block is
+		// intentional pre-Phase-3 (no UI selector for adults yet).
+		return nil, nil
+	}
+	key := tierMethodologyKey(*profile.Tier)
+	if key == "" {
+		return nil, fmt.Errorf("llm: no methodology mapped for youth tier %q — configure a methodology for this athlete or fix tier mapping", *profile.Tier)
+	}
+	m, err := models.GetMethodologyByKey(db, key)
+	if err != nil {
+		return nil, fmt.Errorf("llm: load tier-default methodology %q for tier %q: %w", key, *profile.Tier, err)
+	}
+	return models.LoadMethodologyWithLinks(db, m.ID)
+}
+
+// projectMethodology returns the lean view of a methodology that ships in
+// the marshalled AthleteContext. The full `definition` is intentionally
+// omitted — it already lives on the generation row's `prompt` column.
+func projectMethodology(m *models.MethodologyWithLinks) *MethodologyProjection {
+	p := &MethodologyProjection{
+		ID:                 m.ID,
+		Key:                m.Key,
+		Name:               m.Name,
+		AllowedPatterns:    append([]string(nil), m.AllowedPatterns...),
+		AllowedEquipmentN:  len(m.AllowedEquipmentIDs),
+		AllowedExercisesN:  len(m.AllowedExerciseIDs),
+		ReferenceProgramsN: len(m.ReferenceProgramIDs),
+	}
+	if m.Audience.Valid {
+		p.Audience = m.Audience.String
+	}
+	if m.ApplicableTiers.Valid {
+		p.ApplicableTiers = m.ApplicableTiers.String
+	}
+	if m.Philosophy.Valid {
+		p.Philosophy = m.Philosophy.String
+	}
+	return p
 }
 
 // buildProfile constructs the athlete profile with computed summary stats.
@@ -540,7 +711,26 @@ func buildGoals(db *sql.DB, profile *AthleteProfile, athleteID int64) GoalContex
 }
 
 // buildExerciseCatalog returns all exercises annotated with equipment compatibility.
-func buildExerciseCatalog(db *sql.DB, athleteID int64) ([]ExerciseEntry, error) {
+// When methodology is non-nil (ADR 016 Phase 2), the catalog is also scoped to the
+// methodology's allow-list:
+//
+//   - PATTERNS: an exercise is in scope iff it has ≥1 movement-pattern tag AND
+//     all of its tags are members of methodology.AllowedPatterns. Untagged
+//     exercises do NOT enter via the pattern path (conservative for youth —
+//     untagged conditioning/mobility shouldn't sneak into a Yessis program).
+//   - EXPLICIT-LIST OVERRIDE: an exercise is also in scope if its id is in
+//     methodology.AllowedExerciseIDs (the bespoke/explicit allow-list, e.g.
+//     5/3/1's barbell mains).
+//   - EQUIPMENT GATE: regardless of how it qualified above, an exercise is
+//     DROPPED if any of its REQUIRED equipment (exercise_equipment with
+//     optional=0) is NOT in methodology.AllowedEquipmentIDs. Optional=1
+//     equipment is informational — it does NOT trigger a drop. This is the
+//     structural "a foundational athlete who owns a barbell still isn't
+//     offered one" guarantee.
+//
+// The athlete-side equipment-compatibility flag is preserved on every surviving
+// entry; the methodology scope is structural, the compat flag is athlete-specific.
+func buildExerciseCatalog(db *sql.DB, athleteID int64, methodology *models.MethodologyWithLinks) ([]ExerciseEntry, error) {
 	exercises, err := models.ListExercises(db, "")
 	if err != nil {
 		return nil, err
@@ -552,8 +742,36 @@ func buildExerciseCatalog(db *sql.DB, athleteID int64) ([]ExerciseEntry, error) 
 		return nil, fmt.Errorf("batch exercise compatibility: %w", err)
 	}
 
+	// Methodology scoping prep — build the lookup sets once.
+	var (
+		scopeActive       bool
+		allowedPatterns   map[string]struct{}
+		allowedExercises  map[int64]struct{}
+		allowedEquipment  map[int64]struct{}
+		patternsByExercise map[int64][]string
+		requiredEquipByExercise map[int64][]int64
+	)
+	if methodology != nil {
+		scopeActive = true
+		allowedPatterns = sliceToSet(methodology.AllowedPatterns)
+		allowedExercises = int64SliceToSet(methodology.AllowedExerciseIDs)
+		allowedEquipment = int64SliceToSet(methodology.AllowedEquipmentIDs)
+
+		patternsByExercise, err = batchExerciseMovementPatterns(db)
+		if err != nil {
+			return nil, fmt.Errorf("batch exercise movement patterns: %w", err)
+		}
+		requiredEquipByExercise, err = batchRequiredExerciseEquipment(db)
+		if err != nil {
+			return nil, fmt.Errorf("batch required exercise equipment: %w", err)
+		}
+	}
+
 	entries := make([]ExerciseEntry, 0, len(exercises))
 	for _, ex := range exercises {
+		if scopeActive && !exerciseInMethodologyScope(ex.ID, patternsByExercise[ex.ID], requiredEquipByExercise[ex.ID], allowedPatterns, allowedExercises, allowedEquipment) {
+			continue
+		}
 		entry := ExerciseEntry{
 			ID:          ex.ID,
 			Name:        ex.Name,
@@ -571,6 +789,99 @@ func buildExerciseCatalog(db *sql.DB, athleteID int64) ([]ExerciseEntry, error) 
 		entries = append(entries, entry)
 	}
 	return entries, nil
+}
+
+// exerciseInMethodologyScope is the per-exercise admit/drop decision used by
+// buildExerciseCatalog when a methodology is bound. Encapsulated so it's
+// directly testable. See buildExerciseCatalog's doc comment for the rules.
+func exerciseInMethodologyScope(
+	exerciseID int64,
+	exercisePatterns []string,
+	requiredEquipment []int64,
+	allowedPatterns map[string]struct{},
+	allowedExercises map[int64]struct{},
+	allowedEquipment map[int64]struct{},
+) bool {
+	// 1. Explicit-list override OR pattern admission.
+	admitted := false
+	if _, ok := allowedExercises[exerciseID]; ok {
+		admitted = true
+	} else if len(exercisePatterns) > 0 {
+		admitted = true
+		for _, p := range exercisePatterns {
+			if _, ok := allowedPatterns[p]; !ok {
+				admitted = false
+				break
+			}
+		}
+	}
+	if !admitted {
+		return false
+	}
+
+	// 2. Equipment gate — drop if any REQUIRED equipment is not allowed.
+	for _, eqID := range requiredEquipment {
+		if _, ok := allowedEquipment[eqID]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// batchExerciseMovementPatterns returns exercise_id → []pattern for all
+// tagged exercises. Single query instead of N per-exercise calls.
+func batchExerciseMovementPatterns(db *sql.DB) (map[int64][]string, error) {
+	rows, err := db.Query(`SELECT exercise_id, pattern FROM exercise_movement_patterns ORDER BY exercise_id, pattern`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64][]string{}
+	for rows.Next() {
+		var id int64
+		var pattern string
+		if err := rows.Scan(&id, &pattern); err != nil {
+			return nil, err
+		}
+		out[id] = append(out[id], pattern)
+	}
+	return out, rows.Err()
+}
+
+// batchRequiredExerciseEquipment returns exercise_id → []equipment_id for
+// REQUIRED equipment links (optional=0). Optional equipment is intentionally
+// excluded — see buildExerciseCatalog's equipment gate.
+func batchRequiredExerciseEquipment(db *sql.DB) (map[int64][]int64, error) {
+	rows, err := db.Query(`SELECT exercise_id, equipment_id FROM exercise_equipment WHERE optional = 0 ORDER BY exercise_id, equipment_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64][]int64{}
+	for rows.Next() {
+		var exID, eqID int64
+		if err := rows.Scan(&exID, &eqID); err != nil {
+			return nil, err
+		}
+		out[exID] = append(out[exID], eqID)
+	}
+	return out, rows.Err()
+}
+
+func sliceToSet(s []string) map[string]struct{} {
+	out := make(map[string]struct{}, len(s))
+	for _, v := range s {
+		out[v] = struct{}{}
+	}
+	return out
+}
+
+func int64SliceToSet(s []int64) map[int64]struct{} {
+	out := make(map[int64]struct{}, len(s))
+	for _, v := range s {
+		out[v] = struct{}{}
+	}
+	return out
 }
 
 // buildRecentWorkouts returns the athlete's most recent workouts with their sets.

@@ -1,11 +1,13 @@
 package llm
 
 import (
+	"bytes"
 	"database/sql"
 	"testing"
 	"time"
 
 	"github.com/carpenike/replog/internal/database"
+	"github.com/carpenike/replog/internal/importers"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -21,6 +23,58 @@ func testDB(t testing.TB) *sql.DB {
 	}
 	t.Cleanup(func() { db.Close() })
 	return db
+}
+
+// seedMethodologies applies the embedded methodology seed to the test DB.
+// Use this in tests that exercise the ADR 016 Phase 2 generation wiring
+// (Generate, BuildAthleteContext with RequireMethodology=true for youth).
+// Catalog seeding is not done here — call seedCatalogForTest separately
+// if your test also needs program / equipment / exercise rows.
+func seedMethodologies(t testing.TB, db *sql.DB) {
+	t.Helper()
+	if _, err := models.ApplyMethodologySeedFromBytes(db, database.SeedMethodologies()); err != nil {
+		t.Fatalf("seed methodologies: %v", err)
+	}
+}
+
+// seedCatalogForTest applies the embedded catalog seed to the test DB so
+// program / equipment / exercise links in the methodology seed resolve.
+func seedCatalogForTest(t testing.TB, db *sql.DB) {
+	t.Helper()
+	parsed, err := importers.ParseCatalogJSON(bytes.NewReader(database.SeedCatalog()))
+	if err != nil {
+		t.Fatalf("parse catalog: %v", err)
+	}
+	ms := &importers.MappingState{
+		Format:    importers.FormatCatalogJSON,
+		Exercises: importers.BuildExerciseMappings(parsed.Exercises, nil),
+		Equipment: importers.BuildEquipmentMappings(parsed.Equipment, nil),
+		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
+		Parsed:    parsed,
+	}
+	if _, err := models.ExecuteCatalogImport(db, ms, nil, false); err != nil {
+		t.Fatalf("apply catalog: %v", err)
+	}
+}
+
+// loadSeededMethodology returns the live MethodologyWithLinks row for the
+// given key, loaded from a freshly-seeded test DB. Used by per-tier unit
+// tests that hand-build an AthleteContext but want a real seeded
+// definition without re-typing it inline.
+func loadSeededMethodology(t testing.TB, key string) *models.MethodologyWithLinks {
+	t.Helper()
+	db := testDB(t)
+	seedCatalogForTest(t, db)
+	seedMethodologies(t, db)
+	m, err := models.GetMethodologyByKey(db, key)
+	if err != nil {
+		t.Fatalf("get methodology %q: %v", key, err)
+	}
+	full, err := models.LoadMethodologyWithLinks(db, m.ID)
+	if err != nil {
+		t.Fatalf("load methodology %q with links: %v", key, err)
+	}
+	return full
 }
 
 func seedAthlete(t testing.TB, db *sql.DB, name, tier, goal string) int64 {
@@ -54,7 +108,7 @@ func TestBuildAthleteContext_Empty(t *testing.T) {
 	db := testDB(t)
 	athleteID := seedAthlete(t, db, "TestAthlete", "foundational", "get strong")
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -100,7 +154,7 @@ func TestBuildAthleteContext_WithWorkouts(t *testing.T) {
 	}
 
 	now := time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC)
-	ctx, err := BuildAthleteContext(db, athleteID, now)
+	ctx, err := BuildAthleteContext(db, athleteID, now, BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -130,7 +184,7 @@ func TestBuildAthleteContext_WithTrainingMaxes(t *testing.T) {
 		t.Fatalf("set training max: %v", err)
 	}
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -157,7 +211,7 @@ func TestBuildAthleteContext_WithBodyWeights(t *testing.T) {
 		t.Fatalf("create body weight: %v", err)
 	}
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -178,7 +232,7 @@ func TestBuildAthleteContext_ExerciseCatalog(t *testing.T) {
 	seedExercise(t, db, "Push-Up", "foundational")
 	seedExercise(t, db, "Pull-Up", "foundational")
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -211,7 +265,7 @@ func TestBuildAthleteContext_ExerciseCatalog_EquipmentFiltering(t *testing.T) {
 	}
 
 	// Athlete has NO equipment configured.
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -250,7 +304,7 @@ func TestBuildAthleteContext_PriorTemplates(t *testing.T) {
 	}
 
 	t.Run("youth athlete sees youth reference programs", func(t *testing.T) {
-		ctx, err := BuildAthleteContext(db, youthID, time.Now())
+		ctx, err := BuildAthleteContext(db, youthID, time.Now(), BuildContextOptions{})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -274,7 +328,7 @@ func TestBuildAthleteContext_PriorTemplates(t *testing.T) {
 	adultID := seedAthlete(t, db, "Frank", "", "strength")
 
 	t.Run("adult athlete sees adult reference programs", func(t *testing.T) {
-		ctx, err := BuildAthleteContext(db, adultID, time.Now())
+		ctx, err := BuildAthleteContext(db, adultID, time.Now(), BuildContextOptions{})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -306,7 +360,7 @@ func TestBuildAthleteContext_ReferencePrograms_WithSets(t *testing.T) {
 	}
 
 	athleteID := seedAthlete(t, db, "Grace", "foundational", "")
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -332,7 +386,7 @@ func TestBuildAthleteContext_ReferencePrograms_WithSets(t *testing.T) {
 
 func TestBuildAthleteContext_NotFound(t *testing.T) {
 	db := testDB(t)
-	_, err := BuildAthleteContext(db, 99999, time.Now())
+	_, err := BuildAthleteContext(db, 99999, time.Now(), BuildContextOptions{})
 	if err == nil {
 		t.Fatal("expected error for nonexistent athlete")
 	}
@@ -353,7 +407,7 @@ func TestBuildAthleteContext_OnTierExemplarReorder(t *testing.T) {
 	}
 
 	athleteID := seedAthlete(t, db, "Bridge", "intermediate", "")
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -418,7 +472,7 @@ func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 
 	t.Run("explicit IDs override audience filter", func(t *testing.T) {
 		// Request only youthA — should get just that one, not youthB.
-		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), youthA.ID)
+		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{ReferenceTemplateIDs: []int64{youthA.ID}})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -435,7 +489,7 @@ func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 
 	t.Run("can select cross-audience template", func(t *testing.T) {
 		// Youth athlete can still get the adult template if coach explicitly picks it.
-		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), adultC.ID)
+		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{ReferenceTemplateIDs: []int64{adultC.ID}})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -448,7 +502,7 @@ func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 	})
 
 	t.Run("empty IDs falls back to audience", func(t *testing.T) {
-		ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -542,7 +596,7 @@ func TestBuildAthleteContext_ProgramHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
