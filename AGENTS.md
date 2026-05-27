@@ -274,9 +274,19 @@ When ending a work session, complete ALL steps. Work is NOT complete until
 4. Push to remote: `git pull --rebase` then `git push`.
 5. Verify `git status` shows "up to date with origin".
 
-**Critical rules:** never stop before pushing (it strands work locally);
-never say "ready to push when you are" — YOU push; if push fails, resolve
-and retry until it succeeds.
+**Handoff work — Coach confirms the ACK before you commit (no branch/PR at
+this phase):** when implementing an approved `HOF-NNN`, run `just qa` to
+green, then post the `HOF-NNN ACK` describing the change, the qa results, and
+the commit you intend to make — and **hold**. Do NOT commit or push yet.
+Coach reviews the diff and confirms the ACK in the channel; only after that
+confirmation do you commit and push to `main`. The change sits uncommitted in
+the working tree until then — that is expected, not stranded work.
+
+**Critical rules:** for non-handoff changes, never stop before pushing (it
+strands work locally) — YOU push; if push fails, resolve and retry until it
+succeeds. For handoff-tracked work, the Coach-confirms-the-ACK gate above
+takes precedence over "push immediately": hold the commit until confirmed,
+then push promptly (don't leave confirmed work stranded).
 
 > **Note for Coach (Cowork/Claude):** the host's standing rule is
 > review-first and **don't auto-commit** — Coach authors specs and doctrine,
