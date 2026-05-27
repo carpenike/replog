@@ -1361,6 +1361,108 @@ INSERT INTO exercises (name, tier, form_notes) VALUES
 - If no preference row exists for a type, defaults are used (in_app = 1, external = 0).
 - Deleting a user cascades to their preferences.
 
+### `methodologies`
+
+Added by migration `0004_methodologies.sql` (ADR 016 Phase 1). A
+methodology is a stored, coach-selectable program-design philosophy +
+prescription block. Coach selection drives Phase-2 generation; Phase 1 is
+data-only (nothing in `buildSystemPrompt` reads this yet — the existing
+hardcoded per-tier blocks still drive prompts).
+
+| Column             | Type     | Constraints                                                          |
+|--------------------|----------|----------------------------------------------------------------------|
+| `id`               | INTEGER  | PRIMARY KEY AUTOINCREMENT                                            |
+| `key`              | TEXT     | NOT NULL UNIQUE COLLATE NOCASE                                       |
+| `name`             | TEXT     | NOT NULL                                                             |
+| `audience`         | TEXT     | NULL, CHECK IN ('youth', 'adult')                                    |
+| `applicable_tiers` | TEXT     | NULL — CSV of tier keys this fits (e.g. `'foundational'`)            |
+| `philosophy`       | TEXT     | NULL — short human-readable description                              |
+| `definition`       | TEXT     | NOT NULL — the prompt block (editable copy; **per-tier specifics only** — the shared youth-rules preamble and youth-safety floors STAY IN CODE per ADR 016 Decision #4) |
+| `created_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                                   |
+| `updated_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP (updated by trigger)              |
+
+- `key` is the stable lookup id callers use (e.g. `yessis-1x20`, `531`, `sarge-circuit`).
+- `audience` is NULL for methodologies that fit both — none currently seeded that way; both Yessis and 5/3/1 etc. are firmly one or the other.
+- `applicable_tiers` is freeform CSV (no FK to a `tiers` table — the tier domain lives on `exercises.tier`/`athletes.tier` via CHECK constraints).
+- Seeded on first run from `internal/database/seed-methodologies.json` via `bootstrapMethodologies` in `cmd/replog/main.go` — a dedicated path, NOT routed through `importers.ParseCatalogJSON`. Re-running is idempotent (matched by `key`).
+- Indexed on `audience` for the scoped-by-tier UI lookup (Phase 3).
+
+### `methodology_reference_programs`
+
+Many-to-many link from a methodology to its exemplar `program_templates`.
+The LLM treats these as primary structural examples when generating against
+the methodology.
+
+| Column           | Type     | Constraints                                                         |
+|------------------|----------|---------------------------------------------------------------------|
+| `methodology_id` | INTEGER  | NOT NULL, FK → methodologies(id) ON DELETE CASCADE                  |
+| `template_id`    | INTEGER  | NOT NULL, FK → program_templates(id) ON DELETE CASCADE              |
+
+- Composite PRIMARY KEY `(methodology_id, template_id)` — dedup on re-seed.
+- Index on `template_id` for reverse lookups.
+
+### `methodology_allowed_equipment`
+
+Many-to-many link declaring the equipment a methodology is allowed to draw
+from. Phase-2 catalog filter intersects this with the athlete's available
+equipment before building the LLM-facing exercise catalog.
+
+| Column           | Type     | Constraints                                                         |
+|------------------|----------|---------------------------------------------------------------------|
+| `methodology_id` | INTEGER  | NOT NULL, FK → methodologies(id) ON DELETE CASCADE                  |
+| `equipment_id`   | INTEGER  | NOT NULL, FK → equipment(id) ON DELETE CASCADE                      |
+
+- Composite PRIMARY KEY `(methodology_id, equipment_id)`.
+
+### `exercise_movement_patterns`
+
+Dan John movement-pattern tags on exercises (push / pull / hinge / squat /
+carry / ground). The same tag set powers the `methodology_allowed_patterns`
+allow-list AND the joint-action / movement-coverage checks the youth
+methodologies already require.
+
+| Column        | Type     | Constraints                                                                                 |
+|---------------|----------|---------------------------------------------------------------------------------------------|
+| `exercise_id` | INTEGER  | NOT NULL, FK → exercises(id) ON DELETE CASCADE                                              |
+| `pattern`     | TEXT     | NOT NULL, CHECK IN ('push', 'pull', 'hinge', 'squat', 'carry', 'ground')                    |
+
+- Composite PRIMARY KEY `(exercise_id, pattern)` — natural dedup.
+- Index on `pattern` for the reverse lookup (Phase 2 catalog filtering).
+- Tags are seeded by the catalog importer, which gained an optional
+  `movement_patterns: []` field on each exercise entry in
+  `seed-catalog.json`. Omitted field = no tag rows (backward-compatible
+  for older RepLog JSON exports).
+
+### `methodology_allowed_patterns`
+
+Pattern-scoped allow-list — the broad rule. E.g. Yessis 1×20 allows
+`{push, pull, hinge, squat, ground}` (no carry).
+
+| Column           | Type     | Constraints                                                                                 |
+|------------------|----------|---------------------------------------------------------------------------------------------|
+| `methodology_id` | INTEGER  | NOT NULL, FK → methodologies(id) ON DELETE CASCADE                                          |
+| `pattern`        | TEXT     | NOT NULL, CHECK IN ('push', 'pull', 'hinge', 'squat', 'carry', 'ground')                    |
+
+- Composite PRIMARY KEY `(methodology_id, pattern)`.
+
+### `methodology_allowed_exercises`
+
+Explicit exercise-id override on top of the pattern allow-list. Models
+methodologies whose surface is fundamentally an explicit list (the Sarge
+bespoke list) or whose main lifts are a specific small set (5/3/1's four
+barbell mains).
+
+| Column           | Type     | Constraints                                                         |
+|------------------|----------|---------------------------------------------------------------------|
+| `methodology_id` | INTEGER  | NOT NULL, FK → methodologies(id) ON DELETE CASCADE                  |
+| `exercise_id`    | INTEGER  | NOT NULL, FK → exercises(id) ON DELETE CASCADE                      |
+
+- Composite PRIMARY KEY `(methodology_id, exercise_id)`.
+- Index on `exercise_id` for reverse lookups.
+- Both allow-list surfaces (`methodology_allowed_patterns` + this) ship in
+  Phase 1; the precise allow-by-pattern + override-by-list semantics are
+  settled at Phase-2 prompt-composition time.
+
 ## Future Considerations (v2+)
 
 - **Exercise categories/tags**: Muscle group, movement pattern (push/pull/hinge/squat/carry).

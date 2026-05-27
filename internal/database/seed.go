@@ -11,3 +11,15 @@ var seedCatalog []byte
 func SeedCatalog() []byte {
 	return seedCatalog
 }
+
+//go:embed seed-methodologies.json
+var seedMethodologies []byte
+
+// SeedMethodologies returns the embedded methodology seed JSON bytes
+// (ADR 016 Phase 1). Format is documented in
+// internal/models/methodology_seed.go (parsed by ParseMethodologySeed).
+// Seeded on first run via the bootstrapMethodologies hook in main.go —
+// NOT routed through the user-facing catalog importer.
+func SeedMethodologies() []byte {
+	return seedMethodologies
+}

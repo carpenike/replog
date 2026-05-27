@@ -190,6 +190,104 @@ func ListExercises(db *sql.DB, tierFilter string) ([]*Exercise, error) {
 	return exercises, nil
 }
 
+// MovementPattern enumerates the Dan John fundamental movement patterns
+// used to tag exercises (ADR 016 Phase 1). The set is enforced by a CHECK
+// constraint on exercise_movement_patterns.pattern in migration 0004.
+type MovementPattern = string
+
+const (
+	MovementPatternPush   MovementPattern = "push"
+	MovementPatternPull   MovementPattern = "pull"
+	MovementPatternHinge  MovementPattern = "hinge"
+	MovementPatternSquat  MovementPattern = "squat"
+	MovementPatternCarry  MovementPattern = "carry"
+	MovementPatternGround MovementPattern = "ground"
+)
+
+// validMovementPatterns mirrors the CHECK constraint so callers can validate
+// input before the round-trip to SQLite returns a constraint error.
+var validMovementPatterns = map[string]struct{}{
+	MovementPatternPush:   {},
+	MovementPatternPull:   {},
+	MovementPatternHinge:  {},
+	MovementPatternSquat:  {},
+	MovementPatternCarry:  {},
+	MovementPatternGround: {},
+}
+
+// IsValidMovementPattern reports whether s is one of the six Dan John tags.
+func IsValidMovementPattern(s string) bool {
+	_, ok := validMovementPatterns[s]
+	return ok
+}
+
+// ListExerciseMovementPatterns returns the movement-pattern tags for an
+// exercise, in stable alphabetical order. Returns an empty slice when the
+// exercise has no tags (the common case for exercises seeded before ADR 016
+// Phase 1 ran).
+func ListExerciseMovementPatterns(db *sql.DB, exerciseID int64) ([]string, error) {
+	rows, err := db.Query(
+		`SELECT pattern FROM exercise_movement_patterns
+		 WHERE exercise_id = ? ORDER BY pattern`,
+		exerciseID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("models: list exercise movement patterns %d: %w", exerciseID, err)
+	}
+	defer rows.Close()
+
+	patterns := []string{}
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, fmt.Errorf("models: scan movement pattern: %w", err)
+		}
+		patterns = append(patterns, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("models: iterate movement patterns: %w", err)
+	}
+	return patterns, nil
+}
+
+// SetExerciseMovementPatterns replaces the movement-pattern tags for an
+// exercise with the given set. Use this for admin edits to an exercise's
+// tags after seeding; the seed path writes via the import-tx helper so all
+// inserts share the same transaction as the exercise itself.
+//
+// All patterns are validated against IsValidMovementPattern; if any value
+// is invalid the entire operation is rejected and no rows are touched.
+func SetExerciseMovementPatterns(db *sql.DB, exerciseID int64, patterns []string) error {
+	for _, p := range patterns {
+		if !IsValidMovementPattern(p) {
+			return fmt.Errorf("models: invalid movement pattern %q (allowed: push, pull, hinge, squat, carry, ground)", p)
+		}
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("models: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`DELETE FROM exercise_movement_patterns WHERE exercise_id = ?`, exerciseID); err != nil {
+		return fmt.Errorf("models: clear movement patterns %d: %w", exerciseID, err)
+	}
+	for _, p := range patterns {
+		if _, err := tx.Exec(
+			`INSERT OR IGNORE INTO exercise_movement_patterns (exercise_id, pattern) VALUES (?, ?)`,
+			exerciseID, p,
+		); err != nil {
+			return fmt.Errorf("models: insert movement pattern %q for %d: %w", p, exerciseID, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("models: commit movement patterns: %w", err)
+	}
+	return nil
+}
+
 // FeaturedLift holds summary data for one featured exercise for an athlete.
 type FeaturedLift struct {
 	ExerciseID   int64

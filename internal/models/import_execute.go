@@ -168,6 +168,15 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 						}
 					}
 				}
+				// Movement-pattern tags (ADR 016 Phase 1) — optional, additive.
+				for _, pattern := range pe.MovementPatterns {
+					if pattern == "" {
+						continue
+					}
+					if err := insertExerciseMovementPattern(tx, id, pattern); err != nil {
+						return nil, fmt.Errorf("models: import movement-pattern tag %q for %q: %w", pattern, m.ImportName, err)
+					}
+				}
 			}
 		}
 	}
@@ -442,6 +451,19 @@ func insertExerciseEquipment(tx *sql.Tx, exerciseID, equipmentID int64, optional
 	_, err := tx.Exec(
 		`INSERT OR IGNORE INTO exercise_equipment (exercise_id, equipment_id, optional) VALUES (?, ?, ?)`,
 		exerciseID, equipmentID, optional,
+	)
+	return err
+}
+
+// insertExerciseMovementPattern records one Dan John pattern tag for an exercise
+// (ADR 016 Phase 1). Idempotent — relies on the table's composite PRIMARY KEY
+// to dedupe re-seeds. Invalid pattern strings are rejected by the migration's
+// CHECK constraint; the caller is expected to validate up-front but we surface
+// the error if validation slips.
+func insertExerciseMovementPattern(tx *sql.Tx, exerciseID int64, pattern string) error {
+	_, err := tx.Exec(
+		`INSERT OR IGNORE INTO exercise_movement_patterns (exercise_id, pattern) VALUES (?, ?)`,
+		exerciseID, pattern,
 	)
 	return err
 }
@@ -773,6 +795,18 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 				return nil, fmt.Errorf("models: catalog import exercise-equipment link: %w", err)
 			}
 			result.ExerciseEquipLinks++
+		}
+
+		// Wire movement-pattern tags (ADR 016 Phase 1). Optional — omitted
+		// field on the parsed entity means no tag rows. Pattern strings
+		// are validated by the CHECK constraint on the table.
+		for _, pattern := range pe.MovementPatterns {
+			if pattern == "" {
+				continue
+			}
+			if err := insertExerciseMovementPattern(tx, id, pattern); err != nil {
+				return nil, fmt.Errorf("models: catalog import movement-pattern tag %q for %q: %w", pattern, pe.Name, err)
+			}
 		}
 	}
 

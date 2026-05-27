@@ -51,14 +51,21 @@ type ParsedEquipment struct {
 }
 
 // ParsedExercise is an exercise from a RepLog JSON export.
+//
+// MovementPatterns is optional (ADR 016 Phase 1) — Dan John movement-pattern
+// tags from the set {push, pull, hinge, squat, carry, ground}. Omitted field
+// means "no tag rows for this exercise"; existing RepLog JSON exports without
+// the field keep importing fine. Validated against the CHECK constraint on
+// exercise_movement_patterns.pattern in migration 0004.
 type ParsedExercise struct {
-	Name        string                    `json:"name"`
-	Tier        *string                   `json:"tier"`
-	FormNotes   *string                   `json:"form_notes"`
-	DemoURL     *string                   `json:"demo_url"`
-	RestSeconds *int                      `json:"rest_seconds"`
-	Featured    bool                      `json:"featured"`
-	Equipment   []ParsedExerciseEquipment `json:"equipment"`
+	Name             string                    `json:"name"`
+	Tier             *string                   `json:"tier"`
+	FormNotes        *string                   `json:"form_notes"`
+	DemoURL          *string                   `json:"demo_url"`
+	RestSeconds      *int                      `json:"rest_seconds"`
+	Featured         bool                      `json:"featured"`
+	Equipment        []ParsedExerciseEquipment `json:"equipment"`
+	MovementPatterns []string                  `json:"movement_patterns,omitempty"`
 }
 
 // ParsedExerciseEquipment describes required/optional equipment for an exercise.

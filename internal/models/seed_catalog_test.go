@@ -132,6 +132,98 @@ func TestSeedCatalogImport_Idempotent(t *testing.T) {
 	}
 }
 
+// TestSeedCatalogImport_MovementPatterns confirms the additive movement-pattern
+// extension persists tags from seed-catalog.json into exercise_movement_patterns
+// via the import tx (ADR 016 Phase 1).
+func TestSeedCatalogImport_MovementPatterns(t *testing.T) {
+	db := testDB(t)
+
+	data := database.SeedCatalog()
+	parsed, err := importers.ParseCatalogJSON(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("parse seed catalog: %v", err)
+	}
+	ms := &importers.MappingState{
+		Format:    importers.FormatCatalogJSON,
+		Exercises: importers.BuildExerciseMappings(parsed.Exercises, nil),
+		Equipment: importers.BuildEquipmentMappings(parsed.Equipment, nil),
+		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
+		Parsed:    parsed,
+	}
+	if _, err := ExecuteCatalogImport(db, ms, nil, false); err != nil {
+		t.Fatalf("ExecuteCatalogImport: %v", err)
+	}
+
+	// Spot-check a handful of well-known exercises across pattern families.
+	cases := []struct {
+		name string
+		want []string
+	}{
+		{"Squat", []string{"squat"}},
+		{"Bench Press", []string{"push"}},
+		{"Deadlift", []string{"hinge"}},
+		{"Pull-up", []string{"pull"}},
+		{"Farmer's Carry", []string{"carry"}},
+		{"Plank", []string{"ground"}},
+		{"Trap Bar Deadlift", []string{"hinge", "squat"}},
+	}
+	for _, tc := range cases {
+		ex, err := getExerciseByName(db, tc.name)
+		if err != nil {
+			t.Errorf("look up %q: %v", tc.name, err)
+			continue
+		}
+		got, err := ListExerciseMovementPatterns(db, ex.ID)
+		if err != nil {
+			t.Errorf("list patterns for %q: %v", tc.name, err)
+			continue
+		}
+		if len(got) != len(tc.want) {
+			t.Errorf("%s: got %d patterns %v, want %v", tc.name, len(got), got, tc.want)
+			continue
+		}
+		for i, p := range tc.want {
+			if got[i] != p {
+				t.Errorf("%s pattern[%d] = %q, want %q (got=%v)", tc.name, i, got[i], p, got)
+			}
+		}
+	}
+
+	// And confirm an intentionally-untagged exercise has zero tags.
+	if ex, err := getExerciseByName(db, "Track Sprint"); err == nil {
+		got, _ := ListExerciseMovementPatterns(db, ex.ID)
+		if len(got) != 0 {
+			t.Errorf("Track Sprint should be untagged; got %v", got)
+		}
+	}
+
+	// And that at least some exercises were tagged (catches a silent regression
+	// if the importer ever drops the field).
+	var tagged int
+	if err := db.QueryRow(`SELECT COUNT(DISTINCT exercise_id) FROM exercise_movement_patterns`).Scan(&tagged); err != nil {
+		t.Fatalf("count tagged: %v", err)
+	}
+	if tagged < 100 {
+		t.Errorf("only %d exercises tagged; expected the seed catalog to tag most of them", tagged)
+	}
+}
+
+func getExerciseByName(db *sql.DB, name string) (*Exercise, error) {
+	rows, err := db.Query(`SELECT id, name, tier, form_notes, demo_url, rest_seconds, featured, created_at, updated_at FROM exercises WHERE name = ? COLLATE NOCASE`, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return nil, sql.ErrNoRows
+	}
+	e := &Exercise{}
+	if err := rows.Scan(&e.ID, &e.Name, &e.Tier, &e.FormNotes, &e.DemoURL, &e.RestSeconds, &e.Featured, &e.CreatedAt, &e.UpdatedAt); err != nil {
+		return nil, err
+	}
+	return e, nil
+}
+
 // listEntityExercises returns exercises as ExistingEntity for mapping tests.
 func listEntityExercises(t testing.TB, db *sql.DB) []importers.ExistingEntity {
 	t.Helper()

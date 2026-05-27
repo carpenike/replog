@@ -1,0 +1,186 @@
+{
+  "version": "1.0",
+  "exported_at": "2026-05-27T00:00:00Z",
+  "type": "methodologies",
+  "methodologies": [
+    {
+      "key": "yessis-1x20",
+      "name": "Yessis 1×20 (Foundational GPP)",
+      "audience": "youth",
+      "applicable_tiers": "foundational",
+      "philosophy": "Dr. Michael Yessis's general physical preparation system: high exercise variety, one set of 20 reps per exercise, moderate intensity. Develops all joint actions comprehensively as the entry phase for youth athletes.",
+      "definition": "FOUNDATIONAL TIER RULES (Yessis 1×20 Phase):\nThis athlete is learning basic movement patterns. Use the Yessis 1×20 approach:\n- Program 15–20 exercises per session, each for 1 SET of 20 REPS.\n  This high-exercise, low-set structure develops all joint actions comprehensively.\n- Use ONLY bodyweight exercises, resistance bands, and light dumbbells (≤15 lbs per hand).\n- Do NOT use barbell exercises (no squat, bench, deadlift with barbell).\n- Do NOT use percentage-based loading — use absolute_weight only.\n- Rep range: 15–20 reps for all exercises. No sets below 10 reps.\n- ONE working set per exercise. The total session volume comes from exercise variety,\n  not multiple sets of the same movement.\n- Exercise selection should cover ALL major joint actions:\n  • Hip hinge (e.g., RDL with light dumbbells, good mornings with band)\n  • Knee extension/flexion (e.g., goblet squats, lunges, step-ups)\n  • Ankle (e.g., calf raises, single-leg balance)\n  • Shoulder push/pull (e.g., push-ups, band pull-aparts, overhead press with light DB)\n  • Elbow flexion/extension (e.g., light curls, tricep extensions — for joint health)\n  • Spine/core (e.g., planks, dead bugs, bird dogs, pallof press)\n- Target technical failure (form breakdown), NOT muscular failure.\n  When the athlete can complete 20 reps with perfect form, increase load by 1–2.5 lbs.\n- Plateau trigger: if the athlete stalls at the same weight for 2–3 sessions,\n  vary the exercise (e.g., swap goblet squat for split squat) before increasing load.\n- Sessions should feel moderate — the athlete should leave feeling capable of more.\n- Include form_notes on every prescribed set emphasizing technique cues.\n- Training frequency: 2–3 sessions per week with the SAME exercises to build\n  motor learning through repetition.\n",
+      "reference_programs": ["Foundations 1×20"],
+      "allowed_equipment": [
+        "Dumbbells", "Kettlebell", "Resistance Band", "Pull-up Bar",
+        "TRX/Suspension Trainer", "Plyo Box", "Medicine Ball",
+        "Stability Ball", "Furniture Sliders"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat", "ground"],
+      "allowed_exercises": []
+    },
+    {
+      "key": "yessis-1x15",
+      "name": "Yessis 1×15 (Intermediate GPP)",
+      "audience": "youth",
+      "applicable_tiers": "intermediate",
+      "philosophy": "Second Yessis foundational phase. Modest intensity bump from 1×20: light barbell variations introduced for main lifts, but the high-variety, low-set, technique-first structure carries through.",
+      "definition": "INTERMEDIATE TIER RULES (Yessis 1×15 Phase):\nThis athlete has demonstrated foundational movement competency. Transition to\nthe Yessis 1×15 approach — the second foundational phase that introduces\nweighted and barbell variations over the 1×20 base:\n- Program 12–15 exercises per session, each for 1 SET of 15 REPS.\n  Same high-variety, low-set structure as 1×20 with a modest intensity bump.\n- Replace bodyweight versions with weighted variations where appropriate\n  (e.g., weighted push-up replaces push-up, KB staggered RDL replaces band good\n  morning, step-up with knee drive replaces step-up, front squat replaces goblet\n  squat).\n- May introduce light barbell work for main lifts (front squat, bench press,\n  trap bar deadlift, barbell row) with technique-first loading — start with the\n  empty bar or light loads and add 2.5–5 lbs only when 15 reps are clean.\n- Dumbbells/kettlebells up to ~25–30 lbs per implement are appropriate.\n- Do NOT use percentage-based loading — use absolute_weight only.\n- Rep range: 15 reps for all exercises (matching the 1×15 phase name and the\n  seeded Foundations 1×15 program). No sets below 12 reps.\n- ONE working set per exercise remains the standard. Do NOT add additional sets\n  unless the coach explicitly requests it for a specific main lift.\n- Continue comprehensive joint action coverage — barbell movements supplement,\n  they don't replace, the accessory and isolation work.\n- Progression increments: 2.5 lbs for dumbbell/kettlebell lifts, 5 lbs for\n  barbell lifts when 15 reps are completed with good form for 2 consecutive\n  sessions.\n- Plateau trigger: if the athlete stalls at the same weight for 2–3 sessions,\n  vary the exercise (e.g., swap front squat for a goblet squat variation)\n  before pushing the load.\n- Target technical failure (form breakdown), NOT muscular failure. Sessions\n  should still feel moderate — the intent is durable adaptation over fatigue.\n- Include form_notes on barbell lifts emphasizing technique cues.\n- Training frequency: 2 sessions per week with the SAME exercises (looping\n  format, matching the seeded Foundations 1×15 program).\n",
+      "reference_programs": ["Foundations 1×15"],
+      "allowed_equipment": [
+        "Barbell", "Trap Bar", "Power Rack", "Flat Bench", "Adjustable Bench",
+        "Dumbbells", "Kettlebell", "Resistance Band", "Pull-up Bar",
+        "TRX/Suspension Trainer", "Plyo Box", "Medicine Ball",
+        "Stability Ball", "Furniture Sliders", "Cable Machine"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat", "ground"],
+      "allowed_exercises": []
+    },
+    {
+      "key": "yessis-sport-performance",
+      "name": "Yessis Sport Performance",
+      "audience": "youth",
+      "applicable_tiers": "sport_performance",
+      "philosophy": "Final youth phase. Structured percentage-based programming for youth athletes with solid technique on compound lifts; introduces controlled power-oriented work (Olympic lift variations, jumps, throws).",
+      "definition": "SPORT PERFORMANCE TIER RULES:\nThis athlete has solid technique on compound lifts and is ready for\nstructured percentage-based programming:\n- May use percentage-based loading IF the athlete has training maxes set.\n  If no training maxes exist, use absolute_weight and note in reasoning\n  that TMs should be established.\n- Rep range: 5–10 for main lifts, 8–12 for accessories.\n- Maximum 5–6 exercises per session, 3–4 working sets for main lifts.\n- Can include power-oriented work (box jumps, med ball throws, light\n  Olympic lift variations) with controlled volume (2–3 sets of 3–5 reps).\n- Progression increments: 5 lbs for upper body, 5–10 lbs for lower body.\n- Program periodization: use linear or simple block periodization.\n  Undulating periodization only if training age > 12 months.\n",
+      "reference_programs": [
+        "Sport Performance — Month 1",
+        "Sport Performance — Month 2",
+        "Sport Performance — Month 3"
+      ],
+      "allowed_equipment": [
+        "Barbell", "Trap Bar", "Power Rack", "Flat Bench", "Adjustable Bench",
+        "Dumbbells", "Kettlebell", "Resistance Band", "Pull-up Bar",
+        "TRX/Suspension Trainer", "Plyo Box", "Medicine Ball",
+        "Stability Ball", "Furniture Sliders", "Cable Machine"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat", "ground", "carry"],
+      "allowed_exercises": []
+    },
+    {
+      "key": "int-youth-gpp",
+      "name": "Integrative Youth GPP",
+      "audience": "youth",
+      "applicable_tiers": "foundational,intermediate",
+      "philosophy": "Faigenbaum & Myer's Integrative Neuromuscular Training (INT). Multifaceted youth approach combining strength, plyometrics, balance, agility, and coordination — technique before load, variety over intensity. Complementary alternative to Yessis for youth athletes.",
+      "definition": "INTEGRATIVE YOUTH GPP RULES (INT-grounded):\nThis athlete trains under a multifaceted youth approach grounded in\nIntegrative Neuromuscular Training (Faigenbaum & Myer):\n- Each session integrates multiple qualities: strength, plyometrics, balance,\n  agility, coordination, and fundamental movement skills. Avoid a strength-only\n  session structure.\n- Rep ranges: 6–15 reps for strength work; 1–3 sets per strength exercise.\n  Plyometric/balance/coordination drills are sets-and-reps light; cue intent\n  and quality, not volume.\n- Equipment: bodyweight, medicine balls, light dumbbells/kettlebells,\n  resistance bands, plyo boxes, balance tools, low hurdles. Barbell work\n  belongs in the Yessis 1×15 pathway, not here.\n- Technique mastery gates load. Progress an exercise's load only after the\n  athlete demonstrates clean, repeatable technique at the current weight.\n- Each session should cover multiple movement patterns and at least one\n  non-strength quality (a jump variation, a balance/agility drill, or a\n  coordination/locomotion piece).\n- 2–3 sessions per week. Allow at least 48 hours between sessions targeting\n  the same muscle groups.\n- Target technical failure (form breakdown), NOT muscular failure.\n- Include form_notes on every prescribed set emphasizing technique cues.\n",
+      "reference_programs": [],
+      "allowed_equipment": [
+        "Dumbbells", "Kettlebell", "Resistance Band", "Pull-up Bar",
+        "TRX/Suspension Trainer", "Plyo Box", "Medicine Ball",
+        "Stability Ball", "Furniture Sliders"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat", "ground"],
+      "allowed_exercises": []
+    },
+    {
+      "key": "531",
+      "name": "5/3/1",
+      "audience": "adult",
+      "applicable_tiers": null,
+      "philosophy": "Jim Wendler's percentage-based intermediate program. Slow, sustainable progression on four main barbell lifts: squat, bench, deadlift, overhead press. 4-week waves: 5s / 3s / 5/3/1 / deload.",
+      "definition": "5/3/1 METHODOLOGY:\nThis athlete trains under Jim Wendler's 5/3/1 intermediate program.\n- Train four main barbell lifts: Squat, Bench Press, Deadlift, Overhead Press.\n- 4-week mesocycle waves keyed off a Training Max (TM) set at 85–90% of the\n  athlete's true 1RM. Increment TM weekly only if the prior cycle's AMRAP set\n  cleared 1+ rep over target.\n- Main-lift waves (sets × reps × percentage of TM):\n  • Week 1 (5s):   5×65, 5×75, 5+×85\n  • Week 2 (3s):   3×70, 3×80, 3+×90\n  • Week 3 (5/3/1): 5×75, 3×85, 1+×95\n  • Week 4 (deload): 5×40, 5×50, 5×60\n  The final \"+\" set is AMRAP — emit reps: null so the athlete logs the actual.\n- Accessories: 2–4 per session, hypertrophy-focused (sets of 8–15), volume\n  chosen by the assistance template the coach selects (BBB, FSL, jokers, etc.).\n- Loading: use percentage-based loading against the TM for main lifts.\n- Round all calculated weights down to the nearest 5 lbs (or 2.5 kg).\n- Rest periods: 3–5 minutes between main-lift work sets; 60–120 seconds for\n  accessories.\n- Include RPE guidance on accessories where appropriate.\n",
+      "reference_programs": ["5/3/1 for Beginners", "5/3/1 BBB"],
+      "allowed_equipment": [
+        "Barbell", "Power Rack", "Flat Bench", "Adjustable Bench",
+        "Dumbbells", "Pull-up Bar", "Cable Machine", "Dip Station",
+        "EZ-Curl Bar"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat"],
+      "allowed_exercises": [
+        "Squat", "Bench Press", "Deadlift", "Overhead Press"
+      ]
+    },
+    {
+      "key": "531-bbb",
+      "name": "5/3/1 Boring But Big",
+      "audience": "adult",
+      "applicable_tiers": null,
+      "philosophy": "5/3/1 with a high-volume hypertrophy supplement: 5 sets of 10 reps of the main lift at 50–70% TM after the 5/3/1 work sets. Adds size on top of the 5/3/1 strength base.",
+      "definition": "5/3/1 BORING BUT BIG METHODOLOGY:\nThis athlete trains under 5/3/1 with the Boring But Big (BBB) hypertrophy\nsupplement.\n- Follow the standard 5/3/1 wave on main lifts (see the 5/3/1 methodology block).\n- After the main-lift 5/3/1 work sets, add 5 sets of 10 reps of the same lift\n  (or its opposite-pattern pair) at 50–60% TM in cycle 1, progressing to 65–70%\n  TM by cycle 3.\n- The BBB sets are STRICTLY hypertrophy volume — do not push them to failure.\n  Rest 60–90 seconds between BBB sets.\n- Accessories are minimized to keep total session volume manageable: 1–2 short\n  accessory movements after the BBB sets.\n- Loading: percentage-based against TM for both the 5/3/1 and BBB sets.\n- This template is volume-heavy; deload week 4 is non-negotiable.\n",
+      "reference_programs": ["5/3/1 BBB"],
+      "allowed_equipment": [
+        "Barbell", "Power Rack", "Flat Bench", "Adjustable Bench",
+        "Dumbbells", "Pull-up Bar", "Cable Machine", "Dip Station",
+        "EZ-Curl Bar"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat"],
+      "allowed_exercises": [
+        "Squat", "Bench Press", "Deadlift", "Overhead Press"
+      ]
+    },
+    {
+      "key": "greyskull-lp",
+      "name": "Greyskull LP",
+      "audience": "adult",
+      "applicable_tiers": null,
+      "philosophy": "Phrak's Greyskull Linear Progression. A novice LP: 3 days/week alternating upper/lower main lifts, last set AMRAP, add weight every session. Hits a wall faster than 5/3/1 but maximizes early gains.",
+      "definition": "GREYSKULL LP METHODOLOGY:\nThis athlete trains under Phrak's Greyskull Linear Progression.\n- 3 sessions per week, alternating A/B day:\n  • Day A: Overhead Press 2×5 + 1×AMRAP, Squat 2×5 + 1×AMRAP\n  • Day B: Bench Press 2×5 + 1×AMRAP, Deadlift 1×5 + 1×AMRAP\n  Add Chin-ups / Pull-ups as a fixed accessory; 1–2 additional accessories OK.\n- Loading: ABSOLUTE weight, not percentage. Start at a load the athlete can\n  complete all reps with good form, and add 5 lb (upper) / 10 lb (lower) every\n  session as long as the AMRAP set hits 5+ reps.\n- On the AMRAP set, emit reps: null so the athlete logs the actual reps.\n- If the AMRAP set falls below 5 reps two sessions in a row, reset that lift\n  10% lower and re-climb. This is the LP \"reset\" rule.\n- Rest 2–3 minutes between main-lift sets; 60–90 seconds for accessories.\n- Keep total session length around 45 minutes — this is meant to be repeatable.\n",
+      "reference_programs": ["Phrak's Greyskull LP"],
+      "allowed_equipment": [
+        "Barbell", "Power Rack", "Flat Bench", "Pull-up Bar",
+        "Dumbbells", "Cable Machine", "Dip Station"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat"],
+      "allowed_exercises": [
+        "Squat", "Bench Press", "Deadlift", "Overhead Press",
+        "Pull-up", "Chin-up"
+      ]
+    },
+    {
+      "key": "gzclp",
+      "name": "GZCLP",
+      "audience": "adult",
+      "applicable_tiers": null,
+      "philosophy": "Cody Lefever's GZCL Linear Progression. A novice LP organized into T1/T2/T3 tiers per session: T1 main lift heavy single + back-off sets, T2 secondary lift moderate volume, T3 accessory hypertrophy.",
+      "definition": "GZCLP METHODOLOGY:\nThis athlete trains under Cody Lefever's GZCL Linear Progression (GZCLP).\n- 4 sessions per week (A1/B1/A2/B2 rotation). Each session has three tiers:\n  • T1 — Main lift: 5×3 then 1+ AMRAP (the \"+\" set). Add 5 lb upper / 10 lb\n    lower after the AMRAP clears 3+ reps.\n  • T2 — Secondary compound: 3×10 with a fixed weight. Add weight when 3×10\n    is hit; reset rep scheme to 3×8 / 3×6 if stalled, then re-climb.\n  • T3 — Accessory: 3×15+ with a fixed weight. Last set is AMRAP; emit\n    reps: null. Add weight when AMRAP clears 25 reps.\n- T1 and T2 rotate between Squat/Deadlift on lower days and Bench/OHP on\n  upper days. Pair so the lift the athlete deadlifts in T1 is the bench\n  variant in T2 (or vice versa).\n- Loading: ABSOLUTE weight for all three tiers. Stay in 5 lb / 10 lb\n  increments. No percentage-based loading.\n- On every AMRAP set emit reps: null so the athlete logs the actual.\n- Rest: 3–5 minutes after T1 work sets; 90–120 seconds between T2 sets;\n  60–90 seconds for T3.\n",
+      "reference_programs": ["GZCLP"],
+      "allowed_equipment": [
+        "Barbell", "Power Rack", "Flat Bench", "Adjustable Bench",
+        "Pull-up Bar", "Dumbbells", "Cable Machine", "Dip Station",
+        "EZ-Curl Bar"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat"],
+      "allowed_exercises": [
+        "Squat", "Bench Press", "Deadlift", "Overhead Press"
+      ]
+    },
+    {
+      "key": "5x5",
+      "name": "5×5 (Linear Progression)",
+      "audience": "adult",
+      "applicable_tiers": null,
+      "philosophy": "Classic Bill Starr / StrongLifts-style novice 5×5. 3 days/week alternating two workouts of three main lifts; add weight every session until reset.",
+      "definition": "5×5 METHODOLOGY:\nThis athlete trains under a classic Bill-Starr-style 5×5 novice linear\nprogression.\n- 3 sessions per week, alternating A/B workouts:\n  • Workout A: Squat 5×5, Bench Press 5×5, Barbell Row 5×5\n  • Workout B: Squat 5×5, Overhead Press 5×5, Deadlift 1×5\n- All work sets are at the same weight (no warm-up percentages in the prescribed\n  set rows; warm-ups are the athlete's responsibility).\n- Loading: ABSOLUTE weight. Add 5 lb upper / 5–10 lb lower every session as\n  long as all 5×5 are clean. Deadlift adds 10 lb after each successful single.\n- If the athlete misses reps two sessions in a row on a lift, deload that lift\n  10% and re-climb.\n- Rest 3–5 minutes between sets — this volume × intensity needs full recovery.\n- One short accessory block (Chin-ups, Dips, abs) is optional but small —\n  the 5×5 main lifts are the workout.\n",
+      "reference_programs": [],
+      "allowed_equipment": [
+        "Barbell", "Power Rack", "Flat Bench", "Pull-up Bar", "Dip Station"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat"],
+      "allowed_exercises": [
+        "Squat", "Bench Press", "Deadlift", "Overhead Press", "Barbell Row"
+      ]
+    },
+    {
+      "key": "sarge-circuit",
+      "name": "Sarge Athletics Circuit",
+      "audience": "adult",
+      "applicable_tiers": null,
+      "philosophy": "Circuit / EMOM-style conditioning + strength density work. Each session opens with EMOM cleans, then 3 rounds of paired-exercise circuit rows mixing carries, throws, sled work, and core stability.",
+      "definition": "SARGE CIRCUIT METHODOLOGY:\nThis athlete trains in a Sarge Athletics circuit / EMOM format. The session is\ndense, mixed-implement, and conditioning-flavored on top of strength density.\n\n- Structure: Every session opens with EMOM cleans (5×5 power cleans, one set per\n  minute), followed by 3 circuit \"rows\" of paired exercises done for multiple rounds.\n- Circuit rows: Each row pairs 2–3 exercises done back-to-back with minimal rest.\n  Complete all exercises in the row, then repeat for the prescribed number of rounds\n  (typically 3–4 rounds per row).\n- Indicate circuit structure via notes: The FIRST set of each row's first exercise\n  should include a note like \"Circuit Row 1 — complete row then repeat x4 rounds\".\n  EMOM sets should note \"EMOM — 1 set every minute on the minute\".\n- sort_order: Within a day, EMOM cleans get sort_order 1–5. Each circuit row's\n  exercises are interleaved by round (all rounds of one exercise, then all rounds\n  of the paired exercise), advancing sort_order sequentially.\n- Exercise pairing: Pair opposing movement patterns (push/pull, anterior/posterior)\n  or strength + stability (e.g., squat + plank variation).\n- Rest periods: Minimal rest within a circuit row (transition time only). Rest\n  60–90 seconds between rows. The EMOM format enforces its own rest.\n- Mix implements freely: barbells, dumbbells, kettlebells, bodyweight, medicine\n  balls, TRX, sleds, battle ropes, carries. Variety is a hallmark of this style.\n- Include conditioning elements: battle rope waves, sled work, sprints, burpees,\n  medicine ball slams. These should appear as exercises within circuit rows, not\n  as separate \"cardio\" blocks.\n- Core work: Integrate core stability (planks, holds, march variations) as paired\n  exercises within circuit rows rather than as a separate core block.\n- Carries and locomotion: farmer's carries, overhead carries, suitcase marches,\n  hover crawls, and similar loaded locomotion work as circuit row exercises.\n- Cool-down: Final circuit row may be lower intensity (stretches, mobility,\n  lighter movements) as a built-in cool-down.\n- Do NOT use percentage-based loading for circuit exercises — use absolute_weight.\n  The high-density format makes percentage-based loading inappropriate.\n",
+      "reference_programs": [
+        "Sarge Athletics — Circuit A",
+        "Sarge Athletics — Circuit B",
+        "Sarge Athletics — Circuit C"
+      ],
+      "allowed_equipment": [
+        "Barbell", "Power Rack", "Dumbbells", "Kettlebell", "Pull-up Bar",
+        "TRX/Suspension Trainer", "Plyo Box", "Medicine Ball",
+        "Stability Ball", "Furniture Sliders", "Sled", "Battle Rope",
+        "Weight Plate", "Flat Bench"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat", "carry", "ground"],
+      "allowed_exercises": []
+    }
+  ]
+}

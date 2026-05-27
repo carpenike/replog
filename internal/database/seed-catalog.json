@@ -105,6 +105,9 @@
           "name": "Power Rack",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -123,6 +126,9 @@
           "name": "Flat Bench",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -137,6 +143,9 @@
           "name": "Barbell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -151,6 +160,9 @@
           "name": "Barbell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -165,6 +177,9 @@
           "name": "Barbell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -183,6 +198,9 @@
           "name": "Power Rack",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -197,6 +215,9 @@
           "name": "Barbell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -215,6 +236,9 @@
           "name": "Adjustable Bench",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -233,6 +257,9 @@
           "name": "Flat Bench",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -247,6 +274,9 @@
           "name": "Barbell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -265,6 +295,9 @@
           "name": "Flat Bench",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -283,6 +316,9 @@
           "name": "Flat Bench",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -297,6 +333,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -311,6 +350,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -325,6 +367,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -339,6 +384,9 @@
           "name": "Pull-up Bar",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -353,6 +401,9 @@
           "name": "Pull-up Bar",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -367,6 +418,9 @@
           "name": "Dip Station",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -376,7 +430,10 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "push"
+      ]
     },
     {
       "name": "Plank",
@@ -385,7 +442,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Lat Pulldown",
@@ -399,6 +459,9 @@
           "name": "Cable Machine",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -413,6 +476,9 @@
           "name": "Cable Machine",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -427,6 +493,9 @@
           "name": "Cable Machine",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -441,6 +510,9 @@
           "name": "Cable Machine",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -455,6 +527,9 @@
           "name": "Leg Press Machine",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -469,6 +544,9 @@
           "name": "Cable Machine",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -483,6 +561,9 @@
           "name": "Cable Machine",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -501,6 +582,9 @@
           "name": "Kettlebell",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -515,6 +599,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -524,7 +611,10 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "squat"
+      ]
     },
     {
       "name": "Split Squat Isometric",
@@ -533,7 +623,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "squat"
+      ]
     },
     {
       "name": "Wall Sit",
@@ -542,7 +635,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "squat"
+      ]
     },
     {
       "name": "Side Lunge",
@@ -556,6 +652,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -570,6 +669,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -584,6 +686,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -602,6 +707,9 @@
           "name": "Plyo Box",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -620,6 +728,9 @@
           "name": "Plyo Box",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -638,6 +749,9 @@
           "name": "Plyo Box",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -656,6 +770,9 @@
           "name": "Kettlebell",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -670,6 +787,10 @@
           "name": "Trap Bar",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge",
+        "squat"
       ]
     },
     {
@@ -684,6 +805,9 @@
           "name": "Kettlebell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -698,6 +822,9 @@
           "name": "Kettlebell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -707,7 +834,10 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "hinge"
+      ]
     },
     {
       "name": "Single-Leg Deadlift",
@@ -725,6 +855,9 @@
           "name": "Kettlebell",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -734,7 +867,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "hinge"
+      ]
     },
     {
       "name": "Single-Leg Hip Extension",
@@ -743,7 +879,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "hinge"
+      ]
     },
     {
       "name": "Slideboard Hamstring Curl",
@@ -757,6 +896,9 @@
           "name": "Furniture Sliders",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -766,7 +908,11 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "hinge",
+        "ground"
+      ]
     },
     {
       "name": "TRX Hamstring March",
@@ -780,6 +926,10 @@
           "name": "TRX/Suspension Trainer",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge",
+        "ground"
       ]
     },
     {
@@ -794,6 +944,9 @@
           "name": "Resistance Band",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -812,6 +965,9 @@
           "name": "TRX/Suspension Trainer",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -826,6 +982,9 @@
           "name": "Cable Machine",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -840,6 +999,9 @@
           "name": "TRX/Suspension Trainer",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -854,6 +1016,10 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull",
+        "ground"
       ]
     },
     {
@@ -872,6 +1038,9 @@
           "name": "Resistance Band",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -886,6 +1055,9 @@
           "name": "Resistance Band",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -895,7 +1067,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Medicine Ball Deadbug",
@@ -909,6 +1084,9 @@
           "name": "Medicine Ball",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -927,6 +1105,9 @@
           "name": "Resistance Band",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -945,6 +1126,9 @@
           "name": "Resistance Band",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -959,6 +1143,9 @@
           "name": "Pull-up Bar",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -968,7 +1155,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Standing Leg Raise Isometric",
@@ -977,7 +1167,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "TRX Mountain Climber",
@@ -991,6 +1184,9 @@
           "name": "TRX/Suspension Trainer",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -1005,6 +1201,9 @@
           "name": "Stability Ball",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -1014,7 +1213,10 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Crab Walk",
@@ -1023,7 +1225,10 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Power Clean",
@@ -1037,6 +1242,10 @@
           "name": "Barbell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge",
+        "pull"
       ]
     },
     {
@@ -1051,6 +1260,10 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge",
+        "pull"
       ]
     },
     {
@@ -1065,6 +1278,9 @@
           "name": "Plyo Box",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -1079,6 +1295,9 @@
           "name": "Plyo Box",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -1088,7 +1307,11 @@
       "demo_url": null,
       "rest_seconds": 90,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "squat",
+        "hinge"
+      ]
     },
     {
       "name": "Jump Squat",
@@ -1097,7 +1320,10 @@
       "demo_url": null,
       "rest_seconds": 90,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "squat"
+      ]
     },
     {
       "name": "Medicine Ball Jump Squat",
@@ -1111,6 +1337,9 @@
           "name": "Medicine Ball",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -1125,6 +1354,9 @@
           "name": "Medicine Ball",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1139,6 +1371,10 @@
           "name": "Medicine Ball",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge",
+        "pull"
       ]
     },
     {
@@ -1153,6 +1389,9 @@
           "name": "Medicine Ball",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1167,6 +1406,9 @@
           "name": "Kettlebell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -1181,6 +1423,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -1199,6 +1444,9 @@
           "name": "Flat Bench",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -1208,7 +1456,10 @@
       "demo_url": null,
       "rest_seconds": 120,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "squat"
+      ]
     },
     {
       "name": "Single-Leg Glute Bridge",
@@ -1217,7 +1468,10 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "hinge"
+      ]
     },
     {
       "name": "Single-Arm Dumbbell Romanian Deadlift",
@@ -1231,6 +1485,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -1240,7 +1497,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "squat"
+      ]
     },
     {
       "name": "Incline Dumbbell Bench Press",
@@ -1258,6 +1518,9 @@
           "name": "Adjustable Bench",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1276,6 +1539,9 @@
           "name": "Flat Bench",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1290,6 +1556,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1304,6 +1573,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1318,6 +1590,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -1332,6 +1607,9 @@
           "name": "TRX/Suspension Trainer",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -1346,6 +1624,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -1355,7 +1636,11 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "push",
+        "ground"
+      ]
     },
     {
       "name": "Hand-Release Push-up",
@@ -1364,7 +1649,10 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "push"
+      ]
     },
     {
       "name": "Suitcase Carry",
@@ -1382,6 +1670,9 @@
           "name": "Kettlebell",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "carry"
       ]
     },
     {
@@ -1396,6 +1687,9 @@
           "name": "Medicine Ball",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -1405,7 +1699,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Side Plank",
@@ -1414,7 +1711,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Side Plank with Leg Lift",
@@ -1423,7 +1723,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Mountain Climber",
@@ -1432,7 +1735,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Bird Dog",
@@ -1441,7 +1747,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Anti-Rotation Press",
@@ -1459,6 +1768,9 @@
           "name": "Resistance Band",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -1468,7 +1780,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "V-up",
@@ -1477,7 +1792,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Weighted V-up",
@@ -1495,6 +1813,9 @@
           "name": "Medicine Ball",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -1504,7 +1825,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Flutter Kick",
@@ -1513,7 +1837,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Superman Plank",
@@ -1522,7 +1849,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Plank with Reach",
@@ -1531,7 +1861,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Body Saw",
@@ -1545,6 +1878,9 @@
           "name": "Furniture Sliders",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -1559,6 +1895,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -1573,6 +1912,10 @@
           "name": "Kettlebell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground",
+        "carry"
       ]
     },
     {
@@ -1587,6 +1930,10 @@
           "name": "Kettlebell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground",
+        "hinge"
       ]
     },
     {
@@ -1601,6 +1948,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1615,6 +1965,10 @@
           "name": "Barbell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge",
+        "pull"
       ]
     },
     {
@@ -1633,6 +1987,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -1651,6 +2008,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -1669,6 +2029,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -1687,6 +2050,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "squat"
       ]
     },
     {
@@ -1701,6 +2067,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -1715,6 +2084,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1729,6 +2101,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1743,6 +2118,9 @@
           "name": "Barbell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -1757,6 +2135,9 @@
           "name": "Barbell",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -1771,6 +2152,9 @@
           "name": "Weight Plate",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "push"
       ]
     },
     {
@@ -1785,6 +2169,9 @@
           "name": "Cable Machine",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     },
     {
@@ -1799,6 +2186,9 @@
           "name": "Flat Bench",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -1808,7 +2198,10 @@
       "demo_url": null,
       "rest_seconds": 45,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Medicine Ball Slam",
@@ -1822,6 +2215,9 @@
           "name": "Medicine Ball",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge"
       ]
     },
     {
@@ -1836,6 +2232,10 @@
           "name": "Medicine Ball",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "hinge",
+        "ground"
       ]
     },
     {
@@ -1850,6 +2250,10 @@
           "name": "Sled",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull",
+        "carry"
       ]
     },
     {
@@ -1864,6 +2268,10 @@
           "name": "Sled",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "carry",
+        "push"
       ]
     },
     {
@@ -1887,7 +2295,10 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Figure-4 Glute Bridge",
@@ -1896,7 +2307,10 @@
       "demo_url": null,
       "rest_seconds": 45,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "hinge"
+      ]
     },
     {
       "name": "Farmer's Carry",
@@ -1914,6 +2328,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "carry"
       ]
     },
     {
@@ -1928,6 +2345,9 @@
           "name": "Weight Plate",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "carry"
       ]
     },
     {
@@ -1946,6 +2366,9 @@
           "name": "Dumbbells",
           "optional": true
         }
+      ],
+      "movement_patterns": [
+        "carry"
       ]
     },
     {
@@ -1955,7 +2378,10 @@
       "demo_url": null,
       "rest_seconds": 45,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "squat"
+      ]
     },
     {
       "name": "TRX Rollout",
@@ -1969,6 +2395,9 @@
           "name": "TRX/Suspension Trainer",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "ground"
       ]
     },
     {
@@ -1983,6 +2412,10 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull",
+        "ground"
       ]
     },
     {
@@ -2001,7 +2434,11 @@
       "demo_url": null,
       "rest_seconds": 45,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "push",
+        "squat"
+      ]
     },
     {
       "name": "Track Sprint",
@@ -2028,7 +2465,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "ground"
+      ]
     },
     {
       "name": "Hamstring Stretch",
@@ -2051,6 +2491,10 @@
           "name": "Plyo Box",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "squat",
+        "hinge"
       ]
     },
     {
@@ -2065,6 +2509,9 @@
           "name": "Dumbbells",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "pull"
       ]
     }
   ],

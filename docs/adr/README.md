@@ -19,4 +19,4 @@ Architecture Decision Records for RepLog.
 | [013](013-openapi-swag.md) | OpenAPI Generation via swag Annotations | Accepted | 2026-05-12 |
 | [014](014-login-lockout.md) | Per-Account Login Lockout | Accepted | 2026-05-12 |
 | [015](015-async-ai-coach.md) | Async AI Coach Generation | Accepted | 2026-05-26 |
-| [016](016-training-methodology.md) | First-Class Training Methodology | Proposed | 2026-05-27 |
+| [016](016-training-methodology.md) | First-Class Training Methodology | Accepted | 2026-05-27 |

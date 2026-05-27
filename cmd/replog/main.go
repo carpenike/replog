@@ -130,6 +130,19 @@ func main() {
 		log.Fatalf("Failed to bootstrap seed catalog: %v", err)
 	}
 
+	// Backfill movement-pattern tags for exercises that pre-date ADR 016
+	// Phase 1 (existing DBs whose bootstrapCatalog already short-circuited).
+	// Idempotent — skips exercises that already carry any pattern tag.
+	if err := backfillMovementPatterns(db); err != nil {
+		log.Fatalf("Failed to backfill movement patterns: %v", err)
+	}
+
+	// Bootstrap seed methodologies (ADR 016 Phase 1) — must run AFTER the
+	// catalog so program / equipment / exercise references resolve. Idempotent.
+	if err := bootstrapMethodologies(db); err != nil {
+		log.Fatalf("Failed to bootstrap methodologies: %v", err)
+	}
+
 	// Start background maintenance scheduler (daily: expired tokens, old notifications).
 	maintenance := scheduler.New(db)
 	maintenance.Start()
@@ -645,6 +658,59 @@ func bootstrapCatalog(db *sql.DB) error {
 		result.EquipmentCreated, result.ExercisesCreated, result.ProgramsCreated,
 		result.PrescribedSets, result.ProgressionRules)
 
+	return nil
+}
+
+// bootstrapMethodologies seeds the methodologies table + link rows from the
+// embedded methodology seed (ADR 016 Phase 1). Idempotent — existing rows
+// matched by `key` are skipped but their links are reconciled. Must run after
+// bootstrapCatalog so program / equipment / exercise references resolve.
+//
+// Methodologies are seeded via a dedicated path (NOT through
+// importers.ParseCatalogJSON) because they are app configuration, not
+// user-importable program content.
+func bootstrapMethodologies(db *sql.DB) error {
+	data := database.SeedMethodologies()
+	result, err := models.ApplyMethodologySeedFromBytes(db, data)
+	if err != nil {
+		return fmt.Errorf("apply methodology seed: %w", err)
+	}
+
+	log.Printf("Seeded methodologies: %d created, %d already present (links: %d program, %d equipment, %d pattern, %d exercise)",
+		result.MethodologiesCreated, result.MethodologiesSkipped,
+		result.ReferenceProgramLinks, result.EquipmentLinks,
+		result.PatternLinks, result.ExerciseLinks)
+
+	if len(result.MissingProgramRefs) > 0 {
+		log.Printf("Warning: methodology seed references %d unknown program templates: %v", len(result.MissingProgramRefs), result.MissingProgramRefs)
+	}
+	if len(result.MissingEquipment) > 0 {
+		log.Printf("Warning: methodology seed references %d unknown equipment items: %v", len(result.MissingEquipment), result.MissingEquipment)
+	}
+	if len(result.MissingExercises) > 0 {
+		log.Printf("Warning: methodology seed references %d unknown exercises: %v", len(result.MissingExercises), result.MissingExercises)
+	}
+
+	return nil
+}
+
+// backfillMovementPatterns adds movement-pattern tags to exercises that
+// pre-date ADR 016 Phase 1. Idempotent — exercises that already carry any
+// pattern tag are left alone (preserves manual edits). On fresh installs
+// this is a no-op because bootstrapCatalog tagged the exercises inline.
+func backfillMovementPatterns(db *sql.DB) error {
+	data := database.SeedCatalog()
+	result, err := models.BackfillExerciseMovementPatterns(db, data)
+	if err != nil {
+		return fmt.Errorf("backfill movement patterns: %w", err)
+	}
+	if result.PatternsInserted == 0 && result.SkippedAlreadyTagged > 0 {
+		// Quiet on the common no-op path.
+		return nil
+	}
+	log.Printf("Movement-pattern backfill: considered %d seed exercises, tagged %d (skipped %d already-tagged), inserted %d rows",
+		result.ExercisesConsidered, result.ExercisesTagged,
+		result.SkippedAlreadyTagged, result.PatternsInserted)
 	return nil
 }
 
