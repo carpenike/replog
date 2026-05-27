@@ -45,11 +45,16 @@ Desktop / Cowork) and **GitHub Copilot** (VS Code). Both clients connect
 to the same local basic-memory server and read/write the same markdown
 notes on disk.
 
-- **Project name:** `replog`
-- **Project ID:** `d93e6b10-fc00-4426-8fc1-d776123a495b` — prefer this on
-  every tool call (`project_id` param) for unambiguous routing. The
-  `project` name param works too but is collision-prone.
-- **Local path:** `/Users/ryan/basic-memory-replog` (not in this repo)
+- **Project name:** `replog` — address basic-memory by this name; it is the
+  stable identifier shared across clients.
+- **Project ID is client-local.** Each basic-memory client mints its own
+  `external_id` (UUID) for the `replog` folder — there is no universal one.
+  Run `list_memory_projects` to get *your* client's id and pass it as
+  `project_id` for unambiguous routing; do NOT copy another client's UUID.
+  (For reference: Cowork's is `d93e6b10-…`, VS Code Copilot's is `d2b38e13-…`;
+  yours may differ — verify it.)
+- **Local path / shared source of truth:** `/Users/ryan/basic-memory-replog`
+  (not in this repo) — every client reads/writes these same files.
 - **Default project (`main`) is unrelated** — never write RepLog state there.
 
 At session start, call `recent_activity` against this project with a 7-day

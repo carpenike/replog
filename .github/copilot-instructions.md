@@ -36,10 +36,12 @@ This repo has a shared **basic-memory** MCP project for async hand-offs
 between you (Copilot) and Coach (Claude Desktop / Cowork). Both clients hit
 the same local basic-memory server and read/write the same notes.
 
-- **Project name:** `replog`
-- **Project ID:** `d93e6b10-fc00-4426-8fc1-d776123a495b` — pass this as
-  `project_id` on every basic-memory tool call. The default `main` project
-  is unrelated.
+- **Project name:** `replog` — address basic-memory by this name.
+- **Project ID is client-local.** Run `list_memory_projects` to get *your*
+  client's `external_id` for the `replog` folder and pass it as `project_id`
+  — do not reuse another client's UUID (each client mints its own). The
+  shared source of truth is the folder `/Users/ryan/basic-memory-replog`. The
+  default `main` project is unrelated — never write RepLog state there.
 - **At session start**, call `recent_activity` against this project (7-day
   window) to see what Coach left for you, then read `handoff/README` in the
   same project — it codifies the three-surface model (GitHub Issues =
