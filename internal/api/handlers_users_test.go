@@ -227,3 +227,60 @@ func TestDeleteUser_NonAdminForbidden(t *testing.T) {
 	rr := env.do(t, "DELETE", fmt.Sprintf("/api/users/%d", target.ID), nil, cookies)
 	requireStatus(t, rr, http.StatusForbidden)
 }
+
+// --- SetUserMCPAccess (HOF-004) ---
+
+func TestSetUserMCPAccess_AdminCanToggle(t *testing.T) {
+	env := setupTest(t)
+	admin := env.createUser(t, "admin", true, true)
+	target := env.createUser(t, "coach1", true, false)
+	cookies := env.loginAs(t, admin)
+
+	// Default is false (default-deny).
+	rr := env.do(t, "GET", fmt.Sprintf("/api/users/%d", target.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+	var got User
+	decodeJSON(t, rr, &got)
+	if got.MCPEnabled {
+		t.Fatalf("expected mcp_enabled=false at start, got true")
+	}
+
+	// Enable.
+	rr = env.do(t, "PUT", fmt.Sprintf("/api/users/%d/mcp", target.ID),
+		MCPAccessRequest{Enabled: true}, cookies)
+	requireStatus(t, rr, http.StatusOK)
+	decodeJSON(t, rr, &got)
+	if !got.MCPEnabled {
+		t.Errorf("expected mcp_enabled=true after PUT enable, got false")
+	}
+
+	// Disable.
+	rr = env.do(t, "PUT", fmt.Sprintf("/api/users/%d/mcp", target.ID),
+		MCPAccessRequest{Enabled: false}, cookies)
+	requireStatus(t, rr, http.StatusOK)
+	decodeJSON(t, rr, &got)
+	if got.MCPEnabled {
+		t.Errorf("expected mcp_enabled=false after PUT disable, got true")
+	}
+}
+
+func TestSetUserMCPAccess_NonAdminForbidden(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach1", true, false)
+	target := env.createUser(t, "coach2", true, false)
+	cookies := env.loginAs(t, coach)
+
+	rr := env.do(t, "PUT", fmt.Sprintf("/api/users/%d/mcp", target.ID),
+		MCPAccessRequest{Enabled: true}, cookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}
+
+func TestSetUserMCPAccess_NotFound(t *testing.T) {
+	env := setupTest(t)
+	admin := env.createUser(t, "admin", true, true)
+	cookies := env.loginAs(t, admin)
+
+	rr := env.do(t, "PUT", "/api/users/999999/mcp",
+		MCPAccessRequest{Enabled: true}, cookies)
+	requireStatus(t, rr, http.StatusNotFound)
+}

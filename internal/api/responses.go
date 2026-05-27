@@ -47,6 +47,10 @@ type User struct {
 	AthleteID *int64  `json:"athlete_id,omitempty"`
 	IsCoach   bool    `json:"is_coach"`
 	IsAdmin   bool    `json:"is_admin"`
+	// MCPEnabled mirrors models.User.MCPEnabled (HOF-004): when true,
+	// the bearer middleware on /api-mcp/* accepts JWTs that resolve to
+	// this user; the webui's scs cookie auth ignores the flag entirely.
+	MCPEnabled    bool    `json:"mcp_enabled"`
 	AvatarURL     string  `json:"avatar_url,omitempty"`
 	Impersonating bool    `json:"impersonating,omitempty"`
 	RealUserID    *int64  `json:"real_user_id,omitempty"`

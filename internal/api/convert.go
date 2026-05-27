@@ -110,16 +110,17 @@ func AthleteCardFromModel(m *models.AthleteCardInfo) *AthleteCard {
 // UserFromModel converts a models.User to an API User.
 func UserFromModel(m *models.User) *User {
 	return &User{
-		ID:        m.ID,
-		Username:  m.Username,
-		Name:      nullStr(m.Name),
-		Email:     nullStr(m.Email),
-		AthleteID: nullInt(m.AthleteID),
-		IsCoach:   m.IsCoach,
-		IsAdmin:   m.IsAdmin,
-		AvatarURL: m.AvatarURL(),
-		CreatedAt: fmtTime(m.CreatedAt),
-		UpdatedAt: fmtTime(m.UpdatedAt),
+		ID:         m.ID,
+		Username:   m.Username,
+		Name:       nullStr(m.Name),
+		Email:      nullStr(m.Email),
+		AthleteID:  nullInt(m.AthleteID),
+		IsCoach:    m.IsCoach,
+		IsAdmin:    m.IsAdmin,
+		MCPEnabled: m.MCPEnabled,
+		AvatarURL:  m.AvatarURL(),
+		CreatedAt:  fmtTime(m.CreatedAt),
+		UpdatedAt:  fmtTime(m.UpdatedAt),
 	}
 }
 

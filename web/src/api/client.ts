@@ -447,6 +447,18 @@ class ApiClient {
     return this.request<User>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
   }
 
+  /**
+   * Toggle a user's MCP access gate (HOF-004). Admin-only.
+   * Flipping to false takes effect on the next /api-mcp/* request (the
+   * bearer middleware re-reads users.mcp_enabled per call — no cache).
+   */
+  async setUserMCPAccess(id: number, enabled: boolean): Promise<User> {
+    return this.request<User>(`/api/users/${id}/mcp`, {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
   // Journal
   async listJournalEntries(athleteId: number, limit = 50): Promise<JournalEntry[]> {
     return this.request<JournalEntry[]>(`/api/athletes/${athleteId}/journal?limit=${limit}`);

@@ -254,6 +254,39 @@ func main() {
 		return middleware.RequireAuth(sessionManager, db, next)
 	}
 
+	// MCP bearer auth (HOF-004). Verifies short-TTL RS256 JWTs minted by
+	// the homelab-mcp OAuth AS against its published JWKS, then resolves
+	// the `email` claim to a *models.User and gates on users.mcp_enabled.
+	// Mounts under /api-mcp/*; the webui's scs cookie auth is untouched.
+	//
+	// Defaults match the deployed forge layout (mcp.holthome.net is the AS,
+	// replog.holthome.net is this resource). All three knobs are overridable
+	// via env for local dev / alternate hosts.
+	mcpIssuer := os.Getenv("REPLOG_MCP_AS_ISSUER")
+	if mcpIssuer == "" {
+		mcpIssuer = "https://mcp.holthome.net"
+	}
+	mcpAudience := os.Getenv("REPLOG_MCP_AUDIENCE")
+	if mcpAudience == "" {
+		if baseURL != "" {
+			mcpAudience = baseURL
+		} else {
+			mcpAudience = "https://replog.holthome.net"
+		}
+	}
+	mcpJWKSURL := os.Getenv("REPLOG_MCP_AS_JWKS_URL")
+	if mcpJWKSURL == "" {
+		mcpJWKSURL = strings.TrimRight(mcpIssuer, "/") + "/oauth/jwks.json"
+	}
+	bearerAuth := middleware.NewBearerAuth(db, middleware.BearerAuthConfig{
+		Issuer:   mcpIssuer,
+		Audience: mcpAudience,
+		JWKSURL:  mcpJWKSURL,
+	})
+	log.Printf("MCP bearer auth: issuer=%s audience=%s jwks=%s", mcpIssuer, mcpAudience, mcpJWKSURL)
+	// Distinct limiter so a flood on /api-mcp/* cannot starve webui login attempts.
+	mcpLimiter := middleware.NewRateLimiter(10, time.Minute, trustedProxies...)
+
 	// --- Health checks (public) ---
 	r.Get("/health", handleHealthz)
 	r.Get("/healthz", handleHealthz)
@@ -447,6 +480,8 @@ func main() {
 			r.Get("/users/{userID}", apiHandlers.GetUser)
 			r.Put("/users/{userID}", apiHandlers.UpdateUser)
 			r.Delete("/users/{userID}", apiHandlers.DeleteUser)
+			// MCP access gate (HOF-004). Admin-only. Toggles users.mcp_enabled.
+			r.Put("/users/{userID}/mcp", apiHandlers.SetUserMCPAccess)
 
 			// Login Tokens (admin only).
 			r.Get("/users/{userID}/tokens", apiHandlers.ListLoginTokens)
@@ -499,12 +534,25 @@ func main() {
 		})
 	})
 
+	// --- MCP API surface (HOF-004) ---
+	// Parallel /api-mcp/* route group with bearer auth. Routes the SAME
+	// handler functions as /api/* but uses the JWKS-verifying middleware
+	// instead of scs sessions. The mount list is INTENTIONALLY CURATED —
+	// not every /api/* route is exposed. Session-bound handlers (Me,
+	// impersonation) and the coaching-decision execute path are
+	// deliberately omitted; see HOF-004's [scope] item 4 for the rationale
+	// and the mount-list assertion test in cmd/replog/mcp_routes_test.go.
+	mountMCPRoutes(r, bearerAuth, mcpLimiter, apiHandlers)
+
 	// --- SPA fallback for all other routes ---
 	// React Router handles client-side routing; the SPA serves all browser navigation.
 	spaHandler := spaFallbackHandler()
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		// API routes that don't match should return 404 JSON, not the SPA.
-		if strings.HasPrefix(r.URL.Path, "/api/") {
+		// Both /api/ and /api-mcp/ get JSON 404s (the MCP surface is a
+		// machine-only API; serving the SPA shell to a Claude tool call
+		// would be confusing).
+		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/api-mcp/") {
 			api.WriteError(w, http.StatusNotFound, "endpoint not found")
 			return
 		}
@@ -513,7 +561,7 @@ func main() {
 
 	// Method-not-allowed responses: JSON for /api/, plain text otherwise.
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/") {
+		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/api-mcp/") {
 			api.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
 		}

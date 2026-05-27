@@ -53,10 +53,11 @@ export function UsersList() {
               <TableCell className="text-muted-foreground">{u.email ?? '—'}</TableCell>
               <TableCell>{u.athlete_name ?? '—'}</TableCell>
               <TableCell>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
                   {u.is_admin && <Badge variant="destructive">Admin</Badge>}
                   {u.is_coach && <Badge>Coach</Badge>}
                   {!u.is_admin && !u.is_coach && <Badge variant="secondary">Athlete</Badge>}
+                  {u.mcp_enabled && <Badge variant="outline" title="MCP access enabled">MCP</Badge>}
                 </div>
               </TableCell>
               <TableCell>

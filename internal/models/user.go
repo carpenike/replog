@@ -33,6 +33,11 @@ type User struct {
 	AthleteID    sql.NullInt64
 	IsCoach      bool
 	IsAdmin      bool
+	// MCPEnabled gates whether the bearer middleware accepts JWTs that
+	// resolve to this user. Default 0 (rejected with 403 mcp-not-enabled)
+	// per HOF-004. The webui's scs session-cookie auth IGNORES this flag
+	// — it only affects the /api-mcp/* path.
+	MCPEnabled   bool
 	AvatarPath   sql.NullString
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -133,9 +138,9 @@ func CreateUser(db *sql.DB, username, name, password, email string, isCoach bool
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	u := &User{}
 	err := db.QueryRow(
-		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, avatar_path, created_at, updated_at
+		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, avatar_path, created_at, updated_at
 		 FROM users WHERE id = ?`, id,
-	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -156,9 +161,9 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 func GetUserByAthleteID(db *sql.DB, athleteID int64) (*User, error) {
 	u := &User{}
 	err := db.QueryRow(
-		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, avatar_path, created_at, updated_at
+		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, avatar_path, created_at, updated_at
 		 FROM users WHERE athlete_id = ?`, athleteID,
-	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -172,14 +177,39 @@ func GetUserByAthleteID(db *sql.DB, athleteID int64) (*User, error) {
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	u := &User{}
 	err := db.QueryRow(
-		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, avatar_path, created_at, updated_at
+		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, avatar_path, created_at, updated_at
 		 FROM users WHERE username = ?`, username,
-	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("models: get user by username %q: %w", username, err)
+	}
+	return u, nil
+}
+
+// GetUserByEmail retrieves a user by email address (case-insensitive).
+//
+// Used by the MCP bearer middleware (HOF-004) to resolve a JWT `email`
+// claim to a *User. `users.email` is `UNIQUE COLLATE NOCASE` and may be
+// NULL (kids typically have no email); UNIQUE permits multiple NULLs in
+// SQLite, so the caller MUST refuse an empty/absent claim BEFORE calling
+// this function — otherwise an empty lookup could resolve to an unintended
+// NULL row. This function is intentionally a thin SELECT and does NOT
+// guard against empty input itself; the bearer middleware enforces the
+// rule at the request boundary.
+func GetUserByEmail(db *sql.DB, email string) (*User, error) {
+	u := &User{}
+	err := db.QueryRow(
+		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, avatar_path, created_at, updated_at
+		 FROM users WHERE email = ?`, email,
+	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("models: get user by email %q: %w", email, err)
 	}
 	return u, nil
 }
@@ -377,7 +407,7 @@ func CountUsers(db *sql.DB) (int, error) {
 // ListUsers returns all users with linked athlete names, ordered by username.
 func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 	rows, err := db.Query(`
-		SELECT u.id, u.username, u.name, u.email, COALESCE(u.password_hash, ''), u.athlete_id, u.is_coach, u.is_admin, u.avatar_path, u.created_at, u.updated_at,
+		SELECT u.id, u.username, u.name, u.email, COALESCE(u.password_hash, ''), u.athlete_id, u.is_coach, u.is_admin, u.mcp_enabled, u.avatar_path, u.created_at, u.updated_at,
 		       a.name
 		FROM users u
 		LEFT JOIN athletes a ON u.athlete_id = a.id
@@ -392,7 +422,7 @@ func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 	var users []*UserWithAthlete
 	for rows.Next() {
 		u := &UserWithAthlete{}
-		if err := rows.Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt, &u.AthleteName); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt, &u.AthleteName); err != nil {
 			return nil, fmt.Errorf("models: list users scan: %w", err)
 		}
 		users = append(users, u)
@@ -495,6 +525,27 @@ func DeleteUser(db *sql.DB, id int64) error {
 	result, err := db.Exec(`DELETE FROM users WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete user %d: %w", id, err)
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// SetUserMCPEnabled flips the MCP-access gate on a user (HOF-004).
+//
+// Toggled by an admin via PUT /api/users/{userID}/mcp; consumed by the
+// bearer middleware on every /api-mcp/* request. Returns ErrNotFound if
+// no row exists for the given id.
+func SetUserMCPEnabled(db *sql.DB, id int64, enabled bool) error {
+	flag := 0
+	if enabled {
+		flag = 1
+	}
+	result, err := db.Exec(`UPDATE users SET mcp_enabled = ? WHERE id = ?`, flag, id)
+	if err != nil {
+		return fmt.Errorf("models: set mcp_enabled for user %d: %w", id, err)
 	}
 	n, _ := result.RowsAffected()
 	if n == 0 {

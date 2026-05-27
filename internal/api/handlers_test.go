@@ -237,6 +237,7 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/users/{userID}", h.GetUser)
 			r.Put("/users/{userID}", h.UpdateUser)
 			r.Delete("/users/{userID}", h.DeleteUser)
+			r.Put("/users/{userID}/mcp", h.SetUserMCPAccess)
 
 			// Admin settings.
 			r.Get("/admin/settings", h.ListSettings)

@@ -164,3 +164,62 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	WriteJSON(w, http.StatusOK, UserFromModel(updated))
 }
+
+// SetUserMCPAccess flips the MCP-access gate on a user. Admin only.
+//
+// Toggling this column gates access on the parallel /api-mcp/* bearer
+// route group (HOF-004). Default after migration 0005 is 0 (default-deny);
+// the admin flips it per user as part of onboarding a coach for Claude
+// integration. Has no effect on the webui's scs-cookie auth.
+//
+//	@Summary      Toggle MCP access for a user
+//	@Description  Sets users.mcp_enabled (HOF-004). When false the bearer middleware on /api-mcp/* rejects this user with 403 mcp-not-enabled even if their JWT validates. Admin only.
+//	@Tags         Users
+//	@Accept       json
+//	@Produce      json
+//	@Param        userID  path      int                     true  "User ID"
+//	@Param        body    body      api.MCPAccessRequest    true  "MCP access flag"
+//	@Success      200  {object}  api.User
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /users/{userID}/mcp [put]
+func (h *Handlers) SetUserMCPAccess(w http.ResponseWriter, r *http.Request) {
+	authUser := middleware.UserFromContext(r.Context())
+	if !authUser.IsAdmin {
+		WriteError(w, http.StatusForbidden, "admin access required")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("userID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid user ID")
+		return
+	}
+
+	var req MCPAccessRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if err := models.SetUserMCPEnabled(h.DB, id, req.Enabled); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "user not found")
+			return
+		}
+		log.Printf("api: set mcp_enabled for user %d: %v", id, err)
+		WriteError(w, http.StatusInternalServerError, "failed to update mcp access")
+		return
+	}
+
+	// Return the freshly-read user so the UI updates its toggle from the
+	// authoritative row, not the request body.
+	updated, err := models.GetUserByID(h.DB, id)
+	if err != nil {
+		log.Printf("api: get user %d after mcp toggle: %v", id, err)
+		WriteError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	WriteJSON(w, http.StatusOK, UserFromModel(updated))
+}

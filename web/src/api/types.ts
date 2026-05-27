@@ -37,6 +37,12 @@ export interface User {
   athlete_id?: number | null;
   is_coach: boolean;
   is_admin: boolean;
+  /**
+   * MCP access gate (HOF-004). When true, this user's PocketID-minted
+   * JWTs are accepted on the /api-mcp/* surface. Admin-controlled via
+   * the user-edit form; default false (default-deny).
+   */
+  mcp_enabled: boolean;
   avatar_url?: string;
   impersonating?: boolean;
   real_user_id?: number;

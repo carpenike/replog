@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export function EditUser() {
@@ -36,6 +37,7 @@ export function EditUser() {
   const [athleteId, setAthleteId] = useState('')
   const [initialized, setInitialized] = useState(false)
   const [error, setError] = useState('')
+  const [mcpError, setMcpError] = useState('')
 
   if (user && !initialized) {
     setUsername(user.username)
@@ -63,6 +65,21 @@ export function EditUser() {
     },
     onError: (err) => {
       setError(err instanceof ApiError ? err.message : 'Failed to update user')
+    },
+  })
+
+  // MCP access gate (HOF-004). Independent mutation so toggling it
+  // doesn't require also re-validating the main form's fields, and so
+  // the operator sees an unambiguous before/after when the request lands.
+  const mcpMutation = useMutation({
+    mutationFn: (enabled: boolean) => api.setUserMCPAccess(id, enabled),
+    onSuccess: (updated) => {
+      setMcpError('')
+      queryClient.setQueryData(['user', id], updated)
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+    onError: (err) => {
+      setMcpError(err instanceof ApiError ? err.message : 'Failed to update MCP access')
     },
   })
 
@@ -141,6 +158,45 @@ export function EditUser() {
           </Link>
         </div>
       </form>
+
+      {/* MCP access — separate section, independent mutation. */}
+      <section className="mt-10 border-t pt-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              MCP Access
+              {user?.mcp_enabled
+                ? <Badge>Enabled</Badge>
+                : <Badge variant="secondary">Disabled</Badge>}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md">
+              Lets this user reach RepLog from the Claude apps via the
+              homelab MCP server. Requires an email on the account; takes
+              effect on the next request.
+            </p>
+            {!user?.email && (
+              <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
+                This user has no email set — MCP access can be toggled,
+                but the connector won't be able to identify them until
+                an email is added.
+              </p>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant={user?.mcp_enabled ? 'outline' : 'default'}
+            disabled={mcpMutation.isPending}
+            onClick={() => mcpMutation.mutate(!user?.mcp_enabled)}
+          >
+            {mcpMutation.isPending
+              ? 'Saving...'
+              : user?.mcp_enabled ? 'Disable' : 'Enable'}
+          </Button>
+        </div>
+        {mcpError && (
+          <Alert variant="destructive" className="mt-3">{mcpError}</Alert>
+        )}
+      </section>
     </div>
   )
 }

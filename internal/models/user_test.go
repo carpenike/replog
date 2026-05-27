@@ -63,6 +63,89 @@ func TestCreateUser(t *testing.T) {
 	})
 }
 
+func TestGetUserByEmail(t *testing.T) {
+	db := testDB(t)
+
+	if _, err := CreateUser(db, "coach1", "", "password123", "Coach@Test.Com", true, false, sql.NullInt64{}); err != nil {
+		t.Fatalf("create coach1: %v", err)
+	}
+	if _, err := CreateUser(db, "coach2", "", "password123", "other@test.com", true, false, sql.NullInt64{}); err != nil {
+		t.Fatalf("create coach2: %v", err)
+	}
+	// Kid with no email — UNIQUE permits multiple NULLs, simulates the
+	// realistic case where most athletes have no email.
+	if _, err := CreateUser(db, "kid1", "", "", "", false, false, sql.NullInt64{}); err != nil {
+		t.Fatalf("create kid1: %v", err)
+	}
+
+	t.Run("exact match", func(t *testing.T) {
+		u, err := GetUserByEmail(db, "Coach@Test.Com")
+		if err != nil {
+			t.Fatalf("get by email: %v", err)
+		}
+		if u.Username != "coach1" {
+			t.Errorf("username = %q, want coach1", u.Username)
+		}
+	})
+
+	t.Run("case-insensitive match (COLLATE NOCASE)", func(t *testing.T) {
+		// `email` is `UNIQUE COLLATE NOCASE` — the SQL = comparator MUST
+		// honor the collation. The bearer middleware also lowercases at
+		// the request boundary as belt-and-suspenders, but the column
+		// behavior is the load-bearing guarantee.
+		u, err := GetUserByEmail(db, "coach@test.com")
+		if err != nil {
+			t.Fatalf("get by email lowered: %v", err)
+		}
+		if u.Username != "coach1" {
+			t.Errorf("username = %q, want coach1 (case-insensitive)", u.Username)
+		}
+	})
+
+	t.Run("unknown email", func(t *testing.T) {
+		_, err := GetUserByEmail(db, "nobody@test.com")
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("err = %v, want ErrNotFound", err)
+		}
+	})
+
+	t.Run("empty string never resolves to a NULL-email row", func(t *testing.T) {
+		// Documents the caller contract: GetUserByEmail is a thin SELECT
+		// and DOES NOT guard against empty input — but SQLite's WHERE x = ''
+		// will not match NULL rows either, so this is doubly safe. The
+		// bearer middleware still rejects empty/absent claims at the
+		// request boundary (401 missing-email-claim) before getting here.
+		_, err := GetUserByEmail(db, "")
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("err = %v, want ErrNotFound for empty email", err)
+		}
+	})
+
+	t.Run("returns mcp_enabled correctly", func(t *testing.T) {
+		// Default after the 0005 migration is 0 (default-deny).
+		u, _ := GetUserByEmail(db, "coach@test.com")
+		if u.MCPEnabled {
+			t.Errorf("default mcp_enabled should be false, got true")
+		}
+		// Flip it and re-read.
+		if err := SetUserMCPEnabled(db, u.ID, true); err != nil {
+			t.Fatalf("set mcp_enabled: %v", err)
+		}
+		u, _ = GetUserByEmail(db, "coach@test.com")
+		if !u.MCPEnabled {
+			t.Errorf("mcp_enabled should be true after SetUserMCPEnabled")
+		}
+	})
+}
+
+func TestSetUserMCPEnabled_NotFound(t *testing.T) {
+	db := testDB(t)
+	err := SetUserMCPEnabled(db, 999999, true)
+	if !errors.Is(err, ErrNotFound) {
+		t.Errorf("err = %v, want ErrNotFound", err)
+	}
+}
+
 func TestAuthenticate(t *testing.T) {
 	db := testDB(t)
 

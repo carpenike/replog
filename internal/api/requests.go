@@ -288,6 +288,17 @@ type UserUpdateRequest struct {
 	AthleteID *int64 `json:"athlete_id,omitempty"`
 }
 
+// MCPAccessRequest is the body for PUT /api/users/{userID}/mcp (HOF-004).
+//
+// Setting Enabled=true grants this user access to the parallel /api-mcp/*
+// bearer route group on top of any valid JWT they present from the
+// homelab-mcp OAuth AS. Flipping it back to false is the per-user
+// revocation primitive — takes effect on the next request because the
+// middleware reads users.mcp_enabled per call (no in-process cache).
+type MCPAccessRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
 // NotificationPreferenceRequest is the body for PUT /api/notifications/preferences.
 type NotificationPreferenceRequest struct {
 	Type     string `json:"type" example:"workout_review"`
