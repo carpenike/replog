@@ -782,6 +782,5 @@ hollow: the human was clicking through a count, not reviewing the program.
 
 ### References
 
-- HOF-001 — basic-memory `handoff/HOF-001` (review + decision log)
 - GitHub issue #13
 - ADR 015 amendment (audit + failure-notify + duplicate-submit guard)

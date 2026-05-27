@@ -204,6 +204,5 @@ audit payload.
 
 ### References
 
-- HOF-001 — basic-memory `handoff/HOF-001` (review + decision log)
 - GitHub issue #13
 - ADR 007 amendment (approve-as-draft, no auto-assign)
