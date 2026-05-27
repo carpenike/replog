@@ -624,10 +624,15 @@ Two programs based on Dr. Michael Yessis's 1×20 methodology for youth athlete d
 
 ```
 Foundations 1×20 → Foundations 1×15 → Sport Performance Monthly → Sport-Specific
-(foundational)      (foundational)      (sport_performance)          (future)
+(foundational)      (intermediate)      (sport_performance)          (future)
 ```
 
-Athletes complete the 1×20 phase before advancing to 1×15. The coach decides when an athlete is ready based on consistent technique mastery and successful weight progressions across 2+ consecutive sessions.
+Athletes complete the 1×20 phase (foundational tier) before advancing to 1×15
+(intermediate tier). The coach decides when an athlete is ready based on
+consistent technique mastery and successful weight progressions across 2+
+consecutive sessions. The intermediate tier is the bridge phase — same
+high-variety / 1-set structure as 1×20, with weighted variations and light
+barbell work replacing the bodyweight base.
 
 ---
 
@@ -638,6 +643,7 @@ Athletes complete the 1×20 phase before advancing to 1×15. The coach decides w
 | Property | Value |
 |----------|-------|
 | Structure | 1 week × 2 days (looping) |
+| Tier | **Foundational** (entry phase) |
 | Audience | Youth athletes, complete beginners |
 | TM basis | None — coach-selected working weight |
 | Sets per cycle | 30 |
@@ -712,11 +718,15 @@ Weight increases only for loaded exercises. Bodyweight exercises progress by add
 | Property | Value |
 |----------|-------|
 | Structure | 1 week × 2 days (looping) |
+| Tier | **Intermediate** (the bridge phase between foundational and sport_performance) |
 | Audience | Youth athletes who completed 1×20 phase |
 | TM basis | None — coach-selected working weight |
 | Sets per cycle | 30 |
 
-The second foundational phase. More advanced exercise variations (barbell movements replace dumbbell, weighted push-ups replace bodyweight, etc.) with 15 reps per set.
+The intermediate-tier program — the second of Yessis's foundational phases.
+More advanced exercise variations (barbell movements replace dumbbell, weighted
+push-ups replace bodyweight, etc.) with 15 reps per set. Same 1-set / high-variety
+structure as 1×20, with a modest intensity bump from the weighted variations.
 
 #### Day 1 (Monday)
 

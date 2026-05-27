@@ -130,6 +130,10 @@ GENERAL RULES (ALL ATHLETES)
     audience (youth or adult) with full prescribed sets. Use these as structural examples:
     follow their patterns for exercise variety per day, set/rep schemes, loading style,
     and sort_order conventions. Do NOT copy them verbatim — adapt for the specific athlete.
+    For youth athletes, each reference is labeled with its "phase" (foundational,
+    intermediate, sport_performance). The FIRST reference is the on-tier exemplar —
+    treat it as the primary structural example; the other youth references are
+    adjacent phases shown for context, not for direct mimicry.
 
 `)
 
@@ -204,25 +208,38 @@ This athlete is learning basic movement patterns. Use the Yessis 1×20 approach:
 
 `)
 		case "intermediate":
-			b.WriteString(`INTERMEDIATE TIER RULES (Yessis 1×14 Phase):
+			b.WriteString(`INTERMEDIATE TIER RULES (Yessis 1×15 Phase):
 This athlete has demonstrated foundational movement competency. Transition to
-the Yessis 1×14 approach with introduction of barbell movements:
-- Reduce rep target from 20 to 14 reps per set, allowing slightly higher intensity.
-- Program 12–15 exercises per session, 1 set each (same high-variety, low-set structure).
-- May introduce light barbell work (empty bar to ~95 lbs) for main lifts.
-- Dumbbells up to 25–30 lbs per hand are appropriate.
-- Do NOT use percentage-based loading — use absolute_weight.
-- Rep range: 10–14 for compound movements, 12–15 for single-joint/accessory work.
-- ONE working set per exercise remains the standard. Add a second set ONLY for
-  main compound lifts (squat, bench, deadlift) if the coach explicitly requests it.
-- Continue comprehensive joint action coverage — don't drop isolation/accessory
-  exercises just because barbell movements are introduced.
-- Introduce compound barbell movements (squat, bench, deadlift) with emphasis on
-  technique — keep loads light and controlled.
-- Progression increments: 2.5–5 lbs for barbell lifts when form is solid.
-- Plateau trigger: if stalled for 3 sessions, reduce reps to 10–12 range for that
-  exercise and increase load modestly (the 1×14 to 1×10 micro-progression).
-- Include form_notes on main lifts with coaching cues.
+the Yessis 1×15 approach — the second foundational phase that introduces
+weighted and barbell variations over the 1×20 base:
+- Program 12–15 exercises per session, each for 1 SET of 15 REPS.
+  Same high-variety, low-set structure as 1×20 with a modest intensity bump.
+- Replace bodyweight versions with weighted variations where appropriate
+  (e.g., weighted push-up replaces push-up, KB staggered RDL replaces band good
+  morning, step-up with knee drive replaces step-up, front squat replaces goblet
+  squat).
+- May introduce light barbell work for main lifts (front squat, bench press,
+  trap bar deadlift, barbell row) with technique-first loading — start with the
+  empty bar or light loads and add 2.5–5 lbs only when 15 reps are clean.
+- Dumbbells/kettlebells up to ~25–30 lbs per implement are appropriate.
+- Do NOT use percentage-based loading — use absolute_weight only.
+- Rep range: 15 reps for all exercises (matching the 1×15 phase name and the
+  seeded Foundations 1×15 program). No sets below 12 reps.
+- ONE working set per exercise remains the standard. Do NOT add additional sets
+  unless the coach explicitly requests it for a specific main lift.
+- Continue comprehensive joint action coverage — barbell movements supplement,
+  they don't replace, the accessory and isolation work.
+- Progression increments: 2.5 lbs for dumbbell/kettlebell lifts, 5 lbs for
+  barbell lifts when 15 reps are completed with good form for 2 consecutive
+  sessions.
+- Plateau trigger: if the athlete stalls at the same weight for 2–3 sessions,
+  vary the exercise (e.g., swap front squat for a goblet squat variation)
+  before pushing the load.
+- Target technical failure (form breakdown), NOT muscular failure. Sessions
+  should still feel moderate — the intent is durable adaptation over fatigue.
+- Include form_notes on barbell lifts emphasizing technique cues.
+- Training frequency: 2 sessions per week with the SAME exercises (looping
+  format, matching the seeded Foundations 1×15 program).
 
 `)
 		case "sport_performance":
@@ -404,6 +421,16 @@ func buildUserPrompt(athleteCtx *AthleteContext, req GenerationRequest) (string,
 	if athleteCtx.Athlete.Tier != nil {
 		fmt.Fprintf(&b, "This athlete is at the %s tier. ", *athleteCtx.Athlete.Tier)
 		b.WriteString("Follow the tier-specific rules from the system instructions strictly.\n")
+		// Name the on-tier reference program explicitly so the LLM knows
+		// which of the youth references to treat as the primary exemplar.
+		// The reference list has already been reordered so the on-tier
+		// program comes first (see context.sortReferencesByTier).
+		if len(athleteCtx.ReferencePrograms) > 0 {
+			primary := athleteCtx.ReferencePrograms[0]
+			if primary.Phase == *athleteCtx.Athlete.Tier {
+				fmt.Fprintf(&b, "The primary structural exemplar is %q (the on-tier youth reference); other youth references are adjacent phases shown for context.\n", primary.Name)
+			}
+		}
 	}
 
 	// Note training max availability.

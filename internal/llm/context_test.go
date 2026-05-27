@@ -338,6 +338,57 @@ func TestBuildAthleteContext_NotFound(t *testing.T) {
 	}
 }
 
+// TestBuildAthleteContext_OnTierExemplarReorder verifies the end-to-end
+// behavior added in HOF-002: youth reference programs get Phase populated
+// from their canonical names, and the on-tier program is moved to the front
+// of ReferencePrograms so the LLM treats it as the primary structural exemplar.
+func TestBuildAthleteContext_OnTierExemplarReorder(t *testing.T) {
+	db := testDB(t)
+
+	// Seed the three canonical youth programs (names match the real seed).
+	for _, name := range []string{"Foundations 1×20", "Foundations 1×15", "Sport Performance — Month 1"} {
+		if _, err := models.CreateProgramTemplate(db, nil, name, "", 1, 2, true, "youth"); err != nil {
+			t.Fatalf("create template %q: %v", name, err)
+		}
+	}
+
+	athleteID := seedAthlete(t, db, "Bridge", "intermediate", "")
+	ctx, err := BuildAthleteContext(db, athleteID, time.Now())
+	if err != nil {
+		t.Fatalf("BuildAthleteContext: %v", err)
+	}
+
+	if len(ctx.ReferencePrograms) != 3 {
+		t.Fatalf("reference programs = %d, want 3", len(ctx.ReferencePrograms))
+	}
+	// Phase populated from name.
+	byName := map[string]string{}
+	for _, rp := range ctx.ReferencePrograms {
+		byName[rp.Name] = rp.Phase
+	}
+	want := map[string]string{
+		"Foundations 1×20":            "foundational",
+		"Foundations 1×15":            "intermediate",
+		"Sport Performance — Month 1": "sport_performance",
+	}
+	for name, phase := range want {
+		if byName[name] != phase {
+			t.Errorf("phase for %q = %q, want %q", name, byName[name], phase)
+		}
+	}
+	// On-tier program is first.
+	if ctx.ReferencePrograms[0].Name != "Foundations 1×15" {
+		t.Errorf("first reference = %q, want Foundations 1×15 (on-tier for intermediate)", ctx.ReferencePrograms[0].Name)
+	}
+	if ctx.ReferencePrograms[0].Phase != "intermediate" {
+		t.Errorf("first reference phase = %q, want intermediate", ctx.ReferencePrograms[0].Phase)
+	}
+	// Off-tier refs still present.
+	if ctx.ReferencePrograms[1].Phase == "intermediate" || ctx.ReferencePrograms[2].Phase == "intermediate" {
+		t.Error("only one ref should have phase=intermediate")
+	}
+}
+
 func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 	db := testDB(t)
 
@@ -597,6 +648,88 @@ func TestListAthletePrograms(t *testing.T) {
 		}
 		if programs[1].TemplateName != "Test Prog" {
 			t.Errorf("second = %q, want Test Prog", programs[1].TemplateName)
+		}
+	})
+}
+
+// TestPhaseForReferenceProgram pins the youth-program → tier mapping introduced
+// in HOF-002. If the seed gains a new youth program, this test will fail and
+// force a deliberate decision about which phase it represents.
+func TestPhaseForReferenceProgram(t *testing.T) {
+	cases := []struct {
+		name string
+		want string
+	}{
+		{"Foundations 1×20", "foundational"},
+		{"Foundations 1×15", "intermediate"},
+		{"Sport Performance — Month 1", "sport_performance"},
+		{"Sport Performance — Month 2", "sport_performance"},
+		{"Sport Performance — Month 3", "sport_performance"},
+		{"5/3/1 for Beginners", ""},
+		{"GZCLP", ""},
+		{"Sarge Athletics — Circuit A", ""},
+		{"", ""},
+	}
+	for _, tc := range cases {
+		if got := phaseForReferenceProgram(tc.name); got != tc.want {
+			t.Errorf("phaseForReferenceProgram(%q) = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}
+
+// TestSortReferencesByTier verifies the stable-partition behavior used to
+// surface the on-tier youth reference first while keeping off-tier references
+// visible (emphasize-but-show-all, per HOF-002 DISCUSSION).
+func TestSortReferencesByTier(t *testing.T) {
+	refs := []ReferenceProgramSummary{
+		{Name: "Foundations 1×20", Phase: "foundational"},
+		{Name: "Foundations 1×15", Phase: "intermediate"},
+		{Name: "Sport Performance — Month 1", Phase: "sport_performance"},
+		{Name: "Sport Performance — Month 2", Phase: "sport_performance"},
+	}
+
+	t.Run("intermediate on-tier first, off-tier order preserved", func(t *testing.T) {
+		got := sortReferencesByTier(refs, "intermediate")
+		want := []string{"Foundations 1×15", "Foundations 1×20", "Sport Performance — Month 1", "Sport Performance — Month 2"}
+		for i, name := range want {
+			if got[i].Name != name {
+				t.Errorf("sortReferencesByTier[%d] = %q, want %q", i, got[i].Name, name)
+			}
+		}
+	})
+
+	t.Run("foundational on-tier first", func(t *testing.T) {
+		got := sortReferencesByTier(refs, "foundational")
+		if got[0].Name != "Foundations 1×20" {
+			t.Errorf("first = %q, want Foundations 1×20", got[0].Name)
+		}
+	})
+
+	t.Run("sport_performance partitions both matching refs to front", func(t *testing.T) {
+		got := sortReferencesByTier(refs, "sport_performance")
+		if got[0].Phase != "sport_performance" || got[1].Phase != "sport_performance" {
+			t.Errorf("first two should both be sport_performance, got %q + %q", got[0].Phase, got[1].Phase)
+		}
+		if got[0].Name != "Sport Performance — Month 1" || got[1].Name != "Sport Performance — Month 2" {
+			t.Errorf("relative order of matching refs not preserved: %q, %q", got[0].Name, got[1].Name)
+		}
+	})
+
+	t.Run("unknown tier leaves order unchanged", func(t *testing.T) {
+		got := sortReferencesByTier(refs, "nonexistent")
+		for i, r := range refs {
+			if got[i].Name != r.Name {
+				t.Errorf("sortReferencesByTier[%d] = %q, want %q", i, got[i].Name, r.Name)
+			}
+		}
+	})
+
+	t.Run("empty tier is a no-op", func(t *testing.T) {
+		got := sortReferencesByTier(refs, "")
+		for i, r := range refs {
+			if got[i].Name != r.Name {
+				t.Errorf("sortReferencesByTier[%d] = %q, want %q", i, got[i].Name, r.Name)
+			}
 		}
 	})
 }

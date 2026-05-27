@@ -438,6 +438,11 @@ erDiagram
 | `updated_at`       | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - `tier` is nullable — adults running their own programs don't use the tier system.
+- The three youth tier values map to the Yessis phase progression:
+  `foundational` = the 1×20 entry phase (bodyweight + light dumbbells, 15–20 reps),
+  `intermediate` = the 1×15 bridge phase (weighted variations and light barbell work over the 1×20 base, 15 reps),
+  `sport_performance` = the monthly sport-performance blocks (compound lifts, power work, percentage-based loading once TMs exist).
+  See `docs/seed-catalog.md` for the seeded reference programs that anchor each phase.
 - `notes` holds free-form coaching observations ("ready to try intermediate bench").
 - `goal` holds a long-term training objective ("build overall strength", "prepare for football season"). Nullable.
 - `date_of_birth` stores the athlete's birth date for age computation. Used by the LLM to make age-appropriate programming decisions.

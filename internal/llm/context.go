@@ -9,6 +9,7 @@ package llm
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/carpenike/replog/internal/models"
@@ -160,6 +161,13 @@ type ReferenceProgramSummary struct {
 	NumDays        int                      `json:"num_days"`
 	IsLoop         bool                     `json:"is_loop"`
 	Audience       string                   `json:"audience,omitempty"`
+	// Phase labels a youth reference program with the tier it represents
+	// ("foundational", "intermediate", "sport_performance") so the LLM can
+	// tell which of the youth references matches the athlete's current tier.
+	// Empty for adult programs and any youth program whose name we don't
+	// recognise (defensive — adding a new seeded youth program is not a
+	// silent labeling failure, it's an unlabeled program).
+	Phase          string                   `json:"phase,omitempty"`
 	PrescribedSets []PrescribedSetSummary   `json:"prescribed_sets"`
 }
 
@@ -277,6 +285,13 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, referenceTe
 	}
 	if err != nil {
 		return nil, fmt.Errorf("llm: build reference programs: %w", err)
+	}
+	// Move the on-tier youth reference (if any) to the front so the LLM
+	// treats it as the primary structural exemplar. Off-tier references
+	// stay visible — see HOF-002 (emphasize-but-show-all): hard-filtering
+	// the intermediate tier would leave the model with a sample size of 1.
+	if profile.Tier != nil {
+		refProgs = sortReferencesByTier(refProgs, *profile.Tier)
 	}
 	ctx.ReferencePrograms = refProgs
 
@@ -703,6 +718,7 @@ func templatesToReferenceSummaries(db *sql.DB, templates []*models.ProgramTempla
 			NumWeeks: t.NumWeeks,
 			NumDays:  t.NumDays,
 			IsLoop:   t.IsLoop,
+			Phase:    phaseForReferenceProgram(t.Name),
 		}
 		if t.Description.Valid {
 			rp.Description = t.Description.String
@@ -756,6 +772,47 @@ func parseDate(s string) (time.Time, error) {
 		return t, nil
 	}
 	return time.Parse("2006-01-02T15:04:05Z", s)
+}
+
+// phaseForReferenceProgram returns the youth-tier phase a seeded reference
+// program represents, based on its name. Returns "" for programs we don't
+// recognise as on-phase (adult programs, future seeded programs). The mapping
+// matches the Sarge/Yessis source: 1×20 = foundational, 1×15 = intermediate,
+// Sport Performance Months = sport_performance. See HOF-002 + docs/seed-catalog.md.
+func phaseForReferenceProgram(name string) string {
+	switch {
+	case strings.Contains(name, "1×20"):
+		return "foundational"
+	case strings.Contains(name, "1×15"):
+		return "intermediate"
+	case strings.HasPrefix(name, "Sport Performance"):
+		return "sport_performance"
+	default:
+		return ""
+	}
+}
+
+// sortReferencesByTier returns a copy of refs with the on-tier reference (if
+// present) moved to the front. Order of off-tier references is preserved.
+// This is a stable partition — used so the LLM treats the on-tier program as
+// the primary structural exemplar without losing visibility into the adjacent
+// phases (sample-size argument; see HOF-002 DISCUSSION).
+func sortReferencesByTier(refs []ReferenceProgramSummary, tier string) []ReferenceProgramSummary {
+	if len(refs) == 0 || tier == "" {
+		return refs
+	}
+	out := make([]ReferenceProgramSummary, 0, len(refs))
+	for _, r := range refs {
+		if r.Phase == tier {
+			out = append(out, r)
+		}
+	}
+	for _, r := range refs {
+		if r.Phase != tier {
+			out = append(out, r)
+		}
+	}
+	return out
 }
 
 // normalizeDate extracts the YYYY-MM-DD portion from a date string.

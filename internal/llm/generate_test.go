@@ -209,11 +209,24 @@ func TestBuildSystemPrompt(t *testing.T) {
 		if !strings.Contains(prompt, "INTERMEDIATE TIER RULES") {
 			t.Error("intermediate prompt should contain intermediate rules")
 		}
+		if !strings.Contains(prompt, "Yessis 1×15 Phase") {
+			t.Error("intermediate prompt should name the Yessis 1×15 phase (post-HOF-002)")
+		}
+		if !strings.Contains(prompt, "1 SET of 15 REPS") {
+			t.Error("intermediate prompt should describe the 1×15 set/rep target")
+		}
+		if !strings.Contains(prompt, "Foundations 1×15") {
+			t.Error("intermediate prompt should reference the seeded Foundations 1×15 program")
+		}
 		if !strings.Contains(prompt, "light barbell work") {
 			t.Error("intermediate prompt should mention barbell introduction")
 		}
-		if !strings.Contains(prompt, "14") {
-			t.Error("intermediate prompt should reference the 1×14 rep target")
+		// Regression guards for the 1×14 fabrication removed in HOF-002.
+		if strings.Contains(prompt, "1×14") {
+			t.Error("intermediate prompt must not reference the fabricated 1×14 phase")
+		}
+		if strings.Contains(prompt, "14 reps") {
+			t.Error("intermediate prompt must not target 14 reps")
 		}
 	})
 
@@ -309,5 +322,56 @@ func TestBuildUserPrompt_Loop(t *testing.T) {
 	}
 	if !strings.Contains(prompt, "looping") {
 		t.Error("prompt should mention looping for IsLoop=true")
+	}
+}
+
+// TestBuildUserPrompt_OnTierExemplar verifies that when a youth athlete has
+// references whose first entry's Phase matches the athlete's tier, the user
+// prompt names that program as the primary structural exemplar. Per HOF-002,
+// the LLM should be told which youth reference is on-tier rather than
+// inferring it from program names.
+func TestBuildUserPrompt_OnTierExemplar(t *testing.T) {
+	tier := "intermediate"
+	athleteCtx := &AthleteContext{
+		Athlete: AthleteProfile{Name: "BridgeKid", Tier: &tier},
+		ReferencePrograms: []ReferenceProgramSummary{
+			{Name: "Foundations 1×15", Phase: "intermediate", Audience: "youth"},
+			{Name: "Foundations 1×20", Phase: "foundational", Audience: "youth"},
+			{Name: "Sport Performance — Month 1", Phase: "sport_performance", Audience: "youth"},
+		},
+	}
+	req := GenerationRequest{ProgramName: "Bridge", NumWeeks: 1, NumDays: 2, IsLoop: true}
+
+	prompt, err := buildUserPrompt(athleteCtx, req)
+	if err != nil {
+		t.Fatalf("buildUserPrompt: %v", err)
+	}
+	if !strings.Contains(prompt, "primary structural exemplar") {
+		t.Error("prompt should call out the primary structural exemplar when an on-tier ref exists")
+	}
+	if !strings.Contains(prompt, "Foundations 1×15") {
+		t.Error("prompt should name the on-tier reference program")
+	}
+}
+
+// TestBuildUserPrompt_NoOnTierExemplar verifies the exemplar callout is
+// suppressed when the leading reference does not match the athlete's tier
+// (e.g. coach-selected reference IDs that don't include an on-tier program).
+func TestBuildUserPrompt_NoOnTierExemplar(t *testing.T) {
+	tier := "intermediate"
+	athleteCtx := &AthleteContext{
+		Athlete: AthleteProfile{Name: "OffTier", Tier: &tier},
+		ReferencePrograms: []ReferenceProgramSummary{
+			{Name: "Foundations 1×20", Phase: "foundational", Audience: "youth"},
+		},
+	}
+	req := GenerationRequest{ProgramName: "X", NumWeeks: 1, NumDays: 2, IsLoop: true}
+
+	prompt, err := buildUserPrompt(athleteCtx, req)
+	if err != nil {
+		t.Fatalf("buildUserPrompt: %v", err)
+	}
+	if strings.Contains(prompt, "primary structural exemplar") {
+		t.Error("prompt should not call out a primary exemplar when no on-tier ref leads the list")
 	}
 }
