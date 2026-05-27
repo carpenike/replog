@@ -376,6 +376,56 @@ production, all schema changes are **additive** — new files
 `pressly/goose` runs them in order on startup. There is no manual
 migration step.
 
+### Idempotent boot-time data sync
+
+Sometimes a release ships new *data* (not just schema) that needs to
+land in both fresh installs and existing databases — new seed exercises,
+a new methodology, default rows for a newly-added enumeration. There
+are three patterns in this codebase; pick the lowest-friction one that
+fits:
+
+1. **Pure-SQL data migration (preferred for small, fixed enumerations).**
+   Put the `INSERT … ON CONFLICT DO NOTHING` directly in the goose `Up`
+   block of the same migration file that introduced the table or column.
+   Versioned, ordered, recorded in `goose_db_version`, and impossible to
+   skip. Use this when the data is short, intrinsic to the schema, and
+   unlikely to change after release. (Hypothetical: a fixed list of
+   notification types.)
+
+2. **Extend an existing idempotent seeder.** If the new entity belongs
+   to an existing seed file, add the row there and rely on the seeder's
+   idempotency. We have two today: `bootstrapCatalog`
+   (`internal/database/seed-catalog.json`) for the exercise / equipment
+   / program catalog, and `bootstrapMethodologies`
+   (`internal/database/seed-methodologies.json`) for the ADR 016
+   methodology rows. Both run on every startup and short-circuit when
+   the row exists.
+
+   **Re-seed drift caveat:** these seeders are additive in one
+   direction. New rows and new link entries propagate to existing
+   installs, but **removals and copy edits do not** — existing rows
+   are matched by their stable key and skipped without update, which
+   preserves manual coach edits. If you need to retire a row or push
+   a copy revision, do it explicitly via the model API or an additive
+   migration.
+
+3. **App-level backfill (last resort).** When the data must be derived
+   from existing rows or read from a Go-side source the seeder can't
+   reach, write a small idempotent boot hook in `cmd/replog/main.go`
+   that runs after migrations. The seam is: ship the table in the
+   migration, ship the data via the hook. The current example is
+   `backfillMovementPatterns` ([cmd/replog/main.go](../cmd/replog/main.go)),
+   which tags pre-existing exercises whose `bootstrapCatalog` already
+   short-circuited before ADR 016 Phase 1 added the
+   `exercise_movement_patterns` table.
+
+   Two rules every app-level backfill MUST follow: (a) be idempotent on
+   re-run, and (b) **preserve manual edits** — skip rows that show any
+   sign of human touch (e.g. "skip if any tag row already exists"
+   rather than "always sync from source"). The whole point of a
+   backfill is to bridge the gap once; it must never become a recurring
+   force-sync that clobbers coach work.
+
 ### Rolling back
 
 If a release misbehaves:

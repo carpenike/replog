@@ -79,6 +79,16 @@ type MethodologySeedResult struct {
 // program / equipment / exercise are reported in the result but do NOT
 // fail the import — the catalog may have evolved since the seed was
 // authored.
+//
+// Drift caveat (additive-only): the link-table writes use INSERT OR IGNORE,
+// so ADDING a row to allowed_patterns / allowed_equipment / allowed_exercises
+// / reference_programs in the seed file DOES propagate to existing installs
+// on next boot, but REMOVING a row does NOT — the old link survives. Same
+// goes for editing a methodology's `definition`, `name`, or `philosophy`:
+// existing rows are matched by `key` and skipped without update. If you need
+// to remove a link or rewrite copy on existing installs, do it explicitly via
+// the model API or an additive migration. This is intentional — it keeps
+// seed re-runs from clobbering manual coach edits.
 func ApplyMethodologySeed(db *sql.DB, seed *MethodologySeed) (*MethodologySeedResult, error) {
 	if seed == nil {
 		return nil, fmt.Errorf("models: ApplyMethodologySeed called with nil seed")
