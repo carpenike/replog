@@ -327,6 +327,20 @@ export interface AthleteEquipmentData {
   EquipmentName: string;
 }
 
+export interface LoginTokenData {
+  id: number;
+  label: string | null;
+  expires_at: string | null;
+  created_at: string;
+  expired: boolean;
+}
+
+export interface CreatedLoginToken {
+  id: number;
+  token: string;
+  url: string;
+}
+
 export interface TMSuggestion {
   exercise_id: number;
   exercise_name: string;

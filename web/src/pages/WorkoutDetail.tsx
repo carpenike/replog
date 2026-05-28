@@ -109,6 +109,13 @@ export function WorkoutDetail() {
       setReviewNotes('')
     },
   })
+  const clearReviewMutation = useMutation({
+    mutationFn: () => api.deleteReview(athleteId, wId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workout', athleteId, wId] })
+      queryClient.invalidateQueries({ queryKey: ['pending-reviews'] })
+    },
+  })
   if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load workout.</p>
   if (!data) return <p className="text-muted-foreground">Workout not found.</p>
@@ -349,10 +356,29 @@ export function WorkoutDetail() {
               </div>
             </div>
           ) : (
-            <Button variant="ghost" onClick={() => setShowReviewForm(true)}
-              className="text-sm text-primary hover:text-primary/80">
-              {workout.review_status ? 'Update Review' : 'Review Workout'}
-            </Button>
+            <div className="flex gap-2 items-center">
+              <Button variant="ghost" onClick={() => setShowReviewForm(true)}
+                className="text-sm text-primary hover:text-primary/80">
+                {workout.review_status ? 'Update Review' : 'Review Workout'}
+              </Button>
+              {workout.review_status && (
+                <Button
+                  variant="ghost"
+                  className="text-sm text-muted-foreground hover:text-destructive"
+                  disabled={clearReviewMutation.isPending}
+                  onClick={async () => {
+                    if (await confirm({
+                      title: 'Clear Review',
+                      description: 'Remove this review? The workout will return to pending.',
+                      confirmLabel: 'Clear',
+                      variant: 'danger',
+                    })) clearReviewMutation.mutate()
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
           )}
           </CardContent>
         </Card>

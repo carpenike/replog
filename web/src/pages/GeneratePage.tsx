@@ -145,10 +145,7 @@ export function GeneratePage() {
 
   const { data: formData } = useQuery({
     queryKey: ['generate-form', athleteId],
-    queryFn: () => fetch(`/api/athletes/${athleteId}/generate`, {
-      credentials: 'include',
-      headers: { Accept: 'application/json' },
-    }).then(r => r.json()) as Promise<GenerateFormData>,
+    queryFn: () => api.getGenerateForm(athleteId) as Promise<GenerateFormData>,
     enabled: !isNaN(athleteId) && step === 'form',
   })
 
@@ -199,12 +196,8 @@ export function GeneratePage() {
   useQuery({
     queryKey: ['generation', athleteId, generationId],
     queryFn: async () => {
-      const res = await fetch(`/api/athletes/${athleteId}/generations/${generationId}`, {
-        credentials: 'include',
-        headers: { Accept: 'application/json' },
-      })
-      if (!res.ok) throw new ApiError('failed to poll', res.status)
-      const data = (await res.json()) as Generation
+      if (generationId == null) throw new Error('no generation id')
+      const data = await api.pollGeneration(athleteId, generationId) as Generation
       setGeneration(data)
       if (data.status === 'succeeded') {
         setStep('preview')
@@ -248,17 +241,7 @@ export function GeneratePage() {
       if (methodologyId != null) {
         requestBody.methodology_id = methodologyId
       }
-      const res = await fetch(`/api/athletes/${athleteId}/generate`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new ApiError(err.error ?? 'Generation failed', res.status)
-      }
-      return res.json() as Promise<{ generation_id: number; status: Generation['status'] }>
+      return api.startGeneration(athleteId, requestBody) as Promise<{ generation_id: number; status: Generation['status'] }>
     },
     onSuccess: (data) => {
       setGenerationId(data.generation_id)
@@ -280,16 +263,8 @@ export function GeneratePage() {
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/athletes/${athleteId}/generations/${generationId}/cancel`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { Accept: 'application/json' },
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new ApiError(err.error ?? 'Cancel failed', res.status)
-      }
-      return res.json() as Promise<Generation>
+      if (generationId == null) throw new Error('no generation id')
+      return api.cancelGeneration(athleteId, generationId) as Promise<Generation>
     },
     onSuccess: () => {
       setStep('form')
@@ -300,17 +275,8 @@ export function GeneratePage() {
 
   const executeMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/athletes/${athleteId}/generations/${generationId}/execute`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: '{}',
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new ApiError(err.error ?? 'Execute failed', res.status)
-      }
-      return res.json() as Promise<ExecuteResult>
+      if (generationId == null) throw new Error('no generation id')
+      return api.executeGeneration(athleteId, generationId) as Promise<ExecuteResult>
     },
     onSuccess: (data) => {
       setExecResult(data)

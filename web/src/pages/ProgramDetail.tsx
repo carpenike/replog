@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 interface PrescribedSetData {
   id: number
+  exercise_id: number
   exercise_name: string
   week: number
   day: number
@@ -51,6 +52,11 @@ export function ProgramDetail() {
   const [ruleIncrement, setRuleIncrement] = useState('')
   const [copySourceWeek, setCopySourceWeek] = useState('')
   const [copyTargetWeek, setCopyTargetWeek] = useState('')
+  const [editingSetId, setEditingSetId] = useState<number | null>(null)
+  const [editReps, setEditReps] = useState('')
+  const [editPercent, setEditPercent] = useState('')
+  const [editAbsWeight, setEditAbsWeight] = useState('')
+  const [editNotes, setEditNotes] = useState('')
   const { data, isLoading, error } = useQuery({
     queryKey: ['program', programId],
     queryFn: () => api.getProgramTemplate(programId),
@@ -94,6 +100,35 @@ export function ProgramDetail() {
     mutationFn: (setId: number) => api.deletePrescribedSet(programId, setId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['program', programId] }),
   })
+  const updateSetMutation = useMutation({
+    mutationFn: (vars: { setId: number; data: PrescribedSetData }) => {
+      const reps = editReps ? parseInt(editReps) : null
+      const percentage = editPercent ? parseFloat(editPercent) : null
+      const absolute_weight = editAbsWeight ? parseFloat(editAbsWeight) : null
+      return api.updatePrescribedSet(programId, vars.setId, {
+        exercise_id: vars.data.exercise_id,
+        set_number: vars.data.set_number,
+        reps,
+        percentage,
+        absolute_weight,
+        rep_type: vars.data.rep_type,
+        notes: editNotes,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['program', programId] })
+      setEditingSetId(null)
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to update set'),
+  })
+
+  function beginEditSet(s: PrescribedSetData) {
+    setEditingSetId(s.id)
+    setEditReps(s.reps == null ? '' : String(s.reps))
+    setEditPercent(s.percentage == null ? '' : String(s.percentage))
+    setEditAbsWeight(s.absolute_weight == null ? '' : String(s.absolute_weight))
+    setEditNotes(s.notes ?? '')
+  }
   const addRuleMutation = useMutation({
     mutationFn: () => api.setProgressionRule(programId, parseInt(ruleExId), parseFloat(ruleIncrement)),
     onSuccess: () => {
@@ -187,20 +222,62 @@ export function ProgramDetail() {
                         <div key={exerciseName}>
                           <p className="text-sm font-medium">{exerciseName}</p>
                           <div className="mt-1 space-y-0.5">
-                            {exSets.map(s => (
-                              <div key={s.id} className="flex items-center justify-between">
-                                <p className="text-xs text-muted-foreground">
-                                  Set {s.set_number}: {formatSetInfo(s)}
-                                  {s.notes && ` — ${s.notes}`}
-                                </p>
-                                {editing && (
-                                  <Button variant="ghost" size="xs" onClick={async () => {
-                                    if (await confirm({ title: 'Delete Set', description: 'Remove this prescribed set?', confirmLabel: 'Delete', variant: 'danger' }))
-                                      deleteSetMutation.mutate(s.id)
-                                  }}>×</Button>
-                                )}
-                              </div>
-                            ))}
+                            {exSets.map(s => {
+                              if (editing && editingSetId === s.id) {
+                                return (
+                                  <div key={s.id} className="rounded-md border border-border bg-background p-2 my-1 space-y-2">
+                                    <div className="grid grid-cols-3 gap-2">
+                                      <div>
+                                        <Label className="text-xs">Reps</Label>
+                                        <Input type="number" min={1} value={editReps} onChange={e => setEditReps(e.target.value)} placeholder="AMRAP" />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs">%</Label>
+                                        <Input type="number" step="0.5" value={editPercent} onChange={e => setEditPercent(e.target.value)} />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs">Weight</Label>
+                                        <Input type="number" step="0.5" value={editAbsWeight} onChange={e => setEditAbsWeight(e.target.value)} />
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs">Notes</Label>
+                                      <Input type="text" value={editNotes} onChange={e => setEditNotes(e.target.value)} />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        type="button"
+                                        size="xs"
+                                        disabled={updateSetMutation.isPending}
+                                        onClick={() => updateSetMutation.mutate({ setId: s.id, data: s })}
+                                      >
+                                        {updateSetMutation.isPending ? 'Saving…' : 'Save'}
+                                      </Button>
+                                      <Button type="button" size="xs" variant="ghost" onClick={() => setEditingSetId(null)}>
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )
+                              }
+                              return (
+                                <div key={s.id} className="flex items-center justify-between">
+                                  <p className="text-xs text-muted-foreground">
+                                    Set {s.set_number}: {formatSetInfo(s)}
+                                    {s.notes && ` — ${s.notes}`}
+                                  </p>
+                                  {editing && (
+                                    <div className="flex gap-1">
+                                      <Button variant="ghost" size="xs" onClick={() => beginEditSet(s)}>✎</Button>
+                                      <Button variant="ghost" size="xs" onClick={async () => {
+                                        if (await confirm({ title: 'Delete Set', description: 'Remove this prescribed set?', confirmLabel: 'Delete', variant: 'danger' }))
+                                          deleteSetMutation.mutate(s.id)
+                                      }}>×</Button>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
                           </div>
                         </div>
                       ))}

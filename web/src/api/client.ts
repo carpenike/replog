@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, MissingTMData, Notification, PasskeyData, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, LoginTokenData, MissingTMData, Notification, PasskeyData, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 export interface DashboardStats {
   week_sessions: number;
@@ -254,6 +254,17 @@ class ApiClient {
     await this.request(`/api/athletes/${athleteId}/assignments/${assignmentId}/deactivate`, { method: 'POST' });
   }
 
+  // ReactivateAssignment creates a fresh active row for an exercise that was
+  // previously deactivated. Functionally equivalent to assignExercise (the
+  // schema's unique-WHERE-active=1 index lets inactive rows coexist), exposed
+  // separately to match the backend route.
+  async reactivateAssignment(athleteId: number, exerciseId: number, targetReps = 0): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/assignments/reactivate`, {
+      method: 'POST',
+      body: JSON.stringify({ exercise_id: exerciseId, target_reps: targetReps }),
+    });
+  }
+
   // Program Compatibility
   async checkProgramCompatibility(athleteId: number, templateId: number): Promise<ProgramCompatibilityData> {
     return this.request(`/api/athletes/${athleteId}/program-compatibility?template_id=${templateId}`);
@@ -380,6 +391,10 @@ class ApiClient {
     await this.request(`/api/programs/${programId}/sets`, { method: 'POST', body: JSON.stringify(data) });
   }
 
+  async updatePrescribedSet(programId: number, setId: number, data: { exercise_id: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
+    await this.request(`/api/programs/${programId}/sets/${setId}`, { method: 'PUT', body: JSON.stringify(data) });
+  }
+
   async deletePrescribedSet(programId: number, setId: number): Promise<void> {
     await this.request(`/api/programs/${programId}/sets/${setId}`, { method: 'DELETE' });
   }
@@ -399,6 +414,35 @@ class ApiClient {
 
   async listAthletePrograms(athleteId: number): Promise<unknown[]> {
     return this.request(`/api/athletes/${athleteId}/programs`);
+  }
+
+  // AI Coach generation (ADR 015) — page-specific shapes returned as
+  // `unknown` and cast at the call site; the inline GeneratePage types
+  // are the source of truth until the OpenAPI-generated client lands.
+  async getGenerateForm(athleteId: number): Promise<unknown> {
+    return this.request(`/api/athletes/${athleteId}/generate`);
+  }
+
+  async startGeneration(athleteId: number, body: Record<string, unknown>): Promise<unknown> {
+    return this.request(`/api/athletes/${athleteId}/generate`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async pollGeneration(athleteId: number, generationId: number): Promise<unknown> {
+    return this.request(`/api/athletes/${athleteId}/generations/${generationId}`);
+  }
+
+  async cancelGeneration(athleteId: number, generationId: number): Promise<unknown> {
+    return this.request(`/api/athletes/${athleteId}/generations/${generationId}/cancel`, { method: 'POST' });
+  }
+
+  async executeGeneration(athleteId: number, generationId: number): Promise<unknown> {
+    return this.request(`/api/athletes/${athleteId}/generations/${generationId}/execute`, {
+      method: 'POST',
+      body: '{}',
+    });
   }
 
   // Athlete Promotion
@@ -459,6 +503,22 @@ class ApiClient {
     });
   }
 
+  // Login tokens (admin) — magic-link issuance
+  async listLoginTokens(userId: number): Promise<LoginTokenData[]> {
+    return this.request<LoginTokenData[]>(`/api/users/${userId}/tokens`);
+  }
+
+  async createLoginToken(userId: number, label?: string): Promise<CreatedLoginToken> {
+    return this.request<CreatedLoginToken>(`/api/users/${userId}/tokens`, {
+      method: 'POST',
+      body: JSON.stringify({ label: label ?? '' }),
+    });
+  }
+
+  async deleteLoginToken(userId: number, tokenId: number): Promise<void> {
+    await this.request(`/api/users/${userId}/tokens/${tokenId}`, { method: 'DELETE' });
+  }
+
   // Journal
   async listJournalEntries(athleteId: number, limit = 50): Promise<JournalEntry[]> {
     return this.request<JournalEntry[]>(`/api/athletes/${athleteId}/journal?limit=${limit}`);
@@ -516,6 +576,10 @@ class ApiClient {
     });
   }
 
+  async deleteReview(athleteId: number, workoutId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/workouts/${workoutId}/review`, { method: 'DELETE' });
+  }
+
   // Program Assignment
   async assignProgram(athleteId: number, data: { template_id: number; start_date: string; role?: string; notes?: string; goal?: string; schedule?: string }): Promise<void> {
     await this.request(`/api/athletes/${athleteId}/programs`, {
@@ -546,6 +610,17 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async updateAccessoryPlan(athleteId: number, planId: number, data: { target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string; sort_order?: number }): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/accessories/${planId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deactivateAccessoryPlan(athleteId: number, planId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/accessories/${planId}/deactivate`, { method: 'POST' });
   }
 
   async deleteAccessoryPlan(athleteId: number, planId: number): Promise<void> {
