@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -249,6 +250,82 @@ func TestGenerateSubmit_AcceptsMethodologyID(t *testing.T) {
 	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), body, cookies)
 	requireStatus(t, rr, http.StatusAccepted)
 	env.Handlers.WaitForGenerations()
+}
+
+// TestGenerateFormData_SuggestsProgramName confirms HOF-007: the form-data
+// endpoint suggests "{AthleteName} — Block N" where N counts existing
+// athlete-scoped program templates. Fresh athlete starts at Block 1; after
+// the first generation imports as a template, the next suggestion is Block 2.
+func TestGenerateFormData_SuggestsProgramName(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Sammy", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	// Fresh athlete → Block 1.
+	rr := env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+	var got GenerateFormResponse
+	decodeJSON(t, rr, &got)
+	if got.SuggestedProgramName != "Sammy — Block 1" {
+		t.Errorf("first suggestion = %q, want %q", got.SuggestedProgramName, "Sammy — Block 1")
+	}
+
+	// Generate + execute → adds one athlete-scoped template.
+	genID := submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"Sammy — Block 1","num_days":3,"num_weeks":4}`)
+	executeRR := env.do(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/generations/%d/execute", athlete.ID, genID),
+		`{}`, cookies)
+	requireStatus(t, executeRR, http.StatusOK)
+
+	// Next suggestion bumps to Block 2.
+	rr = env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+	decodeJSON(t, rr, &got)
+	if got.SuggestedProgramName != "Sammy — Block 2" {
+		t.Errorf("after-import suggestion = %q, want %q", got.SuggestedProgramName, "Sammy — Block 2")
+	}
+}
+
+// TestGenerateSubmit_NormalizesNumWeeksWhenLooping is the regression guard
+// for HOF-007 D3's defense-in-depth amendment. A non-SPA client (notably
+// the HOF-004 MCP enqueue tool) might submit `is_loop: true` with
+// `num_weeks > 1`; the LLM prompt would silently ignore the value, so the
+// handler normalizes it to 1 (with a log line) before persisting the
+// request_json on the generation row.
+func TestGenerateSubmit_NormalizesNumWeeksWhenLooping(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Adult", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	// Submit the broken combo: is_loop=true AND num_weeks=12. Handler
+	// must accept (202) — silent normalize, not a 400.
+	genID := submitAndWait(t, env, athlete.ID, cookies,
+		`{"program_name":"X","num_days":3,"num_weeks":12,"is_loop":true}`)
+
+	// Read the persisted request_json off the generation row and confirm
+	// the normalize landed BEFORE the marshal.
+	gen, err := models.GetGeneration(env.DB, genID)
+	if err != nil {
+		t.Fatalf("get generation: %v", err)
+	}
+	var persisted struct {
+		NumWeeks int  `json:"num_weeks"`
+		IsLoop   bool `json:"is_loop"`
+	}
+	if err := json.Unmarshal([]byte(gen.RequestJSON), &persisted); err != nil {
+		t.Fatalf("decode persisted request_json: %v", err)
+	}
+	if !persisted.IsLoop {
+		t.Errorf("persisted IsLoop = false, want true (sanity)")
+	}
+	if persisted.NumWeeks != 1 {
+		t.Errorf("persisted NumWeeks = %d, want 1 (normalize-on-write failed)", persisted.NumWeeks)
+	}
 }
 
 // seedMethodologiesForTest applies the embedded catalog + methodology

@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 // Backend GenerationResponse shape (see internal/api/handlers_generate.go).
 // Kept inline so this page can run without waiting on `just openapi` to
@@ -82,6 +83,7 @@ interface GenerateFormData {
   latest_generation?: Generation
   available_methodologies?: MethodologyOption[]
   default_methodology_id?: number | null
+  suggested_program_name?: string
 }
 
 interface MethodologyOption {
@@ -114,7 +116,13 @@ export function GeneratePage() {
   const [programName, setProgramName] = useState('')
   const [numDays, setNumDays] = useState('3')
   const [numWeeks, setNumWeeks] = useState('4')
-  const [isLoop, setIsLoop] = useState(false)
+  // Schedule shape (ADR 016 HOF-007): 'fixed' = a multi-week block with an
+  // end date; 'loop' = one week's pattern that repeats indefinitely. The
+  // two are mutually exclusive — a radio matches that semantics, and the
+  // Weeks input HIDES on 'loop' (semantically inapplicable, not just
+  // disabled). On submit, looping always sends num_weeks: 1 — the
+  // backend also normalizes the same invariant for non-SPA clients.
+  const [schedule, setSchedule] = useState<'fixed' | 'loop'>('fixed')
   const [coachDirections, setCoachDirections] = useState('')
   const [focusAreas, setFocusAreas] = useState('')
   const [referenceIds, setReferenceIds] = useState<number[]>([])
@@ -155,6 +163,12 @@ export function GeneratePage() {
     // from the submit body, hitting the backend's generic-block fallback).
     if (formData.default_methodology_id != null) {
       setMethodologyId(formData.default_methodology_id)
+    }
+    // Suggested program name (HOF-007). Sticky: only set if the field is
+    // currently empty (the coach hasn't typed). Same defaultsApplied
+    // guard prevents re-suggesting on later renders.
+    if (formData.suggested_program_name && programName === '') {
+      setProgramName(formData.suggested_program_name)
     }
   }
 
@@ -217,10 +231,15 @@ export function GeneratePage() {
       // Build the request body. methodology_id is omitted when blank so
       // the backend's adult generic-block fallback path stays reachable
       // (ADR 016 D1; the field is *int64 omitempty on the Go side).
+      // For looping schedules, num_weeks is always 1 — the LLM prompt
+      // only emits num_weeks when !is_loop, so anything else would
+      // silently desync. (Backend also normalizes the invariant for
+      // non-SPA clients; see HOF-007 D3.)
+      const isLoop = schedule === 'loop'
       const requestBody: Record<string, unknown> = {
         program_name: programName,
         num_days: parseInt(numDays),
-        num_weeks: parseInt(numWeeks),
+        num_weeks: isLoop ? 1 : parseInt(numWeeks),
         is_loop: isLoop,
         coach_directions: coachDirections,
         focus_areas: focusAreas.split(',').map(s => s.trim()).filter(Boolean),
@@ -371,21 +390,44 @@ export function GeneratePage() {
           )}
           <div>
             <Label >Program Name *</Label>
-            <Input type="text" value={programName} onChange={e => setProgramName(e.target.value)} required placeholder="e.g. Sport Performance Block 5" />
+            <Input type="text" value={programName} onChange={e => setProgramName(e.target.value)} required placeholder="e.g. Ryan — Block 5" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label >Days/Week</Label>
-              <Input type="number" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} />
-            </div>
-            <div>
-              <Label >Weeks</Label>
-              <Input type="number" min={1} max={52} value={numWeeks} onChange={e => setNumWeeks(e.target.value)} />
-            </div>
+          <div>
+            <Label>Days/Week</Label>
+            <Input type="number" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} className="w-24" />
           </div>
-          <div className="flex items-center gap-2">
-            <Checkbox checked={isLoop} onCheckedChange={(checked) => setIsLoop(checked)} />
-            <Label>Loop (repeat week sequence)</Label>
+          <div>
+            <Label>Schedule</Label>
+            <RadioGroup
+              value={schedule}
+              onValueChange={(val: 'fixed' | 'loop' | null) => { if (val) setSchedule(val) }}
+              className="mt-2"
+            >
+              <Label className="flex items-center gap-2 font-normal">
+                <RadioGroupItem value="fixed" />
+                <span>Fixed block</span>
+                {schedule === 'fixed' && (
+                  <span className="flex items-center gap-2 ml-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={52}
+                      value={numWeeks}
+                      onChange={e => setNumWeeks(e.target.value)}
+                      className="w-20"
+                    />
+                    <span className="text-sm text-muted-foreground">weeks</span>
+                  </span>
+                )}
+              </Label>
+              <Label className="flex items-center gap-2 font-normal">
+                <RadioGroupItem value="loop" />
+                <span>
+                  Looping
+                  <span className="text-muted-foreground ml-1">— one week&apos;s pattern that repeats indefinitely</span>
+                </span>
+              </Label>
+            </RadioGroup>
           </div>
           <div>
             <Label >Coach Directions</Label>

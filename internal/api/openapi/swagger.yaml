@@ -582,6 +582,16 @@ definitions:
         items:
           $ref: '#/definitions/api.ProgramTemplate'
         type: array
+      suggested_program_name:
+        description: |-
+          SuggestedProgramName is the pre-filled value for the Program Name
+          input on the generate form (ADR 016 HOF-007). Format is
+          "{AthleteName} — Block N" where N is 1 + the count of athlete-scoped
+          program templates. The SPA pre-fills the input from this once at
+          form-load if the field is empty AND the coach hasn't typed; coach
+          can edit freely after. Omitted on the wire if the helper couldn't
+          resolve an athlete name.
+        type: string
     type: object
   api.GenerateSubmitRequest:
     properties:

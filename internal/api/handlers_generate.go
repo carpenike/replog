@@ -47,6 +47,14 @@ type GenerateFormResponse struct {
 	// sport_performance → yessis-sport-performance). Adults get null
 	// (no default — the selector is optional for adults; see HOF-006 D1).
 	DefaultMethodologyID *int64 `json:"default_methodology_id,omitempty"`
+	// SuggestedProgramName is the pre-filled value for the Program Name
+	// input on the generate form (ADR 016 HOF-007). Format is
+	// "{AthleteName} — Block N" where N is 1 + the count of athlete-scoped
+	// program templates. The SPA pre-fills the input from this once at
+	// form-load if the field is empty AND the coach hasn't typed; coach
+	// can edit freely after. Omitted on the wire if the helper couldn't
+	// resolve an athlete name.
+	SuggestedProgramName string `json:"suggested_program_name,omitempty"`
 }
 
 // MethodologyOption is the slim view of a methodology shown to the coach in
@@ -255,6 +263,12 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 	// see youth methodologies; adults see adult.
 	availableMethodologies, defaultMethodologyID := h.buildMethodologyOptions(athleteID)
 
+	// Suggested program name (ADR 016 HOF-007). "{Athlete} — Block N"
+	// where N = 1 + count of athlete-scoped program templates. SPA
+	// pre-fills the Program Name input from this if the field is empty
+	// and the coach hasn't typed.
+	suggestedName := h.buildSuggestedProgramName(athleteID)
+
 	WriteJSON(w, http.StatusOK, GenerateFormResponse{
 		Configured:             true,
 		AthleteContext:         athleteCtx,
@@ -264,6 +278,7 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 		LatestGeneration:       latest,
 		AvailableMethodologies: availableMethodologies,
 		DefaultMethodologyID:   defaultMethodologyID,
+		SuggestedProgramName:   suggestedName,
 	})
 }
 
@@ -346,6 +361,32 @@ func tierDefaultMethodologyKey(tier string) string {
 	return ""
 }
 
+// buildSuggestedProgramName resolves the pre-fill value for the generate
+// form's Program Name input (ADR 016 HOF-007). Format:
+//
+//	"{AthleteName} — Block N"
+//
+// where N = 1 + count of athlete-scoped program templates. Returns the
+// empty string when the athlete can't be loaded — the SPA treats that as
+// "no suggestion" and leaves the input blank. All-athlete counter scope
+// (NOT per-methodology) is a deliberate HOF-007 D3 decision; methodology
+// is already visible in the form selector + the catalog list, and
+// per-methodology would reintroduce reactive-rename gymnastics when the
+// coach switches methodologies mid-form.
+func (h *Handlers) buildSuggestedProgramName(athleteID int64) string {
+	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+	if err != nil {
+		return ""
+	}
+	n, err := models.CountAthleteScopedTemplates(h.DB, athleteID)
+	if err != nil {
+		// Non-fatal — fall through to "Block 1" rather than refusing to
+		// suggest a name. The coach can edit it.
+		n = 0
+	}
+	return fmt.Sprintf("%s — Block %d", athlete.Name, n+1)
+}
+
 // --- POST /athletes/{id}/generate ---
 
 // GenerateSubmit enqueues an AI Coach generation and returns immediately.
@@ -388,6 +429,21 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	if req.ProgramName == "" || req.NumDays < 1 || req.NumWeeks < 1 {
 		WriteError(w, http.StatusBadRequest, "program_name, num_days, and num_weeks are required")
 		return
+	}
+
+	// Normalize-on-write: a looping program is semantically one week's
+	// pattern that repeats indefinitely, so num_weeks MUST be 1 for the
+	// LLM prompt to be coherent (internal/llm/generate.go only emits
+	// NumWeeks when !IsLoop, so anything else is silently lost). The SPA
+	// hides the Weeks input on the Looping radio and always submits
+	// num_weeks=1, but non-SPA clients — notably HOF-004's
+	// replog_enqueue_program_generation MCP tool — aren't guarded. Silent
+	// normalize (not a 400) so the contract stays permissive; log line
+	// gives us a wild-path signal if anything in the wild was hitting
+	// the broken combo. ADR 016 HOF-007 D3 amendment.
+	if req.IsLoop && req.NumWeeks != 1 {
+		log.Printf("api: normalizing num_weeks=%d → 1 for looping generation (athlete=%d, program=%q)", req.NumWeeks, athleteID, req.ProgramName)
+		req.NumWeeks = 1
 	}
 
 	// Resolve the LLM provider up front so misconfiguration fails fast at
