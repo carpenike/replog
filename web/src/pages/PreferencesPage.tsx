@@ -6,6 +6,7 @@ import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -292,6 +293,9 @@ export function PreferencesPage() {
         </Card>
       )}
 
+      {/* Notification Preferences */}
+      <NotificationPreferencesCard />
+
       {/* Passkey Management */}
       <Card className="mt-8">
         <CardHeader>
@@ -360,5 +364,93 @@ export function PreferencesPage() {
       </Card>
       {confirmDialog()}
     </div>
+  )
+}
+
+// Notification type labels — mirror models.AllNotificationTypes in Go.
+// The API returns only `type`/`in_app`/`external`; labels live client-side
+// so unknown types still render with a sensible fallback.
+const NOTIFICATION_TYPE_META: Record<string, { label: string; description: string }> = {
+  review_submitted:    { label: 'Workout Reviewed',       description: 'When a coach reviews your workout' },
+  program_assigned:    { label: 'Program Assigned',       description: 'When a new program is assigned to you' },
+  tm_updated:          { label: 'Training Max Updated',   description: 'When a training max is updated' },
+  note_added:          { label: 'Coach Note Added',       description: 'When a coach adds a public note' },
+  workout_logged:      { label: 'Workout Logged',         description: 'When an athlete logs a workout' },
+  magic_link_sent:     { label: 'Login Link Sent',        description: 'When a login link is generated for you' },
+  generation_complete: { label: 'AI Coach Draft Ready',   description: 'When an AI Coach program draft finishes generating' },
+  generation_failed:   { label: 'AI Coach Draft Failed',  description: 'When an AI Coach program draft fails to generate' },
+}
+
+function NotificationPreferencesCard() {
+  const queryClient = useQueryClient()
+  const { data: prefs, isLoading } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: () => api.listNotificationPreferences(),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (vars: { type: string; in_app: boolean; external: boolean }) =>
+      api.updateNotificationPreference(vars.type, vars.in_app, vars.external),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notification-preferences'] }),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Failed to update preference'),
+  })
+
+  return (
+    <Card className="mt-8">
+      <CardHeader>
+        <CardTitle>Notifications</CardTitle>
+        <CardDescription>
+          Choose which events alert you in-app and which also send to your configured external channel.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Spinner />
+        ) : prefs && prefs.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Event</TableHead>
+                <TableHead className="w-24 text-center">In-app</TableHead>
+                <TableHead className="w-24 text-center">External</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {prefs.map(p => {
+                const meta = NOTIFICATION_TYPE_META[p.type] ?? { label: p.type, description: '' }
+                return (
+                  <TableRow key={p.type}>
+                    <TableCell>
+                      <p className="font-medium">{meta.label}</p>
+                      {meta.description && (
+                        <p className="text-xs text-muted-foreground">{meta.description}</p>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={p.in_app}
+                        onCheckedChange={(checked) =>
+                          updateMutation.mutate({ type: p.type, in_app: checked, external: p.external })
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={p.external}
+                        onCheckedChange={(checked) =>
+                          updateMutation.mutate({ type: p.type, in_app: p.in_app, external: checked })
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-sm text-muted-foreground">No notification types available.</p>
+        )}
+      </CardContent>
+    </Card>
   )
 }

@@ -359,6 +359,9 @@ export function AthleteDetail() {
           </details>
         )}
       </div>
+      {/* Equipment (coach only) */}
+      {isCoach && <AthleteEquipmentSection athleteId={athleteId} />}
+
       {/* Training Maxes */}
       {trainingMaxes && trainingMaxes.length > 0 && (
         <div className="mb-6">
@@ -408,6 +411,112 @@ export function AthleteDetail() {
           </div>
         )}
       </div>
+      {confirmDialog()}
+    </div>
+  )
+}
+
+function AthleteEquipmentSection({ athleteId }: { athleteId: number }) {
+  const queryClient = useQueryClient()
+  const { confirm, dialog: confirmDialog } = useConfirm()
+  const [selectedId, setSelectedId] = useState('')
+
+  const { data: owned, isLoading } = useQuery({
+    queryKey: ['athlete-equipment', athleteId],
+    queryFn: () => api.listAthleteEquipment(athleteId),
+    enabled: !isNaN(athleteId),
+  })
+
+  const { data: all } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: () => api.listEquipment(),
+  })
+
+  const addMutation = useMutation({
+    mutationFn: (equipmentId: number) => api.addAthleteEquipment(athleteId, equipmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['athlete-equipment', athleteId] })
+      setSelectedId('')
+    },
+  })
+
+  const removeMutation = useMutation({
+    mutationFn: (equipmentId: number) => api.removeAthleteEquipment(athleteId, equipmentId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['athlete-equipment', athleteId] }),
+  })
+
+  const ownedIds = new Set(owned?.map(o => o.EquipmentID) ?? [])
+  const available = all?.filter(e => !ownedIds.has(e.id)) ?? []
+
+  return (
+    <div className="mb-6">
+      <h2 className="text-lg font-semibold mb-2">Equipment</h2>
+      <p className="text-xs text-muted-foreground mb-3">
+        Tracks what this athlete has access to. Used by the program compatibility check.
+      </p>
+      {isLoading ? (
+        <Spinner />
+      ) : owned && owned.length > 0 ? (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {owned.map(e => (
+            <span
+              key={e.ID}
+              className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-sm"
+            >
+              {e.EquipmentName}
+              <button
+                type="button"
+                onClick={async () => {
+                  if (await confirm({
+                    title: 'Remove Equipment',
+                    description: `Remove ${e.EquipmentName} from this athlete's inventory?`,
+                    confirmLabel: 'Remove',
+                    variant: 'danger',
+                  })) removeMutation.mutate(e.EquipmentID)
+                }}
+                className="ml-1 text-muted-foreground hover:text-destructive"
+                aria-label={`Remove ${e.EquipmentName}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground mb-3">No equipment assigned.</p>
+      )}
+      {available.length > 0 && (
+        <div className="flex gap-2 items-end max-w-md">
+          <div className="flex-1">
+            <Label>Add equipment</Label>
+            <Select
+              value={selectedId || null}
+              onValueChange={(val) => setSelectedId(val ?? '')}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select...">
+                  {(value: string | null) => {
+                    if (!value) return 'Select...'
+                    return available.find(e => String(e.id) === value)?.name ?? value
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {available.map(e => (
+                  <SelectItem key={e.id} value={String(e.id)}>{e.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            type="button"
+            onClick={() => addMutation.mutate(parseInt(selectedId))}
+            disabled={!selectedId || addMutation.isPending}
+          >
+            Add
+          </Button>
+        </div>
+      )}
       {confirmDialog()}
     </div>
   )

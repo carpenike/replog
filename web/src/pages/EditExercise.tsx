@@ -142,7 +142,163 @@ export function EditExercise() {
           </Button>
         </div>
       </form>
+
+      <div className="mt-8">
+        <ExerciseEquipmentSection exerciseId={exerciseId} />
+      </div>
+
       {confirmDialog()}
     </div>
+  )
+}
+
+function ExerciseEquipmentSection({ exerciseId }: { exerciseId: number }) {
+  const queryClient = useQueryClient()
+  const { confirm, dialog: confirmDialog } = useConfirm()
+  const [selectedId, setSelectedId] = useState('')
+  const [optional, setOptional] = useState(false)
+
+  const { data: linked, isLoading } = useQuery({
+    queryKey: ['exercise-equipment', exerciseId],
+    queryFn: () => api.listExerciseEquipment(exerciseId),
+    enabled: !isNaN(exerciseId),
+  })
+
+  const { data: all } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: () => api.listEquipment(),
+  })
+
+  const addMutation = useMutation({
+    mutationFn: (equipmentId: number) => api.addExerciseEquipment(exerciseId, equipmentId, optional),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exercise-equipment', exerciseId] })
+      setSelectedId('')
+      setOptional(false)
+    },
+  })
+
+  const removeMutation = useMutation({
+    mutationFn: (equipmentId: number) => api.removeExerciseEquipment(exerciseId, equipmentId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['exercise-equipment', exerciseId] }),
+  })
+
+  const linkedIds = new Set(linked?.map(l => l.EquipmentID) ?? [])
+  const available = all?.filter(e => !linkedIds.has(e.id)) ?? []
+  const required = linked?.filter(l => !l.Optional) ?? []
+  const opt = linked?.filter(l => l.Optional) ?? []
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold mb-1">Equipment Requirements</h2>
+      <p className="text-xs text-muted-foreground mb-3">
+        Used by the program compatibility check to confirm athletes have what they need.
+      </p>
+
+      {isLoading ? (
+        <Spinner />
+      ) : (
+        <div className="space-y-3 mb-4">
+          {required.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Required</p>
+              <div className="flex flex-wrap gap-2">
+                {required.map(l => (
+                  <EquipmentChip
+                    key={l.ID}
+                    name={l.EquipmentName}
+                    onRemove={async () => {
+                      if (await confirm({ title: 'Remove Equipment', description: `Remove ${l.EquipmentName} from this exercise?`, confirmLabel: 'Remove', variant: 'danger' }))
+                        removeMutation.mutate(l.EquipmentID)
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          {opt.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Optional</p>
+              <div className="flex flex-wrap gap-2">
+                {opt.map(l => (
+                  <EquipmentChip
+                    key={l.ID}
+                    name={l.EquipmentName}
+                    variant="outline"
+                    onRemove={async () => {
+                      if (await confirm({ title: 'Remove Equipment', description: `Remove ${l.EquipmentName} from this exercise?`, confirmLabel: 'Remove', variant: 'danger' }))
+                        removeMutation.mutate(l.EquipmentID)
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          {required.length === 0 && opt.length === 0 && (
+            <p className="text-sm text-muted-foreground">No equipment linked.</p>
+          )}
+        </div>
+      )}
+
+      {available.length > 0 && (
+        <div className="flex gap-2 items-end max-w-md flex-wrap">
+          <div className="flex-1 min-w-50">
+            <Label>Add equipment</Label>
+            <Select
+              value={selectedId || null}
+              onValueChange={(val) => setSelectedId(val ?? '')}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select...">
+                  {(value: string | null) => {
+                    if (!value) return 'Select...'
+                    return available.find(e => String(e.id) === value)?.name ?? value
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {available.map(e => (
+                  <SelectItem key={e.id} value={String(e.id)}>{e.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2 pb-2">
+            <Checkbox id="opt-equip" checked={optional} onCheckedChange={(checked) => setOptional(checked)} />
+            <Label htmlFor="opt-equip">Optional</Label>
+          </div>
+          <Button
+            type="button"
+            onClick={() => addMutation.mutate(parseInt(selectedId))}
+            disabled={!selectedId || addMutation.isPending}
+          >
+            Add
+          </Button>
+        </div>
+      )}
+      {confirmDialog()}
+    </div>
+  )
+}
+
+function EquipmentChip({ name, onRemove, variant }: { name: string; onRemove: () => void; variant?: 'outline' }) {
+  return (
+    <span
+      className={
+        variant === 'outline'
+          ? 'inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-sm'
+          : 'inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-sm'
+      }
+    >
+      {name}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="ml-1 text-muted-foreground hover:text-destructive"
+        aria-label={`Remove ${name}`}
+      >
+        ×
+      </button>
+    </span>
   )
 }

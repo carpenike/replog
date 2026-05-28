@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { api } from '@/api/client'
 import type { ProgramTemplate } from '@/api/types'
 import { Spinner } from '@/components/ui'
@@ -48,6 +49,8 @@ export function ProgramDetail() {
   const [showAddRule, setShowAddRule] = useState(false)
   const [ruleExId, setRuleExId] = useState('')
   const [ruleIncrement, setRuleIncrement] = useState('')
+  const [copySourceWeek, setCopySourceWeek] = useState('')
+  const [copyTargetWeek, setCopyTargetWeek] = useState('')
   const { data, isLoading, error } = useQuery({
     queryKey: ['program', programId],
     queryFn: () => api.getProgramTemplate(programId),
@@ -103,6 +106,16 @@ export function ProgramDetail() {
   const deleteRuleMutation = useMutation({
     mutationFn: (ruleId: number) => api.deleteProgressionRule(programId, ruleId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['program-rules', programId] }),
+  })
+  const copyWeekMutation = useMutation({
+    mutationFn: () => api.copyWeek(programId, parseInt(copySourceWeek), parseInt(copyTargetWeek)),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['program', programId] })
+      toast.success(`Copied ${res.sets_copied} set${res.sets_copied !== 1 ? 's' : ''} to week ${copyTargetWeek}`)
+      setCopySourceWeek('')
+      setCopyTargetWeek('')
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to copy week'),
   })
   if (isLoading) return <Spinner />
   if (error) return <p className="text-destructive">Failed to load program.</p>
@@ -260,6 +273,65 @@ export function ProgramDetail() {
           </form>
         )}
       </div>
+      )}
+      {/* Copy Week */}
+      {editing && program.num_weeks > 1 && (
+        <div className="mt-6">
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!copySourceWeek || !copyTargetWeek) return
+              const target = parseInt(copyTargetWeek)
+              const targetHasSets = sets.some(s => s.week === target)
+              if (targetHasSets) {
+                const ok = await confirm({
+                  title: 'Target Week Has Sets',
+                  description: `Week ${target} already has prescribed sets. The copied sets will be added alongside them.`,
+                  confirmLabel: 'Copy anyway',
+                })
+                if (!ok) return
+              }
+              copyWeekMutation.mutate()
+            }}
+            className="rounded-lg border border-border bg-card p-4 flex flex-wrap gap-3 items-end"
+          >
+            <div>
+              <Label>Copy from week</Label>
+              <Select value={copySourceWeek || null} onValueChange={(val) => setCopySourceWeek(val ?? '')}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: program.num_weeks }, (_, i) => i + 1).map(w => (
+                    <SelectItem key={w} value={String(w)}>Week {w}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>To week</Label>
+              <Select value={copyTargetWeek || null} onValueChange={(val) => setCopyTargetWeek(val ?? '')}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Target" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: program.num_weeks }, (_, i) => i + 1)
+                    .filter(w => String(w) !== copySourceWeek)
+                    .map(w => (
+                      <SelectItem key={w} value={String(w)}>Week {w}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={!copySourceWeek || !copyTargetWeek || copyWeekMutation.isPending}
+            >
+              {copyWeekMutation.isPending ? 'Copying...' : 'Copy week'}
+            </Button>
+          </form>
+        </div>
       )}
       {/* Progression Rules */}
       <div className="mt-8">
