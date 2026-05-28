@@ -389,6 +389,7 @@ erDiagram
 | `athlete_id`   | INTEGER      | NULL, FK → athletes(id)              |
 | `is_coach`     | INTEGER      | NOT NULL DEFAULT 0, CHECK(is_coach IN (0, 1)) |
 | `is_admin`     | INTEGER      | NOT NULL DEFAULT 0, CHECK(is_admin IN (0, 1)) |
+| `mcp_enabled`  | INTEGER      | NOT NULL DEFAULT 0, CHECK(mcp_enabled IN (0, 1)) |
 | `avatar_path`  | TEXT         | NULL                                 |
 | `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -400,6 +401,7 @@ erDiagram
 - `avatar_path` stores the relative path to the user's uploaded avatar image. NULL if no avatar has been uploaded.
 - `COLLATE NOCASE` prevents "Admin" and "admin" or duplicate emails.
 - Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL` env vars with `is_coach = 1`.
+- `mcp_enabled` gates whether the user may act through the MCP layer (ADR 017). Default-deny; an admin toggles it per user via `PUT /api/users/{userID}/mcp`. Added in migration `0005`. Identity for MCP requests is a short-TTL JWT minted by the `homelab-mcp` OAuth AS and verified against its JWKS — RepLog stores no per-user MCP token.
 
 ### `user_preferences`
 
@@ -833,6 +835,7 @@ CREATE TABLE IF NOT EXISTS users (
     athlete_id      INTEGER REFERENCES athletes(id) ON DELETE SET NULL,
     is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
     is_admin        INTEGER NOT NULL DEFAULT 0 CHECK(is_admin IN (0, 1)),
+    mcp_enabled     INTEGER NOT NULL DEFAULT 0 CHECK(mcp_enabled IN (0, 1)),
     avatar_path     TEXT,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

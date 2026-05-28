@@ -20,3 +20,4 @@ Architecture Decision Records for RepLog.
 | [014](014-login-lockout.md) | Per-Account Login Lockout | Accepted | 2026-05-12 |
 | [015](015-async-ai-coach.md) | Async AI Coach Generation | Accepted | 2026-05-26 |
 | [016](016-training-methodology.md) | First-Class Training Methodology | Accepted | 2026-05-27 |
+| [017](017-mcp-layer.md) | MCP Layer: RepLog as an OAuth Resource Server | Accepted | 2026-05-27 |
