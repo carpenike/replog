@@ -1958,6 +1958,10 @@ paths:
         name: id
         required: true
         type: integer
+      - description: Include previously deactivated assignments
+        in: query
+        name: include_inactive
+        type: boolean
       produces:
       - application/json
       responses:

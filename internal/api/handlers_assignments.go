@@ -13,12 +13,16 @@ import (
 // --- Exercise Assignments ---
 
 // ListAssignments returns active exercise assignments for an athlete.
-// ListAssignments returns all exercise assignments for an athlete (active and inactive).
+// ListAssignments returns exercise assignments for an athlete. By default
+// returns only active assignments; pass `?include_inactive=true` to also
+// include previously deactivated rows (latest per exercise — used by the
+// SPA to offer reactivation).
 //
 //	@Summary      List exercise assignments
 //	@Tags         Athletes
 //	@Produce      json
-//	@Param        id   path      int  true  "Athlete ID"
+//	@Param        id                path      int     true   "Athlete ID"
+//	@Param        include_inactive  query     bool    false  "Include previously deactivated assignments"
 //	@Success      200  {array}   api.AthleteExercise
 //	@Failure      400  {object}  api.APIError
 //	@Failure      403  {object}  api.APIError
@@ -40,6 +44,16 @@ func (h *Handlers) ListAssignments(w http.ResponseWriter, r *http.Request) {
 		log.Printf("api: list assignments for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list assignments")
 		return
+	}
+
+	if r.URL.Query().Get("include_inactive") == "true" {
+		inactive, err := models.ListDeactivatedAssignments(h.DB, athleteID)
+		if err != nil {
+			log.Printf("api: list deactivated assignments for athlete %d: %v", athleteID, err)
+			WriteError(w, http.StatusInternalServerError, "failed to list assignments")
+			return
+		}
+		assignments = append(assignments, inactive...)
 	}
 
 	result := make([]*AthleteExercise, len(assignments))

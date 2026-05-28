@@ -242,8 +242,9 @@ class ApiClient {
   }
 
   // Assignments
-  async listAssignments(athleteId: number): Promise<AthleteExerciseData[]> {
-    return this.request(`/api/athletes/${athleteId}/assignments`);
+  async listAssignments(athleteId: number, includeInactive = false): Promise<AthleteExerciseData[]> {
+    const qs = includeInactive ? '?include_inactive=true' : ''
+    return this.request(`/api/athletes/${athleteId}/assignments${qs}`);
   }
 
   async assignExercise(athleteId: number, exerciseId: number, targetReps = 0): Promise<void> {

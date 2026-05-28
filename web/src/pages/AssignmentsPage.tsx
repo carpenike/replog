@@ -23,8 +23,8 @@ export function AssignmentsPage() {
     enabled: !isNaN(athleteId),
   })
   const { data: assignments, isLoading } = useQuery({
-    queryKey: ['assignments', athleteId],
-    queryFn: () => api.listAssignments(athleteId),
+    queryKey: ['assignments', athleteId, 'all'],
+    queryFn: () => api.listAssignments(athleteId, true),
     enabled: !isNaN(athleteId),
   })
   const { data: exercises } = useQuery({
@@ -35,7 +35,7 @@ export function AssignmentsPage() {
   const assignMutation = useMutation({
     mutationFn: () => api.assignExercise(athleteId, parseInt(exerciseId), targetReps ? parseInt(targetReps) : 0),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignments', athleteId] })
+      queryClient.invalidateQueries({ queryKey: ['assignments', athleteId, 'all'] })
       setExerciseId('')
       setTargetReps('')
       setShowAdd(false)
@@ -43,9 +43,16 @@ export function AssignmentsPage() {
   })
   const deactivateMutation = useMutation({
     mutationFn: (assignmentId: number) => api.deactivateAssignment(athleteId, assignmentId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assignments', athleteId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assignments', athleteId, 'all'] }),
+  })
+  const reactivateMutation = useMutation({
+    mutationFn: (vars: { exerciseId: number; targetReps: number }) =>
+      api.reactivateAssignment(athleteId, vars.exerciseId, vars.targetReps),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assignments', athleteId, 'all'] }),
   })
   if (isLoading) return <Spinner />
+  const active = (assignments ?? []).filter(a => a.active)
+  const inactive = (assignments ?? []).filter(a => !a.active)
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-1">
@@ -88,12 +95,12 @@ export function AssignmentsPage() {
           </Button>
         </form>
       )}
-      {assignments && assignments.length === 0 ? (
+      {active.length === 0 ? (
         <p className="text-muted-foreground">No active exercise assignments.</p>
       ) : (
         <div className="space-y-2">
-          {assignments?.map(a => (
-            <Card size="sm" className="flex items-center justify-between">
+          {active.map(a => (
+            <Card key={a.id} size="sm" className="flex items-center justify-between">
               <CardContent>
               <div>
                 <p className="text-sm font-medium">{a.exercise_name}</p>
@@ -112,6 +119,36 @@ export function AssignmentsPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {inactive.length > 0 && (
+        <details className="mt-6">
+          <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+            {inactive.length} previously assigned exercise{inactive.length !== 1 ? 's' : ''}
+          </summary>
+          <div className="mt-2 space-y-1">
+            {inactive.map(a => (
+              <div key={a.id} className="flex items-center justify-between py-1 text-sm text-muted-foreground">
+                <span>
+                  {a.exercise_name}
+                  {a.target_reps ? ` • ${a.target_reps} reps` : ''}
+                  {a.deactivated_at ? ` • ended ${new Date(a.deactivated_at).toLocaleDateString()}` : ''}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  disabled={reactivateMutation.isPending}
+                  onClick={() => reactivateMutation.mutate({
+                    exerciseId: a.exercise_id,
+                    targetReps: a.target_reps ?? 0,
+                  })}
+                >
+                  ↩ Reactivate
+                </Button>
+              </div>
+            ))}
+          </div>
+        </details>
       )}
       {confirmDialog()}
     </div>
