@@ -298,6 +298,92 @@ func PitchSmartStatusFromModel(m *models.PitchSmartStatus) *PitchSmartStatus {
 	}
 }
 
+// ConditioningSessionFromModel converts a models.ConditioningSession to its API shape.
+func ConditioningSessionFromModel(m *models.ConditioningSession) *ConditioningSession {
+	intervals := make([]*ConditioningInterval, len(m.Intervals))
+	for i, iv := range m.Intervals {
+		intervals[i] = &ConditioningInterval{
+			ID:             iv.ID,
+			IntervalNumber: iv.IntervalNumber,
+			WorkSeconds:    nullInt(iv.WorkSeconds),
+			WorkDistance:   nullFloat(iv.WorkDistance),
+			RestSeconds:    nullInt(iv.RestSeconds),
+			Notes:          nullStr(iv.Notes),
+		}
+	}
+	return &ConditioningSession{
+		ID:              m.ID,
+		WorkoutID:       m.WorkoutID,
+		AthleteID:       m.AthleteID,
+		Date:            fmtDate(m.Date),
+		Modality:        m.Modality,
+		SessionType:     m.SessionType,
+		TotalDistance:   nullFloat(m.TotalDistance),
+		DistanceUnit:    nullStr(m.DistanceUnit),
+		DurationSeconds: nullInt(m.DurationSeconds),
+		AvgHR:           nullInt(m.AvgHR),
+		RPE:             nullFloat(m.RPE),
+		Notes:           nullStr(m.Notes),
+		Intervals:       intervals,
+		CreatedAt:       fmtTime(m.CreatedAt),
+		UpdatedAt:       fmtTime(m.UpdatedAt),
+	}
+}
+
+// SkillSessionFromModel converts a models.SkillSession to its API shape.
+func SkillSessionFromModel(m *models.SkillSession) *SkillSession {
+	return &SkillSession{
+		ID:              m.ID,
+		WorkoutID:       m.WorkoutID,
+		AthleteID:       m.AthleteID,
+		Date:            fmtDate(m.Date),
+		SkillType:       m.SkillType,
+		RepCount:        nullInt(m.RepCount),
+		LoadKg:          nullFloat(m.LoadKg),
+		Velocity:        nullFloat(m.Velocity),
+		DurationSeconds: nullInt(m.DurationSeconds),
+		Notes:           nullStr(m.Notes),
+		CreatedAt:       fmtTime(m.CreatedAt),
+		UpdatedAt:       fmtTime(m.UpdatedAt),
+	}
+}
+
+// RecoveryCheckinFromModel converts a models.RecoveryCheckin to its API shape.
+func RecoveryCheckinFromModel(m *models.RecoveryCheckin) *RecoveryCheckin {
+	return &RecoveryCheckin{
+		ID:         m.ID,
+		WorkoutID:  m.WorkoutID,
+		AthleteID:  m.AthleteID,
+		Date:       fmtDate(m.Date),
+		SleepHours: nullFloat(m.SleepHours),
+		Soreness:   nullInt(m.Soreness),
+		Energy:     nullInt(m.Energy),
+		Notes:      nullStr(m.Notes),
+		CreatedAt:  fmtTime(m.CreatedAt),
+		UpdatedAt:  fmtTime(m.UpdatedAt),
+	}
+}
+
+// LoadSummaryFromModel converts a models.LoadSummary to its API shape.
+func LoadSummaryFromModel(m *models.LoadSummary) *LoadSummary {
+	disciplines := make([]*DisciplineLoad, len(m.Disciplines))
+	for i, d := range m.Disciplines {
+		disciplines[i] = &DisciplineLoad{
+			Discipline: d.Discipline,
+			Unit:       d.Unit,
+			Acute7:     d.Acute7,
+			Chronic28:  d.Chronic28,
+			ACWR:       d.ACWR,
+			Marker:     d.Marker,
+		}
+	}
+	return &LoadSummary{
+		AthleteID:   m.AthleteID,
+		AsOf:        m.AsOf,
+		Disciplines: disciplines,
+	}
+}
+
 // ProgramTemplateFromModel converts a models.ProgramTemplate to an API ProgramTemplate.
 func ProgramTemplateFromModel(m *models.ProgramTemplate) *ProgramTemplate {
 	return &ProgramTemplate{

@@ -391,6 +391,18 @@ func main() {
 			r.Post("/athletes/{id}/bio-samples", apiHandlers.CreateBioSample)
 			r.Get("/athletes/{id}/pitch-smart", apiHandlers.GetPitchSmartStatus)
 
+			// Multi-modal logbook, Phase 2 (ADR 018).
+			r.Get("/athletes/{id}/conditioning-sessions", apiHandlers.ListConditioningSessions)
+			r.Post("/athletes/{id}/conditioning-sessions", apiHandlers.CreateConditioningSession)
+			r.Delete("/athletes/{id}/conditioning-sessions/{sessionID}", apiHandlers.DeleteConditioningSession)
+			r.Get("/athletes/{id}/skill-sessions", apiHandlers.ListSkillSessions)
+			r.Post("/athletes/{id}/skill-sessions", apiHandlers.CreateSkillSession)
+			r.Delete("/athletes/{id}/skill-sessions/{sessionID}", apiHandlers.DeleteSkillSession)
+			r.Get("/athletes/{id}/recovery-checkins", apiHandlers.ListRecoveryCheckins)
+			r.Post("/athletes/{id}/recovery-checkins", apiHandlers.CreateRecoveryCheckin)
+			r.Delete("/athletes/{id}/recovery-checkins/{checkinID}", apiHandlers.DeleteRecoveryCheckin)
+			r.Get("/athletes/{id}/load", apiHandlers.GetLoadSummary)
+
 			// Training Maxes.
 			r.Get("/athletes/{id}/training-maxes", apiHandlers.ListTrainingMaxes)
 			r.Post("/athletes/{id}/training-maxes", apiHandlers.CreateTrainingMax)

@@ -10,7 +10,7 @@ import (
 // and determines which detail fields are populated.
 type JournalEntry struct {
 	Date    string // YYYY-MM-DD
-	Type    string // "workout", "throwing", "season_phase", "body_weight", "training_max", "goal_change", "tier_change", "program_start", "review", "note"
+	Type    string // "workout", "throwing", "conditioning", "skill", "recovery", "season_phase", "body_weight", "training_max", "goal_change", "tier_change", "program_start", "review", "note"
 	Summary string // Human-readable one-line summary
 	ID      int64  // Source row ID (for linking)
 
@@ -103,6 +103,79 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       0 AS author_id
 			FROM athlete_season_phases sp
 			WHERE sp.athlete_id = ?
+
+			UNION ALL
+
+			-- Conditioning Sessions (ADR 018)
+			SELECT w.date AS date,
+			       'conditioning' AS type,
+			       'Conditioning: ' || cs.modality || ' (' || cs.session_type || ')' ||
+			           CASE WHEN cs.total_distance IS NOT NULL
+			                THEN ' ' || CAST(cs.total_distance AS TEXT) ||
+			                     COALESCE(cs.distance_unit, '')
+			                ELSE '' END ||
+			           CASE WHEN cs.duration_seconds IS NOT NULL
+			                THEN ' ' || CAST(cs.duration_seconds / 60 AS TEXT) || ' min'
+			                ELSE '' END AS summary,
+			       w.id AS id,
+			       COALESCE(cs.notes, '') AS detail,
+			       0 AS is_private,
+			       0 AS pinned,
+			       cs.id AS second_id,
+			       '' AS author,
+			       0 AS author_id
+			FROM conditioning_sessions cs
+			JOIN workouts w ON w.id = cs.workout_id
+			WHERE w.athlete_id = ?
+
+			UNION ALL
+
+			-- Skill Sessions (ADR 018)
+			SELECT w.date AS date,
+			       'skill' AS type,
+			       'Skill: ' || ss.skill_type ||
+			           CASE WHEN ss.rep_count IS NOT NULL
+			                THEN ' (' || CAST(ss.rep_count AS TEXT) || ' reps)'
+			                ELSE '' END ||
+			           CASE WHEN ss.load_kg IS NOT NULL
+			                THEN ' @ ' || CAST(ss.load_kg AS TEXT) || ' kg'
+			                ELSE '' END AS summary,
+			       w.id AS id,
+			       COALESCE(ss.notes, '') AS detail,
+			       0 AS is_private,
+			       0 AS pinned,
+			       ss.id AS second_id,
+			       '' AS author,
+			       0 AS author_id
+			FROM skill_sessions ss
+			JOIN workouts w ON w.id = ss.workout_id
+			WHERE w.athlete_id = ?
+
+			UNION ALL
+
+			-- Recovery Check-ins (ADR 018)
+			SELECT w.date AS date,
+			       'recovery' AS type,
+			       'Recovery check-in' ||
+			           CASE WHEN rc.sleep_hours IS NOT NULL
+			                THEN ': ' || CAST(rc.sleep_hours AS TEXT) || 'h sleep'
+			                ELSE '' END ||
+			           CASE WHEN rc.soreness IS NOT NULL
+			                THEN ', soreness ' || CAST(rc.soreness AS TEXT) || '/10'
+			                ELSE '' END ||
+			           CASE WHEN rc.energy IS NOT NULL
+			                THEN ', energy ' || CAST(rc.energy AS TEXT) || '/10'
+			                ELSE '' END AS summary,
+			       w.id AS id,
+			       COALESCE(rc.notes, '') AS detail,
+			       0 AS is_private,
+			       0 AS pinned,
+			       rc.id AS second_id,
+			       '' AS author,
+			       0 AS author_id
+			FROM recovery_checkins rc
+			JOIN workouts w ON w.id = rc.workout_id
+			WHERE w.athlete_id = ?
 
 			UNION ALL
 
@@ -251,7 +324,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 	rows, err := db.Query(query,
 		athleteID, athleteID, athleteID, athleteID, athleteID,
 		athleteID, athleteID, athleteID, athleteID, athleteID,
-		athleteID,
+		athleteID, athleteID, athleteID, athleteID,
 		limit,
 	)
 	if err != nil {

@@ -399,6 +399,106 @@ definitions:
       total_count:
         type: integer
     type: object
+  api.ConditioningInterval:
+    properties:
+      id:
+        type: integer
+      interval_number:
+        type: integer
+      notes:
+        type: string
+      rest_seconds:
+        type: integer
+      work_distance:
+        type: number
+      work_seconds:
+        type: integer
+    type: object
+  api.ConditioningIntervalRequest:
+    properties:
+      interval_number:
+        example: 1
+        type: integer
+      notes:
+        type: string
+      rest_seconds:
+        example: 60
+        type: integer
+      work_distance:
+        example: 400
+        type: number
+      work_seconds:
+        example: 90
+        type: integer
+    type: object
+  api.ConditioningSession:
+    properties:
+      athlete_id:
+        type: integer
+      avg_hr:
+        type: integer
+      created_at:
+        type: string
+      date:
+        type: string
+      distance_unit:
+        type: string
+      duration_seconds:
+        type: integer
+      id:
+        type: integer
+      intervals:
+        items:
+          $ref: '#/definitions/api.ConditioningInterval'
+        type: array
+      modality:
+        type: string
+      notes:
+        type: string
+      rpe:
+        type: number
+      session_type:
+        type: string
+      total_distance:
+        type: number
+      updated_at:
+        type: string
+      workout_id:
+        type: integer
+    type: object
+  api.ConditioningSessionRequest:
+    properties:
+      avg_hr:
+        example: 155
+        type: integer
+      date:
+        example: "2026-05-12"
+        type: string
+      distance_unit:
+        example: m
+        type: string
+      duration_seconds:
+        example: 1500
+        type: integer
+      intervals:
+        items:
+          $ref: '#/definitions/api.ConditioningIntervalRequest'
+        type: array
+      modality:
+        example: run
+        type: string
+      notes:
+        type: string
+      rpe:
+        example: 7
+        type: number
+      session_type:
+        example: interval
+        type: string
+      total_distance:
+        example: 5000
+        type: number
+    type: object
   api.CopyWeekRequest:
     properties:
       source_week:
@@ -453,6 +553,21 @@ definitions:
         items:
           $ref: '#/definitions/api.PrescribedSetPreview'
         type: array
+    type: object
+  api.DisciplineLoad:
+    properties:
+      acute_7d:
+        type: number
+      acwr:
+        type: number
+      chronic_28d:
+        type: number
+      discipline:
+        type: string
+      marker:
+        type: string
+      unit:
+        type: string
     type: object
   api.Equipment:
     properties:
@@ -807,6 +922,17 @@ definitions:
       type:
         type: string
     type: object
+  api.LoadSummary:
+    properties:
+      as_of:
+        type: string
+      athlete_id:
+        type: integer
+      disciplines:
+        items:
+          $ref: '#/definitions/api.DisciplineLoad'
+        type: array
+    type: object
   api.LoginRequest:
     properties:
       password:
@@ -1150,6 +1276,46 @@ definitions:
       template_id:
         type: integer
     type: object
+  api.RecoveryCheckin:
+    properties:
+      athlete_id:
+        type: integer
+      created_at:
+        type: string
+      date:
+        type: string
+      energy:
+        type: integer
+      id:
+        type: integer
+      notes:
+        type: string
+      sleep_hours:
+        type: number
+      soreness:
+        type: integer
+      updated_at:
+        type: string
+      workout_id:
+        type: integer
+    type: object
+  api.RecoveryCheckinRequest:
+    properties:
+      date:
+        example: "2026-05-12"
+        type: string
+      energy:
+        example: 7
+        type: integer
+      notes:
+        type: string
+      sleep_hours:
+        example: 8.5
+        type: number
+      soreness:
+        example: 3
+        type: integer
+    type: object
   api.ReviewRequest:
     properties:
       notes:
@@ -1243,6 +1409,56 @@ definitions:
         type: string
       value:
         type: string
+    type: object
+  api.SkillSession:
+    properties:
+      athlete_id:
+        type: integer
+      created_at:
+        type: string
+      date:
+        type: string
+      duration_seconds:
+        type: integer
+      id:
+        type: integer
+      load_kg:
+        type: number
+      notes:
+        type: string
+      rep_count:
+        type: integer
+      skill_type:
+        type: string
+      updated_at:
+        type: string
+      velocity:
+        type: number
+      workout_id:
+        type: integer
+    type: object
+  api.SkillSessionRequest:
+    properties:
+      date:
+        example: "2026-05-12"
+        type: string
+      duration_seconds:
+        example: 1800
+        type: integer
+      load_kg:
+        example: 2
+        type: number
+      notes:
+        type: string
+      rep_count:
+        example: 50
+        type: integer
+      skill_type:
+        example: batting
+        type: string
+      velocity:
+        example: 68.5
+        type: number
     type: object
   api.StatusResponse:
     properties:
@@ -2441,6 +2657,102 @@ paths:
       summary: Delete body weight
       tags:
       - Athletes
+  /athletes/{id}/conditioning-sessions:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.ConditioningSession'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List conditioning sessions
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Session
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ConditioningSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.ConditioningSession'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Log conditioning session
+      tags:
+      - Athletes
+  /athletes/{id}/conditioning-sessions/{sessionID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Conditioning session ID
+        in: path
+        name: sessionID
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete conditioning session
+      tags:
+      - Athletes
   /athletes/{id}/cycle-review:
     get:
       parameters:
@@ -2989,6 +3301,32 @@ paths:
       summary: Athlete journal timeline
       tags:
       - Athletes
+  /athletes/{id}/load:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.LoadSummary'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Get training-load summary
+      tags:
+      - Athletes
   /athletes/{id}/missing-tms:
     get:
       parameters:
@@ -3411,6 +3749,102 @@ paths:
       summary: Promote athlete to next tier
       tags:
       - Athletes
+  /athletes/{id}/recovery-checkins:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.RecoveryCheckin'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List recovery check-ins
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Check-in
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.RecoveryCheckinRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.RecoveryCheckin'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Log recovery check-in
+      tags:
+      - Athletes
+  /athletes/{id}/recovery-checkins/{checkinID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Recovery check-in ID
+        in: path
+        name: checkinID
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete recovery check-in
+      tags:
+      - Athletes
   /athletes/{id}/season-phases:
     get:
       parameters:
@@ -3501,6 +3935,102 @@ paths:
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Delete season phase
+      tags:
+      - Athletes
+  /athletes/{id}/skill-sessions:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.SkillSession'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List skill sessions
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Session
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.SkillSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.SkillSession'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Log skill session
+      tags:
+      - Athletes
+  /athletes/{id}/skill-sessions/{sessionID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Skill session ID
+        in: path
+        name: sessionID
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete skill session
       tags:
       - Athletes
   /athletes/{id}/throwing-sessions:

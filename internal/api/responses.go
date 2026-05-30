@@ -211,6 +211,83 @@ type PitchSmartStatus struct {
 	Advisory         string `json:"advisory"`
 }
 
+// ConditioningInterval is the JSON representation of models.ConditioningInterval (ADR 018).
+type ConditioningInterval struct {
+	ID             int64    `json:"id"`
+	IntervalNumber int64    `json:"interval_number"`
+	WorkSeconds    *int64   `json:"work_seconds,omitempty"`
+	WorkDistance   *float64 `json:"work_distance,omitempty"`
+	RestSeconds    *int64   `json:"rest_seconds,omitempty"`
+	Notes          *string  `json:"notes,omitempty"`
+}
+
+// ConditioningSession is the JSON representation of models.ConditioningSession (ADR 018).
+type ConditioningSession struct {
+	ID              int64                   `json:"id"`
+	WorkoutID       int64                   `json:"workout_id"`
+	AthleteID       int64                   `json:"athlete_id"`
+	Date            string                  `json:"date"`
+	Modality        string                  `json:"modality"`
+	SessionType     string                  `json:"session_type"`
+	TotalDistance   *float64                `json:"total_distance,omitempty"`
+	DistanceUnit    *string                 `json:"distance_unit,omitempty"`
+	DurationSeconds *int64                  `json:"duration_seconds,omitempty"`
+	AvgHR           *int64                  `json:"avg_hr,omitempty"`
+	RPE             *float64                `json:"rpe,omitempty"`
+	Notes           *string                 `json:"notes,omitempty"`
+	Intervals       []*ConditioningInterval `json:"intervals"`
+	CreatedAt       string                  `json:"created_at"`
+	UpdatedAt       string                  `json:"updated_at"`
+}
+
+// SkillSession is the JSON representation of models.SkillSession (ADR 018).
+type SkillSession struct {
+	ID              int64    `json:"id"`
+	WorkoutID       int64    `json:"workout_id"`
+	AthleteID       int64    `json:"athlete_id"`
+	Date            string   `json:"date"`
+	SkillType       string   `json:"skill_type"`
+	RepCount        *int64   `json:"rep_count,omitempty"`
+	LoadKg          *float64 `json:"load_kg,omitempty"`
+	Velocity        *float64 `json:"velocity,omitempty"`
+	DurationSeconds *int64   `json:"duration_seconds,omitempty"`
+	Notes           *string  `json:"notes,omitempty"`
+	CreatedAt       string   `json:"created_at"`
+	UpdatedAt       string   `json:"updated_at"`
+}
+
+// RecoveryCheckin is the JSON representation of models.RecoveryCheckin (ADR 018).
+type RecoveryCheckin struct {
+	ID         int64    `json:"id"`
+	WorkoutID  int64    `json:"workout_id"`
+	AthleteID  int64    `json:"athlete_id"`
+	Date       string   `json:"date"`
+	SleepHours *float64 `json:"sleep_hours,omitempty"`
+	Soreness   *int64   `json:"soreness,omitempty"`
+	Energy     *int64   `json:"energy,omitempty"`
+	Notes      *string  `json:"notes,omitempty"`
+	CreatedAt  string   `json:"created_at"`
+	UpdatedAt  string   `json:"updated_at"`
+}
+
+// DisciplineLoad is the per-discipline load rollup within a LoadSummary (ADR 018).
+type DisciplineLoad struct {
+	Discipline string   `json:"discipline"`
+	Unit       string   `json:"unit"`
+	Acute7     float64  `json:"acute_7d"`
+	Chronic28  float64  `json:"chronic_28d"`
+	ACWR       *float64 `json:"acwr"`
+	Marker     string   `json:"marker,omitempty"`
+}
+
+// LoadSummary is the read-only, advisory per-discipline training-load view for
+// an athlete (ADR 018). It is computed on read and never gates or auto-actions.
+type LoadSummary struct {
+	AthleteID   int64             `json:"athlete_id"`
+	AsOf        string            `json:"as_of"`
+	Disciplines []*DisciplineLoad `json:"disciplines"`
+}
+
 // ProgramTemplate is the JSON representation of models.ProgramTemplate.
 type ProgramTemplate struct {
 	ID           int64   `json:"id"`

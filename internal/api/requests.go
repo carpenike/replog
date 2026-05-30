@@ -116,6 +116,49 @@ type BioSampleRequest struct {
 	Notes      string  `json:"notes,omitempty"`
 }
 
+// ConditioningIntervalRequest is one work/rest effort within a conditioning session.
+type ConditioningIntervalRequest struct {
+	IntervalNumber int64    `json:"interval_number" example:"1"`
+	WorkSeconds    *int64   `json:"work_seconds,omitempty" example:"90"`
+	WorkDistance   *float64 `json:"work_distance,omitempty" example:"400"`
+	RestSeconds    *int64   `json:"rest_seconds,omitempty" example:"60"`
+	Notes          string   `json:"notes,omitempty"`
+}
+
+// ConditioningSessionRequest is the body for POST /api/athletes/{id}/conditioning-sessions.
+type ConditioningSessionRequest struct {
+	Date            string                        `json:"date,omitempty" example:"2026-05-12"`
+	Modality        string                        `json:"modality" example:"run"`
+	SessionType     string                        `json:"session_type" example:"interval"`
+	TotalDistance   *float64                      `json:"total_distance,omitempty" example:"5000"`
+	DistanceUnit    string                        `json:"distance_unit,omitempty" example:"m"`
+	DurationSeconds *int64                        `json:"duration_seconds,omitempty" example:"1500"`
+	AvgHR           *int64                        `json:"avg_hr,omitempty" example:"155"`
+	RPE             *float64                      `json:"rpe,omitempty" example:"7"`
+	Notes           string                        `json:"notes,omitempty"`
+	Intervals       []ConditioningIntervalRequest `json:"intervals,omitempty"`
+}
+
+// SkillSessionRequest is the body for POST /api/athletes/{id}/skill-sessions.
+type SkillSessionRequest struct {
+	Date            string   `json:"date,omitempty" example:"2026-05-12"`
+	SkillType       string   `json:"skill_type" example:"batting"`
+	RepCount        *int64   `json:"rep_count,omitempty" example:"50"`
+	LoadKg          *float64 `json:"load_kg,omitempty" example:"2"`
+	Velocity        *float64 `json:"velocity,omitempty" example:"68.5"`
+	DurationSeconds *int64   `json:"duration_seconds,omitempty" example:"1800"`
+	Notes           string   `json:"notes,omitempty"`
+}
+
+// RecoveryCheckinRequest is the body for POST /api/athletes/{id}/recovery-checkins.
+type RecoveryCheckinRequest struct {
+	Date       string   `json:"date,omitempty" example:"2026-05-12"`
+	SleepHours *float64 `json:"sleep_hours,omitempty" example:"8.5"`
+	Soreness   *int64   `json:"soreness,omitempty" example:"3"`
+	Energy     *int64   `json:"energy,omitempty" example:"7"`
+	Notes      string   `json:"notes,omitempty"`
+}
+
 // PreferencesRequest is the body for PUT /api/preferences.
 type PreferencesRequest struct {
 	WeightUnit string `json:"weight_unit,omitempty" example:"lbs"`
