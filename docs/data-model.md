@@ -1559,6 +1559,108 @@ watch a *feed*, not a dependency — a Garmin/Whoop later is another `source`.
 
 - Append-only — no `updated_at`/trigger. Indexed on `(athlete_id, recorded_at)`.
 
+## Multi-Modal Logbook — Phase 2 (ADR 018, migration `0007_multi_modal_phase2.sql`)
+
+Phase 2 fills in the remaining disciplines on the `workouts` parent and adds a
+read-only cross-modal load view. Purely additive — no parent rebuild (the
+`discipline` column shipped in 0006). Each detail row hangs off a `workouts`
+row via `workout_id … ON DELETE CASCADE`, mirroring `throwing_sessions`.
+
+### `conditioning_sessions`
+
+Detail row for a `discipline='conditioning'` workout (one per conditioning
+workout; the parent carries athlete + date).
+
+| Column             | Type     | Constraints                                                            |
+|--------------------|----------|------------------------------------------------------------------------|
+| `id`               | INTEGER  | PRIMARY KEY AUTOINCREMENT                                              |
+| `workout_id`       | INTEGER  | NOT NULL, FK → workouts(id) ON DELETE CASCADE                          |
+| `modality`         | TEXT     | NOT NULL, CHECK IN ('run','row','bike','sprint','circuit','swim','other') |
+| `session_type`     | TEXT     | NOT NULL, CHECK IN ('steady','interval','sprint','tempo')              |
+| `total_distance`   | REAL     | NULL                                                                   |
+| `distance_unit`    | TEXT     | NULL, CHECK IN ('m','km','yd','mi')                                    |
+| `duration_seconds` | INTEGER  | NULL                                                                   |
+| `avg_hr`           | INTEGER  | NULL                                                                   |
+| `rpe`              | REAL     | NULL, CHECK(rpe IS NULL OR (rpe >= 1 AND rpe <= 10))                   |
+| `notes`            | TEXT     | NULL                                                                   |
+| `created_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                                     |
+| `updated_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP (trigger)                          |
+
+- Indexed on `workout_id`. `duration_seconds` is this discipline's load proxy.
+
+### `conditioning_intervals`
+
+Child rows of a conditioning session (one-to-many, like `workout_sets` →
+`workouts`). Written once with their session, read back ordered; immutable.
+
+| Column                    | Type    | Constraints                                                       |
+|---------------------------|---------|-------------------------------------------------------------------|
+| `id`                      | INTEGER | PRIMARY KEY AUTOINCREMENT                                         |
+| `conditioning_session_id` | INTEGER | NOT NULL, FK → conditioning_sessions(id) ON DELETE CASCADE        |
+| `interval_number`         | INTEGER | NOT NULL                                                         |
+| `work_seconds`            | INTEGER | NULL                                                             |
+| `work_distance`           | REAL    | NULL                                                             |
+| `rest_seconds`            | INTEGER | NULL                                                             |
+| `notes`                   | TEXT    | NULL                                                             |
+
+- `UNIQUE(conditioning_session_id, interval_number)`; indexed on the same. No
+  `updated_at`/trigger — immutable, like `bio_samples`.
+
+### `skill_sessions`
+
+Detail row for a `discipline='skill'` workout (sport-skill work: batting,
+fielding, agility, med-ball, etc.).
+
+| Column             | Type     | Constraints                                                                       |
+|--------------------|----------|-----------------------------------------------------------------------------------|
+| `id`               | INTEGER  | PRIMARY KEY AUTOINCREMENT                                                         |
+| `workout_id`       | INTEGER  | NOT NULL, FK → workouts(id) ON DELETE CASCADE                                     |
+| `skill_type`       | TEXT     | NOT NULL, CHECK IN ('batting','fielding','throwing_accuracy','agility','medball','sprint','other') |
+| `rep_count`        | INTEGER  | NULL — this discipline's load proxy                                               |
+| `load_kg`          | REAL     | NULL — med-ball/implement load; **logged data, never a prescribed target** (ADR 018 #7) |
+| `velocity`         | REAL     | NULL                                                                              |
+| `duration_seconds` | INTEGER  | NULL                                                                              |
+| `notes`            | TEXT     | NULL                                                                              |
+| `created_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                                                |
+| `updated_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP (trigger)                                     |
+
+- Indexed on `workout_id`.
+
+### `recovery_checkins`
+
+Detail row for a `discipline='recovery'` workout — a **subjective** manual
+check-in. Objective wearable sleep lives in `bio_samples`
+(`source='watch_import'`); the two are surfaced separately and **never summed
+into load**.
+
+| Column        | Type     | Constraints                                                        |
+|---------------|----------|--------------------------------------------------------------------|
+| `id`          | INTEGER  | PRIMARY KEY AUTOINCREMENT                                          |
+| `workout_id`  | INTEGER  | NOT NULL, FK → workouts(id) ON DELETE CASCADE                      |
+| `sleep_hours` | REAL     | NULL                                                              |
+| `soreness`    | INTEGER  | NULL, CHECK(soreness IS NULL OR (soreness >= 1 AND soreness <= 10)) |
+| `energy`      | INTEGER  | NULL, CHECK(energy IS NULL OR (energy >= 1 AND energy <= 10))      |
+| `notes`       | TEXT     | NULL                                                              |
+| `created_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                                |
+| `updated_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP (trigger)                     |
+
+- Indexed on `workout_id`. A **recovery signal, not a load input** — excluded
+  from the load view.
+
+### Cross-modal load view (no table — `GetLoadSummary`, `GET /athletes/{id}/load`)
+
+A **read-only, advisory** model computation (no schema of its own; ADR 007/018
+— it reads logged sessions, never gates a log or writes anything). Reports, for
+each load-bearing discipline, a rolling acute (7-day) and chronic (28-day)
+total in that discipline's own native unit — **never blended** into a single
+cross-modal number — plus the coupled acute:chronic workload ratio (ACWR =
+acute7 / (chronic28 / 4)). Load proxies: resistance = Σ(reps × weight),
+throwing = Σ(throw_count), conditioning = Σ(duration_seconds), skill =
+Σ(rep_count). ACWR is suppressed (`null` + `insufficient_history`) until the
+discipline's logged history spans the full ~28-day chronic window, so a new
+athlete never sees a falsely inflated ratio. Recovery and wearable sleep are
+deliberately excluded — they are recovery signals, not training load.
+
 ## Future Considerations (v2+)
 
 - **Exercise categories/tags**: Muscle group, movement pattern (push/pull/hinge/squat/carry).
