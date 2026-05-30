@@ -82,6 +82,7 @@ type Workout struct {
 	ID           int64   `json:"id"`
 	AthleteID    int64   `json:"athlete_id"`
 	Date         string  `json:"date"`
+	Discipline   string  `json:"discipline"`
 	AssignmentID *int64  `json:"assignment_id,omitempty"`
 	Notes        *string `json:"notes,omitempty"`
 	CreatedAt    string  `json:"created_at"`
@@ -149,6 +150,65 @@ type BodyWeight struct {
 type BodyWeightPage struct {
 	Entries []*BodyWeight `json:"entries"`
 	HasMore bool          `json:"has_more"`
+}
+
+// ThrowingSession is the JSON representation of models.ThrowingSession (ADR 018).
+type ThrowingSession struct {
+	ID         int64    `json:"id"`
+	WorkoutID  int64    `json:"workout_id"`
+	AthleteID  int64    `json:"athlete_id"`
+	Date       string   `json:"date"`
+	ThrowType  string   `json:"throw_type"`
+	ThrowCount *int64   `json:"throw_count,omitempty"`
+	MaxIntent  *int64   `json:"max_intent,omitempty"`
+	Velocity   *float64 `json:"velocity,omitempty"`
+	Fatigue    bool     `json:"fatigue"`
+	Pain       bool     `json:"pain"`
+	Source     string   `json:"source"`
+	Team       *string  `json:"team,omitempty"`
+	Notes      *string  `json:"notes,omitempty"`
+	CreatedAt  string   `json:"created_at"`
+	UpdatedAt  string   `json:"updated_at"`
+}
+
+// SeasonPhase is the JSON representation of models.SeasonPhase (ADR 018).
+type SeasonPhase struct {
+	ID        int64   `json:"id"`
+	AthleteID int64   `json:"athlete_id"`
+	Sport     *string `json:"sport,omitempty"`
+	Phase     string  `json:"phase"`
+	StartDate string  `json:"start_date"`
+	EndDate   *string `json:"end_date,omitempty"`
+	Notes     *string `json:"notes,omitempty"`
+	CreatedAt string  `json:"created_at"`
+	UpdatedAt string  `json:"updated_at"`
+}
+
+// BioSample is the JSON representation of models.BioSample (ADR 018).
+type BioSample struct {
+	ID         int64   `json:"id"`
+	AthleteID  int64   `json:"athlete_id"`
+	RecordedAt string  `json:"recorded_at"`
+	Metric     string  `json:"metric"`
+	Value      float64 `json:"value"`
+	Unit       *string `json:"unit,omitempty"`
+	Source     string  `json:"source"`
+	Notes      *string `json:"notes,omitempty"`
+	CreatedAt  string  `json:"created_at"`
+}
+
+// PitchSmartStatus is the coach-facing, read-only Pitch Smart advisory for an
+// athlete (ADR 007/018). It is guidance only — never an automated action.
+type PitchSmartStatus struct {
+	AgeBracket       string `json:"age_bracket"`
+	DailyMax         int    `json:"daily_max"`
+	LastSessionDate  string `json:"last_session_date,omitempty"`
+	LastThrowCount   int    `json:"last_throw_count,omitempty"`
+	OverDailyMax     bool   `json:"over_daily_max"`
+	RestDaysRequired int    `json:"rest_days_required"`
+	RestDaysOwed     int    `json:"rest_days_owed"`
+	NextEligibleDate string `json:"next_eligible_date,omitempty"`
+	Advisory         string `json:"advisory"`
 }
 
 // ProgramTemplate is the JSON representation of models.ProgramTemplate.

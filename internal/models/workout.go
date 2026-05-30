@@ -15,6 +15,7 @@ type Workout struct {
 	ID           int64
 	AthleteID    int64
 	Date         string // DATE as string (YYYY-MM-DD)
+	Discipline   string // resistance | conditioning | throwing | skill | recovery (ADR 018)
 	AssignmentID sql.NullInt64  // FK to athlete_programs — which assignment prescribed this workout
 	Notes        sql.NullString
 	CreatedAt    time.Time
@@ -59,7 +60,7 @@ func GetWorkoutByID(db *sql.DB, id int64) (*Workout, error) {
 	w := &Workout{}
 	var programName sql.NullString
 	err := db.QueryRow(
-		`SELECT w.id, w.athlete_id, w.date, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
+		`SELECT w.id, w.athlete_id, w.date, w.discipline, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
 		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
 		        COALESCE(pt.name, '')
 		 FROM workouts w
@@ -67,7 +68,7 @@ func GetWorkoutByID(db *sql.DB, id int64) (*Workout, error) {
 		 LEFT JOIN athlete_programs ap ON ap.id = w.assignment_id
 		 LEFT JOIN program_templates pt ON pt.id = ap.template_id
 		 WHERE w.id = ?`, id,
-	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.AssignmentID, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &programName)
+	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.Discipline, &w.AssignmentID, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &programName)
 	w.ProgramName = programName.String
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -83,15 +84,15 @@ func GetWorkoutByAthleteDate(db *sql.DB, athleteID int64, date string) (*Workout
 	w := &Workout{}
 	var programName sql.NullString
 	err := db.QueryRow(
-		`SELECT w.id, w.athlete_id, w.date, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
+		`SELECT w.id, w.athlete_id, w.date, w.discipline, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
 		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
 		        COALESCE(pt.name, '')
 		 FROM workouts w
 		 JOIN athletes a ON a.id = w.athlete_id
 		 LEFT JOIN athlete_programs ap ON ap.id = w.assignment_id
 		 LEFT JOIN program_templates pt ON pt.id = ap.template_id
-		 WHERE w.athlete_id = ? AND w.date = ?`, athleteID, date,
-	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.AssignmentID, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &programName)
+		 WHERE w.athlete_id = ? AND w.date = ? AND w.discipline = 'resistance'`, athleteID, date,
+	).Scan(&w.ID, &w.AthleteID, &w.Date, &w.Discipline, &w.AssignmentID, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &programName)
 	w.ProgramName = programName.String
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -147,7 +148,7 @@ type WorkoutPage struct {
 // sets HasMore if additional rows exist beyond the current page.
 func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error) {
 	rows, err := db.Query(`
-		SELECT w.id, w.athlete_id, w.date, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
+		SELECT w.id, w.athlete_id, w.date, w.discipline, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
 		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
 		       wr.status, COALESCE(pt.name, '')
 		FROM workouts w
@@ -155,7 +156,7 @@ func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error)
 		LEFT JOIN workout_reviews wr ON wr.workout_id = w.id
 		LEFT JOIN athlete_programs ap ON ap.id = w.assignment_id
 		LEFT JOIN program_templates pt ON pt.id = ap.template_id
-		WHERE w.athlete_id = ?
+		WHERE w.athlete_id = ? AND w.discipline = 'resistance'
 		ORDER BY w.date DESC
 		LIMIT ? OFFSET ?`, athleteID, WorkoutPageSize+1, offset)
 	if err != nil {
@@ -167,7 +168,7 @@ func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error)
 	for rows.Next() {
 		w := &Workout{}
 		var programName sql.NullString
-		if err := rows.Scan(&w.ID, &w.AthleteID, &w.Date, &w.AssignmentID, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &w.ReviewStatus, &programName); err != nil {
+		if err := rows.Scan(&w.ID, &w.AthleteID, &w.Date, &w.Discipline, &w.AssignmentID, &w.Notes, &w.CreatedAt, &w.UpdatedAt, &w.AthleteName, &w.SetCount, &w.ReviewStatus, &programName); err != nil {
 			return nil, fmt.Errorf("models: scan workout: %w", err)
 		}
 		w.ProgramName = programName.String
@@ -189,7 +190,7 @@ func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error)
 func WorkoutStats(db *sql.DB, athleteID int64) (count int, earliest string, err error) {
 	var earliestVal sql.NullString
 	err = db.QueryRow(
-		`SELECT COUNT(*), MIN(date) FROM workouts WHERE athlete_id = ?`,
+		`SELECT COUNT(*), MIN(date) FROM workouts WHERE athlete_id = ? AND discipline = 'resistance'`,
 		athleteID,
 	).Scan(&count, &earliestVal)
 	if err != nil {

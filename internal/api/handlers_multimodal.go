@@ -1,0 +1,398 @@
+package api
+
+import (
+	"encoding/json"
+	"errors"
+	"log"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/carpenike/replog/internal/middleware"
+	"github.com/carpenike/replog/internal/models"
+)
+
+// --- Throwing Sessions (ADR 018) ---
+
+// ListThrowingSessions returns an athlete's throwing sessions, newest first.
+//
+//	@Summary      List throwing sessions
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id  path  int  true  "Athlete ID"
+//	@Success      200  {array}   api.ThrowingSession
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/throwing-sessions [get]
+func (h *Handlers) ListThrowingSessions(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	sessions, err := models.ListThrowingSessions(h.DB, athleteID, 100)
+	if err != nil {
+		log.Printf("api: list throwing sessions for athlete %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to list throwing sessions")
+		return
+	}
+
+	out := make([]*ThrowingSession, len(sessions))
+	for i, s := range sessions {
+		out[i] = ThrowingSessionFromModel(s)
+	}
+	WriteJSON(w, http.StatusOK, out)
+}
+
+// CreateThrowingSession logs a throwing session for an athlete.
+//
+//	@Summary      Log throwing session
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                         true  "Athlete ID"
+//	@Param        body  body      api.ThrowingSessionRequest  true  "Session"
+//	@Success      201  {object}  api.ThrowingSession
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      409  {object}  api.APIError
+//	@Router       /athletes/{id}/throwing-sessions [post]
+func (h *Handlers) CreateThrowingSession(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	var req ThrowingSessionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.ThrowType == "" {
+		WriteError(w, http.StatusBadRequest, "throw_type is required")
+		return
+	}
+	if req.Date == "" {
+		req.Date = time.Now().Format("2006-01-02")
+	}
+
+	session, err := models.CreateThrowingSession(h.DB, athleteID, models.ThrowingSessionInput{
+		Date:       req.Date,
+		ThrowType:  req.ThrowType,
+		ThrowCount: req.ThrowCount,
+		MaxIntent:  req.MaxIntent,
+		Velocity:   req.Velocity,
+		Fatigue:    req.Fatigue,
+		Pain:       req.Pain,
+		Source:     req.Source,
+		Team:       req.Team,
+		Notes:      req.Notes,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, models.ErrWorkoutExists):
+			WriteError(w, http.StatusConflict, "a throwing session already exists for this date")
+		case errors.Is(err, models.ErrInvalidInput):
+			WriteError(w, http.StatusBadRequest, err.Error())
+		default:
+			log.Printf("api: create throwing session for athlete %d: %v", athleteID, err)
+			WriteError(w, http.StatusInternalServerError, "failed to log throwing session")
+		}
+		return
+	}
+
+	WriteJSON(w, http.StatusCreated, ThrowingSessionFromModel(session))
+}
+
+// DeleteThrowingSession removes a throwing session (and its parent workout).
+//
+//	@Summary      Delete throwing session
+//	@Tags         Athletes
+//	@Param        id         path  int  true  "Athlete ID"
+//	@Param        sessionID  path  int  true  "Throwing session ID"
+//	@Success      204  "No Content"
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/throwing-sessions/{sessionID} [delete]
+func (h *Handlers) DeleteThrowingSession(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+	sessionID, err := strconv.ParseInt(r.PathValue("sessionID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid session ID")
+		return
+	}
+
+	// Confirm the session belongs to this athlete before deleting.
+	ts, err := models.GetThrowingSessionByID(h.DB, sessionID)
+	if err != nil || ts.AthleteID != athleteID {
+		WriteError(w, http.StatusNotFound, "throwing session not found")
+		return
+	}
+
+	if err := models.DeleteThrowingSession(h.DB, sessionID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "throwing session not found")
+			return
+		}
+		log.Printf("api: delete throwing session %d: %v", sessionID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to delete throwing session")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- Season Phases (ADR 018) ---
+
+// ListSeasonPhases returns an athlete's season phases, newest start first.
+//
+//	@Summary      List season phases
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id  path  int  true  "Athlete ID"
+//	@Success      200  {array}   api.SeasonPhase
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/season-phases [get]
+func (h *Handlers) ListSeasonPhases(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	phases, err := models.ListSeasonPhases(h.DB, athleteID)
+	if err != nil {
+		log.Printf("api: list season phases for athlete %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to list season phases")
+		return
+	}
+
+	out := make([]*SeasonPhase, len(phases))
+	for i, p := range phases {
+		out[i] = SeasonPhaseFromModel(p)
+	}
+	WriteJSON(w, http.StatusOK, out)
+}
+
+// CreateSeasonPhase records a season phase for an athlete.
+//
+//	@Summary      Record season phase
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                     true  "Athlete ID"
+//	@Param        body  body      api.SeasonPhaseRequest  true  "Phase"
+//	@Success      201  {object}  api.SeasonPhase
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/season-phases [post]
+func (h *Handlers) CreateSeasonPhase(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	var req SeasonPhaseRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Phase == "" || req.StartDate == "" {
+		WriteError(w, http.StatusBadRequest, "phase and start_date are required")
+		return
+	}
+
+	phase, err := models.CreateSeasonPhase(h.DB, athleteID, models.SeasonPhaseInput{
+		Sport:     req.Sport,
+		Phase:     req.Phase,
+		StartDate: req.StartDate,
+		EndDate:   req.EndDate,
+		Notes:     req.Notes,
+	})
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidInput) {
+			WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		log.Printf("api: create season phase for athlete %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to record season phase")
+		return
+	}
+
+	WriteJSON(w, http.StatusCreated, SeasonPhaseFromModel(phase))
+}
+
+// DeleteSeasonPhase removes a season phase.
+//
+//	@Summary      Delete season phase
+//	@Tags         Athletes
+//	@Param        id       path  int  true  "Athlete ID"
+//	@Param        phaseID  path  int  true  "Season phase ID"
+//	@Success      204  "No Content"
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/season-phases/{phaseID} [delete]
+func (h *Handlers) DeleteSeasonPhase(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+	phaseID, err := strconv.ParseInt(r.PathValue("phaseID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid phase ID")
+		return
+	}
+
+	sp, err := models.GetSeasonPhaseByID(h.DB, phaseID)
+	if err != nil || sp.AthleteID != athleteID {
+		WriteError(w, http.StatusNotFound, "season phase not found")
+		return
+	}
+
+	if err := models.DeleteSeasonPhase(h.DB, phaseID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "season phase not found")
+			return
+		}
+		log.Printf("api: delete season phase %d: %v", phaseID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to delete season phase")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- Bio Samples (ADR 018) ---
+
+// ListBioSamples returns an athlete's bio samples, newest first.
+//
+//	@Summary      List bio samples
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id      path   int     true   "Athlete ID"
+//	@Param        metric  query  string  false  "Filter by metric"
+//	@Success      200  {array}   api.BioSample
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/bio-samples [get]
+func (h *Handlers) ListBioSamples(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	samples, err := models.ListBioSamples(h.DB, athleteID, r.URL.Query().Get("metric"), 100)
+	if err != nil {
+		log.Printf("api: list bio samples for athlete %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to list bio samples")
+		return
+	}
+
+	out := make([]*BioSample, len(samples))
+	for i, s := range samples {
+		out[i] = BioSampleFromModel(s)
+	}
+	WriteJSON(w, http.StatusOK, out)
+}
+
+// CreateBioSample records a biometric reading for an athlete.
+//
+//	@Summary      Record bio sample
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                   true  "Athlete ID"
+//	@Param        body  body      api.BioSampleRequest  true  "Sample"
+//	@Success      201  {object}  api.BioSample
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/bio-samples [post]
+func (h *Handlers) CreateBioSample(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	var req BioSampleRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Metric == "" || req.RecordedAt == "" {
+		WriteError(w, http.StatusBadRequest, "metric and recorded_at are required")
+		return
+	}
+
+	sample, err := models.CreateBioSample(h.DB, athleteID, models.BioSampleInput{
+		RecordedAt: req.RecordedAt,
+		Metric:     req.Metric,
+		Value:      req.Value,
+		Unit:       req.Unit,
+		Source:     req.Source,
+		Notes:      req.Notes,
+	})
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidInput) {
+			WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		log.Printf("api: create bio sample for athlete %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to record bio sample")
+		return
+	}
+
+	WriteJSON(w, http.StatusCreated, BioSampleFromModel(sample))
+}
+
+// --- Pitch Smart advisory (ADR 007/018) ---
+
+// GetPitchSmartStatus returns the read-only Pitch Smart advisory for an athlete.
+//
+//	@Summary      Pitch Smart advisory
+//	@Description  Read-only arm-care guidance (recommended daily max, rest days owed). Advisory only — never an automated action.
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id  path  int  true  "Athlete ID"
+//	@Success      200  {object}  api.PitchSmartStatus
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/pitch-smart [get]
+func (h *Handlers) GetPitchSmartStatus(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	status, err := models.ComputePitchSmartStatus(h.DB, athleteID, time.Now())
+	if err != nil {
+		if errors.Is(err, models.ErrNoPitchSmartLimit) {
+			WriteError(w, http.StatusNotFound, "no pitch smart guidance for this athlete (age unknown or outside reference range)")
+			return
+		}
+		log.Printf("api: pitch smart status for athlete %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to compute pitch smart status")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, PitchSmartStatusFromModel(status))
+}
+
+// athleteAccess parses the {id} path value and enforces athlete access. It
+// writes the appropriate error response and returns ok=false on failure.
+func (h *Handlers) athleteAccess(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	user := middleware.UserFromContext(r.Context())
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return 0, false
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "access denied")
+		return 0, false
+	}
+	return athleteID, true
+}

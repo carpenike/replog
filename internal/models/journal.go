@@ -10,7 +10,7 @@ import (
 // and determines which detail fields are populated.
 type JournalEntry struct {
 	Date    string // YYYY-MM-DD
-	Type    string // "workout", "body_weight", "training_max", "goal_change", "tier_change", "program_start", "review", "note"
+	Type    string // "workout", "throwing", "season_phase", "body_weight", "training_max", "goal_change", "tier_change", "program_start", "review", "note"
 	Summary string // Human-readable one-line summary
 	ID      int64  // Source row ID (for linking)
 
@@ -60,7 +60,49 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 			       '' AS author,
 			       0 AS author_id
 			FROM workouts w
+			WHERE w.athlete_id = ? AND w.discipline = 'resistance'
+
+			UNION ALL
+
+			-- Throwing Sessions (ADR 018)
+			SELECT w.date AS date,
+			       'throwing' AS type,
+			       'Throwing: ' || ts.throw_type ||
+			           CASE WHEN ts.throw_count IS NOT NULL
+			                THEN ' (' || CAST(ts.throw_count AS TEXT) || ' throws)'
+			                ELSE '' END ||
+			           CASE WHEN ts.velocity IS NOT NULL
+			                THEN ' @ ' || CAST(ts.velocity AS TEXT) || ' mph'
+			                ELSE '' END AS summary,
+			       w.id AS id,
+			       COALESCE(ts.notes, '') AS detail,
+			       0 AS is_private,
+			       0 AS pinned,
+			       ts.id AS second_id,
+			       COALESCE(ts.team, '') AS author,
+			       0 AS author_id
+			FROM throwing_sessions ts
+			JOIN workouts w ON w.id = ts.workout_id
 			WHERE w.athlete_id = ?
+
+			UNION ALL
+
+			-- Season Phase Changes (ADR 018)
+			SELECT sp.start_date AS date,
+			       'season_phase' AS type,
+			       'Season phase: ' || sp.phase ||
+			           CASE WHEN sp.sport IS NOT NULL AND sp.sport <> ''
+			                THEN ' (' || sp.sport || ')'
+			                ELSE '' END AS summary,
+			       sp.id AS id,
+			       COALESCE(sp.notes, '') AS detail,
+			       0 AS is_private,
+			       0 AS pinned,
+			       0 AS second_id,
+			       '' AS author,
+			       0 AS author_id
+			FROM athlete_season_phases sp
+			WHERE sp.athlete_id = ?
 
 			UNION ALL
 
@@ -207,8 +249,8 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 	)
 
 	rows, err := db.Query(query,
-		athleteID, athleteID, athleteID, athleteID,
-		athleteID, athleteID, athleteID, athleteID,
+		athleteID, athleteID, athleteID, athleteID, athleteID,
+		athleteID, athleteID, athleteID, athleteID, athleteID,
 		athleteID,
 		limit,
 	)

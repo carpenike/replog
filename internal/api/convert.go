@@ -145,6 +145,7 @@ func WorkoutFromModel(m *models.Workout) *Workout {
 		ID:           m.ID,
 		AthleteID:    m.AthleteID,
 		Date:         fmtDate(m.Date),
+		Discipline:   m.Discipline,
 		AssignmentID: nullInt(m.AssignmentID),
 		Notes:        nullStr(m.Notes),
 		CreatedAt:    fmtTime(m.CreatedAt),
@@ -223,6 +224,77 @@ func BodyWeightPageFromModel(m *models.BodyWeightPage) *BodyWeightPage {
 	return &BodyWeightPage{
 		Entries: entries,
 		HasMore: m.HasMore,
+	}
+}
+
+// ThrowingSessionFromModel converts a models.ThrowingSession to its API shape.
+func ThrowingSessionFromModel(m *models.ThrowingSession) *ThrowingSession {
+	return &ThrowingSession{
+		ID:         m.ID,
+		WorkoutID:  m.WorkoutID,
+		AthleteID:  m.AthleteID,
+		Date:       fmtDate(m.Date),
+		ThrowType:  m.ThrowType,
+		ThrowCount: nullInt(m.ThrowCount),
+		MaxIntent:  nullInt(m.MaxIntent),
+		Velocity:   nullFloat(m.Velocity),
+		Fatigue:    m.Fatigue,
+		Pain:       m.Pain,
+		Source:     m.Source,
+		Team:       nullStr(m.Team),
+		Notes:      nullStr(m.Notes),
+		CreatedAt:  fmtTime(m.CreatedAt),
+		UpdatedAt:  fmtTime(m.UpdatedAt),
+	}
+}
+
+// SeasonPhaseFromModel converts a models.SeasonPhase to its API shape.
+func SeasonPhaseFromModel(m *models.SeasonPhase) *SeasonPhase {
+	var endDate *string
+	if m.EndDate.Valid {
+		d := fmtDate(m.EndDate.String)
+		endDate = &d
+	}
+	return &SeasonPhase{
+		ID:        m.ID,
+		AthleteID: m.AthleteID,
+		Sport:     nullStr(m.Sport),
+		Phase:     m.Phase,
+		StartDate: fmtDate(m.StartDate),
+		EndDate:   endDate,
+		Notes:     nullStr(m.Notes),
+		CreatedAt: fmtTime(m.CreatedAt),
+		UpdatedAt: fmtTime(m.UpdatedAt),
+	}
+}
+
+// BioSampleFromModel converts a models.BioSample to its API shape.
+func BioSampleFromModel(m *models.BioSample) *BioSample {
+	return &BioSample{
+		ID:         m.ID,
+		AthleteID:  m.AthleteID,
+		RecordedAt: fmtTime(m.RecordedAt),
+		Metric:     m.Metric,
+		Value:      m.Value,
+		Unit:       nullStr(m.Unit),
+		Source:     m.Source,
+		Notes:      nullStr(m.Notes),
+		CreatedAt:  fmtTime(m.CreatedAt),
+	}
+}
+
+// PitchSmartStatusFromModel converts a models.PitchSmartStatus to its API shape.
+func PitchSmartStatusFromModel(m *models.PitchSmartStatus) *PitchSmartStatus {
+	return &PitchSmartStatus{
+		AgeBracket:       m.AgeBracket,
+		DailyMax:         m.DailyMax,
+		LastSessionDate:  m.LastSessionDate,
+		LastThrowCount:   m.LastThrowCount,
+		OverDailyMax:     m.OverDailyMax,
+		RestDaysRequired: m.RestDaysRequired,
+		RestDaysOwed:     m.RestDaysOwed,
+		NextEligibleDate: m.NextEligibleDate,
+		Advisory:         m.Advisory,
 	}
 }
 

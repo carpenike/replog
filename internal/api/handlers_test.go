@@ -129,6 +129,16 @@ func setupTest(t *testing.T) *testEnv {
 			r.Post("/athletes/{id}/body-weights", h.CreateBodyWeight)
 			r.Delete("/athletes/{id}/body-weights/{bwID}", h.DeleteBodyWeight)
 
+			r.Get("/athletes/{id}/throwing-sessions", h.ListThrowingSessions)
+			r.Post("/athletes/{id}/throwing-sessions", h.CreateThrowingSession)
+			r.Delete("/athletes/{id}/throwing-sessions/{sessionID}", h.DeleteThrowingSession)
+			r.Get("/athletes/{id}/season-phases", h.ListSeasonPhases)
+			r.Post("/athletes/{id}/season-phases", h.CreateSeasonPhase)
+			r.Delete("/athletes/{id}/season-phases/{phaseID}", h.DeleteSeasonPhase)
+			r.Get("/athletes/{id}/bio-samples", h.ListBioSamples)
+			r.Post("/athletes/{id}/bio-samples", h.CreateBioSample)
+			r.Get("/athletes/{id}/pitch-smart", h.GetPitchSmartStatus)
+
 			r.Get("/athletes/{id}/training-maxes", h.ListTrainingMaxes)
 			r.Post("/athletes/{id}/training-maxes", h.CreateTrainingMax)
 			r.Get("/athletes/{id}/exercises/{exerciseID}/training-maxes", h.GetTrainingMaxHistory)

@@ -83,6 +83,39 @@ type TrainingMaxRequest struct {
 	Notes         string  `json:"notes,omitempty"`
 }
 
+// ThrowingSessionRequest is the body for POST /api/athletes/{id}/throwing-sessions.
+type ThrowingSessionRequest struct {
+	Date       string   `json:"date,omitempty" example:"2026-05-12"`
+	ThrowType  string   `json:"throw_type" example:"bullpen"`
+	ThrowCount *int64   `json:"throw_count,omitempty" example:"45"`
+	MaxIntent  *int64   `json:"max_intent,omitempty" example:"90"`
+	Velocity   *float64 `json:"velocity,omitempty" example:"72.5"`
+	Fatigue    bool     `json:"fatigue,omitempty"`
+	Pain       bool     `json:"pain,omitempty"`
+	Source     string   `json:"source,omitempty" example:"program"`
+	Team       string   `json:"team,omitempty"`
+	Notes      string   `json:"notes,omitempty"`
+}
+
+// SeasonPhaseRequest is the body for POST /api/athletes/{id}/season-phases.
+type SeasonPhaseRequest struct {
+	Sport     string `json:"sport,omitempty" example:"baseball"`
+	Phase     string `json:"phase" example:"in"`
+	StartDate string `json:"start_date" example:"2026-03-01"`
+	EndDate   string `json:"end_date,omitempty" example:"2026-06-30"`
+	Notes     string `json:"notes,omitempty"`
+}
+
+// BioSampleRequest is the body for POST /api/athletes/{id}/bio-samples.
+type BioSampleRequest struct {
+	RecordedAt string  `json:"recorded_at" example:"2026-05-12T07:30:00Z"`
+	Metric     string  `json:"metric" example:"resting_hr"`
+	Value      float64 `json:"value" example:"52"`
+	Unit       string  `json:"unit,omitempty" example:"bpm"`
+	Source     string  `json:"source,omitempty" example:"manual"`
+	Notes      string  `json:"notes,omitempty"`
+}
+
 // PreferencesRequest is the body for PUT /api/preferences.
 type PreferencesRequest struct {
 	WeightUnit string `json:"weight_unit,omitempty" example:"lbs"`

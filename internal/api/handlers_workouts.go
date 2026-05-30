@@ -116,6 +116,10 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 
 	workout, err := models.CreateWorkout(h.DB, athleteID, req.Date, req.Notes, 0)
 	if err != nil {
+		if errors.Is(err, models.ErrWorkoutExists) {
+			WriteError(w, http.StatusConflict, "a resistance workout already exists for this date")
+			return
+		}
 		log.Printf("api: create workout for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to create workout")
 		return

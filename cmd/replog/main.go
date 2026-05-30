@@ -380,6 +380,17 @@ func main() {
 			r.Post("/athletes/{id}/body-weights", apiHandlers.CreateBodyWeight)
 			r.Delete("/athletes/{id}/body-weights/{bwID}", apiHandlers.DeleteBodyWeight)
 
+			// Multi-modal logbook (ADR 018).
+			r.Get("/athletes/{id}/throwing-sessions", apiHandlers.ListThrowingSessions)
+			r.Post("/athletes/{id}/throwing-sessions", apiHandlers.CreateThrowingSession)
+			r.Delete("/athletes/{id}/throwing-sessions/{sessionID}", apiHandlers.DeleteThrowingSession)
+			r.Get("/athletes/{id}/season-phases", apiHandlers.ListSeasonPhases)
+			r.Post("/athletes/{id}/season-phases", apiHandlers.CreateSeasonPhase)
+			r.Delete("/athletes/{id}/season-phases/{phaseID}", apiHandlers.DeleteSeasonPhase)
+			r.Get("/athletes/{id}/bio-samples", apiHandlers.ListBioSamples)
+			r.Post("/athletes/{id}/bio-samples", apiHandlers.CreateBioSample)
+			r.Get("/athletes/{id}/pitch-smart", apiHandlers.GetPitchSmartStatus)
+
 			// Training Maxes.
 			r.Get("/athletes/{id}/training-maxes", apiHandlers.ListTrainingMaxes)
 			r.Post("/athletes/{id}/training-maxes", apiHandlers.CreateTrainingMax)

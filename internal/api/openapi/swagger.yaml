@@ -292,6 +292,47 @@ definitions:
           $ref: '#/definitions/api.BatchTMEntry'
         type: array
     type: object
+  api.BioSample:
+    properties:
+      athlete_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      metric:
+        type: string
+      notes:
+        type: string
+      recorded_at:
+        type: string
+      source:
+        type: string
+      unit:
+        type: string
+      value:
+        type: number
+    type: object
+  api.BioSampleRequest:
+    properties:
+      metric:
+        example: resting_hr
+        type: string
+      notes:
+        type: string
+      recorded_at:
+        example: "2026-05-12T07:30:00Z"
+        type: string
+      source:
+        example: manual
+        type: string
+      unit:
+        example: bpm
+        type: string
+      value:
+        example: 52
+        type: number
+    type: object
   api.BodyWeight:
     properties:
       athlete_id:
@@ -865,6 +906,27 @@ definitions:
       use_count:
         type: integer
     type: object
+  api.PitchSmartStatus:
+    properties:
+      advisory:
+        type: string
+      age_bracket:
+        type: string
+      daily_max:
+        type: integer
+      last_session_date:
+        type: string
+      last_throw_count:
+        type: integer
+      next_eligible_date:
+        type: string
+      over_daily_max:
+        type: boolean
+      rest_days_owed:
+        type: integer
+      rest_days_required:
+        type: integer
+    type: object
   api.PreferencesRequest:
     properties:
       date_format:
@@ -1105,6 +1167,44 @@ definitions:
       pending_count:
         type: integer
     type: object
+  api.SeasonPhase:
+    properties:
+      athlete_id:
+        type: integer
+      created_at:
+        type: string
+      end_date:
+        type: string
+      id:
+        type: integer
+      notes:
+        type: string
+      phase:
+        type: string
+      sport:
+        type: string
+      start_date:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  api.SeasonPhaseRequest:
+    properties:
+      end_date:
+        example: "2026-06-30"
+        type: string
+      notes:
+        type: string
+      phase:
+        example: in
+        type: string
+      sport:
+        example: baseball
+        type: string
+      start_date:
+        example: "2026-03-01"
+        type: string
+    type: object
   api.SettingCategoryResponse:
     properties:
       category:
@@ -1177,6 +1277,68 @@ definitions:
       increment:
         type: number
       suggested_tm:
+        type: number
+    type: object
+  api.ThrowingSession:
+    properties:
+      athlete_id:
+        type: integer
+      created_at:
+        type: string
+      date:
+        type: string
+      fatigue:
+        type: boolean
+      id:
+        type: integer
+      max_intent:
+        type: integer
+      notes:
+        type: string
+      pain:
+        type: boolean
+      source:
+        type: string
+      team:
+        type: string
+      throw_count:
+        type: integer
+      throw_type:
+        type: string
+      updated_at:
+        type: string
+      velocity:
+        type: number
+      workout_id:
+        type: integer
+    type: object
+  api.ThrowingSessionRequest:
+    properties:
+      date:
+        example: "2026-05-12"
+        type: string
+      fatigue:
+        type: boolean
+      max_intent:
+        example: 90
+        type: integer
+      notes:
+        type: string
+      pain:
+        type: boolean
+      source:
+        example: program
+        type: string
+      team:
+        type: string
+      throw_count:
+        example: 45
+        type: integer
+      throw_type:
+        example: bullpen
+        type: string
+      velocity:
+        example: 72.5
         type: number
     type: object
   api.TrainingMax:
@@ -1369,6 +1531,8 @@ definitions:
       created_at:
         type: string
       date:
+        type: string
+      discipline:
         type: string
       id:
         type: integer
@@ -2118,6 +2282,71 @@ paths:
       summary: Batch set training maxes
       tags:
       - TrainingMaxes
+  /athletes/{id}/bio-samples:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Filter by metric
+        in: query
+        name: metric
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.BioSample'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List bio samples
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Sample
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.BioSampleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.BioSample'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Record bio sample
+      tags:
+      - Athletes
   /athletes/{id}/body-weights:
     get:
       parameters:
@@ -2895,6 +3124,38 @@ paths:
       summary: Update athlete note
       tags:
       - Athletes
+  /athletes/{id}/pitch-smart:
+    get:
+      description: Read-only arm-care guidance (recommended daily max, rest days owed).
+        Advisory only — never an automated action.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PitchSmartStatus'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Pitch Smart advisory
+      tags:
+      - Athletes
   /athletes/{id}/prescription:
     get:
       description: Returns the day's prescribed sets from the athlete's active program
@@ -3148,6 +3409,194 @@ paths:
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Promote athlete to next tier
+      tags:
+      - Athletes
+  /athletes/{id}/season-phases:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.SeasonPhase'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List season phases
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Phase
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.SeasonPhaseRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.SeasonPhase'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Record season phase
+      tags:
+      - Athletes
+  /athletes/{id}/season-phases/{phaseID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Season phase ID
+        in: path
+        name: phaseID
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete season phase
+      tags:
+      - Athletes
+  /athletes/{id}/throwing-sessions:
+    get:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.ThrowingSession'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List throwing sessions
+      tags:
+      - Athletes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Session
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ThrowingSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.ThrowingSession'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Log throwing session
+      tags:
+      - Athletes
+  /athletes/{id}/throwing-sessions/{sessionID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Throwing session ID
+        in: path
+        name: sessionID
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete throwing session
       tags:
       - Athletes
   /athletes/{id}/training-maxes:
