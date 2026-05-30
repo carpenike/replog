@@ -514,14 +514,16 @@ erDiagram
 | `athlete_id`| INTEGER      | NOT NULL, FK → athletes(id)          |
 | `assignment_id`| INTEGER   | NULL, FK → athlete_programs(id) ON DELETE SET NULL |
 | `date`      | DATE         | NOT NULL                             |
+| `discipline`| TEXT         | NOT NULL DEFAULT 'resistance', CHECK(discipline IN ('resistance','conditioning','throwing','skill','recovery')) |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
-- One row per training session.
-- `assignment_id` links the workout to the program assignment it was prescribed from. NULL for ad-hoc workouts.
+- One row per training session. `workouts` is the **multi-modal session parent** (ADR 018, migration 0006): `discipline` discriminates resistance / conditioning / throwing / skill / recovery. The name `workouts` was kept (a rename would churn ~23 query sites for zero gain).
+- `discipline` defaults to `'resistance'` — every pre-ADR-018 row is resistance, and the existing resistance read paths (`GetWorkoutByAthleteDate`, `ListWorkouts`, `WorkoutStats`) filter `discipline = 'resistance'` so non-resistance sessions never leak into the lifting UI.
+- `assignment_id` links the workout to the program assignment it was prescribed from. NULL for ad-hoc workouts. **Invariant** `CHECK(assignment_id IS NULL OR discipline = 'resistance')` — only resistance sessions carry an assignment, which protects `GetPrescription`'s position counter (non-resistance disciplines are log-and-flag, no program).
 - `notes` holds session-level observations ("knee was bothering her today").
-- UNIQUE(athlete_id, date) — one workout per athlete per day for v1.
+- UNIQUE(athlete_id, date, **discipline**) — one session per athlete per day *per discipline*, so a lift and a bullpen can both be logged on the same date. (Widened from `UNIQUE(athlete_id, date)` in migration 0006 via a `defer_foreign_keys=ON` table rebuild.)
 - Index on `assignment_id` for position-counting queries.
 
 ### `workout_sets`
@@ -1465,6 +1467,97 @@ barbell mains).
 - Both allow-list surfaces (`methodology_allowed_patterns` + this) ship in
   Phase 1; the precise allow-by-pattern + override-by-list semantics are
   settled at Phase-2 prompt-composition time.
+
+## Multi-Modal Logbook (ADR 018, migration `0006_multi_modal_logbook.sql`)
+
+Phase 1 turns the single-discipline session model into a multi-modal one and
+lands the throwing/arm-care safety surface. The `discipline` column on
+`workouts` (above) is the discriminator; the tables below are the new detail
+and reference surfaces. **The load-bearing principle is unchanged and extends
+to every modality: RepLog is a logbook; a human coach decides. Pitch Smart
+limits are code-enforced reference checks that emit a coach-reviewed advisory
+— never an auto-action, never a hard log-block** (ADR 007 / ADR 016 pattern).
+
+### `athlete_season_phases`
+
+First-class, dated off/pre/in-season windows per athlete per sport. Drives
+load expectations and is surfaced as journal events.
+
+| Column       | Type     | Constraints                                            |
+|--------------|----------|--------------------------------------------------------|
+| `id`         | INTEGER  | PRIMARY KEY AUTOINCREMENT                              |
+| `athlete_id` | INTEGER  | NOT NULL, FK → athletes(id) ON DELETE CASCADE          |
+| `sport`      | TEXT     | NULL — e.g. 'baseball'; NULL for general               |
+| `phase`      | TEXT     | NOT NULL, CHECK(phase IN ('off','pre','in'))           |
+| `start_date` | DATE     | NOT NULL                                               |
+| `end_date`   | DATE     | NULL — open-ended/current when NULL                    |
+| `notes`      | TEXT     | NULL                                                   |
+| `created_at` | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                     |
+| `updated_at` | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP (trigger)           |
+
+- Indexed on `(athlete_id, start_date)`. Deleting an athlete cascades.
+
+### `throwing_sessions`
+
+Detail row for a `discipline='throwing'` workout (one per throwing workout;
+the parent carries athlete/date). The youth-baseball arm-care centerpiece.
+
+| Column        | Type     | Constraints                                                                          |
+|---------------|----------|--------------------------------------------------------------------------------------|
+| `id`          | INTEGER  | PRIMARY KEY AUTOINCREMENT                                                            |
+| `workout_id`  | INTEGER  | NOT NULL, FK → workouts(id) ON DELETE CASCADE                                        |
+| `throw_type`  | TEXT     | NOT NULL, CHECK IN ('game','bullpen','lesson','long_toss','catch','flat_ground')    |
+| `throw_count` | INTEGER  | NULL — pitch/throw count                                                             |
+| `max_intent`  | INTEGER  | NULL — % effort                                                                      |
+| `velocity`    | REAL     | NULL — optional radar reading; never a target                                        |
+| `fatigue`     | INTEGER  | NOT NULL DEFAULT 0, CHECK(fatigue IN (0,1)) — the dominant injury signal             |
+| `pain`        | INTEGER  | NOT NULL DEFAULT 0, CHECK(pain IN (0,1)) — the stop-and-evaluate flag                |
+| `source`      | TEXT     | NOT NULL DEFAULT 'program', CHECK IN ('program','external') — cross-team aggregation |
+| `team`        | TEXT     | NULL                                                                                 |
+| `notes`       | TEXT     | NULL                                                                                 |
+| `created_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                                                   |
+| `updated_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP (trigger)                                          |
+
+- `source='external'` lets a coach log throwing done off-program (another
+  team's game, a private lesson) so total workload is complete.
+
+### `pitch_smart_limits`
+
+Seeded, **read-only** MLB / USA Baseball reference data. The app reads it to
+compute a coach-facing advisory (recommended daily max, rest days owed);
+nothing writes back, nothing is gated.
+
+| Column            | Type    | Constraints                                                    |
+|-------------------|---------|----------------------------------------------------------------|
+| `id`              | INTEGER | PRIMARY KEY AUTOINCREMENT                                      |
+| `age_min`         | INTEGER | NOT NULL                                                       |
+| `age_max`         | INTEGER | NOT NULL                                                       |
+| `daily_max`       | INTEGER | NOT NULL — recommended single-day pitch cap                    |
+| `rest_thresholds` | TEXT    | NOT NULL — JSON `[{"max":N,"rest":N}]` ascending by `max`      |
+
+- Seeded for ages 7–18 (e.g. 11–12 → 85, 13–14 → 95). The advisory is
+  computed by `ComputePitchSmartStatus` and exposed at
+  `GET /athletes/{id}/pitch-smart` — a read-only endpoint decoupled from
+  throwing-session logging, so a flag can never block a log.
+
+### `bio_samples`
+
+Source-tagged, append-only biometric readings (the wearable seam). Keeps a
+watch a *feed*, not a dependency — a Garmin/Whoop later is another `source`.
+
+| Column        | Type     | Constraints                                                  |
+|---------------|----------|--------------------------------------------------------------|
+| `id`          | INTEGER  | PRIMARY KEY AUTOINCREMENT                                    |
+| `athlete_id`  | INTEGER  | NOT NULL, FK → athletes(id) ON DELETE CASCADE                |
+| `recorded_at` | DATETIME | NOT NULL                                                    |
+| `metric`      | TEXT     | NOT NULL — e.g. 'sleep_hours', 'resting_hr', 'hrv'          |
+| `value`       | REAL     | NOT NULL                                                    |
+| `unit`        | TEXT     | NULL                                                        |
+| `source`      | TEXT     | NOT NULL DEFAULT 'manual', CHECK IN ('manual','watch_import')|
+| `notes`       | TEXT     | NULL                                                        |
+| `created_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                          |
+
+- Append-only — no `updated_at`/trigger. Indexed on `(athlete_id, recorded_at)`.
 
 ## Future Considerations (v2+)
 
