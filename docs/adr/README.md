@@ -22,3 +22,4 @@ Architecture Decision Records for RepLog.
 | [016](016-training-methodology.md) | First-Class Training Methodology | Accepted | 2026-05-27 |
 | [017](017-mcp-layer.md) | MCP Layer: RepLog as an OAuth Resource Server | Accepted | 2026-05-27 |
 | [018](018-multi-modal-logbook.md) | Multi-Modal Athletic Logbook | Accepted | 2026-05-29 |
+| [019](019-self-hosted-identity-native-mcp.md) | Self-Hosted Identity + Native MCP Server (supersedes 017) | Proposed | 2026-06-01 |
