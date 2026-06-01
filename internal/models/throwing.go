@@ -13,7 +13,7 @@ import (
 type ThrowingSession struct {
 	ID         int64
 	WorkoutID  int64
-	ThrowType  string // game | bullpen | lesson | long_toss | catch | flat_ground
+	ThrowType  string // game | bullpen | lesson | long_toss | catch | flat_ground | position
 	ThrowCount sql.NullInt64
 	MaxIntent  sql.NullInt64
 	Velocity   sql.NullFloat64
@@ -47,7 +47,7 @@ type ThrowingSessionInput struct {
 // validThrowTypes mirrors the CHECK constraint on throwing_sessions.throw_type.
 var validThrowTypes = map[string]bool{
 	"game": true, "bullpen": true, "lesson": true,
-	"long_toss": true, "catch": true, "flat_ground": true,
+	"long_toss": true, "catch": true, "flat_ground": true, "position": true,
 }
 
 // CreateThrowingSession logs a throwing session for an athlete. It creates the

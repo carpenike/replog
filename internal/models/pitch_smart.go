@@ -46,8 +46,8 @@ func (l *PitchSmartLimit) restDaysFor(pitches int) int {
 type PitchSmartStatus struct {
 	AgeBracket       string // e.g. "13–14"
 	DailyMax         int    // recommended max pitches in a single day
-	LastSessionDate  string // date of the most recent counted throwing session
-	LastThrowCount   int    // throw_count of that session
+	LastSessionDate  string // date of the most recent counted pitching session (game/bullpen)
+	LastThrowCount   int    // pitch count of that session
 	OverDailyMax     bool   // last session exceeded DailyMax
 	RestDaysRequired int    // rest days the last session's volume calls for
 	RestDaysOwed     int    // rest days still owed as of `asOf` (0 if rested)
@@ -119,7 +119,13 @@ func ComputePitchSmartStatus(db *sql.DB, athleteID int64, asOf time.Time) (*Pitc
 		DailyMax:   limit.DailyMax,
 	}
 
-	// Most recent throwing session that carried a throw count.
+	// Most recent PITCHING session that carried a throw count. Pitch Smart's
+	// pitch-count rest math counts mound pitching only ('game','bullpen') — not
+	// catch-play, long toss, infield/position throws, or (ambiguous) lessons.
+	// Those still count toward the cross-modal load view (GetLoadSummary sums
+	// throw_count across ALL throw types); they just don't drive the pitch-count
+	// advisory. So LastSessionDate / LastThrowCount denote the latest pitching
+	// session, which may be older than the athlete's latest throwing session.
 	var lastDate string
 	var lastCount sql.NullInt64
 	err = db.QueryRow(
@@ -127,10 +133,11 @@ func ComputePitchSmartStatus(db *sql.DB, athleteID int64, asOf time.Time) (*Pitc
 		 FROM throwing_sessions ts
 		 JOIN workouts w ON w.id = ts.workout_id
 		 WHERE w.athlete_id = ? AND ts.throw_count IS NOT NULL
+		   AND ts.throw_type IN ('game','bullpen')
 		 ORDER BY w.date DESC, ts.id DESC LIMIT 1`, athleteID,
 	).Scan(&lastDate, &lastCount)
 	if errors.Is(err, sql.ErrNoRows) {
-		status.Advisory = fmt.Sprintf("No counted throwing sessions on record. Recommended daily max for age %s: %d pitches.", status.AgeBracket, status.DailyMax)
+		status.Advisory = fmt.Sprintf("No counted pitching sessions on record. Recommended daily max for age %s: %d pitches.", status.AgeBracket, status.DailyMax)
 		return status, nil
 	}
 	if err != nil {
