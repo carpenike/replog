@@ -88,13 +88,20 @@ sport-skill, and mobility/recovery become first-class peers.
 4. **Throwing/arm-care is the safety centerpiece and ships with
    coach-reviewed Pitch Smart flags in Phase 1.** A `throwing_sessions`
    detail table records throw count, throw type (`game` / `bullpen` /
-   `lesson` / `long_toss` / `catch` / `flat_ground`), max-intent %, optional
-   velocity, a **fatigue flag**, and a **pain flag**. Pitch Smart reference
-   data (daily max by age, tiered rest-days-owed, innings caps, shutdown
-   windows) is seeded, and the app computes **rolling rest-days-owed and
+   `lesson` / `long_toss` / `catch` / `flat_ground` / `position`), max-intent %,
+   optional velocity, a **fatigue flag**, and a **pain flag**. Pitch Smart
+   reference data (daily max by age, tiered rest-days-owed, innings caps,
+   shutdown windows) is seeded, and the app computes **rolling rest-days-owed and
    limit/inning checks** as proposals a coach reviews. The computation reads
    workload and emits a flag; it never writes a progression, blocks a log, or
    instructs the athlete.
+   - **Amendment (HOF-010, 2026-06-01):** added the `position` throw type for
+     infield/position throwing (two-way players), and **scoped the Pitch Smart
+     pitch-count advisory to mound pitching (`game`, `bullpen`) only** — `catch`,
+     `long_toss`, `flat_ground`, and `position` no longer drive the pitch-count
+     rest math (Pitch Smart limits are pitch counts). The cross-modal load view
+     is unchanged: it still sums `throw_count` across **all** throw types, so
+     total throwing load remains the broader safety number.
 
 5. **Cross-source throwing is in scope.** Throwing sessions carry a
    source/context and external sessions (another team's game, a private
@@ -162,7 +169,7 @@ CREATE TABLE athlete_season_phases (
 CREATE TABLE throwing_sessions (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     workout_id    INTEGER NOT NULL REFERENCES workouts(id) ON DELETE CASCADE, -- the discipline='throwing' parent
-    throw_type    TEXT NOT NULL CHECK(throw_type IN ('game','bullpen','lesson','long_toss','catch','flat_ground')),
+    throw_type    TEXT NOT NULL CHECK(throw_type IN ('game','bullpen','lesson','long_toss','catch','flat_ground','position')),  -- 'position' added in HOF-010 (migration 0008)
     throw_count   INTEGER,                         -- pitch/throw count
     max_intent    INTEGER,                         -- % effort, nullable
     velocity      REAL,                            -- optional radar reading; never a target

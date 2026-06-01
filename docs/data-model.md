@@ -1506,7 +1506,7 @@ the parent carries athlete/date). The youth-baseball arm-care centerpiece.
 |---------------|----------|--------------------------------------------------------------------------------------|
 | `id`          | INTEGER  | PRIMARY KEY AUTOINCREMENT                                                            |
 | `workout_id`  | INTEGER  | NOT NULL, FK → workouts(id) ON DELETE CASCADE                                        |
-| `throw_type`  | TEXT     | NOT NULL, CHECK IN ('game','bullpen','lesson','long_toss','catch','flat_ground')    |
+| `throw_type`  | TEXT     | NOT NULL, CHECK IN ('game','bullpen','lesson','long_toss','catch','flat_ground','position')  ('position' added in HOF-010 / migration 0008) |
 | `throw_count` | INTEGER  | NULL — pitch/throw count                                                             |
 | `max_intent`  | INTEGER  | NULL — % effort                                                                      |
 | `velocity`    | REAL     | NULL — optional radar reading; never a target                                        |
@@ -1520,6 +1520,13 @@ the parent carries athlete/date). The youth-baseball arm-care centerpiece.
 
 - `source='external'` lets a coach log throwing done off-program (another
   team's game, a private lesson) so total workload is complete.
+- `position` (HOF-010) is infield/position throwing for two-way players.
+  **Pitch Smart scope:** the pitch-count advisory (`ComputePitchSmartStatus`)
+  counts mound pitching only — `throw_type IN ('game','bullpen')`; `catch`,
+  `long_toss`, `flat_ground`, and `position` are real arm load but do **not**
+  drive the pitch-count rest math (Pitch Smart limits are pitch counts). The
+  cross-modal load view still sums `throw_count` across **all** types — total
+  throwing load is the broader number.
 
 ### `pitch_smart_limits`
 
