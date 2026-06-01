@@ -1496,6 +1496,11 @@ load expectations and is surfaced as journal events.
 | `updated_at` | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP (trigger)           |
 
 - Indexed on `(athlete_id, start_date)`. Deleting an athlete cascades.
+- **Coach-only mutation (HOF-011):** create/delete require coach or admin (the
+  `if !user.IsCoach && !user.IsAdmin { 403 }` idiom shared with assignments /
+  programs / generation) — defining off/pre/in windows is a coaching decision.
+  List/read stays athlete-accessible. The other modality logs
+  (throwing/conditioning/skill/recovery) remain athlete-accessible.
 
 ### `throwing_sessions`
 
