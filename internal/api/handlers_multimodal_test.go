@@ -132,3 +132,51 @@ func TestMultiModal_OverLimitThrowStillLogs(t *testing.T) {
 		t.Error("expected a non-empty advisory string")
 	}
 }
+
+// TestCreateSeasonPhase_CoachAllowed pins the happy path: a coach can record a
+// season phase for their athlete (the coach-only gate must not break it).
+func TestCreateSeasonPhase_CoachAllowed(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/season-phases", athlete.ID),
+		`{"phase":"in","start_date":"2026-05-01"}`, cookies)
+	requireStatus(t, rr, http.StatusCreated)
+}
+
+// TestCreateSeasonPhase_NonCoachForbidden verifies the coach-only gate: a
+// non-coach user (even with athlete access) cannot create a season phase.
+func TestCreateSeasonPhase_NonCoachForbidden(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	user := env.createUser(t, "athlete_user", false, false)
+	cookies := env.loginAs(t, user)
+
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/season-phases", athlete.ID),
+		`{"phase":"in","start_date":"2026-05-01"}`, cookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}
+
+// TestDeleteSeasonPhase_NonCoachForbidden verifies the coach-only gate on the
+// delete path: a non-coach user cannot delete a season phase.
+func TestDeleteSeasonPhase_NonCoachForbidden(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	coachCookies := env.loginAs(t, coach)
+
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/season-phases", athlete.ID),
+		`{"phase":"in","start_date":"2026-05-01"}`, coachCookies)
+	requireStatus(t, rr, http.StatusCreated)
+	var phase SeasonPhase
+	decodeJSON(t, rr, &phase)
+
+	user := env.createUser(t, "athlete_user", false, false)
+	userCookies := env.loginAs(t, user)
+	rr = env.do(t, "DELETE", fmt.Sprintf("/api/athletes/%d/season-phases/%d", athlete.ID, phase.ID),
+		"", userCookies)
+	requireStatus(t, rr, http.StatusForbidden)
+}

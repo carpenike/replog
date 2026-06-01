@@ -445,3 +445,122 @@ export interface PublicKeyCredentialJSON {
     clientDataJSON: string;
   };
 }
+
+// --- Multi-modal logbook (ADR 018 / HOF-011) ---
+// These interfaces mirror the Go DTOs in internal/api/responses.go.
+// Nullable Go pointers (*T) map to `?: T | null`. Slice fields are never
+// null (the constructors use make()), so they are typed `T[]`.
+
+export interface ThrowingSession {
+  id: number;
+  workout_id: number;
+  athlete_id: number;
+  date: string;
+  throw_type: string;
+  throw_count?: number | null;
+  max_intent?: number | null;
+  velocity?: number | null;
+  fatigue: boolean;
+  pain: boolean;
+  source: string;
+  team?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConditioningInterval {
+  id: number;
+  interval_number: number;
+  work_seconds?: number | null;
+  work_distance?: number | null;
+  rest_seconds?: number | null;
+  notes?: string | null;
+}
+
+export interface ConditioningSession {
+  id: number;
+  workout_id: number;
+  athlete_id: number;
+  date: string;
+  modality: string;
+  session_type: string;
+  total_distance?: number | null;
+  distance_unit?: string | null;
+  duration_seconds?: number | null;
+  avg_hr?: number | null;
+  rpe?: number | null;
+  notes?: string | null;
+  intervals: ConditioningInterval[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SkillSession {
+  id: number;
+  workout_id: number;
+  athlete_id: number;
+  date: string;
+  skill_type: string;
+  rep_count?: number | null;
+  load_kg?: number | null;
+  velocity?: number | null;
+  duration_seconds?: number | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecoveryCheckin {
+  id: number;
+  workout_id: number;
+  athlete_id: number;
+  date: string;
+  sleep_hours?: number | null;
+  soreness?: number | null;
+  energy?: number | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SeasonPhase {
+  id: number;
+  athlete_id: number;
+  sport?: string | null;
+  phase: string;
+  start_date: string;
+  end_date?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DisciplineLoad {
+  discipline: string;
+  unit: string;
+  acute_7d: number;
+  chronic_28d: number;
+  // null on cold start (insufficient chronic history); pair with `marker`.
+  acwr: number | null;
+  // "insufficient_history" when acwr is null.
+  marker?: string;
+}
+
+export interface LoadSummary {
+  athlete_id: number;
+  as_of: string;
+  disciplines: DisciplineLoad[];
+}
+
+export interface PitchSmartStatus {
+  age_bracket: string;
+  daily_max: number;
+  last_session_date?: string;
+  last_throw_count?: number;
+  over_daily_max: boolean;
+  rest_days_required: number;
+  rest_days_owed: number;
+  next_eligible_date?: string;
+  advisory: string;
+}

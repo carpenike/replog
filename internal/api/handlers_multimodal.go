@@ -190,6 +190,11 @@ func (h *Handlers) ListSeasonPhases(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/season-phases [post]
 func (h *Handlers) CreateSeasonPhase(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
 	athleteID, ok := h.athleteAccess(w, r)
 	if !ok {
 		return
@@ -237,6 +242,11 @@ func (h *Handlers) CreateSeasonPhase(w http.ResponseWriter, r *http.Request) {
 //	@Failure      404  {object}  api.APIError
 //	@Router       /athletes/{id}/season-phases/{phaseID} [delete]
 func (h *Handlers) DeleteSeasonPhase(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
 	athleteID, ok := h.athleteAccess(w, r)
 	if !ok {
 		return

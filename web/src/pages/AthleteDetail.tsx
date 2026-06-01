@@ -166,8 +166,26 @@ export function AthleteDetail() {
         <Link to={`/athletes/${athleteId}/accessories`} className={buttonVariants({ variant: "outline", size: "sm" })}>
           🔧 Accessories
         </Link>
+        <Link to={`/athletes/${athleteId}/throwing-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          ⚾ Throwing
+        </Link>
+        <Link to={`/athletes/${athleteId}/conditioning-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          🏃 Conditioning
+        </Link>
+        <Link to={`/athletes/${athleteId}/skill-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          🎯 Skill
+        </Link>
+        <Link to={`/athletes/${athleteId}/recovery-checkins`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          😴 Recovery
+        </Link>
+        <Link to={`/athletes/${athleteId}/load`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          📊 Load
+        </Link>
         {isCoach && (
           <>
+            <Link to={`/athletes/${athleteId}/season-phases`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              📅 Season Phases
+            </Link>
             <Link to={`/athletes/${athleteId}/assignments`} className={buttonVariants({ variant: "outline", size: "sm" })}>
               🎯 Assignments
             </Link>

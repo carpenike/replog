@@ -1,4 +1,66 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, LoginTokenData, MissingTMData, Notification, PasskeyData, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, SettingCategoryData, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PasskeyData, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+
+// Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
+// *Request structs in internal/api/requests.go.
+export interface ThrowingSessionInput {
+  date: string;
+  throw_type: string;
+  throw_count?: number;
+  max_intent?: number;
+  velocity?: number;
+  fatigue?: boolean;
+  pain?: boolean;
+  source?: string;
+  team?: string;
+  notes?: string;
+}
+
+export interface ConditioningIntervalInput {
+  interval_number: number;
+  work_seconds?: number;
+  work_distance?: number;
+  rest_seconds?: number;
+  notes?: string;
+}
+
+export interface ConditioningSessionInput {
+  date: string;
+  modality: string;
+  session_type: string;
+  total_distance?: number;
+  distance_unit?: string;
+  duration_seconds?: number;
+  avg_hr?: number;
+  rpe?: number;
+  notes?: string;
+  intervals?: ConditioningIntervalInput[];
+}
+
+export interface SkillSessionInput {
+  date: string;
+  skill_type: string;
+  rep_count?: number;
+  load_kg?: number;
+  velocity?: number;
+  duration_seconds?: number;
+  notes?: string;
+}
+
+export interface RecoveryCheckinInput {
+  date: string;
+  sleep_hours?: number;
+  soreness?: number;
+  energy?: number;
+  notes?: string;
+}
+
+export interface SeasonPhaseInput {
+  sport?: string;
+  phase: string;
+  start_date: string;
+  end_date?: string;
+  notes?: string;
+}
 
 export interface DashboardStats {
   week_sessions: number;
@@ -661,6 +723,79 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(credential),
     });
+  }
+
+  // Multi-modal logbook (ADR 018 / HOF-011). The List* endpoints return bare
+  // arrays (no pagination); load + pitch-smart are read-only advisory surfaces.
+  async listThrowingSessions(athleteId: number): Promise<ThrowingSession[]> {
+    return this.request<ThrowingSession[]>(`/api/athletes/${athleteId}/throwing-sessions`);
+  }
+
+  async createThrowingSession(athleteId: number, data: ThrowingSessionInput): Promise<ThrowingSession> {
+    return this.request<ThrowingSession>(`/api/athletes/${athleteId}/throwing-sessions`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deleteThrowingSession(athleteId: number, sessionId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/throwing-sessions/${sessionId}`, { method: 'DELETE' });
+  }
+
+  async listConditioningSessions(athleteId: number): Promise<ConditioningSession[]> {
+    return this.request<ConditioningSession[]>(`/api/athletes/${athleteId}/conditioning-sessions`);
+  }
+
+  async createConditioningSession(athleteId: number, data: ConditioningSessionInput): Promise<ConditioningSession> {
+    return this.request<ConditioningSession>(`/api/athletes/${athleteId}/conditioning-sessions`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deleteConditioningSession(athleteId: number, sessionId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/conditioning-sessions/${sessionId}`, { method: 'DELETE' });
+  }
+
+  async listSkillSessions(athleteId: number): Promise<SkillSession[]> {
+    return this.request<SkillSession[]>(`/api/athletes/${athleteId}/skill-sessions`);
+  }
+
+  async createSkillSession(athleteId: number, data: SkillSessionInput): Promise<SkillSession> {
+    return this.request<SkillSession>(`/api/athletes/${athleteId}/skill-sessions`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deleteSkillSession(athleteId: number, sessionId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/skill-sessions/${sessionId}`, { method: 'DELETE' });
+  }
+
+  async listRecoveryCheckins(athleteId: number): Promise<RecoveryCheckin[]> {
+    return this.request<RecoveryCheckin[]>(`/api/athletes/${athleteId}/recovery-checkins`);
+  }
+
+  async createRecoveryCheckin(athleteId: number, data: RecoveryCheckinInput): Promise<RecoveryCheckin> {
+    return this.request<RecoveryCheckin>(`/api/athletes/${athleteId}/recovery-checkins`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deleteRecoveryCheckin(athleteId: number, checkinId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/recovery-checkins/${checkinId}`, { method: 'DELETE' });
+  }
+
+  async listSeasonPhases(athleteId: number): Promise<SeasonPhase[]> {
+    return this.request<SeasonPhase[]>(`/api/athletes/${athleteId}/season-phases`);
+  }
+
+  async createSeasonPhase(athleteId: number, data: SeasonPhaseInput): Promise<SeasonPhase> {
+    return this.request<SeasonPhase>(`/api/athletes/${athleteId}/season-phases`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async deleteSeasonPhase(athleteId: number, phaseId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/season-phases/${phaseId}`, { method: 'DELETE' });
+  }
+
+  async getLoadSummary(athleteId: number): Promise<LoadSummary> {
+    return this.request<LoadSummary>(`/api/athletes/${athleteId}/load`);
+  }
+
+  // getPitchSmartStatus returns 404 (ApiError code 404) when the athlete has
+  // no Pitch Smart guidance (age unknown / outside the reference range) — the
+  // caller should treat that as a quiet "no advisory" state, not an error.
+  async getPitchSmartStatus(athleteId: number): Promise<PitchSmartStatus> {
+    return this.request<PitchSmartStatus>(`/api/athletes/${athleteId}/pitch-smart`);
   }
 }
 

@@ -56,6 +56,12 @@ const PreferencesPage = lazy(() => import('@/pages/PreferencesPage').then(m => (
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
 const TokenLoginPage = lazy(() => import('@/pages/TokenLoginPage').then(m => ({ default: m.TokenLoginPage })))
 const PasskeySetupPage = lazy(() => import('@/pages/PasskeySetupPage').then(m => ({ default: m.PasskeySetupPage })))
+const ThrowingSessions = lazy(() => import('@/pages/ThrowingSessions').then(m => ({ default: m.ThrowingSessions })))
+const ConditioningSessions = lazy(() => import('@/pages/ConditioningSessions').then(m => ({ default: m.ConditioningSessions })))
+const SkillSessions = lazy(() => import('@/pages/SkillSessions').then(m => ({ default: m.SkillSessions })))
+const RecoveryCheckins = lazy(() => import('@/pages/RecoveryCheckins').then(m => ({ default: m.RecoveryCheckins })))
+const SeasonPhases = lazy(() => import('@/pages/SeasonPhases').then(m => ({ default: m.SeasonPhases })))
+const LoadDashboard = lazy(() => import('@/pages/LoadDashboard').then(m => ({ default: m.LoadDashboard })))
 
 export function App() {
   const { theme, toggleTheme } = useTheme()
@@ -106,6 +112,12 @@ export function App() {
         <Route path="/athletes/:id/import" element={<RequireRole user={user} role="coach"><ImportPage /></RequireRole>} />
         <Route path="/athletes/:id/generate" element={<RequireRole user={user} role="coach"><GeneratePage /></RequireRole>} />
         <Route path="/athletes/:id/exercises/:exerciseId/history" element={<ExerciseHistory />} />
+        <Route path="/athletes/:id/throwing-sessions" element={<ThrowingSessions />} />
+        <Route path="/athletes/:id/conditioning-sessions" element={<ConditioningSessions />} />
+        <Route path="/athletes/:id/skill-sessions" element={<SkillSessions />} />
+        <Route path="/athletes/:id/recovery-checkins" element={<RecoveryCheckins />} />
+        <Route path="/athletes/:id/season-phases" element={<SeasonPhases />} />
+        <Route path="/athletes/:id/load" element={<LoadDashboard />} />
         <Route path="/exercises" element={<ExercisesList user={user} />} />
         <Route path="/exercises/new" element={<RequireRole user={user} role="coach"><NewExercise /></RequireRole>} />
         <Route path="/exercises/:id" element={<ExerciseDetail />} />
