@@ -155,6 +155,8 @@ All configuration is via environment variables:
 | `REPLOG_OIDC_CLIENT_SECRET` | | OIDC client secret |
 | `REPLOG_OIDC_REDIRECT_URL` | `<base URL>/auth/oidc/callback` | OIDC redirect/callback URL; defaults to the base URL plus the callback path |
 
+When OIDC is configured, RepLog also acts as its own MCP OAuth Authorization Server (ADR 019): it serves the native MCP endpoint at `/api/mcp` and federates MCP login to PocketID. This requires **two** redirect URIs registered in PocketID — the webui callback (`<base URL>/auth/oidc/callback`) **and** the MCP AS callback (`<base URL>/oauth/callback`). No extra environment variables are needed; the AS reuses the `REPLOG_OIDC_*` credentials and `REPLOG_BASE_URL`.
+
 LLM provider/model settings and notification configuration are managed through the admin settings UI (`/admin/settings`), not environment variables.
 
 ### Reverse Proxy
