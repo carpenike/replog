@@ -810,6 +810,34 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 		}
 	}
 
+	// Backfill the exercise map with the *existing* catalog so programs can
+	// reference exercises by name without re-declaring them in the import's
+	// top-level exercises[] array. AI-coach drafts (and hand-written catalog
+	// files) routinely list exercises only inside prescribed_sets /
+	// progression_rules; without this fallback every such row is silently
+	// skipped and the program imports empty.
+	exRows, err := tx.Query(`SELECT id, name FROM exercises`)
+	if err != nil {
+		return nil, fmt.Errorf("models: catalog import load existing exercises: %w", err)
+	}
+	for exRows.Next() {
+		var exID int64
+		var exName string
+		if err := exRows.Scan(&exID, &exName); err != nil {
+			exRows.Close()
+			return nil, fmt.Errorf("models: catalog import scan existing exercise: %w", err)
+		}
+		key := strings.ToLower(exName)
+		if _, ok := exerciseIDMap[key]; !ok {
+			exerciseIDMap[key] = exID
+		}
+	}
+	if err := exRows.Err(); err != nil {
+		exRows.Close()
+		return nil, fmt.Errorf("models: catalog import iterate existing exercises: %w", err)
+	}
+	exRows.Close()
+
 	// Phase 3: Program templates + prescribed sets + progression rules.
 	for _, m := range ms.Programs {
 		if m.MappedID > 0 || !m.Create {
@@ -857,6 +885,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 		for _, ps := range pt.PrescribedSets {
 			exID, ok := exerciseIDMap[strings.ToLower(ps.Exercise)]
 			if !ok {
+				log.Printf("models: catalog import skipped prescribed set for unknown exercise %q in template %q", ps.Exercise, pt.Name)
 				continue
 			}
 			if err := insertPrescribedSet(tx, templateID, exID, ps); err != nil {
@@ -869,6 +898,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 		for _, pr := range pt.ProgressionRules {
 			exID, ok := exerciseIDMap[strings.ToLower(pr.Exercise)]
 			if !ok {
+				log.Printf("models: catalog import skipped progression rule for unknown exercise %q in template %q", pr.Exercise, pt.Name)
 				continue
 			}
 			if err := insertProgressionRule(tx, templateID, exID, pr.Increment); err != nil {

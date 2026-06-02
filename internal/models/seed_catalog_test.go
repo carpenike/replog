@@ -340,6 +340,103 @@ func TestCatalogImport_AssignsToAthlete(t *testing.T) {
 	}
 }
 
+// TestCatalogImport_ReferencesExistingExercise reproduces the production bug
+// where an AI-coach generation produced a catalog with an EMPTY exercises[]
+// array while referencing existing catalog exercises by name inside
+// prescribed_sets / progression_rules. The importer must resolve those names
+// against the existing catalog instead of silently dropping every set (which
+// previously left the athlete with an empty program template).
+func TestCatalogImport_ReferencesExistingExercise(t *testing.T) {
+	db := testDB(t)
+
+	// Seed an exercise into the catalog (as a prior import would have).
+	seedJSON := `{
+		"version": "1.0",
+		"type": "catalog",
+		"exercises": [
+			{"name": "Bench Press", "tier": "foundational"}
+		]
+	}`
+	seedParsed, err := importers.ParseCatalogJSON(bytes.NewBufferString(seedJSON))
+	if err != nil {
+		t.Fatalf("parse seed catalog: %v", err)
+	}
+	seedMS := &importers.MappingState{
+		Format:    importers.FormatCatalogJSON,
+		Exercises: importers.BuildExerciseMappings(seedParsed.Exercises, nil),
+		Parsed:    seedParsed,
+	}
+	if _, err := ExecuteCatalogImport(db, seedMS, nil, false); err != nil {
+		t.Fatalf("seed import: %v", err)
+	}
+
+	// Now import a program-only catalog with an EMPTY exercises[] array that
+	// references "Bench Press" purely by name — exactly what the AI coach
+	// produced for the Caydan generation.
+	catalogJSON := `{
+		"version": "1.0",
+		"type": "catalog",
+		"exercises": [],
+		"programs": [
+			{
+				"name": "Block 1",
+				"num_weeks": 4,
+				"num_days": 3,
+				"is_loop": false,
+				"prescribed_sets": [
+					{"exercise": "Bench Press", "week": 1, "day": 1, "set_number": 1, "reps": 5, "rep_type": "reps", "absolute_weight": 95, "sort_order": 1}
+				],
+				"progression_rules": [
+					{"exercise": "Bench Press", "increment": 5}
+				]
+			}
+		]
+	}`
+	parsed, err := importers.ParseCatalogJSON(bytes.NewBufferString(catalogJSON))
+	if err != nil {
+		t.Fatalf("parse catalog JSON: %v", err)
+	}
+
+	// Build exercise mappings against the empty exercises[] array — this is
+	// what the generation-execute handler does, so ms.Exercises is empty.
+	ms := &importers.MappingState{
+		Format:    importers.FormatCatalogJSON,
+		Exercises: importers.BuildExerciseMappings(parsed.Exercises, listEntityExercises(t, db)),
+		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
+		Parsed:    parsed,
+	}
+
+	result, err := ExecuteCatalogImport(db, ms, nil, false)
+	if err != nil {
+		t.Fatalf("ExecuteCatalogImport: %v", err)
+	}
+
+	if result.ProgramsCreated != 1 {
+		t.Fatalf("ProgramsCreated: got %d, want 1", result.ProgramsCreated)
+	}
+	if result.PrescribedSets != 1 {
+		t.Errorf("PrescribedSets: got %d, want 1 (prescribed set was silently dropped)", result.PrescribedSets)
+	}
+	if result.ProgressionRules != 1 {
+		t.Errorf("ProgressionRules: got %d, want 1 (progression rule was silently dropped)", result.ProgressionRules)
+	}
+
+	// The created template must actually carry the prescribed set.
+	if len(result.CreatedTemplateIDs) != 1 {
+		t.Fatalf("CreatedTemplateIDs: got %d, want 1", len(result.CreatedTemplateIDs))
+	}
+	var count int
+	if err := db.QueryRow(
+		`SELECT COUNT(*) FROM prescribed_sets WHERE template_id = ?`,
+		result.CreatedTemplateIDs[0],
+	).Scan(&count); err != nil {
+		t.Fatalf("count prescribed sets: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("prescribed_sets rows for template: got %d, want 1", count)
+	}
+}
+
 func TestCatalogImport_DeactivatesPriorProgram(t *testing.T) {
 	db := testDB(t)
 
