@@ -17,7 +17,7 @@ Self-hosted workout tracking for kids' resistance training progression and perso
 - **Import / Export** — import from Hevy, Strong; export to JSON/CSV; seed catalog import
 - **AI-assisted program generation** — LLM-powered program suggestions via Anthropic, OpenAI, or Ollama (coach reviews all output)
 - **Notifications** — in-app and external notifications (via Shoutrrr) with per-type preferences
-- **Passkey / WebAuthn** — passwordless login alongside traditional username/password
+- **PocketID OIDC login** — the webui is a PocketID OIDC relying party; password login is retained as break-glass (ADR 019)
 - **Login tokens** — magic-link / token-based login for easy device setup
 - **Equipment management** — equipment catalog with per-athlete and per-exercise associations
 - **Avatars** — user avatar upload
@@ -31,7 +31,7 @@ Self-hosted workout tracking for kids' resistance training progression and perso
 - **Go** (1.25+) — single static binary serving a JSON REST API
 - **chi** — HTTP router with group-based middleware (`github.com/go-chi/chi/v5`)
 - **SQLite** (WAL mode) via `modernc.org/sqlite` — pure-Go driver, no CGO
-- **WebAuthn** — passkey authentication via `go-webauthn/webauthn`
+- **OIDC** — PocketID relying-party login via `coreos/go-oidc` + `golang.org/x/oauth2` (PKCE)
 - **Shoutrrr** — external notification dispatch (Slack, Discord, email, etc.)
 
 ### Frontend
@@ -83,8 +83,6 @@ Or skip `just` entirely and run the two processes by hand:
 # Terminal 1
 REPLOG_DB_PATH=./dev.db \
 REPLOG_ADMIN_USER=admin REPLOG_ADMIN_PASS=admin REPLOG_ADMIN_EMAIL=admin@localhost \
-REPLOG_WEBAUTHN_RPID=localhost \
-REPLOG_WEBAUTHN_ORIGINS=http://localhost:5173,http://localhost:8080 \
 go run ./cmd/replog
 
 # Terminal 2
@@ -152,8 +150,10 @@ All configuration is via environment variables:
 | `REPLOG_ADMIN_PASS` | | Initial admin password (required on first run) |
 | `REPLOG_ADMIN_EMAIL` | | Initial admin email |
 | `REPLOG_TRUSTED_PROXIES` | | Comma-separated CIDRs or IPs whose `X-Forwarded-For` headers are trusted for rate limiting (e.g. `127.0.0.1,10.0.0.0/8`) |
-| `REPLOG_WEBAUTHN_RPID` | | WebAuthn Relying Party ID (e.g. `replog.example.com`) |
-| `REPLOG_WEBAUTHN_ORIGINS` | | Comma-separated WebAuthn origins (e.g. `https://replog.example.com`) |
+| `REPLOG_OIDC_ISSUER` | | PocketID issuer URL (e.g. `https://id.example.com`). OIDC login is enabled only when issuer + client ID + secret are all set |
+| `REPLOG_OIDC_CLIENT_ID` | | OIDC client ID registered in PocketID |
+| `REPLOG_OIDC_CLIENT_SECRET` | | OIDC client secret |
+| `REPLOG_OIDC_REDIRECT_URL` | `<base URL>/auth/oidc/callback` | OIDC redirect/callback URL; defaults to the base URL plus the callback path |
 
 LLM provider/model settings and notification configuration are managed through the admin settings UI (`/admin/settings`), not environment variables.
 

@@ -390,6 +390,7 @@ erDiagram
 | `is_coach`     | INTEGER      | NOT NULL DEFAULT 0, CHECK(is_coach IN (0, 1)) |
 | `is_admin`     | INTEGER      | NOT NULL DEFAULT 0, CHECK(is_admin IN (0, 1)) |
 | `mcp_enabled`  | INTEGER      | NOT NULL DEFAULT 0, CHECK(mcp_enabled IN (0, 1)) |
+| `pocketid_sub` | TEXT         | NULL, UNIQUE (partial index WHERE NOT NULL) |
 | `avatar_path`  | TEXT         | NULL                                 |
 | `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -402,6 +403,7 @@ erDiagram
 - `COLLATE NOCASE` prevents "Admin" and "admin" or duplicate emails.
 - Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL` env vars with `is_coach = 1`.
 - `mcp_enabled` gates whether the user may act through the MCP layer (ADR 017). Default-deny; an admin toggles it per user via `PUT /api/users/{userID}/mcp`. Added in migration `0005`. Identity for MCP requests is a short-TTL JWT minted by the `homelab-mcp` OAuth AS and verified against its JWKS — RepLog stores no per-user MCP token.
+- `pocketid_sub` is the PocketID OIDC subject (`sub` claim), the authoritative identity key for the webui once RepLog became a PocketID relying party (ADR 019 Phase 1, migration `0009`). Set on a user's first OIDC login — matched first; else, if the ID token carries `email_verified == true`, the existing account is matched by email and bound; else a passwordless user is JIT-created. Uniqueness is enforced by a partial index (`WHERE pocketid_sub IS NOT NULL`) because SQLite's `ALTER TABLE ADD COLUMN` cannot add an inline `UNIQUE` column. `password_hash` is retained as documented break-glass; the dormant `webauthn_credentials` table is left for a later cleanup migration.
 
 ### `user_preferences`
 
@@ -838,12 +840,15 @@ CREATE TABLE IF NOT EXISTS users (
     is_coach        INTEGER NOT NULL DEFAULT 0 CHECK(is_coach IN (0, 1)),
     is_admin        INTEGER NOT NULL DEFAULT 0 CHECK(is_admin IN (0, 1)),
     mcp_enabled     INTEGER NOT NULL DEFAULT 0 CHECK(mcp_enabled IN (0, 1)),
+    pocketid_sub    TEXT,   -- PocketID OIDC subject; UNIQUE via partial index (migration 0009)
     avatar_path     TEXT,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS user_preferences (
+-- Partial unique index: SQLite's ALTER TABLE ADD COLUMN cannot add an inline
+-- UNIQUE column, so uniqueness on the OIDC subject is enforced here.
+CREATE UNIQUE INDEX idx_users_pocketid_sub ON users(pocketid_sub) WHERE pocketid_sub IS NOT NULL;
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id     INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     weight_unit TEXT    NOT NULL DEFAULT 'lbs' CHECK(weight_unit IN ('lbs', 'kg')),

@@ -4,7 +4,6 @@ import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -12,24 +11,6 @@ import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useConfirm } from '@/lib/useConfirm'
-
-// WebAuthn helper: base64url encode
-function bufferToBase64url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let str = ''
-  for (const b of bytes) str += String.fromCharCode(b)
-  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-// WebAuthn helper: base64url decode
-function base64urlToBuffer(base64url: string): ArrayBuffer {
-  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
-  const binary = atob(padded)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  return bytes.buffer
-}
 
 export function PreferencesPage() {
   const queryClient = useQueryClient()
@@ -45,17 +26,10 @@ export function PreferencesPage() {
     queryFn: () => api.getPreferences(),
   })
 
-  const { data: passkeys, isLoading: passkeysLoading } = useQuery({
-    queryKey: ['passkeys'],
-    queryFn: () => api.listPasskeys(),
-  })
-
   const [weightUnit, setWeightUnit] = useState('')
   const [timezone, setTimezone] = useState('')
   const [dateFormat, setDateFormat] = useState('')
   const [saved, setSaved] = useState(false)
-  const [passkeyLabel, setPasskeyLabel] = useState('')
-  const [registering, setRegistering] = useState(false)
   const [uploading, setUploading] = useState(false)
 
   // Initialize form when data loads
@@ -73,93 +47,6 @@ export function PreferencesPage() {
       setTimeout(() => setSaved(false), 2000)
     },
   })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.deletePasskey(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['passkeys'] })
-      toast.success('Passkey deleted')
-    },
-  })
-
-  async function handleRegisterPasskey() {
-    if (!window.PublicKeyCredential) {
-      toast.error('WebAuthn is not supported in this browser')
-      return
-    }
-
-    setRegistering(true)
-    try {
-      // Set label first
-      if (passkeyLabel.trim()) {
-        await api.setPasskeyLabel(passkeyLabel.trim())
-      }
-
-      // Begin registration — get options from server
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const options: any = await api.beginPasskeyRegistration()
-
-      // Convert base64url strings to ArrayBuffers for the browser API
-      const publicKey = options.publicKey
-      const createOptions: CredentialCreationOptions = {
-        publicKey: {
-          rp: publicKey.rp,
-          user: {
-            id: base64urlToBuffer(publicKey.user.id),
-            name: publicKey.user.name,
-            displayName: publicKey.user.displayName,
-          },
-          challenge: base64urlToBuffer(publicKey.challenge),
-          pubKeyCredParams: publicKey.pubKeyCredParams.map((p: { type: string; alg: number }) => ({
-            type: p.type as 'public-key',
-            alg: p.alg,
-          })),
-          timeout: publicKey.timeout,
-          excludeCredentials: publicKey.excludeCredentials?.map((c: { type: string; id: string; transports?: string[] }) => ({
-            type: c.type as 'public-key',
-            id: base64urlToBuffer(c.id),
-            transports: c.transports as AuthenticatorTransport[],
-          })),
-          authenticatorSelection: publicKey.authenticatorSelection as AuthenticatorSelectionCriteria,
-          attestation: (publicKey.attestation ?? 'none') as AttestationConveyancePreference,
-        },
-      }
-
-      // Prompt user to create credential
-      const credential = await navigator.credentials.create(createOptions) as PublicKeyCredential
-      if (!credential) {
-        toast.error('Registration cancelled')
-        return
-      }
-
-      const response = credential.response as AuthenticatorAttestationResponse
-
-      // Send credential to server
-      await api.finishPasskeyRegistration({
-        id: credential.id,
-        rawId: bufferToBase64url(credential.rawId),
-        type: credential.type,
-        response: {
-          attestationObject: bufferToBase64url(response.attestationObject),
-          clientDataJSON: bufferToBase64url(response.clientDataJSON),
-        },
-      })
-
-      queryClient.invalidateQueries({ queryKey: ['passkeys'] })
-      setPasskeyLabel('')
-      toast.success('Passkey registered successfully!')
-    } catch (err) {
-      if (err instanceof ApiError) {
-        toast.error(err.message)
-      } else if (err instanceof DOMException && err.name === 'NotAllowedError') {
-        toast.error('Registration was cancelled or timed out')
-      } else {
-        toast.error('Failed to register passkey')
-      }
-    } finally {
-      setRegistering(false)
-    }
-  }
 
   if (isLoading) return <Spinner />
 
@@ -295,73 +182,6 @@ export function PreferencesPage() {
 
       {/* Notification Preferences */}
       <NotificationPreferencesCard />
-
-      {/* Passkey Management */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Passkeys</CardTitle>
-          <CardDescription>
-            Manage your passkey credentials for passwordless login. Passkeys use your device's biometric or PIN to sign in securely.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Existing passkeys */}
-          {passkeysLoading ? (
-            <Spinner />
-          ) : passkeys && passkeys.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Used</TableHead>
-                  <TableHead>Uses</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {passkeys.map(pk => (
-                  <TableRow key={pk.id}>
-                    <TableCell className="font-medium">{pk.label ?? 'Unnamed passkey'}</TableCell>
-                    <TableCell className="text-muted-foreground">{new Date(pk.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-muted-foreground">{pk.last_used_at ? new Date(pk.last_used_at).toLocaleDateString() : 'Never'}</TableCell>
-                    <TableCell className="text-muted-foreground">{pk.use_count}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={async () => {
-                          if (await confirm({ title: 'Delete Passkey', description: 'This passkey will no longer work for login.', confirmLabel: 'Delete', variant: 'danger' }))
-                            deleteMutation.mutate(pk.id)
-                        }}
-                      >
-                        ×
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-sm text-muted-foreground">No passkeys registered yet.</p>
-          )}
-
-          {/* Register new passkey */}
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
-              <Label>New Passkey Name</Label>
-              <Input
-                value={passkeyLabel}
-                onChange={e => setPasskeyLabel(e.target.value)}
-                placeholder="e.g. MacBook Touch ID"
-              />
-            </div>
-            <Button onClick={handleRegisterPasskey} disabled={registering}>
-              {registering ? 'Registering...' : '+ Add Passkey'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
       {confirmDialog()}
     </div>
   )

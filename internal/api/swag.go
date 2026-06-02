@@ -17,7 +17,7 @@ package api
 // @BasePath  /api
 //
 // @tag.name Auth
-// @tag.description Login, logout, current user, token / passkey ceremonies
+// @tag.description Login, logout, current user, magic-link token, OIDC login
 //
 // @tag.name Dashboard
 // @tag.description Aggregated home-page stats
@@ -51,9 +51,6 @@ package api
 //
 // @tag.name Avatars
 // @tag.description User avatar upload
-//
-// @tag.name Passkeys
-// @tag.description WebAuthn passkey credential management
 //
 // @tag.name Users
 // @tag.description User management (admin only)

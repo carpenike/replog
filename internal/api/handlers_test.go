@@ -232,9 +232,6 @@ func setupTest(t *testing.T) *testEnv {
 			r.Post("/admin/stop-impersonating", h.StopImpersonation)
 			r.Get("/admin/impersonateable", h.ImpersonateableUsers)
 
-			// Setup wizard.
-			r.Post("/setup/passkey/skip", h.SkipPasskeySetup)
-
 			// Program templates (catalog).
 			r.Get("/programs", h.ListProgramTemplates)
 			r.Post("/programs", h.CreateProgramTemplate)
@@ -281,11 +278,6 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/generations/{genID}", h.GenerationStatus)
 			r.Post("/athletes/{id}/generations/{genID}/cancel", h.GenerationCancel)
 			r.Post("/athletes/{id}/generations/{genID}/execute", h.GenerationExecute)
-
-			// Passkeys (user's own credentials).
-			r.Get("/passkeys", h.ListPasskeys)
-			r.Delete("/passkeys/{id}", h.DeletePasskey)
-			r.Post("/passkeys/label", h.SetPasskeyLabel)
 		})
 	})
 

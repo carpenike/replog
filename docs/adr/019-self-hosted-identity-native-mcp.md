@@ -56,12 +56,16 @@ PocketID OIDC relying party for the webui. `homelab-mcp` leaves RepLog's path
 entirely.
 
 1. **Identity → PocketID (OIDC relying party).** The webui logs in via PocketID
-   (Authorization Code + PKCE); RepLog retires `webauthn_credentials` and
-   `password_hash` (ADR 003's auth half). PocketID's device-code flow (RFC 8628)
-   and email one-time-access cover shared-device/kid login, so RepLog's
-   `login_tokens` magic-link path also retires. Verification of PocketID's ID
-   token uses `coreos/go-oidc` (pure Go) against PocketID's JWKS — the only
-   JWKS RepLog still consumes.
+   (Authorization Code + PKCE). RepLog retires **WebAuthn passkey login**
+   (`webauthn_credentials`). Two native paths are deliberately **kept** (host
+   decisions): the **password login is retained as a hidden, admin-only
+   break-glass** (env-seeded `REPLOG_ADMIN_PASS`, ADR 014 lockout applies) so a
+   PocketID outage can't lock the operator out of his own app; and the
+   **`login_tokens` magic-link path is kept** for shared-device/kid login until
+   the kids are separately onboarded to PocketID (PocketID's device-code flow
+   (RFC 8628) and email one-time-access are their eventual path). Verification
+   of PocketID's ID token uses `coreos/go-oidc` (pure Go) against PocketID's
+   JWKS — the only JWKS RepLog still consumes.
 
 2. **RepLog is its own MCP OAuth AS** (port of W.W.W.'s `oauth.ts`): DCR
    (`/oauth/register`), RFC 8414 AS metadata + RFC 9728 protected-resource
@@ -138,9 +142,10 @@ These were settled empirically in W.W.W. (HOF-023→027) and are adopted verbati
   revoked_at, last_used_at). Settled in the Phase-2 HOF.
 - A DCR client store (client_id, client_secret_hash, client_name,
   redirect_uris, created_at).
-- **Retire** `webauthn_credentials` and `users.password_hash` (and the
-  `login_tokens` magic-link path) once the OIDC RP is live — single user, so a
-  clean cutover rather than a dual-auth transition.
+- **Retire** WebAuthn passkey login (`webauthn_credentials` usage) once the OIDC
+  RP is live. **Keep** `users.password_hash` (hidden admin break-glass, above)
+  and `login_tokens` (kid magic-links). Migration `0009` is **additive only**
+  (add `pocketid_sub`; drop no columns) per ADR 002.
 
 ## Implementation plan (phased — each phase is a HOF through the review gate)
 

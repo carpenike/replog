@@ -408,44 +408,6 @@ export interface MissingTMData {
 }
 
 
-export interface PasskeyData {
-  id: number;
-  label?: string | null;
-  created_at: string;
-  last_used_at?: string | null;
-  use_count: number;
-  backup_state: boolean;
-}
-
-// WebAuthn browser API types (subset used by our registration flow)
-export interface PublicKeyCredentialCreationOptionsJSON {
-  publicKey: {
-    rp: { name: string; id: string };
-    user: { id: string; name: string; displayName: string };
-    challenge: string;
-    pubKeyCredParams: { type: string; alg: number }[];
-    timeout?: number;
-    excludeCredentials?: { type: string; id: string; transports?: string[] }[];
-    authenticatorSelection?: {
-      authenticatorAttachment?: string;
-      requireResidentKey?: boolean;
-      residentKey?: string;
-      userVerification?: string;
-    };
-    attestation?: string;
-  };
-}
-
-export interface PublicKeyCredentialJSON {
-  id: string;
-  rawId: string;
-  type: string;
-  response: {
-    attestationObject: string;
-    clientDataJSON: string;
-  };
-}
-
 // --- Multi-modal logbook (ADR 018 / HOF-011) ---
 // These interfaces mirror the Go DTOs in internal/api/responses.go.
 // Nullable Go pointers (*T) map to `?: T | null`. Slice fields are never

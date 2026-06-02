@@ -48,38 +48,12 @@ func (h *Handlers) TokenLogin(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("api: token login success for user %q (id=%d)", user.Username, user.ID)
 
-	// Check if user needs passkey setup.
-	needsSetup := false
-	if !h.Sessions.GetBool(r.Context(), "passkey_setup_skipped") {
-		creds, err := models.ListWebAuthnCredentialsByUser(h.DB, user.ID)
-		if err == nil && len(creds) == 0 {
-			needsSetup = true
-		}
-	}
-
-	redirect := "/"
-	if needsSetup {
-		redirect = "/setup/passkey"
-	}
-
+	// Magic-link logins land directly in the app. The passkey-setup nudge was
+	// retired with the passkey login path (ADR 019 Phase 1 — HOF-012); webui
+	// auth now federates to PocketID and passwordless kids keep using magic
+	// links with no setup wizard interstitial.
 	WriteJSON(w, http.StatusOK, map[string]any{
-		"status":      "ok",
-		"redirect":    redirect,
-		"needs_setup": needsSetup,
+		"status":   "ok",
+		"redirect": "/",
 	})
-}
-
-// SkipPasskeySetup marks passkey setup as skipped for this session.
-// POST /api/auth/setup/passkey/skip
-// SkipPasskeySetup marks the setup wizard's passkey step as skipped.
-//
-//	@Summary      Skip passkey setup
-//	@Tags         Auth
-//	@Produce      json
-//	@Success      200  {object}  api.StatusResponse
-//	@Failure      401  {object}  api.APIError
-//	@Router       /setup/passkey/skip [post]
-func (h *Handlers) SkipPasskeySetup(w http.ResponseWriter, r *http.Request) {
-	h.Sessions.Put(r.Context(), "passkey_setup_skipped", true)
-	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

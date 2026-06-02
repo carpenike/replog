@@ -3,6 +3,12 @@
 **Status:** Accepted
 **Date:** 2026-02-21
 
+> **Amendment (ADR 019 Phase 1 — HOF-012):** the passkey-enrollment wizard
+> step described below is **retired**. Passkey/WebAuthn login was removed when
+> RepLog became a PocketID OIDC relying party, so `TokenLogin` no longer nudges
+> to `/setup/passkey` — magic-link users now land directly on the dashboard.
+> The wizard framework itself remains; only the passkey consumer is gone.
+
 ## Context
 
 RepLog uses magic links (login tokens) as a first-login mechanism for family members — a coach generates a link, the kid taps it on their device, and they're in. However, once authenticated, there's nothing nudging users toward stronger auth (passkeys). Magic links are inherently shareable, visible in browser history, and weaker than device-bound credentials.

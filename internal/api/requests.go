@@ -325,11 +325,6 @@ type LoginTokenRequest struct {
 	Label string `json:"label,omitempty"`
 }
 
-// PasskeyLabelRequest is the body for POST /api/passkeys/label.
-type PasskeyLabelRequest struct {
-	Label string `json:"label" example:"My YubiKey"`
-}
-
 // ReviewRequest is the body for POST /api/athletes/{id}/workouts/{workoutID}/review.
 type ReviewRequest struct {
 	Status string `json:"status" example:"approved"`

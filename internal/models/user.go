@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,10 +38,16 @@ type User struct {
 	// resolve to this user. Default 0 (rejected with 403 mcp-not-enabled)
 	// per HOF-004. The webui's scs session-cookie auth IGNORES this flag
 	// — it only affects the /api-mcp/* path.
-	MCPEnabled   bool
-	AvatarPath   sql.NullString
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	MCPEnabled bool
+	// PocketIDSub is the stable PocketID subject (`sub` claim), bound on
+	// first OIDC login (ADR 019 Phase 1). Authoritative identity key for
+	// returning webui logins. NULL for accounts not yet bound (e.g. kids
+	// who still log in via magic link). Only GetUserByPocketIDSub populates
+	// this field; other getters leave it zero-valued.
+	PocketIDSub sql.NullString
+	AvatarPath  sql.NullString
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // HasAvatar reports whether the user has an avatar image set.
@@ -212,6 +219,139 @@ func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 		return nil, fmt.Errorf("models: get user by email %q: %w", email, err)
 	}
 	return u, nil
+}
+
+// GetUserByPocketIDSub retrieves a user by their bound PocketID subject
+// (ADR 019 Phase 1). This is the steady-state lookup for returning webui
+// logins: once a user's `sub` is bound, every subsequent OIDC login resolves
+// here. Returns ErrNotFound when no row carries the sub.
+//
+// The caller MUST refuse an empty `sub` before calling this — `pocketid_sub`
+// is UNIQUE but permits multiple NULLs in SQLite, so an empty lookup must
+// never be allowed to resolve to an unbound row. UpsertUserFromOIDC enforces
+// that guard; this function is a thin SELECT and does not.
+func GetUserByPocketIDSub(db *sql.DB, sub string) (*User, error) {
+	u := &User{}
+	err := db.QueryRow(
+		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, COALESCE(pocketid_sub, ''), avatar_path, created_at, updated_at
+		 FROM users WHERE pocketid_sub = ?`, sub,
+	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.PocketIDSub, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("models: get user by pocketid_sub: %w", err)
+	}
+	return u, nil
+}
+
+// bindPocketIDSub binds a PocketID subject to an existing user row. Used both
+// for the one-time verified-email cutover of a pre-existing account and right
+// after a JIT-create. Returns ErrDuplicateUsername-style mapping is not needed
+// here — a sub collision means a concurrent bind, surfaced as a wrapped error.
+func bindPocketIDSub(db *sql.DB, userID int64, sub string) error {
+	result, err := db.Exec(`UPDATE users SET pocketid_sub = ? WHERE id = ?`, sub, userID)
+	if err != nil {
+		return fmt.Errorf("models: bind pocketid_sub to user %d: %w", userID, err)
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// UpsertUserFromOIDC resolves a PocketID OIDC login to a local user, creating
+// or binding as needed (ADR 019 Phase 1 — HOF-012). The linking rule, in order:
+//
+//  1. Match by `sub` — the steady-state path for a returning, already-bound user.
+//  2. Verified-email fallback — only when emailVerified is true, match an
+//     existing account by email and bind its `sub`. This is the one-time cutover
+//     for the pre-existing (single) account. Requiring email_verified closes the
+//     account-takeover window where an attacker registers an unverified address
+//     matching a local user's email to hijack the bind.
+//  3. JIT-create — a new passwordless user with a derived, unique username, then
+//     bind the `sub`. Email is stored on the new row only when verified, so an
+//     unverified address never lands as a future match target.
+//
+// An empty `sub` is rejected (ErrInvalidInput) — defense in depth; the OIDC
+// callback handler also rejects it at the request boundary, mirroring the
+// bearer middleware's empty-claim 401.
+func UpsertUserFromOIDC(db *sql.DB, sub, email, name string, emailVerified bool) (*User, error) {
+	if sub == "" {
+		return nil, ErrInvalidInput
+	}
+
+	// 1. Steady state: already bound.
+	u, err := GetUserByPocketIDSub(db, sub)
+	if err == nil {
+		return u, nil
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return nil, err
+	}
+
+	// 2. Verified-email cutover: bind sub to the existing account.
+	if email != "" && emailVerified {
+		existing, err := GetUserByEmail(db, email)
+		switch {
+		case err == nil:
+			if err := bindPocketIDSub(db, existing.ID, sub); err != nil {
+				return nil, err
+			}
+			return GetUserByPocketIDSub(db, sub)
+		case errors.Is(err, ErrNotFound):
+			// fall through to JIT-create
+		default:
+			return nil, err
+		}
+	}
+
+	// 3. JIT-create a passwordless user with a derived unique username.
+	username, err := deriveUniqueUsername(db, email, sub)
+	if err != nil {
+		return nil, err
+	}
+	createEmail := ""
+	if emailVerified {
+		createEmail = email
+	}
+	created, err := CreateUser(db, username, name, "", createEmail, false, false, sql.NullInt64{})
+	if err != nil {
+		return nil, err
+	}
+	if err := bindPocketIDSub(db, created.ID, sub); err != nil {
+		return nil, err
+	}
+	return GetUserByPocketIDSub(db, sub)
+}
+
+// deriveUniqueUsername builds a username for a JIT-created OIDC user. It seeds
+// from the email local-part (falling back to a sub-derived stub), then resolves
+// collisions by appending an incrementing suffix. usernames are UNIQUE COLLATE
+// NOCASE so the lookup is case-insensitive.
+func deriveUniqueUsername(db *sql.DB, email, sub string) (string, error) {
+	base := "user"
+	if at := strings.IndexByte(email, '@'); at > 0 {
+		base = email[:at]
+	} else if len(sub) >= 8 {
+		base = "pocketid_" + sub[:8]
+	} else if sub != "" {
+		base = "pocketid_" + sub
+	}
+
+	candidate := base
+	for i := 2; i < 1000; i++ {
+		_, err := GetUserByUsername(db, candidate)
+		if errors.Is(err, ErrNotFound) {
+			return candidate, nil
+		}
+		if err != nil {
+			return "", err
+		}
+		candidate = fmt.Sprintf("%s_%d", base, i)
+	}
+	return "", fmt.Errorf("models: could not derive a unique username from %q", base)
 }
 
 // ErrLocked is returned by Authenticate when the account is currently

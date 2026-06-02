@@ -24,7 +24,12 @@ func normalizeDate(d string) string {
 }
 
 // boolToInt maps a Go bool to the 0/1 integer SQLite uses for boolean columns.
-// (defined in webauthn_credential.go)
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
 
 // nullableInt64 wraps an optional int64 pointer as a sql.NullInt64.
 func nullableInt64(p *int64) sql.NullInt64 {

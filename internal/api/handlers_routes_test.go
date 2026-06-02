@@ -19,15 +19,9 @@ import (
 // reason so future maintainers can decide whether the exemption still
 // holds.
 var harnessExemptRoutes = map[routeKey]string{
-	// Passkey WebAuthn ceremony lives on a separate handler
-	// (passkeys.Handler) that is wired only when REPLOG_WEBAUTHN_*
-	// env vars are set. The harness tests the API-side passkey
-	// CRUD (list / delete / set-label) but not the ceremony itself,
-	// which is covered by internal/passkeys/passkeys_test.go.
-	{http.MethodGet, "/api/passkeys/login/begin"}:     "ceremony covered by internal/passkeys",
-	{http.MethodPost, "/api/passkeys/login/finish"}:   "ceremony covered by internal/passkeys",
-	{http.MethodGet, "/api/passkeys/register/begin"}:  "ceremony covered by internal/passkeys",
-	{http.MethodPost, "/api/passkeys/register/finish"}: "ceremony covered by internal/passkeys",
+	// No exemptions currently. (The passkey WebAuthn ceremony routes were
+	// retired in ADR 019 Phase 1 — HOF-012; webui auth now federates to
+	// PocketID and the OIDC start/callback live outside the /api group.)
 }
 
 // TestHarnessCoversAllProductionAPIRoutes compares the /api/... routes

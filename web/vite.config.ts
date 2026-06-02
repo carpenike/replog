@@ -20,6 +20,14 @@ export default defineConfig({
         changeOrigin: true,
         timeout: 300000, // 5 minutes for LLM generation
       },
+      // OIDC relying-party endpoints (ADR 019 Phase 1) are full-page
+      // browser redirects served by the Go binary, not XHR under /api.
+      // Scope narrowly to /auth/oidc — /auth/token/:token is a client-side
+      // SPA route, not a backend endpoint.
+      '/auth/oidc': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/avatars': {
         target: 'http://localhost:8080',
         changeOrigin: true,

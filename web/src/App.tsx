@@ -55,7 +55,6 @@ const CatalogAdmin = lazy(() => import('@/pages/CatalogAdmin').then(m => ({ defa
 const PreferencesPage = lazy(() => import('@/pages/PreferencesPage').then(m => ({ default: m.PreferencesPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
 const TokenLoginPage = lazy(() => import('@/pages/TokenLoginPage').then(m => ({ default: m.TokenLoginPage })))
-const PasskeySetupPage = lazy(() => import('@/pages/PasskeySetupPage').then(m => ({ default: m.PasskeySetupPage })))
 const ThrowingSessions = lazy(() => import('@/pages/ThrowingSessions').then(m => ({ default: m.ThrowingSessions })))
 const ConditioningSessions = lazy(() => import('@/pages/ConditioningSessions').then(m => ({ default: m.ConditioningSessions })))
 const SkillSessions = lazy(() => import('@/pages/SkillSessions').then(m => ({ default: m.SkillSessions })))
@@ -137,7 +136,6 @@ export function App() {
         <Route path="/admin/settings" element={<RequireRole user={user} role="admin"><AdminSettings /></RequireRole>} />
         <Route path="/admin/catalog" element={<RequireRole user={user} role="admin"><CatalogAdmin /></RequireRole>} />
         <Route path="/preferences" element={<PreferencesPage />} />
-        <Route path="/setup/passkey" element={<PasskeySetupPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

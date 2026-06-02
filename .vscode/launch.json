@@ -13,8 +13,6 @@
                 "REPLOG_ADMIN_USER": "admin",
                 "REPLOG_ADMIN_PASS": "admin",
                 "REPLOG_ADMIN_EMAIL": "admin@localhost",
-                "REPLOG_WEBAUTHN_RPID": "localhost",
-                "REPLOG_WEBAUTHN_ORIGINS": "http://localhost:8080,http://localhost:5173",
                 "REPLOG_CORS_ORIGINS": "http://localhost:5173"
             },
             "args": []

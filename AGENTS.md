@@ -25,9 +25,9 @@ matching files — honor them.
 - **Backend stack:** `chi` router (group-based middleware) · `modernc.org/sqlite`
   (pure-Go driver, **no CGO**) · `pressly/goose` migrations embedded via
   `embed.FS`, auto-run on startup · `alexedwards/scs` session management ·
-  `go-webauthn/webauthn` passkeys · `containrrr/shoutrrr` external
-  notifications · `bcrypt` password hashing. No ORM — SQL lives in the
-  models layer.
+  `coreos/go-oidc` + `golang.org/x/oauth2` PocketID OIDC relying party (ADR
+  019) · `containrrr/shoutrrr` external notifications · `bcrypt` password
+  hashing (break-glass). No ORM — SQL lives in the models layer.
 - **Frontend stack:** React 19 + TypeScript + Vite · shadcn/ui (components
   copied into `web/src/components/ui/`) · Tailwind CSS v4 · TanStack Query
   for server state · React Router v7 · lucide-react icons.
@@ -116,7 +116,7 @@ replog/
 │   ├── middleware/            ← auth, CORS, logging, rate limit, security headers
 │   ├── models/                ← data access layer (hand-written SQL, not ORM)
 │   ├── notify/                ← in-app + external (shoutrrr) notifications
-│   ├── passkeys/              ← WebAuthn ceremony endpoints (JSON)
+│   ├── oidc/                  ← PocketID OIDC relying-party endpoints (ADR 019)
 │   └── scheduler/             ← background maintenance (token cleanup, etc.)
 ├── web/                       ← React SPA (Vite)
 │   ├── embed.go               ← //go:embed all:dist

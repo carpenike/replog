@@ -20,8 +20,6 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/webauthn"
 
 	"github.com/carpenike/replog/internal/api"
 	"github.com/carpenike/replog/internal/database"
@@ -29,7 +27,7 @@ import (
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 	"github.com/carpenike/replog/internal/notify"
-	"github.com/carpenike/replog/internal/passkeys"
+	"github.com/carpenike/replog/internal/oidc"
 	"github.com/carpenike/replog/internal/scheduler"
 	frontend "github.com/carpenike/replog/web"
 )
@@ -181,37 +179,27 @@ func main() {
 	// inline scripts so we can drop 'unsafe-inline' (issue #8).
 	configureCSPFromFrontend()
 
-	// Configure WebAuthn for passkey support (optional).
-	rpID := os.Getenv("REPLOG_WEBAUTHN_RPID")
-	rpOrigins := os.Getenv("REPLOG_WEBAUTHN_ORIGINS")
-
-	var passkeysHandler *passkeys.Handler
-	if rpID != "" && rpOrigins != "" {
-		origins := strings.Split(rpOrigins, ",")
-		for i := range origins {
-			origins[i] = strings.TrimSpace(origins[i])
+	// Configure the PocketID OIDC relying party (ADR 019 Phase 1 — HOF-012).
+	// webui login federates to PocketID via Authorization Code + PKCE. Enabled
+	// only when issuer, client id, and client secret are all set; the password
+	// path remains as documented break-glass when OIDC is off or unreachable.
+	var oidcHandler *oidc.Handler
+	oidcIssuer := os.Getenv("REPLOG_OIDC_ISSUER")
+	oidcClientID := os.Getenv("REPLOG_OIDC_CLIENT_ID")
+	oidcClientSecret := os.Getenv("REPLOG_OIDC_CLIENT_SECRET")
+	if oidcIssuer != "" && oidcClientID != "" && oidcClientSecret != "" {
+		redirectURL := os.Getenv("REPLOG_OIDC_REDIRECT_URL")
+		if redirectURL == "" {
+			redirectURL = strings.TrimRight(baseURL, "/") + "/auth/oidc/callback"
 		}
-
-		wa, err := webauthn.New(&webauthn.Config{
-			RPDisplayName: "RepLog",
-			RPID:          rpID,
-			RPOrigins:     origins,
-			AuthenticatorSelection: protocol.AuthenticatorSelection{
-				UserVerification: protocol.VerificationPreferred,
-			},
-		})
+		oh, err := oidc.New(context.Background(), db, sessionManager, oidcIssuer, oidcClientID, oidcClientSecret, redirectURL)
 		if err != nil {
-			log.Fatalf("Failed to configure WebAuthn: %v", err)
+			log.Fatalf("Failed to configure OIDC relying party: %v", err)
 		}
-
-		passkeysHandler = &passkeys.Handler{
-			DB:       db,
-			Sessions: sessionManager,
-			WebAuthn: wa,
-		}
-		log.Printf("WebAuthn enabled: RPID=%s, Origins=%v", rpID, origins)
+		oidcHandler = oh
+		log.Printf("OIDC login enabled: issuer=%s redirect=%s", oidcIssuer, redirectURL)
 	} else {
-		log.Printf("WebAuthn disabled: set REPLOG_WEBAUTHN_RPID and REPLOG_WEBAUTHN_ORIGINS to enable passkeys")
+		log.Printf("OIDC login disabled: set REPLOG_OIDC_ISSUER, REPLOG_OIDC_CLIENT_ID, and REPLOG_OIDC_CLIENT_SECRET to enable PocketID login")
 	}
 
 	// Initialize API handlers.
@@ -311,11 +299,6 @@ func main() {
 			r.Use(authLimiter.Limit)
 			r.Post("/login", apiHandlers.Login)
 			r.Get("/auth/token/{token}", apiHandlers.TokenLogin)
-			// Passkey login ceremony (unauthenticated).
-			if passkeysHandler != nil {
-				r.Get("/passkeys/login/begin", passkeysHandler.BeginLogin)
-				r.Post("/passkeys/login/finish", passkeysHandler.FinishLogin)
-			}
 		})
 
 		// Authenticated API endpoints.
@@ -538,24 +521,27 @@ func main() {
 			r.Post("/athletes/{id}/generations/{genID}/cancel", apiHandlers.GenerationCancel)
 			r.Post("/athletes/{id}/generations/{genID}/execute", apiHandlers.GenerationExecute)
 
-			// Passkeys (user's own credentials).
-			r.Get("/passkeys", apiHandlers.ListPasskeys)
-			r.Delete("/passkeys/{id}", apiHandlers.DeletePasskey)
-			r.Post("/passkeys/label", apiHandlers.SetPasskeyLabel)
-			if passkeysHandler != nil {
-				r.Get("/passkeys/register/begin", passkeysHandler.BeginRegistration)
-				r.Post("/passkeys/register/finish", passkeysHandler.FinishRegistration)
-			}
-
-			// Setup wizard.
-			r.Post("/setup/passkey/skip", apiHandlers.SkipPasskeySetup)
-
 			// Impersonation.
 			r.Post("/admin/impersonate/{userId}", apiHandlers.StartImpersonation)
 			r.Post("/admin/stop-impersonating", apiHandlers.StopImpersonation)
 			r.Get("/admin/impersonateable", apiHandlers.ImpersonateableUsers)
 		})
 	})
+
+	// --- OIDC relying-party routes (ADR 019 Phase 1 — HOF-012) ---
+	// Browser-facing, full-page redirects (not XHR): the SPA links to
+	// /auth/oidc/start, which 302s to PocketID; PocketID returns to
+	// /auth/oidc/callback. Both need scs LoadAndSave so the PKCE/state/nonce
+	// transaction round-trips in the session, and the authLimiter to blunt
+	// brute-force against the callback.
+	if oidcHandler != nil {
+		r.Group(func(r chi.Router) {
+			r.Use(sessionManager.LoadAndSave)
+			r.Use(authLimiter.Limit)
+			r.Get("/auth/oidc/start", oidcHandler.Start)
+			r.Get("/auth/oidc/callback", oidcHandler.Callback)
+		})
+	}
 
 	// --- MCP API surface (HOF-004) ---
 	// Parallel /api-mcp/* route group with bearer auth. Routes the SAME

@@ -13,8 +13,11 @@ export REPLOG_ADMIN_USER        := env_var_or_default("REPLOG_ADMIN_USER", "admi
 export REPLOG_ADMIN_PASS        := env_var_or_default("REPLOG_ADMIN_PASS", "admin")
 export REPLOG_ADMIN_EMAIL       := env_var_or_default("REPLOG_ADMIN_EMAIL", "admin@localhost")
 export REPLOG_SECRET_KEY        := env_var_or_default("REPLOG_SECRET_KEY", "dev-only-secret-key-not-for-prod!")
-export REPLOG_WEBAUTHN_RPID     := env_var_or_default("REPLOG_WEBAUTHN_RPID", "localhost")
-export REPLOG_WEBAUTHN_ORIGINS  := env_var_or_default("REPLOG_WEBAUTHN_ORIGINS", "http://localhost:5173,http://localhost:8080")
+# PocketID OIDC (ADR 019) — leave unset for dev; the admin/admin break-glass
+# password login works without it. Set all three to exercise the OIDC RP path.
+export REPLOG_OIDC_ISSUER        := env_var_or_default("REPLOG_OIDC_ISSUER", "")
+export REPLOG_OIDC_CLIENT_ID     := env_var_or_default("REPLOG_OIDC_CLIENT_ID", "")
+export REPLOG_OIDC_CLIENT_SECRET := env_var_or_default("REPLOG_OIDC_CLIENT_SECRET", "")
 
 # List available recipes.
 default:

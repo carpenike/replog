@@ -1011,27 +1011,6 @@ definitions:
         example: workout_review
         type: string
     type: object
-  api.PasskeyLabelRequest:
-    properties:
-      label:
-        example: My YubiKey
-        type: string
-    type: object
-  api.PasskeyResponse:
-    properties:
-      backup_state:
-        type: boolean
-      created_at:
-        type: string
-      id:
-        type: integer
-      label:
-        type: string
-      last_used_at:
-        type: string
-      use_count:
-        type: integer
-    type: object
   api.PitchSmartStatus:
     properties:
       advisory:
@@ -5237,79 +5216,6 @@ paths:
       summary: Mark all notifications read
       tags:
       - Notifications
-  /passkeys:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/api.PasskeyResponse'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.APIError'
-      summary: List user's passkeys
-      tags:
-      - Passkeys
-  /passkeys/{id}:
-    delete:
-      description: Idempotent — returns 200 even if the credential is already gone
-        or belongs to another user (does NOT leak existence).
-      parameters:
-      - description: Credential ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.StatusResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.APIError'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.APIError'
-      summary: Delete passkey
-      tags:
-      - Passkeys
-  /passkeys/label:
-    post:
-      consumes:
-      - application/json
-      description: Called by the SPA right before BeginRegistration so the label is
-        paired to the credential being created.
-      parameters:
-      - description: Label
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/api.PasskeyLabelRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.StatusResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.APIError'
-      summary: Stash passkey label for the in-flight ceremony
-      tags:
-      - Passkeys
   /preferences:
     get:
       produces:
@@ -5733,22 +5639,6 @@ paths:
       summary: List unreviewed workouts
       tags:
       - Reviews
-  /setup/passkey/skip:
-    post:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.StatusResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.APIError'
-      summary: Skip passkey setup
-      tags:
-      - Auth
   /users:
     get:
       produces:
@@ -6018,7 +5908,7 @@ paths:
       - Admin
 swagger: "2.0"
 tags:
-- description: Login, logout, current user, token / passkey ceremonies
+- description: Login, logout, current user, magic-link token, OIDC login
   name: Auth
 - description: Aggregated home-page stats
   name: Dashboard
@@ -6042,8 +5932,6 @@ tags:
   name: Preferences
 - description: User avatar upload
   name: Avatars
-- description: WebAuthn passkey credential management
-  name: Passkeys
 - description: User management (admin only)
   name: Users
 - description: Admin-only impersonation, settings, and catalog import/export

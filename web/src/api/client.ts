@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PasskeyData, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
 // *Request structs in internal/api/requests.go.
@@ -129,12 +129,8 @@ class ApiClient {
     return this.request<User>('/api/me');
   }
 
-  async tokenLogin(token: string): Promise<{ status: string; redirect: string; needs_setup: boolean }> {
+  async tokenLogin(token: string): Promise<{ status: string; redirect: string }> {
     return this.request(`/api/auth/token/${encodeURIComponent(token)}`);
-  }
-
-  async skipPasskeySetup(): Promise<void> {
-    await this.request('/api/setup/passkey/skip', { method: 'POST' });
   }
 
   // Impersonation
@@ -146,18 +142,6 @@ class ApiClient {
     await this.request('/api/admin/stop-impersonating', { method: 'POST' });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async beginPasskeyLogin(): Promise<any> {
-    return this.request('/api/passkeys/login/begin');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async finishPasskeyLogin(credential: any): Promise<{ status: string; redirect: string }> {
-    return this.request('/api/passkeys/login/finish', {
-      method: 'POST',
-      body: JSON.stringify(credential),
-    });
-  }
 
   async dashboard(): Promise<DashboardData> {
     return this.request<DashboardData>('/api/dashboard');
@@ -700,30 +684,6 @@ class ApiClient {
   }
 
   // Passkeys
-  async listPasskeys(): Promise<PasskeyData[]> {
-    return this.request<PasskeyData[]>('/api/passkeys');
-  }
-
-  async deletePasskey(id: number): Promise<void> {
-    await this.request(`/api/passkeys/${id}`, { method: 'DELETE' });
-  }
-
-  async setPasskeyLabel(label: string): Promise<void> {
-    await this.request('/api/passkeys/label', { method: 'POST', body: JSON.stringify({ label }) });
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async beginPasskeyRegistration(): Promise<any> {
-    return this.request('/api/passkeys/register/begin');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async finishPasskeyRegistration(credential: any): Promise<void> {
-    await this.request('/api/passkeys/register/finish', {
-      method: 'POST',
-      body: JSON.stringify(credential),
-    });
-  }
 
   // Multi-modal logbook (ADR 018 / HOF-011). The List* endpoints return bare
   // arrays (no pagination); load + pitch-smart are read-only advisory surfaces.
