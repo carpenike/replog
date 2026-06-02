@@ -155,14 +155,18 @@ into reviewable phases like ADR 016:
 - **Phase 1 — `HOF-012`: PocketID OIDC relying party (webui).** `coreos/go-oidc`
   + `golang.org/x/oauth2`; login flow → scs session; `users.pocketid_sub`
   JIT-upsert; retire native password/passkey/magic-link login. Clean cutover.
-- **Phase 2 — `HOF-013`: the MCP OAuth AS.** Port W.W.W.'s `oauth.ts` to Go —
-  DCR, the two metadata docs, `/oauth/authorize`→PocketID PKCE hop,
-  `/oauth/callback`, `/oauth/token`, the opaque-token store, the in-memory state
-  store, and the adopted gotchas. Retire the `bearer.go` JWKS verifier.
-- **Phase 3 — `HOF-014`: native Go MCP server + tools.** `go-sdk` StreamableHTTP
-  server at `/api/mcp`; the `buildMCPServer(user)` registry (Group A/B/C incl.
-  the multi-modal logs, coaching writes excluded); the registry-assertion test;
-  retire `homelab-mcp`'s `replog.py` wrappers (cross-repo, host-reviewed).
+- **Phases 2+3 combined — `HOF-013` (host decision 2026-06-01): one atomic
+  cutover.** The AS and the native server are coupled — the AS isn't usable
+  end-to-end until the MCP server exists, and opaque tokens break homelab-mcp's
+  JWT path — so they ship together rather than as a dormant-then-cutover split.
+  Scope: port W.W.W.'s `oauth.ts` to Go (DCR, the two metadata docs,
+  `/oauth/authorize`→PocketID PKCE hop, `/oauth/callback`, `/oauth/token`, the
+  opaque-token store, the in-memory state store, the adopted gotchas); the
+  `go-sdk` StreamableHTTP MCP server at `/api/mcp` with the `buildMCPServer(user)`
+  registry (Group A/B/C incl. the multi-modal logs, coaching writes excluded) +
+  the registry-assertion test; swap the bearer to opaque-token validation and
+  retire the `bearer.go` JWKS verifier; retire `homelab-mcp`'s `replog.py`
+  wrappers + RepLog client config (cross-repo, host-reviewed).
 
 ## Consequences
 
