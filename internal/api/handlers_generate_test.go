@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/carpenike/replog/internal/database"
 	"github.com/carpenike/replog/internal/llm"
@@ -253,9 +254,10 @@ func TestGenerateSubmit_AcceptsMethodologyID(t *testing.T) {
 }
 
 // TestGenerateFormData_SuggestsProgramName confirms HOF-007: the form-data
-// endpoint suggests "{AthleteName} — Block N" where N counts existing
-// athlete-scoped program templates. Fresh athlete starts at Block 1; after
-// the first generation imports as a template, the next suggestion is Block 2.
+// endpoint suggests "{AthleteName} — {Mon D, YYYY}" using the server-local
+// generation date. A second draft created for the same athlete on the same
+// day gets a " (2)" suffix so the suggestion stays unique against the
+// (athlete_id, name) partial unique index.
 func TestGenerateFormData_SuggestsProgramName(t *testing.T) {
 	env := setupTest(t)
 	useMockLLM(t, env)
@@ -263,29 +265,31 @@ func TestGenerateFormData_SuggestsProgramName(t *testing.T) {
 	athlete := env.createAthlete(t, "Sammy", coach.ID)
 	cookies := env.loginAs(t, coach)
 
-	// Fresh athlete → Block 1.
+	today := time.Now().Format("Jan 2, 2006")
+	wantFirst := fmt.Sprintf("Sammy — %s", today)
+
+	// Fresh athlete → date-based name.
 	rr := env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), nil, cookies)
 	requireStatus(t, rr, http.StatusOK)
 	var got GenerateFormResponse
 	decodeJSON(t, rr, &got)
-	if got.SuggestedProgramName != "Sammy — Block 1" {
-		t.Errorf("first suggestion = %q, want %q", got.SuggestedProgramName, "Sammy — Block 1")
+	if got.SuggestedProgramName != wantFirst {
+		t.Errorf("first suggestion = %q, want %q", got.SuggestedProgramName, wantFirst)
 	}
 
-	// Generate + execute → adds one athlete-scoped template.
-	genID := submitAndWait(t, env, athlete.ID, cookies,
-		`{"program_name":"Sammy — Block 1","num_days":3,"num_weeks":4}`)
-	executeRR := env.do(t, "POST",
-		fmt.Sprintf("/api/athletes/%d/generations/%d/execute", athlete.ID, genID),
-		`{}`, cookies)
-	requireStatus(t, executeRR, http.StatusOK)
+	// Simulate a draft already imported today under the suggested name by
+	// creating an athlete-scoped template with that exact name.
+	if _, err := models.CreateProgramTemplate(env.DB, &athlete.ID, wantFirst, "", 4, 3, false, ""); err != nil {
+		t.Fatalf("create colliding template: %v", err)
+	}
 
-	// Next suggestion bumps to Block 2.
+	// Next same-day suggestion appends " (2)" to dodge the name collision.
+	wantSecond := fmt.Sprintf("Sammy — %s (2)", today)
 	rr = env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), nil, cookies)
 	requireStatus(t, rr, http.StatusOK)
 	decodeJSON(t, rr, &got)
-	if got.SuggestedProgramName != "Sammy — Block 2" {
-		t.Errorf("after-import suggestion = %q, want %q", got.SuggestedProgramName, "Sammy — Block 2")
+	if got.SuggestedProgramName != wantSecond {
+		t.Errorf("after-import suggestion = %q, want %q", got.SuggestedProgramName, wantSecond)
 	}
 }
 

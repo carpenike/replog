@@ -413,8 +413,9 @@ class ApiClient {
   }
 
   // Programs
-  async listProgramTemplates(): Promise<ProgramTemplate[]> {
-    return this.request<ProgramTemplate[]>('/api/programs');
+  async listProgramTemplates(athleteId?: number): Promise<ProgramTemplate[]> {
+    const qs = athleteId != null ? `?athlete_id=${athleteId}` : '';
+    return this.request<ProgramTemplate[]>(`/api/programs${qs}`);
   }
 
   async getProgramTemplate(id: number): Promise<{ program: ProgramTemplate; sets: unknown[] }> {

@@ -5262,6 +5262,11 @@ paths:
       - Preferences
   /programs:
     get:
+      parameters:
+      - description: Limit to templates assignable to this athlete (global + athlete-scoped)
+        in: query
+        name: athlete_id
+        type: integer
       produces:
       - application/json
       responses:

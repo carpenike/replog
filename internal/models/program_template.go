@@ -147,10 +147,8 @@ func ListGlobalProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
 }
 
 // CountAthleteScopedTemplates returns the number of program templates
-// scoped to a single athlete (athlete_id matches). Used by the generate-page
-// program-name suggestion (HOF-007): "{Athlete} — Block N" where N is the
-// next ordinal in that athlete's block series. Counts all athlete-scoped
-// templates regardless of methodology — see HOF-007 D3 counter-scope decision.
+// scoped to a single athlete (athlete_id matches). Counts all athlete-scoped
+// templates regardless of methodology.
 func CountAthleteScopedTemplates(db *sql.DB, athleteID int64) (int, error) {
 	var n int
 	if err := db.QueryRow(
@@ -159,6 +157,21 @@ func CountAthleteScopedTemplates(db *sql.DB, athleteID int64) (int, error) {
 		return 0, fmt.Errorf("models: count athlete-scoped templates %d: %w", athleteID, err)
 	}
 	return n, nil
+}
+
+// AthleteTemplateNameExists reports whether an athlete-scoped program
+// template with the exact given name already exists for athleteID. Used by
+// the generate-page program-name suggestion to keep the date-based default
+// unique against the (athlete_id, name) partial unique index.
+func AthleteTemplateNameExists(db *sql.DB, athleteID int64, name string) (bool, error) {
+	var n int
+	if err := db.QueryRow(
+		`SELECT COUNT(*) FROM program_templates WHERE athlete_id = ? AND name = ?`,
+		athleteID, name,
+	).Scan(&n); err != nil {
+		return false, fmt.Errorf("models: check athlete template name exists %d %q: %w", athleteID, name, err)
+	}
+	return n > 0, nil
 }
 
 // ListAthleteScopedTemplates returns all athlete-specific program templates

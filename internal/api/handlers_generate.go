@@ -364,27 +364,36 @@ func tierDefaultMethodologyKey(tier string) string {
 // buildSuggestedProgramName resolves the pre-fill value for the generate
 // form's Program Name input (ADR 016 HOF-007). Format:
 //
-//	"{AthleteName} — Block N"
+//	"{AthleteName} — {Mon D, YYYY}"   e.g. "Sammy — Jun 2, 2026"
 //
-// where N = 1 + count of athlete-scoped program templates. Returns the
-// empty string when the athlete can't be loaded — the SPA treats that as
-// "no suggestion" and leaves the input blank. All-athlete counter scope
-// (NOT per-methodology) is a deliberate HOF-007 D3 decision; methodology
-// is already visible in the form selector + the catalog list, and
-// per-methodology would reintroduce reactive-rename gymnastics when the
-// coach switches methodologies mid-form.
+// The date is the server-local generation date, which gives the coach a
+// self-describing default ("when was this drafted") instead of an opaque
+// "Block N" ordinal. Returns the empty string when the athlete can't be
+// loaded — the SPA treats that as "no suggestion" and leaves the input
+// blank. The coach can always edit the suggestion before generating.
+//
+// Because the (athlete_id, name) unique index rejects a duplicate
+// athlete-scoped template name, two drafts created for the same athlete on
+// the same day would otherwise collide on import. We probe existing
+// athlete-scoped names and append " (2)", " (3)", … so the suggested
+// default stays unique on its face.
 func (h *Handlers) buildSuggestedProgramName(athleteID int64) string {
 	athlete, err := models.GetAthleteByID(h.DB, athleteID)
 	if err != nil {
 		return ""
 	}
-	n, err := models.CountAthleteScopedTemplates(h.DB, athleteID)
-	if err != nil {
-		// Non-fatal — fall through to "Block 1" rather than refusing to
-		// suggest a name. The coach can edit it.
-		n = 0
+	base := fmt.Sprintf("%s — %s", athlete.Name, time.Now().Format("Jan 2, 2006"))
+	name := base
+	for i := 2; ; i++ {
+		exists, err := models.AthleteTemplateNameExists(h.DB, athleteID, name)
+		if err != nil || !exists {
+			// On error, fall through with the current candidate rather
+			// than refusing to suggest a name — the coach can edit it.
+			break
+		}
+		name = fmt.Sprintf("%s (%d)", base, i)
 	}
-	return fmt.Sprintf("%s — Block %d", athlete.Name, n+1)
+	return name
 }
 
 // --- POST /athletes/{id}/generate ---

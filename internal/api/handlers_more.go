@@ -318,15 +318,32 @@ func (h *Handlers) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Reque
 
 // --- Programs ---
 
-// ListProgramTemplates returns all program templates.
+// ListProgramTemplates returns program templates. With no query params it
+// returns every template. When an athlete_id query param is supplied it
+// returns the templates assignable to that athlete: global templates plus
+// templates scoped to that athlete (athlete-specific sorted first).
 //
 //	@Summary      List program templates
 //	@Tags         Programs
 //	@Produce      json
+//	@Param        athlete_id  query  int  false  "Limit to templates assignable to this athlete (global + athlete-scoped)"
 //	@Success      200  {array}   api.ProgramTemplate
 //	@Router       /programs [get]
 func (h *Handlers) ListProgramTemplates(w http.ResponseWriter, r *http.Request) {
-	programs, err := models.ListProgramTemplates(h.DB)
+	var (
+		programs []*models.ProgramTemplate
+		err      error
+	)
+	if raw := r.URL.Query().Get("athlete_id"); raw != "" {
+		athleteID, perr := strconv.ParseInt(raw, 10, 64)
+		if perr != nil {
+			WriteError(w, http.StatusBadRequest, "invalid athlete_id")
+			return
+		}
+		programs, err = models.ListProgramTemplatesForAthlete(h.DB, athleteID)
+	} else {
+		programs, err = models.ListProgramTemplates(h.DB)
+	}
 	if err != nil {
 		log.Printf("api: list program templates: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to list programs")

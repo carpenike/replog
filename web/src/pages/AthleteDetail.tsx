@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { AthleteProgram } from '@/api/types'
@@ -30,6 +30,10 @@ export function AthleteDetail() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
+  const [searchParams, setSearchParams] = useSearchParams()
+  // Deep-link from the generate page: ?assign=<templateId> pre-opens the
+  // assign panel with the freshly-drafted template selected.
+  const assignParam = searchParams.get('assign')
   const { data: me } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.me(),
@@ -59,14 +63,22 @@ export function AthleteDetail() {
   const queryClient = useQueryClient()
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalText, setGoalText] = useState('')
-  const [showAssign, setShowAssign] = useState(false)
-  const [assignTemplateId, setAssignTemplateId] = useState('')
+  const [showAssign, setShowAssign] = useState(assignParam != null)
+  const [assignTemplateId, setAssignTemplateId] = useState(assignParam ?? '')
   const [assignDate, setAssignDate] = useState(new Date().toISOString().slice(0, 10))
   const [assignRole, setAssignRole] = useState('primary')
+  // Consume the deep-link param once so a refresh doesn't re-trigger it.
+  useEffect(() => {
+    if (assignParam != null) {
+      searchParams.delete('assign')
+      setSearchParams(searchParams, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const { data: allPrograms } = useQuery({
-    queryKey: ['programs'],
-    queryFn: () => api.listProgramTemplates(),
-    enabled: showAssign,
+    queryKey: ['programs', 'for-athlete', athleteId],
+    queryFn: () => api.listProgramTemplates(athleteId),
+    enabled: showAssign && !isNaN(athleteId),
   })
   const goalMutation = useMutation({
     mutationFn: () => api.updateAthleteGoal(athleteId, goalText),
@@ -288,7 +300,9 @@ export function AthleteDetail() {
                   </SelectTrigger>
                   <SelectContent>
                     {allPrograms?.map(p => (
-                      <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}{p.athlete_id != null ? ' · athlete-specific' : ''}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

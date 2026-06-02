@@ -605,7 +605,10 @@ export function GeneratePage() {
                 Edit Template
               </Button>
             )}
-            <Button variant="outline" onClick={() => navigate(`/athletes/${athleteId}`)}>
+            <Button variant="outline" onClick={() => {
+              const tid = execResult.created_template_ids?.[0]
+              navigate(tid != null ? `/athletes/${athleteId}?assign=${tid}` : `/athletes/${athleteId}`)
+            }}>
               Assign to Athlete
             </Button>
             <Button variant="ghost" onClick={() => navigate('/programs')}>
