@@ -82,7 +82,7 @@ export function PrescriptionPage() {
                           <TableHead>Reps</TableHead>
                           <TableHead>Weight</TableHead>
                           <TableHead>%</TableHead>
-                          <TableHead>Notes</TableHead>
+                          <TableHead className="whitespace-normal">Notes</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -101,7 +101,7 @@ export function PrescriptionPage() {
                             <TableCell className="text-muted-foreground">
                               {set.percentage ? `${set.percentage}%` : ''}
                             </TableCell>
-                            <TableCell className="text-muted-foreground text-xs">{set.notes ?? ''}</TableCell>
+                            <TableCell className="text-muted-foreground text-xs whitespace-normal wrap-break-word">{set.notes ?? ''}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
