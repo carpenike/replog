@@ -173,6 +173,58 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 	return sets, nil
 }
 
+// SeedSetsFromPrescription inserts the day's prescribed sets as the starting
+// rows of a workout so the athlete can confirm or adjust the actuals when
+// logging. Prescribed reps and target weights are prefilled; RPE is left blank.
+// All sets are inserted in a single transaction. It is a no-op if the
+// prescription is nil or has no lines. The app never decides progression — this
+// just transcribes the coach's prescription into the log for the athlete to
+// confirm (ADR 007).
+func SeedSetsFromPrescription(db *sql.DB, workoutID int64, p *Prescription) (int, error) {
+	if p == nil || len(p.Lines) == 0 {
+		return 0, nil
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("models: begin tx for seed prescription: %w", err)
+	}
+	defer tx.Rollback()
+
+	count := 0
+	for _, line := range p.Lines {
+		for _, s := range line.Sets {
+			reps := 0 // AMRAP / unspecified prescriptions seed as 0 for the athlete to fill.
+			if s.Reps.Valid {
+				reps = int(s.Reps.Int64)
+			}
+
+			var weightVal sql.NullFloat64
+			if s.TargetWeight != nil && *s.TargetWeight > 0 {
+				weightVal = sql.NullFloat64{Float64: *s.TargetWeight, Valid: true}
+			}
+
+			repType := s.RepType
+			if repType == "" {
+				repType = "reps"
+			}
+
+			if _, err := tx.Exec(
+				`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, NULL, ?, 'main', NULL)`,
+				workoutID, line.ExerciseID, s.SetNumber, reps, weightVal, repType,
+			); err != nil {
+				return 0, fmt.Errorf("models: seed prescribed set for exercise %d in workout %d: %w", line.ExerciseID, workoutID, err)
+			}
+			count++
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("models: commit seed prescription: %w", err)
+	}
+	return count, nil
+}
+
 // GetSetByID retrieves a workout set by primary key.
 func GetSetByID(db *sql.DB, id int64) (*WorkoutSet, error) {
 	s := &WorkoutSet{}

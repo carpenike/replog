@@ -42,6 +42,10 @@ type ExerciseRequest struct {
 type WorkoutRequest struct {
 	Date  string `json:"date,omitempty" example:"2026-05-12"`
 	Notes string `json:"notes,omitempty"`
+	// FromPrescription, when true, seeds the new workout with today's prescribed
+	// sets (reps + target weights prefilled) so the athlete confirms or adjusts
+	// the actuals while logging. Has no effect if no program is assigned today.
+	FromPrescription bool `json:"from_prescription,omitempty"`
 }
 
 // WorkoutSetRequest is the body for POST /api/athletes/{id}/workouts/{workoutID}/sets.

@@ -221,6 +221,99 @@ func TestAddMultipleSets(t *testing.T) {
 	})
 }
 
+func TestSeedSetsFromPrescription(t *testing.T) {
+	db := testDB(t)
+
+	a, _ := CreateAthlete(db, "Seed Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	squat, _ := CreateExercise(db, "Seed Squat", "", "", "", 0)
+	chin, _ := CreateExercise(db, "Seed Chin", "", "", "", 0)
+	w, _ := CreateWorkout(db, a.ID, "2026-11-01", "", 0)
+
+	target := 185.0
+	p := &Prescription{
+		Lines: []*PrescriptionLine{
+			{
+				ExerciseID:   squat.ID,
+				ExerciseName: "Seed Squat",
+				Sets: []*PrescribedSet{
+					{ExerciseID: squat.ID, SetNumber: 1, Reps: sql.NullInt64{Int64: 15, Valid: true}, RepType: "reps", TargetWeight: &target},
+				},
+			},
+			{
+				// Bodyweight AMRAP line: no reps, no target weight.
+				ExerciseID:   chin.ID,
+				ExerciseName: "Seed Chin",
+				Sets: []*PrescribedSet{
+					{ExerciseID: chin.ID, SetNumber: 1, RepType: "reps"},
+				},
+			},
+		},
+	}
+
+	n, err := SeedSetsFromPrescription(db, w.ID, p)
+	if err != nil {
+		t.Fatalf("seed sets: %v", err)
+	}
+	if n != 2 {
+		t.Fatalf("seeded %d sets, want 2", n)
+	}
+
+	groups, err := ListSetsByWorkout(db, w.ID)
+	if err != nil {
+		t.Fatalf("list sets: %v", err)
+	}
+	if len(groups) != 2 {
+		t.Fatalf("got %d exercise groups, want 2", len(groups))
+	}
+
+	var squatSet *WorkoutSet
+	var chinSet *WorkoutSet
+	for _, g := range groups {
+		for _, s := range g.Sets {
+			switch s.ExerciseID {
+			case squat.ID:
+				squatSet = s
+			case chin.ID:
+				chinSet = s
+			}
+		}
+	}
+	if squatSet == nil || chinSet == nil {
+		t.Fatal("missing seeded sets")
+	}
+	// Weighted set keeps reps + target weight.
+	if squatSet.Reps != 15 {
+		t.Errorf("squat reps = %d, want 15", squatSet.Reps)
+	}
+	if !squatSet.Weight.Valid || squatSet.Weight.Float64 != 185 {
+		t.Errorf("squat weight = %v, want 185", squatSet.Weight)
+	}
+	// AMRAP/bodyweight seeds reps=0 and null weight for the athlete to fill in.
+	if chinSet.Reps != 0 {
+		t.Errorf("chin reps = %d, want 0", chinSet.Reps)
+	}
+	if chinSet.Weight.Valid {
+		t.Errorf("chin weight should be null, got %f", chinSet.Weight.Float64)
+	}
+	if chinSet.RPE.Valid {
+		t.Errorf("seeded set RPE should be null, got %f", chinSet.RPE.Float64)
+	}
+}
+
+func TestSeedSetsFromPrescription_NilOrEmpty(t *testing.T) {
+	db := testDB(t)
+
+	a, _ := CreateAthlete(db, "Empty Seed Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	w, _ := CreateWorkout(db, a.ID, "2026-11-02", "", 0)
+
+	if n, err := SeedSetsFromPrescription(db, w.ID, nil); err != nil || n != 0 {
+		t.Errorf("nil prescription: n=%d err=%v, want 0/nil", n, err)
+	}
+	if n, err := SeedSetsFromPrescription(db, w.ID, &Prescription{}); err != nil || n != 0 {
+		t.Errorf("empty prescription: n=%d err=%v, want 0/nil", n, err)
+	}
+}
+
 func TestListExerciseHistory(t *testing.T) {
 	db := testDB(t)
 

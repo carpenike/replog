@@ -250,10 +250,10 @@ class ApiClient {
     return this.request(`/api/athletes/${athleteId}/workouts/${workoutId}`);
   }
 
-  async createWorkout(athleteId: number, date: string, notes = ''): Promise<Workout> {
+  async createWorkout(athleteId: number, date: string, notes = '', fromPrescription = false): Promise<Workout> {
     return this.request<Workout>(`/api/athletes/${athleteId}/workouts`, {
       method: 'POST',
-      body: JSON.stringify({ date, notes }),
+      body: JSON.stringify({ date, notes, from_prescription: fromPrescription }),
     });
   }
 

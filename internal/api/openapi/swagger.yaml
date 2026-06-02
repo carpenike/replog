@@ -1761,6 +1761,12 @@ definitions:
       date:
         example: "2026-05-12"
         type: string
+      from_prescription:
+        description: |-
+          FromPrescription, when true, seeds the new workout with today's prescribed
+          sets (reps + target weights prefilled) so the athlete confirms or adjusts
+          the actuals while logging. Has no effect if no program is assigned today.
+        type: boolean
       notes:
         type: string
     type: object

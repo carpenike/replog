@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/api/client'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -25,6 +26,22 @@ export function PrescriptionPage() {
     queryKey: ['prescription', athleteId],
     queryFn: () => api.getPrescription(athleteId),
     enabled: !isNaN(athleteId),
+  })
+
+  const startLogging = useMutation({
+    mutationFn: () => api.createWorkout(athleteId, new Date().toISOString().slice(0, 10), '', true),
+    onSuccess: (workout) => {
+      navigate(`/athletes/${athleteId}/workouts/${workout.id}`)
+    },
+    onError: (err) => {
+      // A workout already exists for today — send them to the log to continue it.
+      if (err instanceof ApiError && err.code === 409) {
+        toast.info('A workout already exists for today.')
+        navigate(`/athletes/${athleteId}/workouts`)
+        return
+      }
+      toast.error('Failed to start logging.')
+    },
   })
 
   if (isLoading) return <Spinner />
@@ -57,8 +74,8 @@ export function PrescriptionPage() {
                 {prescription.cycle_number > 1 && ` (Cycle ${prescription.cycle_number})`}
               </p>
             </div>
-            <Button onClick={() => navigate(`/athletes/${athleteId}/workouts/new`)}>
-              Start Logging
+            <Button onClick={() => startLogging.mutate()} disabled={startLogging.isPending}>
+              {startLogging.isPending ? 'Starting…' : 'Start Logging'}
             </Button>
           </div>
 
