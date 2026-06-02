@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatDate } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-400',
@@ -437,7 +437,7 @@ export function AthleteDetail() {
 function AthleteEquipmentSection({ athleteId }: { athleteId: number }) {
   const queryClient = useQueryClient()
   const { confirm, dialog: confirmDialog } = useConfirm()
-  const [selectedId, setSelectedId] = useState('')
+  const [pendingId, setPendingId] = useState<number | null>(null)
 
   const { data: owned, isLoading } = useQuery({
     queryKey: ['athlete-equipment', athleteId],
@@ -452,87 +452,67 @@ function AthleteEquipmentSection({ athleteId }: { athleteId: number }) {
 
   const addMutation = useMutation({
     mutationFn: (equipmentId: number) => api.addAthleteEquipment(athleteId, equipmentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['athlete-equipment', athleteId] })
-      setSelectedId('')
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['athlete-equipment', athleteId] }),
+    onSettled: () => setPendingId(null),
   })
 
   const removeMutation = useMutation({
     mutationFn: (equipmentId: number) => api.removeAthleteEquipment(athleteId, equipmentId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['athlete-equipment', athleteId] }),
+    onSettled: () => setPendingId(null),
   })
 
   const ownedIds = new Set(owned?.map(o => o.EquipmentID) ?? [])
-  const available = all?.filter(e => !ownedIds.has(e.id)) ?? []
 
   return (
     <div className="mb-6">
       <h2 className="text-lg font-semibold mb-2">Equipment</h2>
       <p className="text-xs text-muted-foreground mb-3">
-        Tracks what this athlete has access to. Used by the program compatibility check.
+        Tap to toggle what this athlete has access to. Used by the program compatibility check.
       </p>
       {isLoading ? (
         <Spinner />
-      ) : owned && owned.length > 0 ? (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {owned.map(e => (
-            <span
-              key={e.ID}
-              className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-sm"
-            >
-              {e.EquipmentName}
-              <button
-                type="button"
-                onClick={async () => {
-                  if (await confirm({
-                    title: 'Remove Equipment',
-                    description: `Remove ${e.EquipmentName} from this athlete's inventory?`,
-                    confirmLabel: 'Remove',
-                    variant: 'danger',
-                  })) removeMutation.mutate(e.EquipmentID)
-                }}
-                className="ml-1 text-muted-foreground hover:text-destructive"
-                aria-label={`Remove ${e.EquipmentName}`}
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
+      ) : !all || all.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No equipment defined yet.</p>
       ) : (
-        <p className="text-sm text-muted-foreground mb-3">No equipment assigned.</p>
-      )}
-      {available.length > 0 && (
-        <div className="flex gap-2 items-end max-w-md">
-          <div className="flex-1">
-            <Label>Add equipment</Label>
-            <Select
-              value={selectedId || null}
-              onValueChange={(val) => setSelectedId(val ?? '')}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select...">
-                  {(value: string | null) => {
-                    if (!value) return 'Select...'
-                    return available.find(e => String(e.id) === value)?.name ?? value
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {available.map(e => (
-                  <SelectItem key={e.id} value={String(e.id)}>{e.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            type="button"
-            onClick={() => addMutation.mutate(parseInt(selectedId))}
-            disabled={!selectedId || addMutation.isPending}
-          >
-            Add
-          </Button>
+        <div className="flex flex-wrap gap-2">
+          {all.map(e => {
+            const isOwned = ownedIds.has(e.id)
+            const isPending = pendingId === e.id
+            return (
+              <button
+                key={e.id}
+                type="button"
+                disabled={isPending}
+                aria-pressed={isOwned}
+                onClick={async () => {
+                  if (isOwned) {
+                    if (await confirm({
+                      title: 'Remove Equipment',
+                      description: `Remove ${e.name} from this athlete's inventory?`,
+                      confirmLabel: 'Remove',
+                      variant: 'danger',
+                    })) {
+                      setPendingId(e.id)
+                      removeMutation.mutate(e.id)
+                    }
+                  } else {
+                    setPendingId(e.id)
+                    addMutation.mutate(e.id)
+                  }
+                }}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors disabled:opacity-50',
+                  isOwned
+                    ? 'border-primary bg-primary/15 text-primary hover:bg-primary/25'
+                    : 'border-border text-muted-foreground hover:bg-muted',
+                )}
+              >
+                <span aria-hidden className="text-xs leading-none">{isOwned ? '✓' : '+'}</span>
+                {e.name}
+              </button>
+            )
+          })}
         </div>
       )}
       {confirmDialog()}
