@@ -1,0 +1,117 @@
+package models
+
+import (
+	"crypto/subtle"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"time"
+)
+
+// DCRClient is an OAuth client registered via Dynamic Client Registration
+// (RFC 7591). client_secret is stored only as a SHA-256 hash; the plaintext
+// is returned once at registration.
+type DCRClient struct {
+	ClientID                string
+	ClientSecretHash        string
+	ClientName              string
+	RedirectURIs            []string
+	TokenEndpointAuthMethod string
+	CreatedAt               time.Time
+}
+
+// RegisterDCRClient creates a new DCR client and returns the plaintext client
+// secret EXACTLY ONCE (only the hash is stored). redirectURIs must already be
+// allowlist-filtered by the caller; authMethod defaults to client_secret_post
+// when empty.
+func RegisterDCRClient(db *sql.DB, clientName string, redirectURIs []string, authMethod string) (client *DCRClient, plaintextSecret string, err error) {
+	clientID, err := generateToken(16) // 128-bit public identifier
+	if err != nil {
+		return nil, "", err
+	}
+	plaintextSecret, err = generateToken(32) // 256-bit secret
+	if err != nil {
+		return nil, "", err
+	}
+	if authMethod == "" {
+		authMethod = "client_secret_post"
+	}
+	if redirectURIs == nil {
+		redirectURIs = []string{}
+	}
+
+	urisJSON, err := json.Marshal(redirectURIs)
+	if err != nil {
+		return nil, "", errors.New("models: marshal redirect_uris: " + err.Error())
+	}
+	hash := hashMCPSecret(plaintextSecret)
+	now := time.Now()
+
+	_, err = db.Exec(
+		`INSERT INTO dcr_clients (client_id, client_secret_hash, client_name, redirect_uris, token_endpoint_auth_method, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		clientID, hash, clientName, string(urisJSON), authMethod, now,
+	)
+	if err != nil {
+		return nil, "", errors.New("models: register dcr client: " + err.Error())
+	}
+
+	return &DCRClient{
+		ClientID:                clientID,
+		ClientSecretHash:        hash,
+		ClientName:              clientName,
+		RedirectURIs:            redirectURIs,
+		TokenEndpointAuthMethod: authMethod,
+		CreatedAt:               now,
+	}, plaintextSecret, nil
+}
+
+// GetDCRClient looks up a registered client by its public client_id. Returns
+// ErrNotFound when the client is unknown.
+func GetDCRClient(db *sql.DB, clientID string) (*DCRClient, error) {
+	var (
+		c        DCRClient
+		urisJSON string
+	)
+	err := db.QueryRow(
+		`SELECT client_id, client_secret_hash, client_name, redirect_uris, token_endpoint_auth_method, created_at
+		 FROM dcr_clients WHERE client_id = ?`,
+		clientID,
+	).Scan(&c.ClientID, &c.ClientSecretHash, &c.ClientName, &urisJSON, &c.TokenEndpointAuthMethod, &c.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, errors.New("models: get dcr client: " + err.Error())
+	}
+	if err := json.Unmarshal([]byte(urisJSON), &c.RedirectURIs); err != nil {
+		return nil, errors.New("models: unmarshal redirect_uris: " + err.Error())
+	}
+	return &c, nil
+}
+
+// ValidateDCRClientSecret returns the client when the presented secret matches
+// the stored hash, using a constant-time comparison to avoid leaking the
+// secret via timing. Returns ErrNotFound for an unknown client or a mismatch.
+func ValidateDCRClientSecret(db *sql.DB, clientID, secret string) (*DCRClient, error) {
+	c, err := GetDCRClient(db, clientID)
+	if err != nil {
+		return nil, err
+	}
+	presented := hashMCPSecret(secret)
+	if subtle.ConstantTimeCompare([]byte(presented), []byte(c.ClientSecretHash)) != 1 {
+		return nil, ErrNotFound
+	}
+	return c, nil
+}
+
+// HasRedirectURI reports whether the exact redirect URI is registered to the
+// client (exact-match per the OAuth spec — no prefix/substring matching).
+func (c *DCRClient) HasRedirectURI(uri string) bool {
+	for _, u := range c.RedirectURIs {
+		if u == uri {
+			return true
+		}
+	}
+	return false
+}

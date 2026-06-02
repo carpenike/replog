@@ -53,6 +53,35 @@ type Handler struct {
 	oauth    *oauth2.Config
 }
 
+// BuildConfig discovers the PocketID provider and returns an ID-token verifier
+// plus an oauth2.Config. It is the single shared constructor for both OIDC
+// consumers so the webui relying party (Phase 1) and the MCP OAuth
+// Authorization Server's PocketID hop (Phase 2/3) cannot drift on issuer,
+// client credentials, or scopes — each caller supplies only its own
+// redirectURL and the scopes it needs.
+//
+// Discovery performs a network call to the issuer's well-known document, so
+// BuildConfig should be called once at startup per consumer.
+func BuildConfig(ctx context.Context, issuer, clientID, clientSecret, redirectURL string, scopes []string) (*gooidc.IDTokenVerifier, *oauth2.Config, error) {
+	if issuer == "" || clientID == "" || clientSecret == "" || redirectURL == "" {
+		return nil, nil, errors.New("oidc: issuer, client id, client secret, and redirect url are all required")
+	}
+
+	provider, err := gooidc.NewProvider(ctx, issuer)
+	if err != nil {
+		return nil, nil, fmt.Errorf("oidc: discover provider at %q: %w", issuer, err)
+	}
+
+	return provider.Verifier(&gooidc.Config{ClientID: clientID}),
+		&oauth2.Config{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			RedirectURL:  redirectURL,
+			Endpoint:     provider.Endpoint(),
+			Scopes:       scopes,
+		}, nil
+}
+
 // New discovers the PocketID provider and builds the relying-party handler.
 // issuer is the PocketID issuer URL (REPLOG_OIDC_ISSUER); clientID/clientSecret
 // are the statically pre-registered confidential client (no DCR in this phase);
@@ -63,26 +92,17 @@ type Handler struct {
 // New should be called once at startup. A failure here is fatal to OIDC login
 // but the caller decides whether that's fatal to the process.
 func New(ctx context.Context, db *sql.DB, sessions *scs.SessionManager, issuer, clientID, clientSecret, redirectURL string) (*Handler, error) {
-	if issuer == "" || clientID == "" || clientSecret == "" || redirectURL == "" {
-		return nil, errors.New("oidc: issuer, client id, client secret, and redirect url are all required")
-	}
-
-	provider, err := gooidc.NewProvider(ctx, issuer)
+	verifier, oauthCfg, err := BuildConfig(ctx, issuer, clientID, clientSecret, redirectURL,
+		[]string{gooidc.ScopeOpenID, "profile", "email"})
 	if err != nil {
-		return nil, fmt.Errorf("oidc: discover provider at %q: %w", issuer, err)
+		return nil, err
 	}
 
 	return &Handler{
 		db:       db,
 		sessions: sessions,
-		verifier: provider.Verifier(&gooidc.Config{ClientID: clientID}),
-		oauth: &oauth2.Config{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
-			RedirectURL:  redirectURL,
-			Endpoint:     provider.Endpoint(),
-			Scopes:       []string{gooidc.ScopeOpenID, "profile", "email"},
-		},
+		verifier: verifier,
+		oauth:    oauthCfg,
 	}, nil
 }
 

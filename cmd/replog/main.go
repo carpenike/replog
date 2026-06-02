@@ -24,6 +24,7 @@ import (
 	"github.com/carpenike/replog/internal/api"
 	"github.com/carpenike/replog/internal/database"
 	"github.com/carpenike/replog/internal/importers"
+	"github.com/carpenike/replog/internal/mcpoauth"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 	"github.com/carpenike/replog/internal/notify"
@@ -242,37 +243,30 @@ func main() {
 		return middleware.RequireAuth(sessionManager, db, next)
 	}
 
-	// MCP bearer auth (HOF-004). Verifies short-TTL RS256 JWTs minted by
-	// the homelab-mcp OAuth AS against its published JWKS, then resolves
-	// the `email` claim to a *models.User and gates on users.mcp_enabled.
-	// Mounts under /api-mcp/*; the webui's scs cookie auth is untouched.
+	// MCP OAuth Authorization Server + opaque-token auth (ADR 019 Phases 2+3
+	// — HOF-013). RepLog is now its OWN MCP OAuth AS: it serves Dynamic Client
+	// Registration plus the authorize/token endpoints, federates the actual
+	// login to PocketID via Authorization Code + PKCE, and mints opaque
+	// SHA-256 bearer tokens. The native MCP server at /api/mcp validates those
+	// tokens directly — no JWKS, no external AS, no homelab-mcp wrapper.
 	//
-	// Defaults match the deployed forge layout (mcp.holthome.net is the AS,
-	// replog.holthome.net is this resource). All three knobs are overridable
-	// via env for local dev / alternate hosts.
-	mcpIssuer := os.Getenv("REPLOG_MCP_AS_ISSUER")
-	if mcpIssuer == "" {
-		mcpIssuer = "https://mcp.holthome.net"
-	}
-	mcpAudience := os.Getenv("REPLOG_MCP_AUDIENCE")
-	if mcpAudience == "" {
-		if baseURL != "" {
-			mcpAudience = baseURL
-		} else {
-			mcpAudience = "https://replog.holthome.net"
+	// The AS reuses the PocketID relying-party credentials (REPLOG_OIDC_*) and
+	// advertises itself at REPLOG_BASE_URL; it is enabled only when all of
+	// those are set.
+	var mcpAuth *middleware.MCPTokenAuth
+	var asServer *mcpoauth.Server
+	if oidcIssuer != "" && oidcClientID != "" && oidcClientSecret != "" && baseURL != "" {
+		as, err := mcpoauth.New(context.Background(), db, baseURL, oidcIssuer, oidcClientID, oidcClientSecret)
+		if err != nil {
+			log.Fatalf("Failed to configure MCP OAuth authorization server: %v", err)
 		}
+		asServer = as
+		mcpAuth = middleware.NewMCPTokenAuth(db, as.PRMResourceURL())
+		log.Printf("MCP OAuth AS enabled: origin=%s federated-issuer=%s", strings.TrimRight(baseURL, "/"), oidcIssuer)
+	} else {
+		log.Printf("MCP OAuth AS disabled: set REPLOG_OIDC_ISSUER, REPLOG_OIDC_CLIENT_ID, REPLOG_OIDC_CLIENT_SECRET, and REPLOG_BASE_URL to enable")
 	}
-	mcpJWKSURL := os.Getenv("REPLOG_MCP_AS_JWKS_URL")
-	if mcpJWKSURL == "" {
-		mcpJWKSURL = strings.TrimRight(mcpIssuer, "/") + "/oauth/jwks.json"
-	}
-	bearerAuth := middleware.NewBearerAuth(db, middleware.BearerAuthConfig{
-		Issuer:   mcpIssuer,
-		Audience: mcpAudience,
-		JWKSURL:  mcpJWKSURL,
-	})
-	log.Printf("MCP bearer auth: issuer=%s audience=%s jwks=%s", mcpIssuer, mcpAudience, mcpJWKSURL)
-	// Distinct limiter so a flood on /api-mcp/* cannot starve webui login attempts.
+	// Distinct limiter so a flood on /api/mcp cannot starve webui login attempts.
 	mcpLimiter := middleware.NewRateLimiter(10, time.Minute, trustedProxies...)
 
 	// --- Health checks (public) ---
@@ -526,6 +520,21 @@ func main() {
 			r.Post("/admin/stop-impersonating", apiHandlers.StopImpersonation)
 			r.Get("/admin/impersonateable", apiHandlers.ImpersonateableUsers)
 		})
+
+		// Native MCP server (ADR 019 Phase 3 — HOF-013). The go-sdk
+		// streamable endpoint at /api/mcp, authenticated by opaque bearer
+		// tokens (NOT scs cookies) and rate-limited in its own bucket. The
+		// tool catalog lives in mcp_server.go and is the doctrine boundary;
+		// mcp_server_test.go asserts no coaching-decision tool is present.
+		if asServer != nil && mcpAuth != nil {
+			mcpHTTP := newMCPHTTPHandler(apiHandlers)
+			r.Group(func(r chi.Router) {
+				r.Use(mcpLimiter.Limit)
+				r.Use(mcpAuth.Middleware)
+				r.Handle("/mcp", mcpHTTP)
+				r.Handle("/mcp/*", mcpHTTP)
+			})
+		}
 	})
 
 	// --- OIDC relying-party routes (ADR 019 Phase 1 — HOF-012) ---
@@ -543,25 +552,25 @@ func main() {
 		})
 	}
 
-	// --- MCP API surface (HOF-004) ---
-	// Parallel /api-mcp/* route group with bearer auth. Routes the SAME
-	// handler functions as /api/* but uses the JWKS-verifying middleware
-	// instead of scs sessions. The mount list is INTENTIONALLY CURATED —
-	// not every /api/* route is exposed. Session-bound handlers (Me,
-	// impersonation) and the coaching-decision execute path are
-	// deliberately omitted; see HOF-004's [scope] item 4 for the rationale
-	// and the mount-list assertion test in cmd/replog/mcp_routes_test.go.
-	mountMCPRoutes(r, bearerAuth, mcpLimiter, apiHandlers)
+	// --- MCP OAuth Authorization Server discovery + endpoints (ADR 019
+	// Phases 2+3 — HOF-013) ---
+	// Root-level, machine-facing OAuth endpoints: RFC 8414 AS metadata,
+	// RFC 9728 protected-resource metadata (root + /api/mcp suffix), RFC 7591
+	// Dynamic Client Registration, and the authorize/token pair. The PocketID
+	// PKCE hop is handled at /oauth/callback. These are NOT under /api, so
+	// they fall outside the SPA/JSON-404 prefix handling below.
+	if asServer != nil {
+		asServer.RegisterRoutes(r)
+	}
 
 	// --- SPA fallback for all other routes ---
 	// React Router handles client-side routing; the SPA serves all browser navigation.
 	spaHandler := spaFallbackHandler()
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		// API routes that don't match should return 404 JSON, not the SPA.
-		// Both /api/ and /api-mcp/ get JSON 404s (the MCP surface is a
-		// machine-only API; serving the SPA shell to a Claude tool call
-		// would be confusing).
-		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/api-mcp/") {
+		// /api/ (including the machine-only /api/mcp MCP surface) gets JSON
+		// 404s; serving the SPA shell to an MCP tool call would be confusing.
+		if strings.HasPrefix(r.URL.Path, "/api/") {
 			api.WriteError(w, http.StatusNotFound, "endpoint not found")
 			return
 		}
@@ -570,7 +579,7 @@ func main() {
 
 	// Method-not-allowed responses: JSON for /api/, plain text otherwise.
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/api-mcp/") {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
 			api.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
 		}
