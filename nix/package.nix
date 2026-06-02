@@ -80,7 +80,7 @@ buildGoModule {
 
   # Bump this when go.sum changes (set to lib.fakeHash to discover the
   # new value on the next build).
-  vendorHash = "sha256-qv7rHRXw36YuOhup47wVbCTTQV9+DB6Ss5BNfmfe1Iw=";
+  vendorHash = "sha256-gvgFOIpWwY63acjiPAsb6+3+tjHIkzovc/o/1vE/rFc=";
 
   subPackages = [ "cmd/replog" ];
 
