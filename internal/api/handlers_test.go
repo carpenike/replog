@@ -278,6 +278,8 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/generations/{genID}", h.GenerationStatus)
 			r.Post("/athletes/{id}/generations/{genID}/cancel", h.GenerationCancel)
 			r.Post("/athletes/{id}/generations/{genID}/execute", h.GenerationExecute)
+			r.Post("/athletes/{id}/wod", h.WODSubmit)
+			r.Post("/athletes/{id}/wod/{genID}/log", h.WODLog)
 		})
 	})
 

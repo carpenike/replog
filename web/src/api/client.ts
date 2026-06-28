@@ -493,6 +493,23 @@ class ApiClient {
     });
   }
 
+  // Ad-hoc WOD generator (HOF-015). Reuses pollGeneration/cancelGeneration
+  // for status + cancel; startWOD enqueues and logWOD commits the result as
+  // an ad-hoc resistance workout (or returns a 409 collision body).
+  async startWOD(athleteId: number, body: Record<string, unknown> = {}): Promise<unknown> {
+    return this.request(`/api/athletes/${athleteId}/wod`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async logWOD(athleteId: number, generationId: number, body: Record<string, unknown> = {}): Promise<unknown> {
+    return this.request(`/api/athletes/${athleteId}/wod/${generationId}/log`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
   // Athlete Promotion
   async promoteAthlete(athleteId: number): Promise<Athlete> {
     return this.request<Athlete>(`/api/athletes/${athleteId}/promote`, { method: 'POST' });

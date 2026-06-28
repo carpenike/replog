@@ -100,6 +100,7 @@ type GenerationResponse struct {
 	ID         int64  `json:"id"`
 	AthleteID  int64  `json:"athlete_id"`
 	Status     string `json:"status"`
+	Kind       string `json:"kind,omitempty"`
 	Reasoning  string `json:"reasoning,omitempty"`
 	Model      string `json:"model,omitempty"`
 	TokensUsed int    `json:"tokens_used,omitempty"`
@@ -254,7 +255,7 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 
 	// Latest generation for resume-after-reload.
 	var latest *GenerationResponse
-	if g, err := models.LatestGenerationForAthlete(h.DB, athleteID); err == nil {
+	if g, err := models.LatestGenerationForAthlete(h.DB, athleteID, models.GenerationKindProgram); err == nil {
 		latest = generationToResponse(g)
 	}
 
@@ -467,7 +468,7 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	// in flight. The unique-per-athlete pending/running invariant keeps
 	// the SPA's resume-on-reload logic deterministic and prevents two
 	// goroutines burning tokens for the same athlete in parallel.
-	if existing, lookupErr := models.PendingOrRunningGenerationForAthlete(h.DB, athleteID); lookupErr != nil {
+	if existing, lookupErr := models.PendingOrRunningGenerationForAthlete(h.DB, athleteID, models.GenerationKindProgram); lookupErr != nil {
 		log.Printf("api: check in-flight generation for athlete %d: %v", athleteID, lookupErr)
 		WriteError(w, http.StatusInternalServerError, "failed to check in-flight generations")
 		return
@@ -591,6 +592,17 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 		return
 	}
 	athleteName := h.athleteDisplayName(gen.AthleteID)
+	if gen.Kind == models.GenerationKindWOD {
+		notify.Send(h.DB, notify.Request{
+			UserID:    gen.RequestedBy,
+			Type:      models.NotifyGenerationComplete,
+			Title:     fmt.Sprintf("WOD ready for %s", athleteName),
+			Message:   fmt.Sprintf("Log or discard the generated WOD for %s.", athleteName),
+			Link:      fmt.Sprintf("/athletes/%d/wod", gen.AthleteID),
+			AthleteID: sql.NullInt64{Int64: gen.AthleteID, Valid: true},
+		})
+		return
+	}
 	notify.Send(h.DB, notify.Request{
 		UserID:    gen.RequestedBy,
 		Type:      models.NotifyGenerationComplete,
@@ -620,6 +632,17 @@ func (h *Handlers) failAndNotify(genID int64, msg string, durationMS int) {
 		return
 	}
 	athleteName := h.athleteDisplayName(gen.AthleteID)
+	if gen.Kind == models.GenerationKindWOD {
+		notify.Send(h.DB, notify.Request{
+			UserID:    gen.RequestedBy,
+			Type:      models.NotifyGenerationFailed,
+			Title:     fmt.Sprintf("WOD failed for %s", athleteName),
+			Message:   msg,
+			Link:      fmt.Sprintf("/athletes/%d/wod", gen.AthleteID),
+			AthleteID: sql.NullInt64{Int64: gen.AthleteID, Valid: true},
+		})
+		return
+	}
 	notify.Send(h.DB, notify.Request{
 		UserID:    gen.RequestedBy,
 		Type:      models.NotifyGenerationFailed,
@@ -826,6 +849,7 @@ func generationToResponse(g *models.Generation) *GenerationResponse {
 		ID:        g.ID,
 		AthleteID: g.AthleteID,
 		Status:    g.Status,
+		Kind:      g.Kind,
 		CreatedAt: g.CreatedAt,
 		Executed:  g.ExecutedAt.Valid,
 	}

@@ -16,6 +16,15 @@ const (
 	GenerationCancelled = "cancelled" // coach cancelled before completion
 )
 
+// Generation kind values (HOF-015). See migration 0011 for the CHECK
+// constraint. 'program' is the multi-week AI Coach draft; 'wod' is a
+// single-session ad-hoc Sarge-circuit workout logged as a resistance
+// workout rather than committed into a program_template.
+const (
+	GenerationKindProgram = "program"
+	GenerationKindWOD     = "wod"
+)
+
 // Generation is one AI Coach program-draft request.
 //
 // The lifecycle is: pending → running → (succeeded | failed | cancelled).
@@ -27,6 +36,7 @@ type Generation struct {
 	AthleteID   int64
 	RequestedBy int64
 	Status      string
+	Kind        string
 
 	RequestJSON string
 	CatalogJSON sql.NullString
@@ -58,19 +68,26 @@ func (g *Generation) IsTerminal() bool {
 		g.Status == GenerationCancelled
 }
 
-// CreateGeneration inserts a pending generation row and returns it.
-// requestJSON is the marshalled GenerationRequest snapshot.
+// CreateGeneration inserts a pending program-kind generation row and
+// returns it. requestJSON is the marshalled GenerationRequest snapshot.
 func CreateGeneration(db *sql.DB, athleteID, requestedBy int64, requestJSON string) (*Generation, error) {
+	return CreateGenerationWithKind(db, athleteID, requestedBy, requestJSON, GenerationKindProgram)
+}
+
+// CreateGenerationWithKind inserts a pending generation row of the given
+// kind ('program' | 'wod', HOF-015) and returns it.
+func CreateGenerationWithKind(db *sql.DB, athleteID, requestedBy int64, requestJSON, kind string) (*Generation, error) {
 	row := db.QueryRow(
-		`INSERT INTO generations (athlete_id, requested_by, status, request_json)
-		 VALUES (?, ?, ?, ?)
+		`INSERT INTO generations (athlete_id, requested_by, status, kind, request_json)
+		 VALUES (?, ?, ?, ?, ?)
 		 RETURNING id, created_at`,
-		athleteID, requestedBy, GenerationPending, requestJSON,
+		athleteID, requestedBy, GenerationPending, kind, requestJSON,
 	)
 	g := &Generation{
 		AthleteID:   athleteID,
 		RequestedBy: requestedBy,
 		Status:      GenerationPending,
+		Kind:        kind,
 		RequestJSON: requestJSON,
 	}
 	if err := row.Scan(&g.ID, &g.CreatedAt); err != nil {
@@ -210,7 +227,7 @@ func MarkGenerationExecuted(db *sql.DB, id int64) error {
 // the row does not exist.
 func GetGeneration(db *sql.DB, id int64) (*Generation, error) {
 	row := db.QueryRow(
-		`SELECT id, athlete_id, requested_by, status, request_json,
+		`SELECT id, athlete_id, requested_by, status, kind, request_json,
 		        catalog_json, reasoning, model, tokens_used, duration_ms,
 		        stop_reason, error, context_json, prompt,
 		        executed_at, created_at, started_at, completed_at
@@ -219,7 +236,7 @@ func GetGeneration(db *sql.DB, id int64) (*Generation, error) {
 	)
 	g := &Generation{}
 	err := row.Scan(
-		&g.ID, &g.AthleteID, &g.RequestedBy, &g.Status, &g.RequestJSON,
+		&g.ID, &g.AthleteID, &g.RequestedBy, &g.Status, &g.Kind, &g.RequestJSON,
 		&g.CatalogJSON, &g.Reasoning, &g.Model, &g.TokensUsed, &g.DurationMS,
 		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt,
 		&g.ExecutedAt, &g.CreatedAt, &g.StartedAt, &g.CompletedAt,
@@ -234,22 +251,24 @@ func GetGeneration(db *sql.DB, id int64) (*Generation, error) {
 }
 
 // LatestGenerationForAthlete returns the most recently created generation
-// for an athlete, or ErrNotFound if there isn't one. Used by the form-data
-// endpoint so the SPA can resume a still-running draft after page reload.
-func LatestGenerationForAthlete(db *sql.DB, athleteID int64) (*Generation, error) {
+// of the given kind for an athlete, or ErrNotFound if there isn't one. Used
+// by the form-data endpoint so the SPA can resume a still-running draft
+// after page reload. Scoped by kind (HOF-015) so a WOD draft never surfaces
+// in the program GeneratePage resume path, and vice versa.
+func LatestGenerationForAthlete(db *sql.DB, athleteID int64, kind string) (*Generation, error) {
 	row := db.QueryRow(
-		`SELECT id, athlete_id, requested_by, status, request_json,
+		`SELECT id, athlete_id, requested_by, status, kind, request_json,
 		        catalog_json, reasoning, model, tokens_used, duration_ms,
 		        stop_reason, error, context_json, prompt,
 		        executed_at, created_at, started_at, completed_at
 		   FROM generations
-		  WHERE athlete_id = ?
+		  WHERE athlete_id = ? AND kind = ?
 		  ORDER BY created_at DESC LIMIT 1`,
-		athleteID,
+		athleteID, kind,
 	)
 	g := &Generation{}
 	err := row.Scan(
-		&g.ID, &g.AthleteID, &g.RequestedBy, &g.Status, &g.RequestJSON,
+		&g.ID, &g.AthleteID, &g.RequestedBy, &g.Status, &g.Kind, &g.RequestJSON,
 		&g.CatalogJSON, &g.Reasoning, &g.Model, &g.TokensUsed, &g.DurationMS,
 		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt,
 		&g.ExecutedAt, &g.CreatedAt, &g.StartedAt, &g.CompletedAt,
@@ -264,18 +283,19 @@ func LatestGenerationForAthlete(db *sql.DB, athleteID int64) (*Generation, error
 }
 
 // PendingOrRunningGenerationForAthlete returns the first pending/running
-// generation row for an athlete (id + status only — enough for the
-// duplicate-submit guard at the handler boundary). Returns (nil, nil)
-// when no draft is in flight. Uses the (athlete_id, status) covering
-// index from migration 0002.
-func PendingOrRunningGenerationForAthlete(db *sql.DB, athleteID int64) (*Generation, error) {
+// generation row of the given kind for an athlete (id + status only —
+// enough for the duplicate-submit guard at the handler boundary). Returns
+// (nil, nil) when no draft is in flight. Scoped by kind (HOF-015) so a WOD
+// in flight does not block a normal program draft for the same athlete (and
+// vice versa). Uses the (athlete_id, kind, status) index from migration 0011.
+func PendingOrRunningGenerationForAthlete(db *sql.DB, athleteID int64, kind string) (*Generation, error) {
 	row := db.QueryRow(
 		`SELECT id, status FROM generations
-		  WHERE athlete_id = ? AND status IN (?, ?)
+		  WHERE athlete_id = ? AND kind = ? AND status IN (?, ?)
 		  ORDER BY created_at DESC LIMIT 1`,
-		athleteID, GenerationPending, GenerationRunning,
+		athleteID, kind, GenerationPending, GenerationRunning,
 	)
-	g := &Generation{AthleteID: athleteID}
+	g := &Generation{AthleteID: athleteID, Kind: kind}
 	if err := row.Scan(&g.ID, &g.Status); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

@@ -216,6 +216,9 @@ export function AthleteDetail() {
             <Link to={`/athletes/${athleteId}/generate`} className={buttonVariants({ variant: "outline", size: "sm" })}>
               🤖 AI Coach
             </Link>
+            <Link to={`/athletes/${athleteId}/wod`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              🔥 WOD
+            </Link>
           </>
         )}
       </div>

@@ -515,6 +515,12 @@ func main() {
 			r.Post("/athletes/{id}/generations/{genID}/cancel", apiHandlers.GenerationCancel)
 			r.Post("/athletes/{id}/generations/{genID}/execute", apiHandlers.GenerationExecute)
 
+			// Ad-hoc WOD generator (HOF-015 — coach only; handler checks
+			// internally). Reuses the generation status/cancel endpoints for
+			// polling; the log path commits an ad-hoc resistance workout.
+			r.Post("/athletes/{id}/wod", apiHandlers.WODSubmit)
+			r.Post("/athletes/{id}/wod/{genID}/log", apiHandlers.WODLog)
+
 			// Impersonation.
 			r.Post("/admin/impersonate/{userId}", apiHandlers.StartImpersonation)
 			r.Post("/admin/stop-impersonating", apiHandlers.StopImpersonation)

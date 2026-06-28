@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"testing"
+	"time"
 )
 
 func TestComputeChartPoints_Empty(t *testing.T) {
@@ -288,7 +289,7 @@ func TestWorkoutHeatmap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
-	w, err := CreateWorkout(db, athlete.ID, "2025-06-01", "", 0)
+	w, err := CreateWorkout(db, athlete.ID, time.Now().Format("2006-01-02"), "", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}

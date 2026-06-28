@@ -815,6 +815,8 @@ definitions:
         type: integer
       id:
         type: integer
+      kind:
+        type: string
       model:
         type: string
       preview:
@@ -1705,6 +1707,38 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  api.WODCollisionResponse:
+    properties:
+      collision:
+        type: boolean
+      error:
+        type: string
+    type: object
+  api.WODLogRequest:
+    properties:
+      date:
+        type: string
+      replace:
+        type: boolean
+    type: object
+  api.WODLogResponse:
+    properties:
+      replaced:
+        type: boolean
+      sets_created:
+        type: integer
+      workout_id:
+        type: integer
+    type: object
+  api.WODSubmitRequest:
+    properties:
+      coach_directions:
+        type: string
+      focus_areas:
+        items:
+          type: string
+        type: array
     type: object
   api.WeekPreview:
     properties:
@@ -4175,6 +4209,108 @@ paths:
       summary: Set training max
       tags:
       - TrainingMaxes
+  /athletes/{id}/wod:
+    post:
+      consumes:
+      - application/json
+      description: Enqueues a single-session (NumDays=1, NumWeeks=1) Sarge-circuit
+        "workout of the day" generation scoped to the athlete's configured equipment.
+        Reuses the async generation pipeline; poll status via GET /athletes/{id}/generations/{genID}.
+        Adult-only (resolves the sarge-circuit methodology). Returns 202 with the
+        generation_id.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional coach directions / focus areas
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/api.WODSubmitRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/api.GenerateSubmitResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Generate an ad-hoc WOD
+      tags:
+      - Athletes
+  /athletes/{id}/wod/{genID}/log:
+    post:
+      consumes:
+      - application/json
+      description: Parses the generation's CatalogJSON and seeds a discipline='resistance',
+        assignment_id NULL ad-hoc workout with the generated sets (exercise names
+        resolved to IDs), for the athlete to confirm/edit. If a resistance workout
+        already exists for the date, returns 409 with collision=true unless replace=true
+        is sent (replace supersedes the existing workout). The generation must be
+        kind='wod', in 'succeeded' state, and not already logged.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Generation ID
+        in: path
+        name: genID
+        required: true
+        type: integer
+      - description: Date + replace flag
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/api.WODLogRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.WODLogResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.WODCollisionResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Log an ad-hoc WOD
+      tags:
+      - Athletes
   /athletes/{id}/workouts:
     get:
       parameters:

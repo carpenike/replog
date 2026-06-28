@@ -38,6 +38,7 @@ const AssignmentsPage = lazy(() => import('@/pages/AssignmentsPage').then(m => (
 const TMSetup = lazy(() => import('@/pages/TMSetup').then(m => ({ default: m.TMSetup })))
 const ImportPage = lazy(() => import('@/pages/ImportPage').then(m => ({ default: m.ImportPage })))
 const GeneratePage = lazy(() => import('@/pages/GeneratePage').then(m => ({ default: m.GeneratePage })))
+const WodPage = lazy(() => import('@/pages/WodPage').then(m => ({ default: m.WodPage })))
 const ProgramsList = lazy(() => import('@/pages/ProgramsList').then(m => ({ default: m.ProgramsList })))
 const ProgramDetail = lazy(() => import('@/pages/ProgramDetail').then(m => ({ default: m.ProgramDetail })))
 const NewProgram = lazy(() => import('@/pages/NewProgram').then(m => ({ default: m.NewProgram })))
@@ -110,6 +111,7 @@ export function App() {
         <Route path="/athletes/:id/tm-setup" element={<TMSetup />} />
         <Route path="/athletes/:id/import" element={<RequireRole user={user} role="coach"><ImportPage /></RequireRole>} />
         <Route path="/athletes/:id/generate" element={<RequireRole user={user} role="coach"><GeneratePage /></RequireRole>} />
+        <Route path="/athletes/:id/wod" element={<RequireRole user={user} role="coach"><WodPage /></RequireRole>} />
         <Route path="/athletes/:id/exercises/:exerciseId/history" element={<ExerciseHistory />} />
         <Route path="/athletes/:id/throwing-sessions" element={<ThrowingSessions />} />
         <Route path="/athletes/:id/conditioning-sessions" element={<ConditioningSessions />} />
