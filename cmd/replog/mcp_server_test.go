@@ -53,6 +53,9 @@ func TestMCPTools_ExhaustiveAndStable(t *testing.T) {
 		"generate_submit",
 		"generation_status",
 		"generation_cancel",
+		// ad-hoc WOD (submit + log; status reuses generation_status)
+		"wod_submit",
+		"wod_log",
 	}
 
 	got := make([]string, 0, len(mcpTools()))
@@ -99,6 +102,19 @@ func TestMCPTools_ExhaustiveAndStable(t *testing.T) {
 //   - generation_execute — the COMMIT step of a drafted program; the human's
 //     click on the webui is the approval (generate_submit/status/cancel only).
 //   - program/template/rule/set authoring — operator surface, not MCP.
+//
+// wod_log is the deliberate, documented exception and the reason this comment
+// is load-bearing. It IS exposed (see the allowlist above) even though it is
+// "execute-shaped" — it calls MarkGenerationExecuted and sets the SAME
+// ExecutedAt column generation_execute sets. The distinction that keeps the
+// boundary intact is WHAT it materializes, not whether ExecutedAt is set:
+// wod_log writes an assignment_id-NULL ad-hoc resistance workout (no program
+// assignment, no progression, no training-max change, fully reversible) — a
+// Group-B log in the same class as create_workout. generation_execute commits
+// an assigned multi-week program that drives progression — a coaching decision
+// that stays on the webui (ADR 007 / 015). If a future change makes wod_log
+// (or any "_log") assign a program, bump a TM, or drive progression, it has
+// crossed the line and must come off the MCP surface.
 func TestMCPTools_NoCoachingDecisionTools(t *testing.T) {
 	present := map[string]bool{}
 	for _, tl := range mcpTools() {

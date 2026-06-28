@@ -216,6 +216,15 @@ type generateInput struct {
 	AthleteID int64 `json:"athlete_id"`
 	api.GenerateSubmitRequest
 }
+type wodSubmitInput struct {
+	AthleteID int64 `json:"athlete_id"`
+	api.WODSubmitRequest
+}
+type wodLogInput struct {
+	AthleteID    int64 `json:"athlete_id"`
+	GenerationID int64 `json:"generation_id"`
+	api.WODLogRequest
+}
 
 func athleteParams(in athleteInput) map[string]string {
 	return map[string]string{"id": i64(in.AthleteID)}
@@ -345,6 +354,32 @@ func mcpTools() []mcpTool {
 				return map[string]string{"id": i64(in.AthleteID), "genID": i64(in.GenerationID)}
 			},
 			func(generationInput) any { return nil }),
+
+		// --- ad-hoc WOD (submit + log; status reuses generation_status) ---
+		// wod_log is the ONE commit exposed past the generation_execute line,
+		// and it is exposed deliberately. It is "execute-shaped" — it calls
+		// MarkGenerationExecuted and sets the SAME ExecutedAt column
+		// generation_execute sets — but what it MATERIALIZES is categorically a
+		// Group-B log, not a coaching commit: LogWODFromCatalog writes an
+		// assignment_id-NULL ad-hoc resistance workout (no program assignment,
+		// no progression, no training-max change, fully reversible), the same
+		// class as create_workout. generation_execute, by contrast, commits an
+		// assigned multi-week program that drives progression — a coaching
+		// decision that stays on the webui (ADR 007 / 015). The boundary is
+		// WHAT is committed (an ad-hoc logged session), not whether ExecutedAt
+		// is set. Both tools are coach-gated (IsCoach||IsAdmin) + CanAccessAthlete
+		// through the reused handlers, and wod_submit is adult-only — a non-coach
+		// athlete identity cannot drive this, same as generate_submit.
+		writeTool[wodSubmitInput]("wod_submit", "Generate an ad-hoc Sarge-circuit WOD (adult athlete) for review. Returns a generation_id — poll it with generation_status; the result is a proposal to review before logging.",
+			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.WODSubmit },
+			athleteParamsFrom(func(in wodSubmitInput) int64 { return in.AthleteID }),
+			func(in wodSubmitInput) any { return in.WODSubmitRequest }),
+		writeTool[wodLogInput]("wod_log", "Log a reviewed WOD to the athlete's logbook as an ad-hoc resistance workout. If a workout already exists for the date, returns collision:true — ask the user to replace or cancel, then re-call with replace:true to supersede it.",
+			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.WODLog },
+			func(in wodLogInput) map[string]string {
+				return map[string]string{"id": i64(in.AthleteID), "genID": i64(in.GenerationID)}
+			},
+			func(in wodLogInput) any { return in.WODLogRequest }),
 	}
 }
 
