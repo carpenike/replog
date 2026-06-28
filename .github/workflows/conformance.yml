@@ -1,0 +1,110 @@
+name: Conformance
+
+# Verifies the embedded MCP OAuth Authorization Server (ADR 019) still satisfies
+# the shared PocketID MCP-AS contract (github.com/carpenike/mcp-as-contract).
+#
+# It boots the real binary and runs the contract's own `check.sh` against it —
+# the same harness every conformer in the fleet runs — so a drift in the
+# discovery documents (RFC 8414/9728 field shapes, the PRM byte-match, the
+# opaque-token `jwks_uri` rule) fails the build immediately.
+#
+# The AS federates login to PocketID and discovers the provider at startup, so
+# CI stands up a tiny static OIDC discovery stub (no real PocketID needed — the
+# discovery docs and the DCR round-trip the checker exercises never call it).
+#
+# CONTRACT_REF below is the pinned contract version. The repo's existing
+# "# renovate:" custom-regex manager (.github/renovate.json5) tracks
+# carpenike/mcp-as-contract GitHub tags and opens a bump PR when a newer tag
+# ships; this job gates that PR (green = still conformant, red = work to do).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: MCP-AS contract conformance
+    runs-on: ubuntu-latest
+    env:
+      # renovate: datasource=github-tags depName=carpenike/mcp-as-contract
+      CONTRACT_REF: v1.1.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend
+        run: cd web && npm ci && npm run build
+
+      - name: Build server
+        run: go build -o /tmp/replog ./cmd/replog
+
+      - name: Clone contract harness
+        run: git clone --depth 1 --branch "$CONTRACT_REF" https://github.com/carpenike/mcp-as-contract /tmp/mcp-as-contract
+
+      - name: Boot AS + run conformance check
+        run: |
+          set -euo pipefail
+
+          # Static OIDC discovery stub so the AS (and the OIDC relying party)
+          # can complete provider discovery at startup without a real PocketID.
+          mkdir -p /tmp/oidc-stub/.well-known
+          printf '%s' '{"issuer":"http://127.0.0.1:9099","authorization_endpoint":"http://127.0.0.1:9099/authorize","token_endpoint":"http://127.0.0.1:9099/token","jwks_uri":"http://127.0.0.1:9099/jwks","response_types_supported":["code"],"subject_types_supported":["public"],"id_token_signing_alg_values_supported":["RS256"]}' \
+            > /tmp/oidc-stub/.well-known/openid-configuration
+          ( cd /tmp/oidc-stub && python3 -m http.server 9099 ) > /tmp/stub.log 2>&1 &
+          STUB_PID=$!
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:9099/.well-known/openid-configuration >/dev/null && break
+            sleep 0.3
+          done
+
+          # Boot the real binary with the AS enabled, pointed at the stub IdP.
+          REPLOG_DB_PATH=/tmp/replog-conformance.db \
+          REPLOG_ADDR=:8099 \
+          REPLOG_BASE_URL=http://127.0.0.1:8099 \
+          REPLOG_OIDC_ISSUER=http://127.0.0.1:9099 \
+          REPLOG_OIDC_CLIENT_ID=conformance \
+          REPLOG_OIDC_CLIENT_SECRET=conformance \
+          REPLOG_ADMIN_USER=admin \
+          REPLOG_ADMIN_PASS=conformance-only-pw \
+          REPLOG_ADMIN_EMAIL=conformance@example.invalid \
+            /tmp/replog > /tmp/replog.log 2>&1 &
+          REPLOG_PID=$!
+          trap 'kill "$REPLOG_PID" "$STUB_PID" 2>/dev/null || true' EXIT
+
+          ready=
+          for _ in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8099/healthz >/dev/null; then ready=1; break; fi
+            sleep 0.5
+          done
+          if [ -z "$ready" ]; then
+            echo "::error::replog did not become healthy"
+            cat /tmp/replog.log
+            exit 1
+          fi
+
+          # The fleet-wide harness. opaque-no-refresh / mcp-only / /api/mcp.
+          if ! /tmp/mcp-as-contract/conformance/check.sh \
+              http://127.0.0.1:8099 opaque-no-refresh mcp-only --mcp-path /api/mcp; then
+            echo "::error::MCP-AS contract conformance check failed (see replog log below)"
+            echo "----- replog log -----"
+            cat /tmp/replog.log
+            exit 1
+          fi

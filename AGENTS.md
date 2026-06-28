@@ -28,6 +28,11 @@ matching files — honor them.
   `coreos/go-oidc` + `golang.org/x/oauth2` PocketID OIDC relying party (ADR
   019) · `containrrr/shoutrrr` external notifications · `bcrypt` password
   hashing (break-glass). No ORM — SQL lives in the models layer.
+- **MCP-AS contract:** the embedded MCP OAuth Authorization Server (ADR 019)
+  conforms to [`pocketid-mcp-as`](https://github.com/carpenike/mcp-as-contract)
+  **v1.1**, profile `opaque-no-refresh`, scope `mcp-only`, MCP path `/api/mcp`.
+  CI (`.github/workflows/conformance.yml`) boots the binary and runs the
+  contract's own harness; the pin (`CONTRACT_REF`) is tracked by Renovate.
 - **Frontend stack:** React 19 + TypeScript + Vite · shadcn/ui (components
   copied into `web/src/components/ui/`) · Tailwind CSS v4 · TanStack Query
   for server state · React Router v7 · lucide-react icons.

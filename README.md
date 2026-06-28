@@ -34,6 +34,12 @@ Self-hosted workout tracking for kids' resistance training progression and perso
 - **OIDC** — PocketID relying-party login via `coreos/go-oidc` + `golang.org/x/oauth2` (PKCE)
 - **Shoutrrr** — external notification dispatch (Slack, Discord, email, etc.)
 
+The embedded MCP OAuth Authorization Server (ADR 019) conforms to
+[`pocketid-mcp-as`](https://github.com/carpenike/mcp-as-contract) **v1.1**,
+profile `opaque-no-refresh`, scope `mcp-only`, MCP path `/api/mcp` — enforced in
+CI by [`.github/workflows/conformance.yml`](.github/workflows/conformance.yml),
+which boots the binary and runs the contract's own conformance harness.
+
 ### Frontend
 - **React 19 + TypeScript** with **Vite** — component-based SPA
 - **shadcn/ui** + **Tailwind CSS v4** — styling and components
