@@ -34,6 +34,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -95,6 +96,18 @@ func New(ctx context.Context, db *sql.DB, origin, issuer, clientID, clientSecret
 	if origin == "" {
 		return nil, errors.New("mcpoauth: origin (REPLOG_BASE_URL) is required")
 	}
+	// The origin is baked into every discovery document (the PRM `resource`,
+	// the AS `issuer`/endpoints) and the WWW-Authenticate hint, and RFC 9728
+	// §3.3 requires the PRM `resource` to byte-match the URL the client used to
+	// fetch it. A malformed REPLOG_BASE_URL therefore breaks OAuth discovery
+	// SILENTLY (spec-strict clients reject the PRM with no client-side log), so
+	// fail loudly at startup instead. Must be an absolute http(s) URL with a
+	// host and no path/query/fragment.
+	if u, err := url.Parse(origin); err != nil ||
+		(u.Scheme != "http" && u.Scheme != "https") || u.Host == "" ||
+		u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+		return nil, fmt.Errorf("mcpoauth: origin (REPLOG_BASE_URL) must be an absolute http(s) origin with no path, got %q", origin)
+	}
 
 	verifier, oauthCfg, err := oidc.BuildConfig(ctx, issuer, clientID, clientSecret,
 		origin+"/oauth/callback", []string{gooidc.ScopeOpenID, "profile", "email"})
@@ -137,22 +150,28 @@ func (s *Server) handleASMetadata(w http.ResponseWriter, r *http.Request) {
 		"response_types_supported":              []string{"code"},
 		"grant_types_supported":                 []string{"authorization_code"},
 		"code_challenge_methods_supported":      []string{"S256"},
-		"token_endpoint_auth_methods_supported": []string{"client_secret_post", "client_secret_basic"},
+		// Includes "none" for public/PKCE-only clients per the production-proven
+		// reference shape (W.W.W./marginalia oauth-metadata.ts). Advertising the
+		// spec-baseline alternatives costs nothing and avoids brittleness if a
+		// client ever drops the confidential-client secret.
+		"token_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post", "none"},
 		"scopes_supported":                      []string{"openid", "profile", "email"},
 	})
 }
 
 func (s *Server) handlePRMRoot(w http.ResponseWriter, r *http.Request) {
 	writeCachedJSON(w, http.StatusOK, map[string]any{
-		"resource":              s.origin,
-		"authorization_servers": []string{s.origin},
+		"resource":                 s.origin,
+		"authorization_servers":    []string{s.origin},
+		"bearer_methods_supported": []string{"header"},
 	})
 }
 
 func (s *Server) handlePRMResource(w http.ResponseWriter, r *http.Request) {
 	writeCachedJSON(w, http.StatusOK, map[string]any{
-		"resource":              s.origin + "/api/mcp",
-		"authorization_servers": []string{s.origin},
+		"resource":                 s.origin + "/api/mcp",
+		"authorization_servers":    []string{s.origin},
+		"bearer_methods_supported": []string{"header"},
 	})
 }
 

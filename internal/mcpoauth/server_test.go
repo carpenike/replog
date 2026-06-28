@@ -83,6 +83,18 @@ func TestASMetadata_OmitsJWKS(t *testing.T) {
 	if got := body["code_challenge_methods_supported"].([]any); got[0] != "S256" {
 		t.Errorf("code_challenge_methods_supported = %v, want [S256]", got)
 	}
+	// "none" must be advertised for public/PKCE-only clients (production-proven
+	// reference shape — W.W.W./marginalia oauth-metadata.ts).
+	authMethods, _ := body["token_endpoint_auth_methods_supported"].([]any)
+	var hasNone bool
+	for _, m := range authMethods {
+		if m == "none" {
+			hasNone = true
+		}
+	}
+	if !hasNone {
+		t.Errorf("token_endpoint_auth_methods_supported = %v, want it to include \"none\"", authMethods)
+	}
 }
 
 func TestPRM_BothVariants(t *testing.T) {
@@ -97,6 +109,15 @@ func TestPRM_BothVariants(t *testing.T) {
 	_, res := doJSON(t, r, http.MethodGet, "/.well-known/oauth-protected-resource/api/mcp", "")
 	if res["resource"] != testOrigin+"/api/mcp" {
 		t.Errorf("resource = %v, want %s/api/mcp", res["resource"], testOrigin)
+	}
+
+	// Both variants must advertise bearer_methods_supported: ["header"] to match
+	// the production-proven reference shape.
+	for _, prm := range []map[string]any{root, res} {
+		methods, _ := prm["bearer_methods_supported"].([]any)
+		if len(methods) != 1 || methods[0] != "header" {
+			t.Errorf("bearer_methods_supported = %v, want [header]", prm["bearer_methods_supported"])
+		}
 	}
 
 	if got := s.PRMResourceURL(); got != testOrigin+"/.well-known/oauth-protected-resource/api/mcp" {

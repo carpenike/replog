@@ -286,7 +286,22 @@ func main() {
 
 	// --- JSON API routes ---
 	r.Route("/api", func(r chi.Router) {
-		r.Use(sessionManager.LoadAndSave)
+		// Cookie sessions back the browser/SPA surface, but the native MCP
+		// endpoint (/api/mcp) authenticates with opaque bearer tokens and has
+		// no scs session — running it through LoadAndSave would stamp a
+		// spurious anonymous Set-Cookie on every MCP response and buffer the
+		// body. Skip the session middleware for that subtree; the MCP group
+		// installs its own bearer auth below.
+		r.Use(func(next http.Handler) http.Handler {
+			withSession := sessionManager.LoadAndSave(next)
+			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				if strings.HasPrefix(req.URL.Path, "/api/mcp") {
+					next.ServeHTTP(w, req)
+					return
+				}
+				withSession.ServeHTTP(w, req)
+			})
+		})
 
 		// Public API endpoints (login) — rate limited.
 		r.Group(func(r chi.Router) {
