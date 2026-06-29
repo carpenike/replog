@@ -37,10 +37,20 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-query': ['@tanstack/react-query'],
-          'vendor-ui': ['@base-ui/react', 'class-variance-authority', 'lucide-react'],
+        // vite 8 (rolldown) dropped the object form of manualChunks; use the
+        // function form to keep the same three vendor chunks.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) {
+            return 'vendor-react'
+          }
+          if (/[\\/]node_modules[\\/]@tanstack[\\/]/.test(id)) {
+            return 'vendor-query'
+          }
+          if (/[\\/]node_modules[\\/](@base-ui[\\/]react|class-variance-authority|lucide-react)[\\/]/.test(id)) {
+            return 'vendor-ui'
+          }
+          return undefined
         },
       },
     },
