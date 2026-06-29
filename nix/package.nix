@@ -49,7 +49,7 @@ let
         && base != ".vite";
     };
 
-    npmDepsHash = "sha256-fPJQfmDjcRpCz320hFJa9EY08Qo02LkUe3EavvC3O5I=";
+    npmDepsHash = "sha256-AUovqqAjjQn9iGU4uo8zu2D1TIkgUOeSfuK0p1mRKJY=";
 
     nodejs = nodejs_22;
 
