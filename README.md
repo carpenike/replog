@@ -49,8 +49,9 @@ which boots the binary and runs the contract's own conformance harness.
 ### Deployment
 - **Nix flake** — builds the Vite frontend then `go build`s the binary with `web/dist` embedded
 - **Single static binary** for NixOS deployment
+- **Observability (opt-in)** — structured JSON logging (`REPLOG_LOG_FORMAT=json`), a Prometheus `/metrics` endpoint (`REPLOG_METRICS_ENABLED=true`), a `replog healthcheck` subcommand wired as a Docker `HEALTHCHECK`, and a startup `PRAGMA quick_check`. See [docs/operations.md](docs/operations.md).
 
-See [ADR 001](docs/adr/001-tech-stack.md) for the original Go/htmx rationale and [ADR 011](docs/adr/011-api-spa-frontend.md) for the move to a REST API + React SPA.
+See [ADR 001](docs/adr/001-tech-stack.md) for the original Go/htmx rationale, [ADR 011](docs/adr/011-api-spa-frontend.md) for the move to a REST API + React SPA, and [ADR 021](docs/adr/021-hardening-pass.md) for the security/AI-safety/observability hardening pass.
 
 ## Development
 

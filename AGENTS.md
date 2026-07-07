@@ -236,6 +236,29 @@ truth**, not this one. Key patterns:
 - First-run bootstrap creates admin+coach from `REPLOG_ADMIN_USER` /
   `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL`. Session lifetime 30 days,
   `HttpOnly`, `SameSite=Lax`.
+- **Object-level authorization (ADR 021).** Authorizing the athlete `{id}` in
+  the path is not enough — a child resource id (`workoutID`, `setID`, `noteID`,
+  `bwID`) must be scoped to that athlete too, or an athlete user can reach
+  another athlete's rows by pairing their own athlete id with a foreign child
+  id. Scope in the model query (`... WHERE id = ? AND athlete_id = ?`; for sets,
+  join through `workout_id → workouts.athlete_id`) and return `ErrNotFound`.
+  Mirror `loadOwnedGeneration` / the ADR-018 handlers. `TestCrossAthleteIDOR`
+  guards it — add a case when you add a child-resource handler.
+
+### Backend helper patterns (use these, don't re-roll)
+
+- **Validation → 400, not 500.** Validate enums/ranges at the handler boundary
+  with `api.WriteValidationError` (`internal/api/errors.go`); map DB
+  CHECK/UNIQUE violations with `api.WriteDBError`. Don't let a constraint
+  violation surface as a generic 500.
+- **Dates.** Default "today" and validate incoming dates via the helpers in
+  `internal/api/dates.go` (`todayInUserTZ`, `validDate`) — never
+  `time.Now()` server-local.
+- **Secrets at rest.** Tokens (login, MCP) are stored as SHA-256 hashes; never
+  persist a usable token or magic link in a row.
+- **LLM output is linted.** `llm.LintCatalog` checks generated programs against
+  the catalog + youth rules; the system-prompt override is compositional
+  (`composeSystemPrompt`) and must never strip the youth safety block.
 
 ## Build / verify before declaring victory
 

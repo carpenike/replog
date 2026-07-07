@@ -122,6 +122,27 @@ Setting `REPLOG_BASE_URL` to an `https://` URL automatically:
 You can override either explicitly with `REPLOG_SECURE_COOKIES=true|false`
 if needed.
 
+Optional observability and diagnostics (all off/default unless set):
+
+```bash
+REPLOG_LOG_FORMAT=json          # structured JSON logs (default: text) — see below
+REPLOG_METRICS_ENABLED=true     # expose GET /metrics (Prometheus text; default: off)
+```
+
+- **Structured logging.** With `REPLOG_LOG_FORMAT=json`, startup/shutdown and
+  request logs emit JSON via `log/slog` for ingestion by a log pipeline; the
+  default remains human-readable text.
+- **Metrics.** With `REPLOG_METRICS_ENABLED=true`, `GET /metrics` serves a
+  hand-rolled Prometheus text exposition (request counters + Go runtime gauges,
+  no external dependency). Keep it on the loopback/internal listener behind your
+  proxy — do not expose it publicly.
+- **Healthcheck.** The binary ships a `replog healthcheck` subcommand that GETs
+  the local `/healthz` and exits 0/1; the container images wire it as a Docker
+  `HEALTHCHECK`. `/healthz` is also directly usable by an external monitor.
+- **Corruption detection.** On startup the server runs `PRAGMA quick_check` and
+  logs a warning if the database does not return `ok` — an early signal to
+  restore from backup (see [Backups](#backups)).
+
 ### 4a. Configure PocketID OIDC login (recommended)
 
 Per [ADR 019](adr/019-self-hosted-identity-native-mcp.md), interactive
