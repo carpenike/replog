@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -36,12 +37,12 @@ func newMCPTokenFixture(t *testing.T) *mcpTokenFixture {
 
 func (f *mcpTokenFixture) createUser(t *testing.T, username, email string, mcpEnabled bool) *models.User {
 	t.Helper()
-	u, err := models.CreateUser(f.db, username, "", "password123", email, true, false, sql.NullInt64{})
+	u, err := models.CreateUser(context.Background(), f.db, username, "", "password123", email, true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user %q: %v", username, err)
 	}
 	if mcpEnabled {
-		if err := models.SetUserMCPEnabled(f.db, u.ID, true); err != nil {
+		if err := models.SetUserMCPEnabled(context.Background(), f.db, u.ID, true); err != nil {
 			t.Fatalf("enable mcp for %q: %v", username, err)
 		}
 	}
@@ -70,7 +71,7 @@ func reqWithBearer(token string) *http.Request {
 func TestMCPTokenAuth_AttachesUserOnValidToken(t *testing.T) {
 	f := newMCPTokenFixture(t)
 	u := f.createUser(t, "coach", "coach@example.com", true)
-	plaintext, _, err := models.CreateMCPToken(f.db, u.ID, "client-1", "")
+	plaintext, _, err := models.CreateMCPToken(context.Background(), f.db, u.ID, "client-1", "")
 	if err != nil {
 		t.Fatalf("mint token: %v", err)
 	}
@@ -132,11 +133,11 @@ func TestMCPTokenAuth_RejectsUnknownToken(t *testing.T) {
 func TestMCPTokenAuth_RejectsRevokedToken(t *testing.T) {
 	f := newMCPTokenFixture(t)
 	u := f.createUser(t, "coach", "coach@example.com", true)
-	plaintext, tok, err := models.CreateMCPToken(f.db, u.ID, "client-1", "")
+	plaintext, tok, err := models.CreateMCPToken(context.Background(), f.db, u.ID, "client-1", "")
 	if err != nil {
 		t.Fatalf("mint token: %v", err)
 	}
-	if err := models.RevokeMCPToken(f.db, tok.ID); err != nil {
+	if err := models.RevokeMCPToken(context.Background(), f.db, tok.ID); err != nil {
 		t.Fatalf("revoke: %v", err)
 	}
 
@@ -174,7 +175,7 @@ func TestMCPTokenAuth_RejectsExpiredToken(t *testing.T) {
 func TestMCPTokenAuth_RejectsUserWithoutMCPEnabled(t *testing.T) {
 	f := newMCPTokenFixture(t)
 	u := f.createUser(t, "coach", "coach@example.com", false)
-	plaintext, _, err := models.CreateMCPToken(f.db, u.ID, "client-1", "")
+	plaintext, _, err := models.CreateMCPToken(context.Background(), f.db, u.ID, "client-1", "")
 	if err != nil {
 		t.Fatalf("mint token: %v", err)
 	}

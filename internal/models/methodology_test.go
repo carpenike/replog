@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"reflect"
@@ -24,7 +25,7 @@ func TestCreateMethodology(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("basic create", func(t *testing.T) {
-		m, err := CreateMethodology(db, newTestMethodology("yessis-1x20", "Yessis 1×20", MethodologyAudienceYouth))
+		m, err := CreateMethodology(context.Background(), db, newTestMethodology("yessis-1x20", "Yessis 1×20", MethodologyAudienceYouth))
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -43,21 +44,21 @@ func TestCreateMethodology(t *testing.T) {
 	})
 
 	t.Run("duplicate key", func(t *testing.T) {
-		_, err := CreateMethodology(db, newTestMethodology("yessis-1x20", "Different name", MethodologyAudienceYouth))
+		_, err := CreateMethodology(context.Background(), db, newTestMethodology("yessis-1x20", "Different name", MethodologyAudienceYouth))
 		if !errors.Is(err, ErrDuplicateMethodologyKey) {
 			t.Errorf("err = %v, want ErrDuplicateMethodologyKey", err)
 		}
 	})
 
 	t.Run("key required", func(t *testing.T) {
-		_, err := CreateMethodology(db, newTestMethodology("", "X", ""))
+		_, err := CreateMethodology(context.Background(), db, newTestMethodology("", "X", ""))
 		if err == nil {
 			t.Fatal("expected error for empty key")
 		}
 	})
 
 	t.Run("name required", func(t *testing.T) {
-		_, err := CreateMethodology(db, newTestMethodology("k", "", ""))
+		_, err := CreateMethodology(context.Background(), db, newTestMethodology("k", "", ""))
 		if err == nil {
 			t.Fatal("expected error for empty name")
 		}
@@ -66,7 +67,7 @@ func TestCreateMethodology(t *testing.T) {
 	t.Run("definition required", func(t *testing.T) {
 		m := newTestMethodology("k2", "K2", "")
 		m.Definition = ""
-		_, err := CreateMethodology(db, m)
+		_, err := CreateMethodology(context.Background(), db, m)
 		if err == nil {
 			t.Fatal("expected error for empty definition")
 		}
@@ -75,14 +76,14 @@ func TestCreateMethodology(t *testing.T) {
 	t.Run("invalid audience", func(t *testing.T) {
 		m := newTestMethodology("k3", "K3", "")
 		m.Audience = sql.NullString{String: "bogus", Valid: true}
-		_, err := CreateMethodology(db, m)
+		_, err := CreateMethodology(context.Background(), db, m)
 		if err == nil {
 			t.Fatal("expected error for invalid audience")
 		}
 	})
 
 	t.Run("null audience allowed", func(t *testing.T) {
-		_, err := CreateMethodology(db, newTestMethodology("k4", "K4", ""))
+		_, err := CreateMethodology(context.Background(), db, newTestMethodology("k4", "K4", ""))
 		if err != nil {
 			t.Fatalf("create with null audience: %v", err)
 		}
@@ -91,10 +92,10 @@ func TestCreateMethodology(t *testing.T) {
 
 func TestGetMethodology(t *testing.T) {
 	db := testDB(t)
-	created, _ := CreateMethodology(db, newTestMethodology("531", "5/3/1", MethodologyAudienceAdult))
+	created, _ := CreateMethodology(context.Background(), db, newTestMethodology("531", "5/3/1", MethodologyAudienceAdult))
 
 	t.Run("by id", func(t *testing.T) {
-		got, err := GetMethodologyByID(db, created.ID)
+		got, err := GetMethodologyByID(context.Background(), db, created.ID)
 		if err != nil {
 			t.Fatalf("get by id: %v", err)
 		}
@@ -104,7 +105,7 @@ func TestGetMethodology(t *testing.T) {
 	})
 
 	t.Run("by key", func(t *testing.T) {
-		got, err := GetMethodologyByKey(db, "531")
+		got, err := GetMethodologyByKey(context.Background(), db, "531")
 		if err != nil {
 			t.Fatalf("get by key: %v", err)
 		}
@@ -114,11 +115,11 @@ func TestGetMethodology(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		_, err := GetMethodologyByID(db, 999)
+		_, err := GetMethodologyByID(context.Background(), db, 999)
 		if !errors.Is(err, ErrNotFound) {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
-		_, err = GetMethodologyByKey(db, "no-such-key")
+		_, err = GetMethodologyByKey(context.Background(), db, "no-such-key")
 		if !errors.Is(err, ErrNotFound) {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -127,12 +128,12 @@ func TestGetMethodology(t *testing.T) {
 
 func TestListMethodologies(t *testing.T) {
 	db := testDB(t)
-	CreateMethodology(db, newTestMethodology("yessis-1x20", "Yessis 1×20", MethodologyAudienceYouth))
-	CreateMethodology(db, newTestMethodology("yessis-1x15", "Yessis 1×15", MethodologyAudienceYouth))
-	CreateMethodology(db, newTestMethodology("531", "5/3/1", MethodologyAudienceAdult))
+	CreateMethodology(context.Background(), db, newTestMethodology("yessis-1x20", "Yessis 1×20", MethodologyAudienceYouth))
+	CreateMethodology(context.Background(), db, newTestMethodology("yessis-1x15", "Yessis 1×15", MethodologyAudienceYouth))
+	CreateMethodology(context.Background(), db, newTestMethodology("531", "5/3/1", MethodologyAudienceAdult))
 
 	t.Run("all", func(t *testing.T) {
-		got, err := ListMethodologies(db, "")
+		got, err := ListMethodologies(context.Background(), db, "")
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -142,7 +143,7 @@ func TestListMethodologies(t *testing.T) {
 	})
 
 	t.Run("filter youth", func(t *testing.T) {
-		got, err := ListMethodologies(db, MethodologyAudienceYouth)
+		got, err := ListMethodologies(context.Background(), db, MethodologyAudienceYouth)
 		if err != nil {
 			t.Fatalf("list youth: %v", err)
 		}
@@ -152,7 +153,7 @@ func TestListMethodologies(t *testing.T) {
 	})
 
 	t.Run("filter adult", func(t *testing.T) {
-		got, err := ListMethodologies(db, MethodologyAudienceAdult)
+		got, err := ListMethodologies(context.Background(), db, MethodologyAudienceAdult)
 		if err != nil {
 			t.Fatalf("list adult: %v", err)
 		}
@@ -162,7 +163,7 @@ func TestListMethodologies(t *testing.T) {
 	})
 
 	t.Run("invalid filter rejected", func(t *testing.T) {
-		_, err := ListMethodologies(db, "geriatric")
+		_, err := ListMethodologies(context.Background(), db, "geriatric")
 		if err == nil {
 			t.Fatal("expected error for invalid filter")
 		}
@@ -172,32 +173,32 @@ func TestListMethodologies(t *testing.T) {
 func TestLoadMethodologyWithLinks(t *testing.T) {
 	db := testDB(t)
 
-	m, _ := CreateMethodology(db, newTestMethodology("yessis-1x20", "Yessis 1×20", MethodologyAudienceYouth))
+	m, _ := CreateMethodology(context.Background(), db, newTestMethodology("yessis-1x20", "Yessis 1×20", MethodologyAudienceYouth))
 
 	// Seed dependent rows we'll link to.
-	eq1, _ := CreateEquipment(db, "Bodyweight", "")
-	eq2, _ := CreateEquipment(db, "Light Dumbbells", "")
-	ex1, _ := CreateExercise(db, "Goblet Squat", "foundational", "", "", 0)
-	ex2, _ := CreateExercise(db, "Push-up", "foundational", "", "", 0)
-	tpl, err := insertProgramTemplateForTest(db, "Foundations 1×20", "youth")
+	eq1, _ := CreateEquipment(context.Background(), db, "Bodyweight", "")
+	eq2, _ := CreateEquipment(context.Background(), db, "Light Dumbbells", "")
+	ex1, _ := CreateExercise(context.Background(), db, "Goblet Squat", "foundational", "", "", 0)
+	ex2, _ := CreateExercise(context.Background(), db, "Push-up", "foundational", "", "", 0)
+	tpl, err := insertProgramTemplateForTest(context.Background(), db, "Foundations 1×20", "youth")
 	if err != nil {
 		t.Fatalf("seed template: %v", err)
 	}
 
-	if err := AddMethodologyAllowedEquipment(db, m.ID, []int64{eq1.ID, eq2.ID, eq1.ID /* dupe */}); err != nil {
+	if err := AddMethodologyAllowedEquipment(context.Background(), db, m.ID, []int64{eq1.ID, eq2.ID, eq1.ID /* dupe */}); err != nil {
 		t.Fatalf("link equipment: %v", err)
 	}
-	if err := AddMethodologyAllowedExercises(db, m.ID, []int64{ex1.ID, ex2.ID}); err != nil {
+	if err := AddMethodologyAllowedExercises(context.Background(), db, m.ID, []int64{ex1.ID, ex2.ID}); err != nil {
 		t.Fatalf("link exercises: %v", err)
 	}
-	if err := AddMethodologyAllowedPatterns(db, m.ID, []string{"push", "hinge", "squat", "push" /* dupe */}); err != nil {
+	if err := AddMethodologyAllowedPatterns(context.Background(), db, m.ID, []string{"push", "hinge", "squat", "push" /* dupe */}); err != nil {
 		t.Fatalf("link patterns: %v", err)
 	}
-	if err := AddMethodologyReferencePrograms(db, m.ID, []int64{tpl}); err != nil {
+	if err := AddMethodologyReferencePrograms(context.Background(), db, m.ID, []int64{tpl}); err != nil {
 		t.Fatalf("link reference programs: %v", err)
 	}
 
-	got, err := LoadMethodologyWithLinks(db, m.ID)
+	got, err := LoadMethodologyWithLinks(context.Background(), db, m.ID)
 	if err != nil {
 		t.Fatalf("load with links: %v", err)
 	}
@@ -221,13 +222,13 @@ func TestLoadMethodologyWithLinks(t *testing.T) {
 
 func TestAddMethodologyAllowedPatternsRejectsInvalid(t *testing.T) {
 	db := testDB(t)
-	m, _ := CreateMethodology(db, newTestMethodology("k", "K", MethodologyAudienceAdult))
-	err := AddMethodologyAllowedPatterns(db, m.ID, []string{"push", "yoga"})
+	m, _ := CreateMethodology(context.Background(), db, newTestMethodology("k", "K", MethodologyAudienceAdult))
+	err := AddMethodologyAllowedPatterns(context.Background(), db, m.ID, []string{"push", "yoga"})
 	if err == nil {
 		t.Fatal("expected validation error for invalid pattern")
 	}
 	// Ensure nothing was written before the invalid one — validation is upfront.
-	out, _ := LoadMethodologyWithLinks(db, m.ID)
+	out, _ := LoadMethodologyWithLinks(context.Background(), db, m.ID)
 	if len(out.AllowedPatterns) != 0 {
 		t.Errorf("AllowedPatterns = %v, want empty (validation should reject upfront)", out.AllowedPatterns)
 	}
@@ -235,18 +236,18 @@ func TestAddMethodologyAllowedPatternsRejectsInvalid(t *testing.T) {
 
 func TestDeleteMethodologyCascades(t *testing.T) {
 	db := testDB(t)
-	m, _ := CreateMethodology(db, newTestMethodology("k", "K", MethodologyAudienceAdult))
-	eq, _ := CreateEquipment(db, "Barbell", "")
-	if err := AddMethodologyAllowedEquipment(db, m.ID, []int64{eq.ID}); err != nil {
+	m, _ := CreateMethodology(context.Background(), db, newTestMethodology("k", "K", MethodologyAudienceAdult))
+	eq, _ := CreateEquipment(context.Background(), db, "Barbell", "")
+	if err := AddMethodologyAllowedEquipment(context.Background(), db, m.ID, []int64{eq.ID}); err != nil {
 		t.Fatalf("link: %v", err)
 	}
 
-	if err := DeleteMethodology(db, m.ID); err != nil {
+	if err := DeleteMethodology(context.Background(), db, m.ID); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 
 	// Equipment still exists; link gone via CASCADE.
-	if _, err := GetEquipmentByID(db, eq.ID); err != nil {
+	if _, err := GetEquipmentByID(context.Background(), db, eq.ID); err != nil {
 		t.Errorf("equipment row should survive methodology delete: %v", err)
 	}
 	var n int
@@ -258,24 +259,24 @@ func TestDeleteMethodologyCascades(t *testing.T) {
 	}
 
 	// And not found by id afterward.
-	if _, err := GetMethodologyByID(db, m.ID); !errors.Is(err, ErrNotFound) {
+	if _, err := GetMethodologyByID(context.Background(), db, m.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("get after delete: err = %v, want ErrNotFound", err)
 	}
 
 	// Double-delete is ErrNotFound.
-	if err := DeleteMethodology(db, m.ID); !errors.Is(err, ErrNotFound) {
+	if err := DeleteMethodology(context.Background(), db, m.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("re-delete: err = %v, want ErrNotFound", err)
 	}
 }
 
 func TestExerciseMovementPatternsRoundTrip(t *testing.T) {
 	db := testDB(t)
-	ex, _ := CreateExercise(db, "Trap Bar Deadlift", "intermediate", "", "", 0)
+	ex, _ := CreateExercise(context.Background(), db, "Trap Bar Deadlift", "intermediate", "", "", 0)
 
-	if err := SetExerciseMovementPatterns(db, ex.ID, []string{"hinge", "squat"}); err != nil {
+	if err := SetExerciseMovementPatterns(context.Background(), db, ex.ID, []string{"hinge", "squat"}); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	got, err := ListExerciseMovementPatterns(db, ex.ID)
+	got, err := ListExerciseMovementPatterns(context.Background(), db, ex.ID)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -284,28 +285,28 @@ func TestExerciseMovementPatternsRoundTrip(t *testing.T) {
 	}
 
 	// Replacement (not merge).
-	if err := SetExerciseMovementPatterns(db, ex.ID, []string{"carry"}); err != nil {
+	if err := SetExerciseMovementPatterns(context.Background(), db, ex.ID, []string{"carry"}); err != nil {
 		t.Fatalf("replace: %v", err)
 	}
-	got, _ = ListExerciseMovementPatterns(db, ex.ID)
+	got, _ = ListExerciseMovementPatterns(context.Background(), db, ex.ID)
 	if !reflect.DeepEqual(got, []string{"carry"}) {
 		t.Errorf("after replace = %v, want [carry]", got)
 	}
 
 	// Invalid value rejected up-front; existing rows unchanged.
-	if err := SetExerciseMovementPatterns(db, ex.ID, []string{"carry", "bogus"}); err == nil {
+	if err := SetExerciseMovementPatterns(context.Background(), db, ex.ID, []string{"carry", "bogus"}); err == nil {
 		t.Error("expected validation error for invalid pattern")
 	}
-	got, _ = ListExerciseMovementPatterns(db, ex.ID)
+	got, _ = ListExerciseMovementPatterns(context.Background(), db, ex.ID)
 	if !reflect.DeepEqual(got, []string{"carry"}) {
 		t.Errorf("after failed set = %v, want unchanged [carry]", got)
 	}
 
 	// Clearing.
-	if err := SetExerciseMovementPatterns(db, ex.ID, nil); err != nil {
+	if err := SetExerciseMovementPatterns(context.Background(), db, ex.ID, nil); err != nil {
 		t.Fatalf("clear: %v", err)
 	}
-	got, _ = ListExerciseMovementPatterns(db, ex.ID)
+	got, _ = ListExerciseMovementPatterns(context.Background(), db, ex.ID)
 	if len(got) != 0 {
 		t.Errorf("after clear = %v, want empty", got)
 	}
@@ -314,7 +315,7 @@ func TestExerciseMovementPatternsRoundTrip(t *testing.T) {
 // insertProgramTemplateForTest inserts a minimal global program_template
 // and returns its id. Avoids depending on the full importer for tests
 // that only need a template_id to satisfy a FK.
-func insertProgramTemplateForTest(db *sql.DB, name, audience string) (int64, error) {
+func insertProgramTemplateForTest(ctx context.Context, db *sql.DB, name, audience string) (int64, error) {
 	var id int64
 	err := db.QueryRow(
 		`INSERT INTO program_templates (athlete_id, name, num_weeks, num_days, is_loop, audience)

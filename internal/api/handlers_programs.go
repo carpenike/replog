@@ -41,7 +41,7 @@ func (h *Handlers) CreateProgramTemplate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	program, err := models.CreateProgramTemplate(h.DB, req.AthleteID, req.Name, req.Description, req.NumWeeks, req.NumDays, req.IsLoop, req.Audience)
+	program, err := models.CreateProgramTemplate(r.Context(), h.DB, req.AthleteID, req.Name, req.Description, req.NumWeeks, req.NumDays, req.IsLoop, req.Audience)
 	if err != nil {
 		log.Printf("api: create program template: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to create program")
@@ -87,7 +87,7 @@ func (h *Handlers) UpdateProgramTemplate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	program, err := models.UpdateProgramTemplate(h.DB, id, req.Name, req.Description, req.NumWeeks, req.NumDays, req.IsLoop)
+	program, err := models.UpdateProgramTemplate(r.Context(), h.DB, id, req.Name, req.Description, req.NumWeeks, req.NumDays, req.IsLoop)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "program not found")
 		return
@@ -124,7 +124,7 @@ func (h *Handlers) DeleteProgramTemplate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := models.DeleteProgramTemplate(h.DB, id); err != nil {
+	if err := models.DeleteProgramTemplate(r.Context(), h.DB, id); err != nil {
 		log.Printf("api: delete program template %d: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete program")
 		return
@@ -173,7 +173,7 @@ func (h *Handlers) AddPrescribedSet(w http.ResponseWriter, r *http.Request) {
 		req.RepType = "reps"
 	}
 
-	set, err := models.CreatePrescribedSet(h.DB, templateID, req.ExerciseID, req.Week, req.Day, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.SortOrder, req.RepType, req.Notes)
+	set, err := models.CreatePrescribedSet(r.Context(), h.DB, templateID, req.ExerciseID, req.Week, req.Day, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.SortOrder, req.RepType, req.Notes)
 	if err != nil {
 		log.Printf("api: add prescribed set to template %d: %v", templateID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to add set")
@@ -219,7 +219,7 @@ func (h *Handlers) UpdatePrescribedSet(w http.ResponseWriter, r *http.Request) {
 		req.RepType = "reps"
 	}
 
-	set, err := models.UpdatePrescribedSet(h.DB, setID, req.ExerciseID, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.SortOrder, req.RepType, req.Notes)
+	set, err := models.UpdatePrescribedSet(r.Context(), h.DB, setID, req.ExerciseID, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.SortOrder, req.RepType, req.Notes)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "set not found")
 		return
@@ -257,7 +257,7 @@ func (h *Handlers) DeletePrescribedSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeletePrescribedSet(h.DB, setID); err != nil {
+	if err := models.DeletePrescribedSet(r.Context(), h.DB, setID); err != nil {
 		log.Printf("api: delete prescribed set %d: %v", setID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete set")
 		return
@@ -293,7 +293,7 @@ func (h *Handlers) ListProgressionRules(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	rules, err := models.ListProgressionRules(h.DB, templateID)
+	rules, err := models.ListProgressionRules(r.Context(), h.DB, templateID)
 	if err != nil {
 		log.Printf("api: list progression rules for template %d: %v", templateID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list rules")
@@ -348,7 +348,7 @@ func (h *Handlers) SetProgressionRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rule, err := models.SetProgressionRule(h.DB, templateID, req.ExerciseID, req.Increment)
+	rule, err := models.SetProgressionRule(r.Context(), h.DB, templateID, req.ExerciseID, req.Increment)
 	if err != nil {
 		log.Printf("api: set progression rule for template %d: %v", templateID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to set rule")
@@ -387,7 +387,7 @@ func (h *Handlers) DeleteProgressionRule(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := models.DeleteProgressionRule(h.DB, ruleID); err != nil {
+	if err := models.DeleteProgressionRule(r.Context(), h.DB, ruleID); err != nil {
 		log.Printf("api: delete progression rule %d: %v", ruleID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete rule")
 		return
@@ -422,7 +422,7 @@ func (h *Handlers) PromoteAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athlete, err := models.GetAthleteByID(h.DB, id)
+	athlete, err := models.GetAthleteByID(r.Context(), h.DB, id)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "athlete not found")
 		return
@@ -438,7 +438,7 @@ func (h *Handlers) PromoteAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	promoted, err := models.PromoteAthlete(h.DB, id)
+	promoted, err := models.PromoteAthlete(r.Context(), h.DB, id)
 	if err != nil {
 		log.Printf("api: promote athlete %d: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to promote athlete")
@@ -446,4 +446,184 @@ func (h *Handlers) PromoteAthlete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, AthleteFromModel(promoted))
+}
+
+// ListProgramTemplates returns program templates. With no query params it
+// returns every template. When an athlete_id query param is supplied it
+// returns the templates assignable to that athlete: global templates plus
+// templates scoped to that athlete (athlete-specific sorted first).
+//
+//	@Summary      List program templates
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        athlete_id  query  int  false  "Limit to templates assignable to this athlete (global + athlete-scoped)"
+//	@Success      200  {array}   api.ProgramTemplate
+//	@Router       /programs [get]
+func (h *Handlers) ListProgramTemplates(w http.ResponseWriter, r *http.Request) {
+	var (
+		programs []*models.ProgramTemplate
+		err      error
+	)
+	if raw := r.URL.Query().Get("athlete_id"); raw != "" {
+		athleteID, perr := strconv.ParseInt(raw, 10, 64)
+		if perr != nil {
+			WriteError(w, http.StatusBadRequest, "invalid athlete_id")
+			return
+		}
+		// Athlete-scoped templates can embed that athlete's context (e.g.
+		// AI-generated programs), so gate on access before returning them.
+		user := middleware.UserFromContext(r.Context())
+		if !middleware.CanAccessAthlete(r.Context(), h.DB, user, athleteID) {
+			WriteError(w, http.StatusForbidden, "access denied")
+			return
+		}
+		programs, err = models.ListProgramTemplatesForAthlete(r.Context(), h.DB, athleteID)
+	} else {
+		programs, err = models.ListProgramTemplates(r.Context(), h.DB)
+	}
+	if err != nil {
+		log.Printf("api: list program templates: %v", err)
+		WriteError(w, http.StatusInternalServerError, "failed to list programs")
+		return
+	}
+
+	result := make([]*ProgramTemplate, len(programs))
+	for i, p := range programs {
+		result[i] = ProgramTemplateFromModel(p)
+	}
+	WriteJSON(w, http.StatusOK, result)
+}
+
+// GetProgramTemplate returns a single program template.
+//
+//	@Summary      Get program template
+//	@Description  Returns the template metadata plus its prescribed sets.
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id   path      int  true  "Program ID"
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      400  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /programs/{id} [get]
+func (h *Handlers) GetProgramTemplate(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid program ID")
+		return
+	}
+
+	program, err := models.GetProgramTemplateByID(r.Context(), h.DB, id)
+	if errors.Is(err, models.ErrNotFound) {
+		WriteError(w, http.StatusNotFound, "program not found")
+		return
+	}
+	if err != nil {
+		log.Printf("api: get program template %d: %v", id, err)
+		WriteError(w, http.StatusInternalServerError, "failed to get program")
+		return
+	}
+	// Athlete-scoped templates embed that athlete's context; a global template
+	// (AthleteID == nil) is readable by any authenticated user, but a scoped one
+	// requires access to its athlete. Treat a denied scoped template as 404 so
+	// its existence is not disclosed.
+	if program.AthleteID != nil {
+		user := middleware.UserFromContext(r.Context())
+		if !middleware.CanAccessAthlete(r.Context(), h.DB, user, *program.AthleteID) {
+			WriteError(w, http.StatusNotFound, "program not found")
+			return
+		}
+	}
+
+	sets, err := models.ListPrescribedSets(r.Context(), h.DB, id)
+	if err != nil {
+		log.Printf("api: list prescribed sets for program %d: %v", id, err)
+		WriteError(w, http.StatusInternalServerError, "failed to get program sets")
+		return
+	}
+
+	apiSets := make([]*PrescribedSet, len(sets))
+	for i, s := range sets {
+		apiSets[i] = PrescribedSetFromModel(s)
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]any{
+		"program": ProgramTemplateFromModel(program),
+		"sets":    apiSets,
+	})
+}
+
+// ListAthletePrograms returns programs assigned to an athlete.//
+//
+//	@Summary      List athlete's program assignments
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {array}   api.AthleteProgram
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/programs [get]
+func (h *Handlers) ListAthletePrograms(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	programs, err := models.ListAthletePrograms(r.Context(), h.DB, athleteID)
+	if err != nil {
+		log.Printf("api: list athlete programs for %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to list programs")
+		return
+	}
+
+	result := make([]*AthleteProgram, len(programs))
+	for i, p := range programs {
+		result[i] = AthleteProgramFromModel(p)
+	}
+	WriteJSON(w, http.StatusOK, result)
+}
+
+// CopyWeek copies prescribed sets from one week to another.
+// CopyWeek copies all prescribed sets from one week to another within a template.
+//
+//	@Summary      Copy week of prescribed sets
+//	@Tags         Programs
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                  true  "Program ID"
+//	@Param        body  body      api.CopyWeekRequest  true  "Source/target weeks"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /programs/{id}/copy-week [post]
+func (h *Handlers) CopyWeek(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	templateID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid program ID")
+		return
+	}
+
+	var req CopyWeekRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.SourceWeek < 1 || req.TargetWeek < 1 {
+		WriteError(w, http.StatusBadRequest, "source_week and target_week must be positive")
+		return
+	}
+
+	inserted, err := models.CopyWeek(r.Context(), h.DB, templateID, req.SourceWeek, req.TargetWeek)
+	if err != nil {
+		log.Printf("api: copy week for template %d: %v", templateID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to copy week")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]int{"sets_copied": int(inserted)})
 }

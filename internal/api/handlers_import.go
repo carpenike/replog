@@ -15,19 +15,19 @@ import (
 
 // ImportUploadResponse is returned after parsing an uploaded file.
 type ImportUploadResponse struct {
-	Format    string                  `json:"format"`
-	Exercises []ImportMappingItem     `json:"exercises"`
-	Equipment []ImportMappingItem     `json:"equipment,omitempty"`
-	Programs  []ImportMappingItem     `json:"programs,omitempty"`
-	Warnings  []ImportWarningItem     `json:"warnings,omitempty"`
+	Format    string              `json:"format"`
+	Exercises []ImportMappingItem `json:"exercises"`
+	Equipment []ImportMappingItem `json:"equipment,omitempty"`
+	Programs  []ImportMappingItem `json:"programs,omitempty"`
+	Warnings  []ImportWarningItem `json:"warnings,omitempty"`
 }
 
 // ImportWarningItem is a non-blocking data quality issue found during upload
 // (e.g. negative weight, RPE out of range, future-dated workout). The user
 // sees these on the upload review screen and can choose to commit anyway.
 type ImportWarningItem struct {
-	Entity  string `json:"entity"`  // "workout" | "set" | "training_max" | "body_weight"
-	Field   string `json:"field"`   // "weight" | "reps" | "rpe" | "date" | "rep_type"
+	Entity  string `json:"entity"` // "workout" | "set" | "training_max" | "body_weight"
+	Field   string `json:"field"`  // "weight" | "reps" | "rpe" | "date" | "rep_type"
 	Message string `json:"message"`
 }
 
@@ -44,10 +44,10 @@ type ImportMappingItem struct {
 
 // ImportPreviewResponse shows what will be created.
 type ImportPreviewResponse struct {
-	WorkoutsCount  int `json:"workouts_count"`
-	ExercisesNew   int `json:"exercises_new"`
-	EquipmentNew   int `json:"equipment_new"`
-	ProgramsNew    int `json:"programs_new"`
+	WorkoutsCount int `json:"workouts_count"`
+	ExercisesNew  int `json:"exercises_new"`
+	EquipmentNew  int `json:"equipment_new"`
+	ProgramsNew   int `json:"programs_new"`
 }
 
 // ImportUpload parses an uploaded workout file and returns mapping data.
@@ -71,13 +71,8 @@ func (h *Handlers) ImportUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "not your athlete")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -113,7 +108,7 @@ func (h *Handlers) ImportUpload(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusBadRequest, "failed to parse Strong CSV: "+err.Error())
 			return
 		}
-		existing, _ := models.ListExercises(h.DB, "")
+		existing, _ := models.ListExercises(r.Context(), h.DB, "")
 		entities := exercisesToEntities(existing)
 		ms = &importers.MappingState{
 			Format:    importers.FormatStrongCSV,
@@ -126,7 +121,7 @@ func (h *Handlers) ImportUpload(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusBadRequest, "failed to parse Hevy CSV: "+err.Error())
 			return
 		}
-		existing, _ := models.ListExercises(h.DB, "")
+		existing, _ := models.ListExercises(r.Context(), h.DB, "")
 		entities := exercisesToEntities(existing)
 		ms = &importers.MappingState{
 			Format:    importers.FormatHevyCSV,
@@ -139,7 +134,7 @@ func (h *Handlers) ImportUpload(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusBadRequest, "failed to parse RepLog JSON: "+err.Error())
 			return
 		}
-		existing, _ := models.ListExercises(h.DB, "")
+		existing, _ := models.ListExercises(r.Context(), h.DB, "")
 		entities := exercisesToEntities(existing)
 		ms = &importers.MappingState{
 			Format:    importers.FormatRepLogJSON,
@@ -201,13 +196,8 @@ func (h *Handlers) ImportExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "not your athlete")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -240,7 +230,7 @@ func (h *Handlers) ImportExecute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Execute import.
-	result, err := models.ExecuteImport(h.DB, athleteID, user.ID, ms)
+	result, err := models.ExecuteImport(r.Context(), h.DB, athleteID, user.ID, ms)
 	if err != nil {
 		log.Printf("api: execute import for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "import failed: "+err.Error())

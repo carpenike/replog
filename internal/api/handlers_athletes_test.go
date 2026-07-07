@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -264,13 +265,13 @@ func TestUpdateAthleteGoal_LinkedAthleteUser(t *testing.T) {
 	athlete := env.createAthlete(t, "Charlie", coach.ID)
 
 	// Create a non-coach user linked to this athlete via athlete_id.
-	user, err := models.CreateUser(env.DB, "charlieuser", "Charlie", "password123",
+	user, err := models.CreateUser(context.Background(), env.DB, "charlieuser", "Charlie", "password123",
 		"charlie@example.com", false, false,
 		sql.NullInt64{Int64: athlete.ID, Valid: true})
 	if err != nil {
 		t.Fatalf("create linked user: %v", err)
 	}
-	if err := models.EnsureUserPreferences(env.DB, user.ID); err != nil {
+	if err := models.EnsureUserPreferences(context.Background(), env.DB, user.ID); err != nil {
 		t.Fatalf("ensure prefs: %v", err)
 	}
 	cookies := env.loginAs(t, user)
@@ -297,7 +298,7 @@ func TestUpdateAthleteGoal_OtherUserForbidden(t *testing.T) {
 func TestPromoteAthlete_OwnCoach(t *testing.T) {
 	env := setupTest(t)
 	coach := env.createUser(t, "coach", true, false)
-	athlete, err := models.CreateAthlete(env.DB, "Charlie", "foundational",
+	athlete, err := models.CreateAthlete(context.Background(), env.DB, "Charlie", "foundational",
 		"", "", "", "", "",
 		sql.NullInt64{Int64: coach.ID, Valid: true}, false)
 	if err != nil {

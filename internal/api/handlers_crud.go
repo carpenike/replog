@@ -46,7 +46,7 @@ func (h *Handlers) CreateAthlete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	coachID := sql.NullInt64{Int64: user.ID, Valid: true}
-	athlete, err := models.CreateAthlete(h.DB, req.Name, req.Tier, req.Notes, req.Goal, req.DateOfBirth, req.Grade, req.Gender, coachID, req.TrackBodyWeight)
+	athlete, err := models.CreateAthlete(r.Context(), h.DB, req.Name, req.Tier, req.Notes, req.Goal, req.DateOfBirth, req.Grade, req.Gender, coachID, req.TrackBodyWeight)
 	if err != nil {
 		log.Printf("api: create athlete: %v", err)
 		WriteDBError(w, err, "failed to create athlete")
@@ -77,7 +77,7 @@ func (h *Handlers) UpdateAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athlete, err := models.GetAthleteByID(h.DB, id)
+	athlete, err := models.GetAthleteByID(r.Context(), h.DB, id)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "athlete not found")
 		return
@@ -106,7 +106,7 @@ func (h *Handlers) UpdateAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, err := models.UpdateAthlete(h.DB, id, req.Name, req.Tier, req.Notes, req.Goal, req.DateOfBirth, req.Grade, req.Gender, athlete.CoachID, req.TrackBodyWeight)
+	updated, err := models.UpdateAthlete(r.Context(), h.DB, id, req.Name, req.Tier, req.Notes, req.Goal, req.DateOfBirth, req.Grade, req.Gender, athlete.CoachID, req.TrackBodyWeight)
 	if err != nil {
 		log.Printf("api: update athlete %d: %v", id, err)
 		WriteDBError(w, err, "failed to update athlete")
@@ -135,7 +135,7 @@ func (h *Handlers) DeleteAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athlete, err := models.GetAthleteByID(h.DB, id)
+	athlete, err := models.GetAthleteByID(r.Context(), h.DB, id)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "athlete not found")
 		return
@@ -151,7 +151,7 @@ func (h *Handlers) DeleteAthlete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteAthlete(h.DB, id); err != nil {
+	if err := models.DeleteAthlete(r.Context(), h.DB, id); err != nil {
 		log.Printf("api: delete athlete %d: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete athlete")
 		return
@@ -190,7 +190,7 @@ func (h *Handlers) CreateExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exercise, err := models.CreateExercise(h.DB, req.Name, req.Tier, req.FormNotes, req.DemoURL, req.RestSeconds, req.Featured)
+	exercise, err := models.CreateExercise(r.Context(), h.DB, req.Name, req.Tier, req.FormNotes, req.DemoURL, req.RestSeconds, req.Featured)
 	if err != nil {
 		log.Printf("api: create exercise: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to create exercise")
@@ -236,7 +236,7 @@ func (h *Handlers) UpdateExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exercise, err := models.UpdateExercise(h.DB, id, req.Name, req.Tier, req.FormNotes, req.DemoURL, req.RestSeconds, req.Featured)
+	exercise, err := models.UpdateExercise(r.Context(), h.DB, id, req.Name, req.Tier, req.FormNotes, req.DemoURL, req.RestSeconds, req.Featured)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "exercise not found")
 		return
@@ -273,7 +273,7 @@ func (h *Handlers) DeleteExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteExercise(h.DB, id); err != nil {
+	if err := models.DeleteExercise(r.Context(), h.DB, id); err != nil {
 		log.Printf("api: delete exercise %d: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete exercise")
 		return
@@ -304,7 +304,7 @@ func (h *Handlers) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prefs, err := models.UpsertUserPreferences(h.DB, user.ID, req.WeightUnit, req.Timezone, req.DateFormat)
+	prefs, err := models.UpsertUserPreferences(r.Context(), h.DB, user.ID, req.WeightUnit, req.Timezone, req.DateFormat)
 	if err != nil {
 		log.Printf("api: update preferences for user %d: %v", user.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update preferences")

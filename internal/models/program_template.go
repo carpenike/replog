@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -19,8 +20,8 @@ type ProgramTemplate struct {
 	Name        string
 	Description sql.NullString
 	NumWeeks    int
-	NumDays     int  // training days per week
-	IsLoop      bool // true = indefinite cycling (e.g. Yessis 1x20)
+	NumDays     int            // training days per week
+	IsLoop      bool           // true = indefinite cycling (e.g. Yessis 1x20)
 	Audience    sql.NullString // "youth" or "adult"; NULL = unclassified
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -33,7 +34,7 @@ type ProgramTemplate struct {
 // CreateProgramTemplate inserts a new program template.
 // athleteID nil = global template, non-nil = athlete-scoped.
 // audience is "youth", "adult", or "" (NULL).
-func CreateProgramTemplate(db *sql.DB, athleteID *int64, name, description string, numWeeks, numDays int, isLoop bool, audience string) (*ProgramTemplate, error) {
+func CreateProgramTemplate(ctx context.Context, db *sql.DB, athleteID *int64, name, description string, numWeeks, numDays int, isLoop bool, audience string) (*ProgramTemplate, error) {
 	var descVal sql.NullString
 	if description != "" {
 		descVal = sql.NullString{String: description, Valid: true}
@@ -50,7 +51,7 @@ func CreateProgramTemplate(db *sql.DB, athleteID *int64, name, description strin
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO program_templates (athlete_id, name, description, num_weeks, num_days, is_loop, audience) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, name, descVal, numWeeks, numDays, isLoopInt, audVal,
 	).Scan(&id)
@@ -61,13 +62,13 @@ func CreateProgramTemplate(db *sql.DB, athleteID *int64, name, description strin
 		return nil, fmt.Errorf("models: create program template: %w", err)
 	}
 
-	return GetProgramTemplateByID(db, id)
+	return GetProgramTemplateByID(ctx, db, id)
 }
 
 // GetProgramTemplateByID retrieves a program template by primary key.
-func GetProgramTemplateByID(db *sql.DB, id int64) (*ProgramTemplate, error) {
+func GetProgramTemplateByID(ctx context.Context, db *sql.DB, id int64) (*ProgramTemplate, error) {
 	t := &ProgramTemplate{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
@@ -86,8 +87,8 @@ func GetProgramTemplateByID(db *sql.DB, id int64) (*ProgramTemplate, error) {
 }
 
 // ListProgramTemplates returns all program templates ordered by name.
-func ListProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
-	rows, err := db.Query(
+func ListProgramTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemplate, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
@@ -117,8 +118,8 @@ func ListProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
 // ListGlobalProgramTemplates returns only global (shared) program templates
 // where athlete_id IS NULL, ordered by name. Athlete-scoped templates
 // (e.g. AI-generated) are excluded — they are managed from the athlete page.
-func ListGlobalProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
-	rows, err := db.Query(
+func ListGlobalProgramTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemplate, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
@@ -149,9 +150,9 @@ func ListGlobalProgramTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
 // CountAthleteScopedTemplates returns the number of program templates
 // scoped to a single athlete (athlete_id matches). Counts all athlete-scoped
 // templates regardless of methodology.
-func CountAthleteScopedTemplates(db *sql.DB, athleteID int64) (int, error) {
+func CountAthleteScopedTemplates(ctx context.Context, db *sql.DB, athleteID int64) (int, error) {
 	var n int
-	if err := db.QueryRow(
+	if err := db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM program_templates WHERE athlete_id = ?`, athleteID,
 	).Scan(&n); err != nil {
 		return 0, fmt.Errorf("models: count athlete-scoped templates %d: %w", athleteID, err)
@@ -163,9 +164,9 @@ func CountAthleteScopedTemplates(db *sql.DB, athleteID int64) (int, error) {
 // template with the exact given name already exists for athleteID. Used by
 // the generate-page program-name suggestion to keep the date-based default
 // unique against the (athlete_id, name) partial unique index.
-func AthleteTemplateNameExists(db *sql.DB, athleteID int64, name string) (bool, error) {
+func AthleteTemplateNameExists(ctx context.Context, db *sql.DB, athleteID int64, name string) (bool, error) {
 	var n int
-	if err := db.QueryRow(
+	if err := db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM program_templates WHERE athlete_id = ? AND name = ?`,
 		athleteID, name,
 	).Scan(&n); err != nil {
@@ -178,8 +179,8 @@ func AthleteTemplateNameExists(db *sql.DB, athleteID int64, name string) (bool, 
 // (athlete_id IS NOT NULL) with the athlete name joined, ordered by athlete
 // name then program name. Used on the programs list page to show a separate
 // section for athlete-specific programs.
-func ListAthleteScopedTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
-	rows, err := db.Query(
+func ListAthleteScopedTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemplate, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count, a.name AS athlete_name
 		 FROM program_templates pt
@@ -212,8 +213,8 @@ func ListAthleteScopedTemplates(db *sql.DB) ([]*ProgramTemplate, error) {
 // to the given athlete. Athlete-specific programs sort first, then global,
 // alphabetically within each group. This is the appropriate listing for
 // athlete-facing views and program assignment forms.
-func ListProgramTemplatesForAthlete(db *sql.DB, athleteID int64) ([]*ProgramTemplate, error) {
-	rows, err := db.Query(
+func ListProgramTemplatesForAthlete(ctx context.Context, db *sql.DB, athleteID int64) ([]*ProgramTemplate, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
@@ -245,8 +246,8 @@ func ListProgramTemplatesForAthlete(db *sql.DB, athleteID int64) ([]*ProgramTemp
 // ListReferenceTemplatesByAudience returns global templates (athlete_id IS NULL)
 // filtered by audience. Pass "youth" or "adult" to get matching programs.
 // Returns templates ordered by name.
-func ListReferenceTemplatesByAudience(db *sql.DB, audience string) ([]*ProgramTemplate, error) {
-	rows, err := db.Query(
+func ListReferenceTemplatesByAudience(ctx context.Context, db *sql.DB, audience string) ([]*ProgramTemplate, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
@@ -278,7 +279,7 @@ func ListReferenceTemplatesByAudience(db *sql.DB, audience string) ([]*ProgramTe
 // ListProgramTemplatesByIDs returns program templates matching the given IDs.
 // Used when the coach explicitly selects which reference programs to provide
 // to the LLM. Returns templates ordered by name.
-func ListProgramTemplatesByIDs(db *sql.DB, ids []int64) ([]*ProgramTemplate, error) {
+func ListProgramTemplatesByIDs(ctx context.Context, db *sql.DB, ids []int64) ([]*ProgramTemplate, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -299,7 +300,7 @@ func ListProgramTemplatesByIDs(db *sql.DB, ids []int64) ([]*ProgramTemplate, err
 	           GROUP BY pt.id
 	           ORDER BY pt.name COLLATE NOCASE`
 
-	rows, err := db.Query(query, args...)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("models: list program templates by IDs: %w", err)
 	}
@@ -320,7 +321,7 @@ func ListProgramTemplatesByIDs(db *sql.DB, ids []int64) ([]*ProgramTemplate, err
 }
 
 // UpdateProgramTemplate updates a program template's metadata.
-func UpdateProgramTemplate(db *sql.DB, id int64, name, description string, numWeeks, numDays int, isLoop bool) (*ProgramTemplate, error) {
+func UpdateProgramTemplate(ctx context.Context, db *sql.DB, id int64, name, description string, numWeeks, numDays int, isLoop bool) (*ProgramTemplate, error) {
 	var descVal sql.NullString
 	if description != "" {
 		descVal = sql.NullString{String: description, Valid: true}
@@ -331,7 +332,7 @@ func UpdateProgramTemplate(db *sql.DB, id int64, name, description string, numWe
 		isLoopInt = 1
 	}
 
-	_, err := db.Exec(
+	_, err := db.ExecContext(ctx,
 		`UPDATE program_templates SET name = ?, description = ?, num_weeks = ?, num_days = ?, is_loop = ? WHERE id = ?`,
 		name, descVal, numWeeks, numDays, isLoopInt, id,
 	)
@@ -342,14 +343,14 @@ func UpdateProgramTemplate(db *sql.DB, id int64, name, description string, numWe
 		return nil, fmt.Errorf("models: update program template %d: %w", id, err)
 	}
 
-	return GetProgramTemplateByID(db, id)
+	return GetProgramTemplateByID(ctx, db, id)
 }
 
 // DeleteProgramTemplate removes a program template. Fails if athletes are assigned to it.
-func DeleteProgramTemplate(db *sql.DB, id int64) error {
+func DeleteProgramTemplate(ctx context.Context, db *sql.DB, id int64) error {
 	// Check for active athlete assignments.
 	var count int
-	err := db.QueryRow(`SELECT COUNT(*) FROM athlete_programs WHERE template_id = ? AND active = 1`, id).Scan(&count)
+	err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM athlete_programs WHERE template_id = ? AND active = 1`, id).Scan(&count)
 	if err != nil {
 		return fmt.Errorf("models: check program template usage: %w", err)
 	}
@@ -357,7 +358,7 @@ func DeleteProgramTemplate(db *sql.DB, id int64) error {
 		return ErrTemplateInUse
 	}
 
-	result, err := db.Exec(`DELETE FROM program_templates WHERE id = ?`, id)
+	result, err := db.ExecContext(ctx, `DELETE FROM program_templates WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete program template %d: %w", id, err)
 	}

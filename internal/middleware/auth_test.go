@@ -73,7 +73,7 @@ func TestRequireAuth_SetsUserInContext(t *testing.T) {
 	db := testDB(t)
 	sm := testSessionManager()
 
-	user, err := models.CreateUser(db, "testcoach", "", "password123", "test@example.com", true, false, sql.NullInt64{})
+	user, err := models.CreateUser(context.Background(), db, "testcoach", "", "password123", "test@example.com", true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestRequireAuth_InvalidSessionReturns401(t *testing.T) {
 	sm := testSessionManager()
 
 	// Create and then delete the user, so the session points to a nonexistent user.
-	user, err := models.CreateUser(db, "ghostuser", "", "password123", "", true, false, sql.NullInt64{})
+	user, err := models.CreateUser(context.Background(), db, "ghostuser", "", "password123", "", true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestRequireAuth_InvalidSessionReturns401(t *testing.T) {
 	setupHandler.ServeHTTP(setupRR, setupReq)
 
 	// Delete the user so the session lookup fails.
-	if err := models.DeleteUser(db, user.ID); err != nil {
+	if err := models.DeleteUser(context.Background(), db, user.ID); err != nil {
 		t.Fatalf("delete user: %v", err)
 	}
 
@@ -177,28 +177,28 @@ func TestCanAccessAthlete(t *testing.T) {
 	db := testDB(t)
 
 	// Create a coach user.
-	coach, err := models.CreateUser(db, "coach1", "", "password123", "", true, false, sql.NullInt64{})
+	coach, err := models.CreateUser(context.Background(), db, "coach1", "", "password123", "", true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create coach: %v", err)
 	}
 	// Create an admin user.
-	admin, err := models.CreateUser(db, "admin1", "", "password123", "", false, true, sql.NullInt64{})
+	admin, err := models.CreateUser(context.Background(), db, "admin1", "", "password123", "", false, true, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create admin: %v", err)
 	}
 
 	// Create athletes: one owned by coach, one unowned.
-	ownedAthlete, err := models.CreateAthlete(db, "OwnedKid", "", "", "", "", "", "", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
+	ownedAthlete, err := models.CreateAthlete(context.Background(), db, "OwnedKid", "", "", "", "", "", "", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
 	if err != nil {
 		t.Fatalf("create owned athlete: %v", err)
 	}
-	unownedAthlete, err := models.CreateAthlete(db, "UnownedKid", "", "", "", "", "", "", sql.NullInt64{}, true)
+	unownedAthlete, err := models.CreateAthlete(context.Background(), db, "UnownedKid", "", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create unowned athlete: %v", err)
 	}
 
 	// Create a non-coach user linked to ownedAthlete.
-	kid, err := models.CreateUser(db, "kid1", "", "password123", "", false, false, sql.NullInt64{Int64: ownedAthlete.ID, Valid: true})
+	kid, err := models.CreateUser(context.Background(), db, "kid1", "", "password123", "", false, false, sql.NullInt64{Int64: ownedAthlete.ID, Valid: true})
 	if err != nil {
 		t.Fatalf("create kid: %v", err)
 	}
@@ -249,7 +249,7 @@ func TestCanAccessAthlete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := CanAccessAthlete(db, tt.user, tt.targetID)
+			got := CanAccessAthlete(context.Background(), db, tt.user, tt.targetID)
 			if got != tt.want {
 				t.Errorf("CanAccessAthlete() = %v, want %v", got, tt.want)
 			}

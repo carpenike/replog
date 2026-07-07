@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -22,13 +23,13 @@ type AuditLog struct {
 // WriteAuditLog appends an audit record. Callers treat this as best-effort:
 // a failure to audit must not fail the underlying request. details may be
 // empty (stored as NULL).
-func WriteAuditLog(db *sql.DB, realUserID int64, targetUserID sql.NullInt64, action, details string) error {
+func WriteAuditLog(ctx context.Context, db *sql.DB, realUserID int64, targetUserID sql.NullInt64, action, details string) error {
 	var detailsVal sql.NullString
 	if details != "" {
 		detailsVal = sql.NullString{String: details, Valid: true}
 	}
 
-	_, err := db.Exec(
+	_, err := db.ExecContext(ctx,
 		`INSERT INTO audit_log (real_user_id, target_user_id, action, details)
 		 VALUES (?, ?, ?, ?)`,
 		realUserID, targetUserID, action, detailsVal,
@@ -41,12 +42,12 @@ func WriteAuditLog(db *sql.DB, realUserID int64, targetUserID sql.NullInt64, act
 
 // ListAuditLog returns the most recent audit records, newest first, capped at
 // limit rows (limit <= 0 falls back to 100).
-func ListAuditLog(db *sql.DB, limit int) ([]AuditLog, error) {
+func ListAuditLog(ctx context.Context, db *sql.DB, limit int) ([]AuditLog, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, real_user_id, target_user_id, action, details, created_at
 		 FROM audit_log ORDER BY created_at DESC, id DESC LIMIT ?`,
 		limit,

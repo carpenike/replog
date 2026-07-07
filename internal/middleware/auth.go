@@ -48,7 +48,7 @@ func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Han
 			return
 		}
 
-		user, err := models.GetUserByID(db, userID)
+		user, err := models.GetUserByID(r.Context(), db, userID)
 		if err != nil {
 			log.Printf("middleware: failed to load user %d: %v", userID, err)
 			_ = sm.Destroy(r.Context())
@@ -59,7 +59,7 @@ func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Han
 		ctx := context.WithValue(r.Context(), UserContextKey, user)
 
 		// Load user preferences (defaults returned if no row exists).
-		prefs, err := models.GetUserPreferences(db, user.ID)
+		prefs, err := models.GetUserPreferences(r.Context(), db, user.ID)
 		if err != nil {
 			log.Printf("middleware: failed to load preferences for user %d: %v", userID, err)
 			// Non-fatal — use defaults.
@@ -102,7 +102,7 @@ func PrefsFromContext(ctx context.Context) *models.UserPreferences {
 // the given athlete. Admins can access any athlete; coaches can access athletes
 // assigned to them; non-coaches can only access their own linked athlete.
 // Loads the athlete from the database to verify coach ownership.
-func CanAccessAthlete(db *sql.DB, user *models.User, athleteID int64) bool {
+func CanAccessAthlete(ctx context.Context, db *sql.DB, user *models.User, athleteID int64) bool {
 	if user.IsAdmin {
 		return true
 	}
@@ -111,7 +111,7 @@ func CanAccessAthlete(db *sql.DB, user *models.User, athleteID int64) bool {
 		return true
 	}
 	if user.IsCoach {
-		athlete, err := models.GetAthleteByID(db, athleteID)
+		athlete, err := models.GetAthleteByID(ctx, db, athleteID)
 		if err != nil {
 			return false
 		}

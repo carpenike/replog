@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"testing"
@@ -11,7 +12,7 @@ func TestCreateUser(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("basic create", func(t *testing.T) {
-		u, err := CreateUser(db, "admin", "", "password123", "admin@test.com", true, false, sql.NullInt64{})
+		u, err := CreateUser(context.Background(), db, "admin", "", "password123", "admin@test.com", true, false, sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create user: %v", err)
 		}
@@ -27,30 +28,30 @@ func TestCreateUser(t *testing.T) {
 	})
 
 	t.Run("duplicate username", func(t *testing.T) {
-		_, err := CreateUser(db, "admin", "", "other", "", false, false, sql.NullInt64{})
+		_, err := CreateUser(context.Background(), db, "admin", "", "other", "", false, false, sql.NullInt64{})
 		if err != ErrDuplicateUsername {
 			t.Errorf("err = %v, want ErrDuplicateUsername", err)
 		}
 	})
 
 	t.Run("case insensitive duplicate", func(t *testing.T) {
-		_, err := CreateUser(db, "ADMIN", "", "other", "", false, false, sql.NullInt64{})
+		_, err := CreateUser(context.Background(), db, "ADMIN", "", "other", "", false, false, sql.NullInt64{})
 		if err != ErrDuplicateUsername {
 			t.Errorf("err = %v, want ErrDuplicateUsername", err)
 		}
 	})
 
 	t.Run("duplicate athlete link on create", func(t *testing.T) {
-		a, _ := CreateAthlete(db, "Solo", "", "", "", "", "", "", sql.NullInt64{}, true)
-		CreateUser(db, "first_link", "", "password123", "", false, false, sql.NullInt64{Int64: a.ID, Valid: true})
-		_, err := CreateUser(db, "second_link", "", "password123", "", false, false, sql.NullInt64{Int64: a.ID, Valid: true})
+		a, _ := CreateAthlete(context.Background(), db, "Solo", "", "", "", "", "", "", sql.NullInt64{}, true)
+		CreateUser(context.Background(), db, "first_link", "", "password123", "", false, false, sql.NullInt64{Int64: a.ID, Valid: true})
+		_, err := CreateUser(context.Background(), db, "second_link", "", "password123", "", false, false, sql.NullInt64{Int64: a.ID, Valid: true})
 		if err != ErrAthleteAlreadyLinked {
 			t.Errorf("err = %v, want ErrAthleteAlreadyLinked", err)
 		}
 	})
 
 	t.Run("passwordless create", func(t *testing.T) {
-		u, err := CreateUser(db, "kiduser", "", "", "", false, false, sql.NullInt64{})
+		u, err := CreateUser(context.Background(), db, "kiduser", "", "", "", false, false, sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("create passwordless user: %v", err)
 		}
@@ -66,20 +67,20 @@ func TestCreateUser(t *testing.T) {
 func TestGetUserByEmail(t *testing.T) {
 	db := testDB(t)
 
-	if _, err := CreateUser(db, "coach1", "", "password123", "Coach@Test.Com", true, false, sql.NullInt64{}); err != nil {
+	if _, err := CreateUser(context.Background(), db, "coach1", "", "password123", "Coach@Test.Com", true, false, sql.NullInt64{}); err != nil {
 		t.Fatalf("create coach1: %v", err)
 	}
-	if _, err := CreateUser(db, "coach2", "", "password123", "other@test.com", true, false, sql.NullInt64{}); err != nil {
+	if _, err := CreateUser(context.Background(), db, "coach2", "", "password123", "other@test.com", true, false, sql.NullInt64{}); err != nil {
 		t.Fatalf("create coach2: %v", err)
 	}
 	// Kid with no email — UNIQUE permits multiple NULLs, simulates the
 	// realistic case where most athletes have no email.
-	if _, err := CreateUser(db, "kid1", "", "", "", false, false, sql.NullInt64{}); err != nil {
+	if _, err := CreateUser(context.Background(), db, "kid1", "", "", "", false, false, sql.NullInt64{}); err != nil {
 		t.Fatalf("create kid1: %v", err)
 	}
 
 	t.Run("exact match", func(t *testing.T) {
-		u, err := GetUserByEmail(db, "Coach@Test.Com")
+		u, err := GetUserByEmail(context.Background(), db, "Coach@Test.Com")
 		if err != nil {
 			t.Fatalf("get by email: %v", err)
 		}
@@ -93,7 +94,7 @@ func TestGetUserByEmail(t *testing.T) {
 		// honor the collation. The bearer middleware also lowercases at
 		// the request boundary as belt-and-suspenders, but the column
 		// behavior is the load-bearing guarantee.
-		u, err := GetUserByEmail(db, "coach@test.com")
+		u, err := GetUserByEmail(context.Background(), db, "coach@test.com")
 		if err != nil {
 			t.Fatalf("get by email lowered: %v", err)
 		}
@@ -103,7 +104,7 @@ func TestGetUserByEmail(t *testing.T) {
 	})
 
 	t.Run("unknown email", func(t *testing.T) {
-		_, err := GetUserByEmail(db, "nobody@test.com")
+		_, err := GetUserByEmail(context.Background(), db, "nobody@test.com")
 		if !errors.Is(err, ErrNotFound) {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -115,7 +116,7 @@ func TestGetUserByEmail(t *testing.T) {
 		// will not match NULL rows either, so this is doubly safe. The
 		// bearer middleware still rejects empty/absent claims at the
 		// request boundary (401 missing-email-claim) before getting here.
-		_, err := GetUserByEmail(db, "")
+		_, err := GetUserByEmail(context.Background(), db, "")
 		if !errors.Is(err, ErrNotFound) {
 			t.Errorf("err = %v, want ErrNotFound for empty email", err)
 		}
@@ -123,15 +124,15 @@ func TestGetUserByEmail(t *testing.T) {
 
 	t.Run("returns mcp_enabled correctly", func(t *testing.T) {
 		// Default after the 0005 migration is 0 (default-deny).
-		u, _ := GetUserByEmail(db, "coach@test.com")
+		u, _ := GetUserByEmail(context.Background(), db, "coach@test.com")
 		if u.MCPEnabled {
 			t.Errorf("default mcp_enabled should be false, got true")
 		}
 		// Flip it and re-read.
-		if err := SetUserMCPEnabled(db, u.ID, true); err != nil {
+		if err := SetUserMCPEnabled(context.Background(), db, u.ID, true); err != nil {
 			t.Fatalf("set mcp_enabled: %v", err)
 		}
-		u, _ = GetUserByEmail(db, "coach@test.com")
+		u, _ = GetUserByEmail(context.Background(), db, "coach@test.com")
 		if !u.MCPEnabled {
 			t.Errorf("mcp_enabled should be true after SetUserMCPEnabled")
 		}
@@ -140,7 +141,7 @@ func TestGetUserByEmail(t *testing.T) {
 
 func TestSetUserMCPEnabled_NotFound(t *testing.T) {
 	db := testDB(t)
-	err := SetUserMCPEnabled(db, 999999, true)
+	err := SetUserMCPEnabled(context.Background(), db, 999999, true)
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
@@ -149,10 +150,10 @@ func TestSetUserMCPEnabled_NotFound(t *testing.T) {
 func TestAuthenticate(t *testing.T) {
 	db := testDB(t)
 
-	CreateUser(db, "testuser", "", "correct-password", "", false, false, sql.NullInt64{})
+	CreateUser(context.Background(), db, "testuser", "", "correct-password", "", false, false, sql.NullInt64{})
 
 	t.Run("valid credentials", func(t *testing.T) {
-		u, err := Authenticate(db, "testuser", "correct-password")
+		u, err := Authenticate(context.Background(), db, "testuser", "correct-password")
 		if err != nil {
 			t.Fatalf("authenticate: %v", err)
 		}
@@ -162,22 +163,22 @@ func TestAuthenticate(t *testing.T) {
 	})
 
 	t.Run("wrong password", func(t *testing.T) {
-		_, err := Authenticate(db, "testuser", "wrong-password")
+		_, err := Authenticate(context.Background(), db, "testuser", "wrong-password")
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
 	})
 
 	t.Run("non-existent user", func(t *testing.T) {
-		_, err := Authenticate(db, "nobody", "anything")
+		_, err := Authenticate(context.Background(), db, "nobody", "anything")
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
 	})
 
 	t.Run("passwordless user", func(t *testing.T) {
-		CreateUser(db, "kidonly", "", "", "", false, false, sql.NullInt64{})
-		_, err := Authenticate(db, "kidonly", "anything")
+		CreateUser(context.Background(), db, "kidonly", "", "", "", false, false, sql.NullInt64{})
+		_, err := Authenticate(context.Background(), db, "kidonly", "anything")
 		if err != ErrNoPassword {
 			t.Errorf("err = %v, want ErrNoPassword", err)
 		}
@@ -198,11 +199,11 @@ func TestAuthenticate(t *testing.T) {
 		var unknown, wrong time.Duration
 		for i := 0; i < samples; i++ {
 			t0 := time.Now()
-			_, _ = Authenticate(db, "no-such-user", "anything")
+			_, _ = Authenticate(context.Background(), db, "no-such-user", "anything")
 			unknown += time.Since(t0)
 
 			t0 = time.Now()
-			_, _ = Authenticate(db, "testuser", "wrong-password")
+			_, _ = Authenticate(context.Background(), db, "testuser", "wrong-password")
 			wrong += time.Since(t0)
 		}
 		unknown /= samples
@@ -223,23 +224,23 @@ func TestAuthenticate(t *testing.T) {
 
 func TestAuthenticate_LocksAfterThreshold(t *testing.T) {
 	db := testDB(t)
-	CreateUser(db, "victim", "", "correct", "", false, false, sql.NullInt64{})
+	CreateUser(context.Background(), db, "victim", "", "correct", "", false, false, sql.NullInt64{})
 
 	// LockoutThreshold-1 wrong attempts should NOT lock.
 	for i := 0; i < LockoutThreshold-1; i++ {
-		_, err := Authenticate(db, "victim", "nope")
+		_, err := Authenticate(context.Background(), db, "victim", "nope")
 		if err != ErrNotFound {
 			t.Fatalf("attempt %d: err = %v, want ErrNotFound", i+1, err)
 		}
 	}
 	// The right password still works at threshold-1.
-	if _, err := Authenticate(db, "victim", "correct"); err != nil {
+	if _, err := Authenticate(context.Background(), db, "victim", "correct"); err != nil {
 		t.Fatalf("right password at threshold-1: err = %v", err)
 	}
 	// Successful login resets the counter, so we should be able to fail
 	// LockoutThreshold-1 more times without locking.
 	for i := 0; i < LockoutThreshold-1; i++ {
-		if _, err := Authenticate(db, "victim", "nope"); err != ErrNotFound {
+		if _, err := Authenticate(context.Background(), db, "victim", "nope"); err != ErrNotFound {
 			t.Fatalf("post-reset attempt %d: err = %v, want ErrNotFound", i+1, err)
 		}
 	}
@@ -247,11 +248,11 @@ func TestAuthenticate_LocksAfterThreshold(t *testing.T) {
 	// The Nth (== threshold) wrong attempt trips the lock. The error from
 	// that attempt is still ErrNotFound (the password WAS wrong), but the
 	// next attempt — even with the right password — must return ErrLocked.
-	if _, err := Authenticate(db, "victim", "nope"); err != ErrNotFound {
+	if _, err := Authenticate(context.Background(), db, "victim", "nope"); err != ErrNotFound {
 		t.Fatalf("threshold attempt: err = %v, want ErrNotFound", err)
 	}
 
-	_, err := Authenticate(db, "victim", "correct")
+	_, err := Authenticate(context.Background(), db, "victim", "correct")
 	if !errors.Is(err, ErrLocked) {
 		t.Fatalf("post-threshold with correct password: err = %v, want ErrLocked", err)
 	}
@@ -269,11 +270,11 @@ func TestAuthenticate_LocksAfterThreshold(t *testing.T) {
 
 func TestAuthenticate_LockoutWindowSlides(t *testing.T) {
 	db := testDB(t)
-	CreateUser(db, "victim", "", "correct", "", false, false, sql.NullInt64{})
+	CreateUser(context.Background(), db, "victim", "", "correct", "", false, false, sql.NullInt64{})
 
 	// Trip the lock.
 	for i := 0; i < LockoutThreshold; i++ {
-		_, _ = Authenticate(db, "victim", "nope")
+		_, _ = Authenticate(context.Background(), db, "victim", "nope")
 	}
 
 	// Read locked_until twice with a wrong-password attempt in between
@@ -284,7 +285,7 @@ func TestAuthenticate_LockoutWindowSlides(t *testing.T) {
 		t.Fatalf("read first locked_until: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond) // ensure clock moves
-	_, _ = Authenticate(db, "victim", "still wrong")
+	_, _ = Authenticate(context.Background(), db, "victim", "still wrong")
 	if err := db.QueryRow(`SELECT locked_until FROM users WHERE username = 'victim'`).Scan(&secondUntil); err != nil {
 		t.Fatalf("read second locked_until: %v", err)
 	}
@@ -304,7 +305,7 @@ func TestAuthenticate_LockoutDoesNotApplyToUnknownUser(t *testing.T) {
 	// an attacker who knows real usernames can DoS them by submitting
 	// usernames that don't exist (cheap) and still tripping a lock.
 	for i := 0; i < LockoutThreshold*2; i++ {
-		_, err := Authenticate(db, "ghost", "anything")
+		_, err := Authenticate(context.Background(), db, "ghost", "anything")
 		if err != ErrNotFound {
 			t.Fatalf("attempt %d: err = %v, want ErrNotFound", i+1, err)
 		}
@@ -319,7 +320,7 @@ func TestAuthenticate_LockoutDoesNotApplyToUnknownUser(t *testing.T) {
 
 func TestAuthenticate_PassthroughWhenLockExpired(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "victim", "", "correct", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(context.Background(), db, "victim", "", "correct", "", false, false, sql.NullInt64{})
 
 	// Manually expire a lockout to simulate "15 minutes have passed".
 	past := time.Now().Add(-1 * time.Second)
@@ -331,7 +332,7 @@ func TestAuthenticate_PassthroughWhenLockExpired(t *testing.T) {
 	}
 
 	// A correct-password attempt must succeed and reset state.
-	if _, err := Authenticate(db, "victim", "correct"); err != nil {
+	if _, err := Authenticate(context.Background(), db, "victim", "correct"); err != nil {
 		t.Fatalf("post-expiry login: err = %v", err)
 	}
 
@@ -346,24 +347,24 @@ func TestAuthenticate_PassthroughWhenLockExpired(t *testing.T) {
 
 func TestUpdatePassword_ClearsLockout(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "victim", "", "old-password", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(context.Background(), db, "victim", "", "old-password", "", false, false, sql.NullInt64{})
 
 	// Trip the lock.
 	for i := 0; i < LockoutThreshold; i++ {
-		_, _ = Authenticate(db, "victim", "nope")
+		_, _ = Authenticate(context.Background(), db, "victim", "nope")
 	}
 	// Confirm it's locked.
-	if _, err := Authenticate(db, "victim", "old-password"); !errors.Is(err, ErrLocked) {
+	if _, err := Authenticate(context.Background(), db, "victim", "old-password"); !errors.Is(err, ErrLocked) {
 		t.Fatalf("pre-reset: err = %v, want ErrLocked", err)
 	}
 
 	// Admin resets the password — that must also clear the lockout.
-	if err := UpdatePassword(db, user.ID, "new-password"); err != nil {
+	if err := UpdatePassword(context.Background(), db, user.ID, "new-password"); err != nil {
 		t.Fatalf("update password: %v", err)
 	}
 
 	// New password works immediately — no lockout in the way.
-	if _, err := Authenticate(db, "victim", "new-password"); err != nil {
+	if _, err := Authenticate(context.Background(), db, "victim", "new-password"); err != nil {
 		t.Errorf("post-reset login: err = %v, want nil", err)
 	}
 }
@@ -373,8 +374,8 @@ func TestLockoutError_RetryAfter(t *testing.T) {
 		remaining time.Duration
 		want      int
 	}{
-		{0, 1},                   // never < 1
-		{-5 * time.Second, 1},    // expired but still surfaced as 1
+		{0, 1},                // never < 1
+		{-5 * time.Second, 1}, // expired but still surfaced as 1
 		{500 * time.Millisecond, 1},
 		{1 * time.Second, 1},
 		{1500 * time.Millisecond, 2}, // round up
@@ -393,14 +394,14 @@ func TestHasPassword(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("user with password", func(t *testing.T) {
-		u, _ := CreateUser(db, "withpw", "", "secret123", "", false, false, sql.NullInt64{})
+		u, _ := CreateUser(context.Background(), db, "withpw", "", "secret123", "", false, false, sql.NullInt64{})
 		if !u.HasPassword() {
 			t.Error("HasPassword() should be true for user with password")
 		}
 	})
 
 	t.Run("user without password", func(t *testing.T) {
-		u, _ := CreateUser(db, "nopw", "", "", "", false, false, sql.NullInt64{})
+		u, _ := CreateUser(context.Background(), db, "nopw", "", "", "", false, false, sql.NullInt64{})
 		if u.HasPassword() {
 			t.Error("HasPassword() should be false for passwordless user")
 		}
@@ -410,7 +411,7 @@ func TestHasPassword(t *testing.T) {
 func TestCountUsers(t *testing.T) {
 	db := testDB(t)
 
-	count, err := CountUsers(db)
+	count, err := CountUsers(context.Background(), db)
 	if err != nil {
 		t.Fatalf("count users: %v", err)
 	}
@@ -418,10 +419,10 @@ func TestCountUsers(t *testing.T) {
 		t.Errorf("count = %d, want 0", count)
 	}
 
-	CreateUser(db, "u1", "", "pass", "", false, false, sql.NullInt64{})
-	CreateUser(db, "u2", "", "pass", "", true, false, sql.NullInt64{})
+	CreateUser(context.Background(), db, "u1", "", "pass", "", false, false, sql.NullInt64{})
+	CreateUser(context.Background(), db, "u2", "", "pass", "", true, false, sql.NullInt64{})
 
-	count, err = CountUsers(db)
+	count, err = CountUsers(context.Background(), db)
 	if err != nil {
 		t.Fatalf("count users: %v", err)
 	}
@@ -433,20 +434,20 @@ func TestCountUsers(t *testing.T) {
 func TestUpdatePassword(t *testing.T) {
 	db := testDB(t)
 
-	u, _ := CreateUser(db, "pwuser", "", "old-password", "", false, false, sql.NullInt64{})
+	u, _ := CreateUser(context.Background(), db, "pwuser", "", "old-password", "", false, false, sql.NullInt64{})
 
-	if err := UpdatePassword(db, u.ID, "new-password"); err != nil {
+	if err := UpdatePassword(context.Background(), db, u.ID, "new-password"); err != nil {
 		t.Fatalf("update password: %v", err)
 	}
 
 	// Old password should fail.
-	_, err := Authenticate(db, "pwuser", "old-password")
+	_, err := Authenticate(context.Background(), db, "pwuser", "old-password")
 	if err != ErrNotFound {
 		t.Errorf("old password should fail, got %v", err)
 	}
 
 	// New password should work.
-	_, err = Authenticate(db, "pwuser", "new-password")
+	_, err = Authenticate(context.Background(), db, "pwuser", "new-password")
 	if err != nil {
 		t.Errorf("new password should work, got %v", err)
 	}
@@ -455,13 +456,13 @@ func TestUpdatePassword(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	db := testDB(t)
 
-	u, _ := CreateUser(db, "delme", "", "pass", "", false, false, sql.NullInt64{})
+	u, _ := CreateUser(context.Background(), db, "delme", "", "pass", "", false, false, sql.NullInt64{})
 
-	if err := DeleteUser(db, u.ID); err != nil {
+	if err := DeleteUser(context.Background(), db, u.ID); err != nil {
 		t.Fatalf("delete user: %v", err)
 	}
 
-	_, err := GetUserByID(db, u.ID)
+	_, err := GetUserByID(context.Background(), db, u.ID)
 	if err != ErrNotFound {
 		t.Errorf("expected ErrNotFound after delete, got %v", err)
 	}
@@ -470,11 +471,11 @@ func TestDeleteUser(t *testing.T) {
 func TestListUsers(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Linked Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	CreateUser(db, "alice", "", "pass", "alice@test.com", true, false, sql.NullInt64{})
-	CreateUser(db, "bob", "", "pass", "", false, false, sql.NullInt64{Int64: a.ID, Valid: true})
+	a, _ := CreateAthlete(context.Background(), db, "Linked Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	CreateUser(context.Background(), db, "alice", "", "pass", "alice@test.com", true, false, sql.NullInt64{})
+	CreateUser(context.Background(), db, "bob", "", "pass", "", false, false, sql.NullInt64{Int64: a.ID, Valid: true})
 
-	users, err := ListUsers(db)
+	users, err := ListUsers(context.Background(), db)
 	if err != nil {
 		t.Fatalf("list users: %v", err)
 	}
@@ -497,10 +498,10 @@ func TestListUsers(t *testing.T) {
 func TestUpdateUser(t *testing.T) {
 	db := testDB(t)
 
-	u, _ := CreateUser(db, "original", "", "pass", "orig@test.com", false, false, sql.NullInt64{})
+	u, _ := CreateUser(context.Background(), db, "original", "", "pass", "orig@test.com", false, false, sql.NullInt64{})
 
 	t.Run("basic update", func(t *testing.T) {
-		updated, err := UpdateUser(db, u.ID, "renamed", "", "new@test.com", sql.NullInt64{}, true, false)
+		updated, err := UpdateUser(context.Background(), db, u.ID, "renamed", "", "new@test.com", sql.NullInt64{}, true, false)
 		if err != nil {
 			t.Fatalf("update user: %v", err)
 		}
@@ -513,16 +514,16 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("duplicate username", func(t *testing.T) {
-		CreateUser(db, "taken", "", "pass", "", false, false, sql.NullInt64{})
-		_, err := UpdateUser(db, u.ID, "taken", "", "", sql.NullInt64{}, false, false)
+		CreateUser(context.Background(), db, "taken", "", "pass", "", false, false, sql.NullInt64{})
+		_, err := UpdateUser(context.Background(), db, u.ID, "taken", "", "", sql.NullInt64{}, false, false)
 		if err != ErrDuplicateUsername {
 			t.Errorf("err = %v, want ErrDuplicateUsername", err)
 		}
 	})
 
 	t.Run("link athlete", func(t *testing.T) {
-		a, _ := CreateAthlete(db, "Kid", "", "", "", "", "", "", sql.NullInt64{}, true)
-		updated, err := UpdateUser(db, u.ID, "renamed", "", "", sql.NullInt64{Int64: a.ID, Valid: true}, false, false)
+		a, _ := CreateAthlete(context.Background(), db, "Kid", "", "", "", "", "", "", sql.NullInt64{}, true)
+		updated, err := UpdateUser(context.Background(), db, u.ID, "renamed", "", "", sql.NullInt64{Int64: a.ID, Valid: true}, false, false)
 		if err != nil {
 			t.Fatalf("update user: %v", err)
 		}
@@ -534,9 +535,9 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("duplicate athlete link", func(t *testing.T) {
 		// "renamed" user is linked to "Kid" from the previous subtest.
 		// Try linking a new user to the same athlete.
-		a, _ := GetUserByUsername(db, "renamed")
-		other, _ := CreateUser(db, "other", "", "pass", "", false, false, sql.NullInt64{})
-		_, err := UpdateUser(db, other.ID, "other", "", "", sql.NullInt64{Int64: a.AthleteID.Int64, Valid: true}, false, false)
+		a, _ := GetUserByUsername(context.Background(), db, "renamed")
+		other, _ := CreateUser(context.Background(), db, "other", "", "pass", "", false, false, sql.NullInt64{})
+		_, err := UpdateUser(context.Background(), db, other.ID, "other", "", "", sql.NullInt64{Int64: a.AthleteID.Int64, Valid: true}, false, false)
 		if err != ErrAthleteAlreadyLinked {
 			t.Errorf("err = %v, want ErrAthleteAlreadyLinked", err)
 		}
@@ -546,7 +547,7 @@ func TestUpdateUser(t *testing.T) {
 func TestUpdateAvatarPath(t *testing.T) {
 	db := testDB(t)
 
-	u, _ := CreateUser(db, "avatartest", "", "pass", "", false, false, sql.NullInt64{})
+	u, _ := CreateUser(context.Background(), db, "avatartest", "", "pass", "", false, false, sql.NullInt64{})
 
 	// Initially no avatar.
 	if u.HasAvatar() {
@@ -557,12 +558,12 @@ func TestUpdateAvatarPath(t *testing.T) {
 	}
 
 	t.Run("set avatar", func(t *testing.T) {
-		err := UpdateAvatarPath(db, u.ID, sql.NullString{String: "1_abc123.png", Valid: true})
+		err := UpdateAvatarPath(context.Background(), db, u.ID, sql.NullString{String: "1_abc123.png", Valid: true})
 		if err != nil {
 			t.Fatalf("update avatar: %v", err)
 		}
 
-		updated, _ := GetUserByID(db, u.ID)
+		updated, _ := GetUserByID(context.Background(), db, u.ID)
 		if !updated.HasAvatar() {
 			t.Error("expected HasAvatar() to be true")
 		}
@@ -572,19 +573,19 @@ func TestUpdateAvatarPath(t *testing.T) {
 	})
 
 	t.Run("clear avatar", func(t *testing.T) {
-		err := UpdateAvatarPath(db, u.ID, sql.NullString{})
+		err := UpdateAvatarPath(context.Background(), db, u.ID, sql.NullString{})
 		if err != nil {
 			t.Fatalf("clear avatar: %v", err)
 		}
 
-		updated, _ := GetUserByID(db, u.ID)
+		updated, _ := GetUserByID(context.Background(), db, u.ID)
 		if updated.HasAvatar() {
 			t.Error("expected HasAvatar() to be false after clear")
 		}
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		err := UpdateAvatarPath(db, 99999, sql.NullString{String: "x.png", Valid: true})
+		err := UpdateAvatarPath(context.Background(), db, 99999, sql.NullString{String: "x.png", Valid: true})
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}

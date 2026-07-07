@@ -1,12 +1,16 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/notify"
 )
 
 // --- Reviews (Coach Only) ---
@@ -26,7 +30,7 @@ func (h *Handlers) ListPendingReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workouts, err := models.ListUnreviewedWorkouts(h.DB)
+	workouts, err := models.ListUnreviewedWorkouts(r.Context(), h.DB)
 	if err != nil {
 		log.Printf("api: list unreviewed workouts: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to list pending reviews")
@@ -83,7 +87,7 @@ func (h *Handlers) ListSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categories := models.ListSettingsByCategory(h.DB)
+	categories := models.ListSettingsByCategory(r.Context(), h.DB)
 	result := make([]SettingCategoryResponse, 0, len(categories))
 
 	for _, catName := range models.CategoryOrder {
@@ -147,11 +151,95 @@ func (h *Handlers) UpdateSetting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.SetSetting(h.DB, req.Key, req.Value); err != nil {
+	if err := models.SetSetting(r.Context(), h.DB, req.Key, req.Value); err != nil {
 		log.Printf("api: set setting %s: %v", req.Key, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update setting")
 		return
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// TestLLMConnection tests the LLM provider connection.
+//
+//	@Summary      Test LLM provider connection (admin)
+//	@Description  Always returns 200; check `success` field for actual result. Errors are surfaced via `error` field for the SPA to display inline.
+//	@Tags         Admin
+//	@Produce      json
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      403  {object}  api.APIError
+//	@Router       /admin/settings/test-llm [post]
+//
+// testLLMPingTimeout caps Ping's wall-clock budget. The provider HTTP
+// clients allow 5 minutes by default, which exceeds the HTTP server's
+// WriteTimeout (60s in main.go) — a hung provider would otherwise leave
+// the handler still running when the TCP write deadline fires, producing
+// a reverse-proxy 502 with a misleading 200 in our access log. Exposed
+// as a var so tests can shrink it.
+var testLLMPingTimeout = 30 * time.Second
+
+func (h *Handlers) TestLLMConnection(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "admin access required")
+		return
+	}
+
+	provider, err := h.llmProvider(r.Context())
+	if err != nil {
+		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+
+	pingCtx, cancel := context.WithTimeout(r.Context(), testLLMPingTimeout)
+	defer cancel()
+
+	if err := provider.Ping(pingCtx); err != nil {
+		msg := err.Error()
+		if errors.Is(err, context.DeadlineExceeded) {
+			msg = "Provider did not respond in time. Check the base URL and network."
+		}
+		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": msg})
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]any{"success": true})
+}
+
+// testNotifyTimeout caps each individual SMTP/webhook test send. Same
+// rationale as testLLMPingTimeout (handlers_remaining.go): shoutrrr's
+// default socket timeouts can exceed the HTTP server's WriteTimeout, which
+// would silently turn into Caddy 502s with replog logging 200. Exposed as
+// a var so tests can shrink it.
+var testNotifyTimeout = 30 * time.Second
+
+// TestNotifyConnection tests the notification provider connection.
+//
+//	@Summary      Test notification provider connection (admin)
+//	@Description  Always returns 200; check `success` field. Errors are surfaced via `error` field for the SPA to display inline.
+//	@Tags         Admin
+//	@Produce      json
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      403  {object}  api.APIError
+//	@Router       /admin/settings/test-notify [post]
+func (h *Handlers) TestNotifyConnection(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "admin access required")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), testNotifyTimeout)
+	defer cancel()
+
+	if err := notify.TestConnection(ctx, h.DB); err != nil {
+		msg := err.Error()
+		if errors.Is(err, context.DeadlineExceeded) {
+			msg = "Notification provider did not respond in time. Check SMTP host and broadcast URLs."
+		}
+		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": msg})
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]any{"success": true})
 }

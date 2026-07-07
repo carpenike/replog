@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -36,19 +37,19 @@ type AMRAPResult struct {
 
 // CycleSummary holds the review data for a completed (or current) cycle.
 type CycleSummary struct {
-	Program      *AthleteProgram
-	CycleNumber  int
-	Suggestions  []*TMSuggestion
-	AllAMRAPs    []AMRAPResult
-	CycleStart   string // YYYY-MM-DD of first workout in the cycle
-	CycleEnd     string // YYYY-MM-DD of last workout in the cycle
+	Program     *AthleteProgram
+	CycleNumber int
+	Suggestions []*TMSuggestion
+	AllAMRAPs   []AMRAPResult
+	CycleStart  string // YYYY-MM-DD of first workout in the cycle
+	CycleEnd    string // YYYY-MM-DD of last workout in the cycle
 }
 
 // GetCycleSummary produces TM bump suggestions for an athlete's last completed cycle.
 // It looks at the previous cycle (the one before the current position) and joins
 // progression rules with AMRAP results and current training maxes.
 // If program is nil, returns nil.
-func GetCycleSummary(db *sql.DB, program *AthleteProgram, today time.Time) (*CycleSummary, error) {
+func GetCycleSummary(ctx context.Context, db *sql.DB, program *AthleteProgram, today time.Time) (*CycleSummary, error) {
 	if program == nil {
 		return nil, nil
 	}
@@ -57,7 +58,7 @@ func GetCycleSummary(db *sql.DB, program *AthleteProgram, today time.Time) (*Cyc
 
 	// Count completed workouts linked to this assignment.
 	var completedWorkouts int
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) < date(?)`,
 		program.ID, todayStr,
 	).Scan(&completedWorkouts)
@@ -91,7 +92,7 @@ func GetCycleSummary(db *sql.DB, program *AthleteProgram, today time.Time) (*Cyc
 	cycleEndOffset := reviewCycle * cycleLength
 
 	// Get workout dates for the reviewed cycle.
-	cycleWorkoutRows, err := db.Query(
+	cycleWorkoutRows, err := db.QueryContext(ctx,
 		`SELECT date(date) FROM workouts
 		 WHERE assignment_id = ?
 		 ORDER BY date(date)
@@ -126,7 +127,7 @@ func GetCycleSummary(db *sql.DB, program *AthleteProgram, today time.Time) (*Cyc
 
 	// Get AMRAP results: workout_sets that correspond to AMRAP prescribed sets
 	// (prescribed_sets.reps IS NULL) during the reviewed cycle's date range.
-	amrapRows, err := db.Query(
+	amrapRows, err := db.QueryContext(ctx,
 		`SELECT e.id, e.name, ws.reps, ws.weight, w.date, ps.week, ps.day
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id
@@ -193,13 +194,13 @@ func GetCycleSummary(db *sql.DB, program *AthleteProgram, today time.Time) (*Cyc
 	}
 
 	// Get progression rules for this template.
-	rules, err := ListProgressionRules(db, program.TemplateID)
+	rules, err := ListProgressionRules(ctx, db, program.TemplateID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get current training maxes.
-	tms, err := ListCurrentTrainingMaxes(db, program.AthleteID)
+	tms, err := ListCurrentTrainingMaxes(ctx, db, program.AthleteID)
 	if err != nil {
 		return nil, err
 	}

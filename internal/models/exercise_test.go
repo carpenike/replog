@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 )
@@ -9,7 +10,7 @@ func TestCreateExercise(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("basic create", func(t *testing.T) {
-		e, err := CreateExercise(db, "Bench Press", "intermediate", "Control the descent", "", 0)
+		e, err := CreateExercise(context.Background(), db, "Bench Press", "intermediate", "Control the descent", "", 0)
 		if err != nil {
 			t.Fatalf("create exercise: %v", err)
 		}
@@ -22,14 +23,14 @@ func TestCreateExercise(t *testing.T) {
 	})
 
 	t.Run("duplicate name", func(t *testing.T) {
-		_, err := CreateExercise(db, "Bench Press", "", "", "", 0)
+		_, err := CreateExercise(context.Background(), db, "Bench Press", "", "", "", 0)
 		if err != ErrDuplicateExerciseName {
 			t.Errorf("err = %v, want ErrDuplicateExerciseName", err)
 		}
 	})
 
 	t.Run("case insensitive duplicate", func(t *testing.T) {
-		_, err := CreateExercise(db, "bench press", "", "", "", 0)
+		_, err := CreateExercise(context.Background(), db, "bench press", "", "", "", 0)
 		if err != ErrDuplicateExerciseName {
 			t.Errorf("err = %v, want ErrDuplicateExerciseName", err)
 		}
@@ -39,24 +40,24 @@ func TestCreateExercise(t *testing.T) {
 func TestDeleteExercise(t *testing.T) {
 	db := testDB(t)
 
-	e, _ := CreateExercise(db, "Squats", "", "", "", 0)
+	e, _ := CreateExercise(context.Background(), db, "Squats", "", "", "", 0)
 
 	t.Run("delete unreferenced", func(t *testing.T) {
-		if err := DeleteExercise(db, e.ID); err != nil {
+		if err := DeleteExercise(context.Background(), db, e.ID); err != nil {
 			t.Fatalf("delete exercise: %v", err)
 		}
 	})
 
 	t.Run("delete referenced (RESTRICT)", func(t *testing.T) {
-		e2, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
-		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-		w, _ := CreateWorkout(db, a.ID, "2026-01-01", "", 0)
-		_, err := AddSet(db, w.ID, e2.ID, 5, 225, 0, "", "", "")
+		e2, _ := CreateExercise(context.Background(), db, "Deadlift", "", "", "", 0)
+		a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+		w, _ := CreateWorkout(context.Background(), db, a.ID, "2026-01-01", "", 0)
+		_, err := AddSet(context.Background(), db, w.ID, e2.ID, 5, 225, 0, "", "", "")
 		if err != nil {
 			t.Fatalf("add set: %v", err)
 		}
 
-		err = DeleteExercise(db, e2.ID)
+		err = DeleteExercise(context.Background(), db, e2.ID)
 		if err != ErrExerciseInUse {
 			t.Errorf("err = %v, want ErrExerciseInUse", err)
 		}
@@ -66,12 +67,12 @@ func TestDeleteExercise(t *testing.T) {
 func TestListExercises(t *testing.T) {
 	db := testDB(t)
 
-	CreateExercise(db, "Push-ups", "foundational", "", "", 0)
-	CreateExercise(db, "Back Squat", "", "", "", 0)
-	CreateExercise(db, "Cleans", "sport_performance", "", "", 0)
+	CreateExercise(context.Background(), db, "Push-ups", "foundational", "", "", 0)
+	CreateExercise(context.Background(), db, "Back Squat", "", "", "", 0)
+	CreateExercise(context.Background(), db, "Cleans", "sport_performance", "", "", 0)
 
 	t.Run("all", func(t *testing.T) {
-		exercises, err := ListExercises(db, "")
+		exercises, err := ListExercises(context.Background(), db, "")
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -81,7 +82,7 @@ func TestListExercises(t *testing.T) {
 	})
 
 	t.Run("filter by tier", func(t *testing.T) {
-		exercises, err := ListExercises(db, "foundational")
+		exercises, err := ListExercises(context.Background(), db, "foundational")
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -91,7 +92,7 @@ func TestListExercises(t *testing.T) {
 	})
 
 	t.Run("filter no tier", func(t *testing.T) {
-		exercises, err := ListExercises(db, "none")
+		exercises, err := ListExercises(context.Background(), db, "none")
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -123,10 +124,10 @@ func TestEffectiveRestSeconds(t *testing.T) {
 func TestUpdateExercise(t *testing.T) {
 	db := testDB(t)
 
-	e, _ := CreateExercise(db, "Original Name", "foundational", "old notes", "", 0)
+	e, _ := CreateExercise(context.Background(), db, "Original Name", "foundational", "old notes", "", 0)
 
 	t.Run("basic update", func(t *testing.T) {
-		updated, err := UpdateExercise(db, e.ID, "New Name", "intermediate", "new notes", "https://demo.url", 120)
+		updated, err := UpdateExercise(context.Background(), db, e.ID, "New Name", "intermediate", "new notes", "https://demo.url", 120)
 		if err != nil {
 			t.Fatalf("update exercise: %v", err)
 		}
@@ -142,15 +143,15 @@ func TestUpdateExercise(t *testing.T) {
 	})
 
 	t.Run("duplicate name", func(t *testing.T) {
-		CreateExercise(db, "Taken Name", "", "", "", 0)
-		_, err := UpdateExercise(db, e.ID, "Taken Name", "", "", "", 0)
+		CreateExercise(context.Background(), db, "Taken Name", "", "", "", 0)
+		_, err := UpdateExercise(context.Background(), db, e.ID, "Taken Name", "", "", "", 0)
 		if err != ErrDuplicateExerciseName {
 			t.Errorf("err = %v, want ErrDuplicateExerciseName", err)
 		}
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		_, err := UpdateExercise(db, 99999, "Whatever", "", "", "", 0)
+		_, err := UpdateExercise(context.Background(), db, 99999, "Whatever", "", "", "", 0)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -161,7 +162,7 @@ func TestFeaturedExercise(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("create with featured flag", func(t *testing.T) {
-		e, err := CreateExercise(db, "Featured Squat", "", "", "", 0, true)
+		e, err := CreateExercise(context.Background(), db, "Featured Squat", "", "", "", 0, true)
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -171,7 +172,7 @@ func TestFeaturedExercise(t *testing.T) {
 	})
 
 	t.Run("create defaults to not featured", func(t *testing.T) {
-		e, err := CreateExercise(db, "Ordinary Exercise", "", "", "", 0)
+		e, err := CreateExercise(context.Background(), db, "Ordinary Exercise", "", "", "", 0)
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -181,8 +182,8 @@ func TestFeaturedExercise(t *testing.T) {
 	})
 
 	t.Run("update featured flag", func(t *testing.T) {
-		e, _ := CreateExercise(db, "Toggle Featured", "", "", "", 0)
-		updated, err := UpdateExercise(db, e.ID, e.Name, "", "", "", 0, true)
+		e, _ := CreateExercise(context.Background(), db, "Toggle Featured", "", "", "", 0)
+		updated, err := UpdateExercise(context.Background(), db, e.ID, e.Name, "", "", "", 0, true)
 		if err != nil {
 			t.Fatalf("update: %v", err)
 		}
@@ -190,7 +191,7 @@ func TestFeaturedExercise(t *testing.T) {
 			t.Error("expected Featured = true after update")
 		}
 
-		unfeatured, err := UpdateExercise(db, e.ID, e.Name, "", "", "", 0, false)
+		unfeatured, err := UpdateExercise(context.Background(), db, e.ID, e.Name, "", "", "", 0, false)
 		if err != nil {
 			t.Fatalf("update: %v", err)
 		}
@@ -203,13 +204,13 @@ func TestFeaturedExercise(t *testing.T) {
 func TestListFeaturedLifts(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Feat Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	squat, _ := CreateExercise(db, "F Squat", "", "", "", 0, true)
-	bench, _ := CreateExercise(db, "F Bench", "", "", "", 0, true)
-	CreateExercise(db, "F Curl", "", "", "", 0) // not featured
+	athlete, _ := CreateAthlete(context.Background(), db, "Feat Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	squat, _ := CreateExercise(context.Background(), db, "F Squat", "", "", "", 0, true)
+	bench, _ := CreateExercise(context.Background(), db, "F Bench", "", "", "", 0, true)
+	CreateExercise(context.Background(), db, "F Curl", "", "", "", 0) // not featured
 
 	t.Run("no data returns nil", func(t *testing.T) {
-		lifts, err := ListFeaturedLifts(db, athlete.ID)
+		lifts, err := ListFeaturedLifts(context.Background(), db, athlete.ID)
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -219,9 +220,9 @@ func TestListFeaturedLifts(t *testing.T) {
 	})
 
 	t.Run("with training max only", func(t *testing.T) {
-		SetTrainingMax(db, athlete.ID, squat.ID, 315, "2026-01-01", "")
+		SetTrainingMax(context.Background(), db, athlete.ID, squat.ID, 315, "2026-01-01", "")
 
-		lifts, err := ListFeaturedLifts(db, athlete.ID)
+		lifts, err := ListFeaturedLifts(context.Background(), db, athlete.ID)
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -240,11 +241,11 @@ func TestListFeaturedLifts(t *testing.T) {
 	})
 
 	t.Run("with logged sets", func(t *testing.T) {
-		w, _ := CreateWorkout(db, athlete.ID, "2026-01-15", "", 0)
-		AddSet(db, w.ID, bench.ID, 5, 225, 0, "", "", "")
-		AddSet(db, w.ID, bench.ID, 3, 245, 0, "", "", "")
+		w, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-01-15", "", 0)
+		AddSet(context.Background(), db, w.ID, bench.ID, 5, 225, 0, "", "", "")
+		AddSet(context.Background(), db, w.ID, bench.ID, 3, 245, 0, "", "", "")
 
-		lifts, err := ListFeaturedLifts(db, athlete.ID)
+		lifts, err := ListFeaturedLifts(context.Background(), db, athlete.ID)
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -280,11 +281,11 @@ func TestListFeaturedLifts(t *testing.T) {
 	})
 
 	t.Run("single rep set equals weight", func(t *testing.T) {
-		athlete2, _ := CreateAthlete(db, "Single Rep Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-		w, _ := CreateWorkout(db, athlete2.ID, "2026-02-01", "", 0)
-		AddSet(db, w.ID, squat.ID, 1, 405, 0, "", "", "")
+		athlete2, _ := CreateAthlete(context.Background(), db, "Single Rep Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+		w, _ := CreateWorkout(context.Background(), db, athlete2.ID, "2026-02-01", "", 0)
+		AddSet(context.Background(), db, w.ID, squat.ID, 1, 405, 0, "", "", "")
 
-		lifts, err := ListFeaturedLifts(db, athlete2.ID)
+		lifts, err := ListFeaturedLifts(context.Background(), db, athlete2.ID)
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}

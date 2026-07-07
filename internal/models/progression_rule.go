@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 )
@@ -25,8 +26,8 @@ func (pr *ProgressionRule) IncrementLabel() string {
 
 // SetProgressionRule creates or updates a progression rule for a template+exercise.
 // Uses INSERT OR REPLACE to handle upserts cleanly.
-func SetProgressionRule(db *sql.DB, templateID, exerciseID int64, increment float64) (*ProgressionRule, error) {
-	_, err := db.Exec(
+func SetProgressionRule(ctx context.Context, db *sql.DB, templateID, exerciseID int64, increment float64) (*ProgressionRule, error) {
+	_, err := db.ExecContext(ctx,
 		`INSERT INTO progression_rules (template_id, exercise_id, increment)
 		 VALUES (?, ?, ?)
 		 ON CONFLICT(template_id, exercise_id) DO UPDATE SET increment = excluded.increment`,
@@ -36,13 +37,13 @@ func SetProgressionRule(db *sql.DB, templateID, exerciseID int64, increment floa
 		return nil, fmt.Errorf("models: set progression rule for template %d exercise %d: %w", templateID, exerciseID, err)
 	}
 
-	return GetProgressionRule(db, templateID, exerciseID)
+	return GetProgressionRule(ctx, db, templateID, exerciseID)
 }
 
 // GetProgressionRule retrieves a single progression rule for a template+exercise.
-func GetProgressionRule(db *sql.DB, templateID, exerciseID int64) (*ProgressionRule, error) {
+func GetProgressionRule(ctx context.Context, db *sql.DB, templateID, exerciseID int64) (*ProgressionRule, error) {
 	pr := &ProgressionRule{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT pr.id, pr.template_id, pr.exercise_id, pr.increment, e.name
 		 FROM progression_rules pr
 		 JOIN exercises e ON e.id = pr.exercise_id
@@ -59,8 +60,8 @@ func GetProgressionRule(db *sql.DB, templateID, exerciseID int64) (*ProgressionR
 }
 
 // ListProgressionRules returns all progression rules for a program template.
-func ListProgressionRules(db *sql.DB, templateID int64) ([]*ProgressionRule, error) {
-	rows, err := db.Query(
+func ListProgressionRules(ctx context.Context, db *sql.DB, templateID int64) ([]*ProgressionRule, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT pr.id, pr.template_id, pr.exercise_id, pr.increment, e.name
 		 FROM progression_rules pr
 		 JOIN exercises e ON e.id = pr.exercise_id
@@ -88,8 +89,8 @@ func ListProgressionRules(db *sql.DB, templateID int64) ([]*ProgressionRule, err
 }
 
 // DeleteProgressionRule removes a progression rule by ID.
-func DeleteProgressionRule(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM progression_rules WHERE id = ?`, id)
+func DeleteProgressionRule(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM progression_rules WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete progression rule %d: %w", id, err)
 	}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -42,7 +43,7 @@ func TestMultiModalP2_FiveDisciplineSameDay(t *testing.T) {
 	requireStatus(t, rr, http.StatusCreated)
 
 	// The journal should render all five as distinct, correctly-typed entries.
-	entries, err := models.ListJournalEntries(env.DB, athlete.ID, true, 100)
+	entries, err := models.ListJournalEntries(context.Background(), env.DB, athlete.ID, true, 100)
 	if err != nil {
 		t.Fatalf("list journal: %v", err)
 	}

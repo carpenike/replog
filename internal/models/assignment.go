@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -27,14 +28,14 @@ type AthleteExercise struct {
 
 // AssignExercise creates an active assignment for an athlete+exercise pair.
 // Returns ErrAlreadyAssigned if there is already an active assignment.
-func AssignExercise(db *sql.DB, athleteID, exerciseID int64, targetReps int) (*AthleteExercise, error) {
+func AssignExercise(ctx context.Context, db *sql.DB, athleteID, exerciseID int64, targetReps int) (*AthleteExercise, error) {
 	var repsVal sql.NullInt64
 	if targetReps > 0 {
 		repsVal = sql.NullInt64{Int64: int64(targetReps), Valid: true}
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO athlete_exercises (athlete_id, exercise_id, target_reps, active) VALUES (?, ?, ?, 1) RETURNING id`,
 		athleteID, exerciseID, repsVal,
 	).Scan(&id)
@@ -45,12 +46,12 @@ func AssignExercise(db *sql.DB, athleteID, exerciseID int64, targetReps int) (*A
 		return nil, fmt.Errorf("models: assign exercise %d to athlete %d: %w", exerciseID, athleteID, err)
 	}
 
-	return GetAssignmentByID(db, id)
+	return GetAssignmentByID(ctx, db, id)
 }
 
 // DeactivateAssignment sets an assignment to inactive.
-func DeactivateAssignment(db *sql.DB, id int64) error {
-	result, err := db.Exec(
+func DeactivateAssignment(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx,
 		`UPDATE athlete_exercises SET active = 0, deactivated_at = CURRENT_TIMESTAMP WHERE id = ? AND active = 1`,
 		id,
 	)
@@ -66,14 +67,14 @@ func DeactivateAssignment(db *sql.DB, id int64) error {
 
 // ReactivateAssignment creates a new active assignment row for an athlete+exercise
 // that was previously deactivated. This preserves the audit trail.
-func ReactivateAssignment(db *sql.DB, athleteID, exerciseID int64, targetReps int) (*AthleteExercise, error) {
-	return AssignExercise(db, athleteID, exerciseID, targetReps)
+func ReactivateAssignment(ctx context.Context, db *sql.DB, athleteID, exerciseID int64, targetReps int) (*AthleteExercise, error) {
+	return AssignExercise(ctx, db, athleteID, exerciseID, targetReps)
 }
 
 // GetAssignmentByID retrieves an assignment by primary key.
-func GetAssignmentByID(db *sql.DB, id int64) (*AthleteExercise, error) {
+func GetAssignmentByID(ctx context.Context, db *sql.DB, id int64) (*AthleteExercise, error) {
 	ae := &AthleteExercise{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT ae.id, ae.athlete_id, ae.exercise_id, ae.active, ae.assigned_at, ae.deactivated_at,
 		        e.name, e.tier, ae.target_reps
 		 FROM athlete_exercises ae
@@ -91,8 +92,8 @@ func GetAssignmentByID(db *sql.DB, id int64) (*AthleteExercise, error) {
 }
 
 // ListActiveAssignments returns all active assignments for an athlete.
-func ListActiveAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, error) {
-	rows, err := db.Query(`
+func ListActiveAssignments(ctx context.Context, db *sql.DB, athleteID int64) ([]*AthleteExercise, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT ae.id, ae.athlete_id, ae.exercise_id, ae.active, ae.assigned_at, ae.deactivated_at,
 		       e.name, e.tier, ae.target_reps
 		FROM athlete_exercises ae
@@ -121,8 +122,8 @@ func ListActiveAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, err
 }
 
 // ListUnassignedExercises returns exercises not actively assigned to an athlete.
-func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
-	rows, err := db.Query(`
+func ListUnassignedExercises(ctx context.Context, db *sql.DB, athleteID int64) ([]*Exercise, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT e.id, e.name, e.tier, e.form_notes, e.demo_url, e.rest_seconds, e.featured, e.created_at, e.updated_at
 		FROM exercises e
 		WHERE e.id NOT IN (
@@ -153,8 +154,8 @@ func ListUnassignedExercises(db *sql.DB, athleteID int64) ([]*Exercise, error) {
 // ListDeactivatedAssignments returns previously deactivated (but not re-activated)
 // assignments for an athlete. These are exercises that were once assigned and could
 // be reactivated.
-func ListDeactivatedAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise, error) {
-	rows, err := db.Query(`
+func ListDeactivatedAssignments(ctx context.Context, db *sql.DB, athleteID int64) ([]*AthleteExercise, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT ae.id, ae.athlete_id, ae.exercise_id, ae.active, ae.assigned_at, ae.deactivated_at,
 		       e.name, e.tier, ae.target_reps
 		FROM athlete_exercises ae
@@ -197,8 +198,8 @@ func ListDeactivatedAssignments(db *sql.DB, athleteID int64) ([]*AthleteExercise
 // AssignProgramExercises assigns all exercises from a program template to an
 // athlete. Exercises that are already actively assigned are silently skipped.
 // Returns the number of newly created assignments.
-func AssignProgramExercises(db *sql.DB, athleteID, templateID int64) (int, error) {
-	rows, err := db.Query(
+func AssignProgramExercises(ctx context.Context, db *sql.DB, athleteID, templateID int64) (int, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT DISTINCT ps.exercise_id
 		 FROM prescribed_sets ps
 		 WHERE ps.template_id = ?`,
@@ -223,7 +224,7 @@ func AssignProgramExercises(db *sql.DB, athleteID, templateID int64) (int, error
 
 	assigned := 0
 	for _, eid := range exerciseIDs {
-		_, err := AssignExercise(db, athleteID, eid, 0)
+		_, err := AssignExercise(ctx, db, athleteID, eid, 0)
 		if errors.Is(err, ErrAlreadyAssigned) {
 			continue
 		}
@@ -243,8 +244,8 @@ type AssignedAthlete struct {
 }
 
 // ListAssignedAthletes returns athletes with an active assignment for the given exercise.
-func ListAssignedAthletes(db *sql.DB, exerciseID int64) ([]*AssignedAthlete, error) {
-	rows, err := db.Query(`
+func ListAssignedAthletes(ctx context.Context, db *sql.DB, exerciseID int64) ([]*AssignedAthlete, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT a.id, a.name, ae.assigned_at
 		FROM athlete_exercises ae
 		JOIN athletes a ON a.id = ae.athlete_id

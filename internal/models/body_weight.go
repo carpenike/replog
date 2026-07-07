@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -22,14 +23,14 @@ type BodyWeight struct {
 }
 
 // CreateBodyWeight inserts a new body weight record.
-func CreateBodyWeight(db *sql.DB, athleteID int64, date string, weight float64, notes string) (*BodyWeight, error) {
+func CreateBodyWeight(ctx context.Context, db *sql.DB, athleteID int64, date string, weight float64, notes string) (*BodyWeight, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO body_weights (athlete_id, date, weight, notes) VALUES (?, ?, ?, ?) RETURNING id`,
 		athleteID, date, weight, notesVal,
 	).Scan(&id)
@@ -40,13 +41,13 @@ func CreateBodyWeight(db *sql.DB, athleteID int64, date string, weight float64, 
 		return nil, fmt.Errorf("models: create body weight for athlete %d: %w", athleteID, err)
 	}
 
-	return GetBodyWeightByID(db, id)
+	return GetBodyWeightByID(ctx, db, id)
 }
 
 // GetBodyWeightByID retrieves a body weight entry by primary key.
-func GetBodyWeightByID(db *sql.DB, id int64) (*BodyWeight, error) {
+func GetBodyWeightByID(ctx context.Context, db *sql.DB, id int64) (*BodyWeight, error) {
 	bw := &BodyWeight{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, athlete_id, date, weight, notes, created_at FROM body_weights WHERE id = ?`, id,
 	).Scan(&bw.ID, &bw.AthleteID, &bw.Date, &bw.Weight, &bw.Notes, &bw.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -61,8 +62,8 @@ func GetBodyWeightByID(db *sql.DB, id int64) (*BodyWeight, error) {
 // DeleteBodyWeight removes a body weight entry by ID, scoped to the owning
 // athlete so a caller cannot delete another athlete's entry by guessing its ID
 // (returns ErrNotFound on mismatch).
-func DeleteBodyWeight(db *sql.DB, id, athleteID int64) error {
-	result, err := db.Exec(`DELETE FROM body_weights WHERE id = ? AND athlete_id = ?`, id, athleteID)
+func DeleteBodyWeight(ctx context.Context, db *sql.DB, id, athleteID int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM body_weights WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: delete body weight %d: %w", id, err)
 	}
@@ -84,8 +85,8 @@ type BodyWeightPage struct {
 
 // ListBodyWeights returns body weight entries for an athlete, ordered by date
 // descending. Uses offset-based pagination.
-func ListBodyWeights(db *sql.DB, athleteID int64, offset int) (*BodyWeightPage, error) {
-	rows, err := db.Query(`
+func ListBodyWeights(ctx context.Context, db *sql.DB, athleteID int64, offset int) (*BodyWeightPage, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT id, athlete_id, date, weight, notes, created_at
 		FROM body_weights
 		WHERE athlete_id = ?
@@ -117,9 +118,9 @@ func ListBodyWeights(db *sql.DB, athleteID int64, offset int) (*BodyWeightPage, 
 }
 
 // LatestBodyWeight returns the most recent body weight for an athlete, or nil.
-func LatestBodyWeight(db *sql.DB, athleteID int64) (*BodyWeight, error) {
+func LatestBodyWeight(ctx context.Context, db *sql.DB, athleteID int64) (*BodyWeight, error) {
 	bw := &BodyWeight{}
-	err := db.QueryRow(`
+	err := db.QueryRowContext(ctx, `
 		SELECT id, athlete_id, date, weight, notes, created_at
 		FROM body_weights
 		WHERE athlete_id = ?

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -38,15 +39,15 @@ type RecoveryCheckinInput struct {
 
 // CreateRecoveryCheckin logs a recovery check-in for an athlete, creating the
 // parent workout (discipline='recovery') and the detail row in one transaction.
-func CreateRecoveryCheckin(db *sql.DB, athleteID int64, in RecoveryCheckinInput) (*RecoveryCheckin, error) {
-	tx, err := db.Begin()
+func CreateRecoveryCheckin(ctx context.Context, db *sql.DB, athleteID int64, in RecoveryCheckinInput) (*RecoveryCheckin, error) {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin recovery checkin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	var workoutID int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO workouts (athlete_id, date, discipline) VALUES (?, ?, 'recovery') RETURNING id`,
 		athleteID, in.Date,
 	).Scan(&workoutID)
@@ -58,7 +59,7 @@ func CreateRecoveryCheckin(db *sql.DB, athleteID int64, in RecoveryCheckinInput)
 	}
 
 	var id int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO recovery_checkins
 		    (workout_id, sleep_hours, soreness, energy, notes)
 		 VALUES (?, ?, ?, ?, ?) RETURNING id`,
@@ -74,13 +75,13 @@ func CreateRecoveryCheckin(db *sql.DB, athleteID int64, in RecoveryCheckinInput)
 		return nil, fmt.Errorf("models: commit recovery checkin: %w", err)
 	}
 
-	return GetRecoveryCheckinByID(db, id)
+	return GetRecoveryCheckinByID(ctx, db, id)
 }
 
 // GetRecoveryCheckinByID retrieves a recovery check-in by ID.
-func GetRecoveryCheckinByID(db *sql.DB, id int64) (*RecoveryCheckin, error) {
+func GetRecoveryCheckinByID(ctx context.Context, db *sql.DB, id int64) (*RecoveryCheckin, error) {
 	rc := &RecoveryCheckin{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT rc.id, rc.workout_id, rc.sleep_hours, rc.soreness, rc.energy,
 		        rc.notes, rc.created_at, rc.updated_at, w.athlete_id, w.date
 		 FROM recovery_checkins rc
@@ -98,11 +99,11 @@ func GetRecoveryCheckinByID(db *sql.DB, id int64) (*RecoveryCheckin, error) {
 }
 
 // ListRecoveryCheckins returns an athlete's recovery check-ins, newest first.
-func ListRecoveryCheckins(db *sql.DB, athleteID int64, limit int) ([]*RecoveryCheckin, error) {
+func ListRecoveryCheckins(ctx context.Context, db *sql.DB, athleteID int64, limit int) ([]*RecoveryCheckin, error) {
 	if limit <= 0 {
 		limit = 100
 	}
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT rc.id, rc.workout_id, rc.sleep_hours, rc.soreness, rc.energy,
 		        rc.notes, rc.created_at, rc.updated_at, w.athlete_id, w.date
 		 FROM recovery_checkins rc
@@ -128,12 +129,12 @@ func ListRecoveryCheckins(db *sql.DB, athleteID int64, limit int) ([]*RecoveryCh
 }
 
 // DeleteRecoveryCheckin removes a recovery check-in and its parent workout.
-func DeleteRecoveryCheckin(db *sql.DB, id int64) error {
-	rc, err := GetRecoveryCheckinByID(db, id)
+func DeleteRecoveryCheckin(ctx context.Context, db *sql.DB, id int64) error {
+	rc, err := GetRecoveryCheckinByID(ctx, db, id)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(`DELETE FROM workouts WHERE id = ?`, rc.WorkoutID)
+	result, err := db.ExecContext(ctx, `DELETE FROM workouts WHERE id = ?`, rc.WorkoutID)
 	if err != nil {
 		return fmt.Errorf("models: delete recovery checkin %d: %w", id, err)
 	}

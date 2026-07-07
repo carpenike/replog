@@ -1,6 +1,7 @@
 package mcpoauth
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
@@ -166,7 +167,7 @@ func TestAuthorize_ValidationFailures(t *testing.T) {
 	s, db := newTestServer(t)
 	r := newTestRouter(s)
 
-	client, _, err := models.RegisterDCRClient(db, "c", []string{"https://claude.ai/cb"}, "client_secret_post")
+	client, _, err := models.RegisterDCRClient(context.Background(), db, "c", []string{"https://claude.ai/cb"}, "client_secret_post")
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -205,12 +206,12 @@ func TestToken_FullGrant(t *testing.T) {
 	r := newTestRouter(s)
 
 	// A real user the code will be bound to.
-	user, err := models.CreateUser(db, "coach", "", "pw12345678", "coach@example.com", true, false, sql.NullInt64{})
+	user, err := models.CreateUser(context.Background(), db, "coach", "", "pw12345678", "coach@example.com", true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
 
-	client, secret, err := models.RegisterDCRClient(db, "c", []string{"https://claude.ai/cb"}, "client_secret_post")
+	client, secret, err := models.RegisterDCRClient(context.Background(), db, "c", []string{"https://claude.ai/cb"}, "client_secret_post")
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -258,7 +259,7 @@ func TestToken_FullGrant(t *testing.T) {
 	}
 
 	// The minted token must validate back to the bound user.
-	got, err := models.ValidateMCPToken(db, tok)
+	got, err := models.ValidateMCPToken(context.Background(), db, tok)
 	if err != nil {
 		t.Fatalf("validate minted token: %v", err)
 	}
@@ -280,8 +281,8 @@ func TestToken_PKCEMismatchRejected(t *testing.T) {
 	s, db := newTestServer(t)
 	r := newTestRouter(s)
 
-	user, _ := models.CreateUser(db, "coach", "", "pw12345678", "coach@example.com", true, false, sql.NullInt64{})
-	client, secret, _ := models.RegisterDCRClient(db, "c", []string{"https://claude.ai/cb"}, "client_secret_post")
+	user, _ := models.CreateUser(context.Background(), db, "coach", "", "pw12345678", "coach@example.com", true, false, sql.NullInt64{})
+	client, secret, _ := models.RegisterDCRClient(context.Background(), db, "c", []string{"https://claude.ai/cb"}, "client_secret_post")
 
 	sum := sha256.Sum256([]byte("the-real-verifier"))
 	challenge := base64.RawURLEncoding.EncodeToString(sum[:])

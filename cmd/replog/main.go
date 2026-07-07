@@ -98,21 +98,21 @@ func main() {
 	// and the startup sweep is one of those failure paths (HOF-001 #13).
 	// Race-free: the HTTP server isn't accepting requests yet and any
 	// prior process's goroutines are dead.
-	stale, err := models.ListStaleRunningGenerations(db)
+	stale, err := models.ListStaleRunningGenerations(context.Background(), db)
 	if err != nil {
 		log.Printf("Warning: list stale generations failed: %v", err)
 	}
-	if reset, err := models.ResetStaleRunningGenerations(db); err != nil {
+	if reset, err := models.ResetStaleRunningGenerations(context.Background(), db); err != nil {
 		log.Printf("Warning: reset stale generations failed: %v", err)
 	} else if reset > 0 {
 		log.Printf("Reset %d stale AI Coach generation(s) from prior process", reset)
 	}
 	for _, g := range stale {
 		athleteName := "athlete"
-		if a, err := models.GetAthleteByID(db, g.AthleteID); err == nil && a != nil {
+		if a, err := models.GetAthleteByID(context.Background(), db, g.AthleteID); err == nil && a != nil {
 			athleteName = a.Name
 		}
-		notify.Send(db, notify.Request{
+		notify.Send(context.Background(), db, notify.Request{
 			UserID:    g.RequestedBy,
 			Type:      models.NotifyGenerationFailed,
 			Title:     fmt.Sprintf("AI Coach draft failed for %s", athleteName),
@@ -123,7 +123,7 @@ func main() {
 	}
 
 	// Bootstrap secret key for encrypting sensitive settings.
-	if _, source, err := models.GetOrCreateSecretKey(db); err != nil {
+	if _, source, err := models.GetOrCreateSecretKey(context.Background(), db); err != nil {
 		log.Printf("Warning: secret key not available — sensitive settings will not be encrypted: %v", err)
 	} else {
 		switch source {
@@ -767,7 +767,7 @@ func runHealthcheck() int {
 // bootstrapAdmin creates the initial admin user from environment variables
 // if no users exist in the database.
 func bootstrapAdmin(db *sql.DB) error {
-	count, err := models.CountUsers(db)
+	count, err := models.CountUsers(context.Background(), db)
 	if err != nil {
 		return fmt.Errorf("check user count: %w", err)
 	}
@@ -783,7 +783,7 @@ func bootstrapAdmin(db *sql.DB) error {
 		return fmt.Errorf("no users exist and REPLOG_ADMIN_USER / REPLOG_ADMIN_PASS env vars are not set")
 	}
 
-	user, err := models.CreateUser(db, username, "", password, email, true, true, sql.NullInt64{})
+	user, err := models.CreateUser(context.Background(), db, username, "", password, email, true, true, sql.NullInt64{})
 	if err != nil {
 		return fmt.Errorf("create admin user: %w", err)
 	}
@@ -797,7 +797,7 @@ func bootstrapAdmin(db *sql.DB) error {
 // If exercises already exist, seeding is skipped.
 // Set REPLOG_SEED_CATALOG to an absolute path to use a custom catalog file.
 func bootstrapCatalog(db *sql.DB) error {
-	exercises, err := models.ListExercises(db, "")
+	exercises, err := models.ListExercises(context.Background(), db, "")
 	if err != nil {
 		return fmt.Errorf("check exercises: %w", err)
 	}
@@ -831,7 +831,7 @@ func bootstrapCatalog(db *sql.DB) error {
 		Parsed:    parsed,
 	}
 
-	result, err := models.ExecuteCatalogImport(db, ms, nil, false)
+	result, err := models.ExecuteCatalogImport(context.Background(), db, ms, nil, false)
 	if err != nil {
 		return fmt.Errorf("execute seed catalog import: %w", err)
 	}
@@ -853,7 +853,7 @@ func bootstrapCatalog(db *sql.DB) error {
 // user-importable program content.
 func bootstrapMethodologies(db *sql.DB) error {
 	data := database.SeedMethodologies()
-	result, err := models.ApplyMethodologySeedFromBytes(db, data)
+	result, err := models.ApplyMethodologySeedFromBytes(context.Background(), db, data)
 	if err != nil {
 		return fmt.Errorf("apply methodology seed: %w", err)
 	}
@@ -882,7 +882,7 @@ func bootstrapMethodologies(db *sql.DB) error {
 // this is a no-op because bootstrapCatalog tagged the exercises inline.
 func backfillMovementPatterns(db *sql.DB) error {
 	data := database.SeedCatalog()
-	result, err := models.BackfillExerciseMovementPatterns(db, data)
+	result, err := models.BackfillExerciseMovementPatterns(context.Background(), db, data)
 	if err != nil {
 		return fmt.Errorf("backfill movement patterns: %w", err)
 	}

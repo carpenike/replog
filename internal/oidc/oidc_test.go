@@ -373,7 +373,7 @@ func TestCallback_HappyPath(t *testing.T) {
 	}
 
 	// The upsert must have created/resolved the user keyed on sub.
-	user, err := models.GetUserByPocketIDSub(db, sub)
+	user, err := models.GetUserByPocketIDSub(context.Background(), db, sub)
 	if err != nil {
 		t.Fatalf("GetUserByPocketIDSub: %v", err)
 	}
@@ -420,7 +420,7 @@ func TestCallback_NonceMismatch(t *testing.T) {
 		t.Error("Callback established a session on nonce mismatch")
 	}
 	// And no user should have been upserted.
-	if _, err := models.GetUserByPocketIDSub(db, "pocketid-sub-nonce"); err == nil {
+	if _, err := models.GetUserByPocketIDSub(context.Background(), db, "pocketid-sub-nonce"); err == nil {
 		t.Error("Callback upserted a user despite the nonce mismatch")
 	}
 }

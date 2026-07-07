@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -45,13 +46,13 @@ type WODLogResult struct {
 // A WOD has NumDays=1/NumWeeks=1, so all prescribed sets belong to the one
 // session; insertion order follows (sort_order, set_number) so the circuit
 // structure stays faithful.
-func LogWODFromCatalog(db *sql.DB, athleteID int64, date string, parsed *importers.ParsedFile, replace bool) (*WODLogResult, error) {
+func LogWODFromCatalog(ctx context.Context, db *sql.DB, athleteID int64, date string, parsed *importers.ParsedFile, replace bool) (*WODLogResult, error) {
 	if parsed == nil {
 		return nil, fmt.Errorf("models: log WOD with nil parsed catalog")
 	}
 
 	// Step 1: same-day collision.
-	existing, err := GetWorkoutByAthleteDate(db, athleteID, date)
+	existing, err := GetWorkoutByAthleteDate(ctx, db, athleteID, date)
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return nil, fmt.Errorf("models: check existing workout for WOD: %w", err)
 	}
@@ -60,7 +61,7 @@ func LogWODFromCatalog(db *sql.DB, athleteID int64, date string, parsed *importe
 		if !replace {
 			return nil, ErrWODCollision
 		}
-		if derr := DeleteWorkout(db, existing.ID, athleteID); derr != nil {
+		if derr := DeleteWorkout(ctx, db, existing.ID, athleteID); derr != nil {
 			return nil, fmt.Errorf("models: replace existing workout %d for WOD: %w", existing.ID, derr)
 		}
 		replaced = true
@@ -68,7 +69,7 @@ func LogWODFromCatalog(db *sql.DB, athleteID int64, date string, parsed *importe
 
 	// Step 2: resolve exercise names → IDs (create missing) BEFORE the tx.
 	nameToID := make(map[string]int64)
-	exercises, err := ListExercises(db, "")
+	exercises, err := ListExercises(ctx, db, "")
 	if err != nil {
 		return nil, fmt.Errorf("models: list exercises for WOD: %w", err)
 	}
@@ -103,7 +104,7 @@ func LogWODFromCatalog(db *sql.DB, athleteID int64, date string, parsed *importe
 				restSeconds = *pe.RestSeconds
 			}
 		}
-		ex, cerr := CreateExercise(db, name, tier, formNotes, demoURL, restSeconds)
+		ex, cerr := CreateExercise(ctx, db, name, tier, formNotes, demoURL, restSeconds)
 		if cerr != nil {
 			return 0, fmt.Errorf("models: create exercise %q for WOD: %w", name, cerr)
 		}
@@ -157,18 +158,18 @@ func LogWODFromCatalog(db *sql.DB, athleteID int64, date string, parsed *importe
 	})
 
 	// Step 3: create the ad-hoc resistance workout + insert sets.
-	workout, err := CreateWorkout(db, athleteID, date, "", 0)
+	workout, err := CreateWorkout(ctx, db, athleteID, date, "", 0)
 	if err != nil {
 		return nil, fmt.Errorf("models: create ad-hoc WOD workout: %w", err)
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin tx for WOD sets: %w", err)
 	}
 	defer tx.Rollback()
 	for _, r := range rows {
-		if _, err := tx.Exec(
+		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, NULL, ?, 'main', ?)`,
 			workout.ID, r.exerciseID, r.setNumber, r.reps, r.weight, r.repType, r.notes,
 		); err != nil {

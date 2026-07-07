@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -14,9 +15,9 @@ var ErrWorkoutExists = errors.New("workout already exists for this date")
 type Workout struct {
 	ID           int64
 	AthleteID    int64
-	Date         string // DATE as string (YYYY-MM-DD)
-	Discipline   string // resistance | conditioning | throwing | skill | recovery (ADR 018)
-	AssignmentID sql.NullInt64  // FK to athlete_programs — which assignment prescribed this workout
+	Date         string        // DATE as string (YYYY-MM-DD)
+	Discipline   string        // resistance | conditioning | throwing | skill | recovery (ADR 018)
+	AssignmentID sql.NullInt64 // FK to athlete_programs — which assignment prescribed this workout
 	Notes        sql.NullString
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -30,7 +31,7 @@ type Workout struct {
 
 // CreateWorkout starts a new workout for an athlete on a date.
 // assignmentID links the workout to the athlete_program that prescribed it (0 for ad-hoc).
-func CreateWorkout(db *sql.DB, athleteID int64, date, notes string, assignmentID int64) (*Workout, error) {
+func CreateWorkout(ctx context.Context, db *sql.DB, athleteID int64, date, notes string, assignmentID int64) (*Workout, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
@@ -41,7 +42,7 @@ func CreateWorkout(db *sql.DB, athleteID int64, date, notes string, assignmentID
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO workouts (athlete_id, date, assignment_id, notes) VALUES (?, ?, ?, ?) RETURNING id`,
 		athleteID, date, assignVal, notesVal,
 	).Scan(&id)
@@ -52,14 +53,14 @@ func CreateWorkout(db *sql.DB, athleteID int64, date, notes string, assignmentID
 		return nil, fmt.Errorf("models: create workout for athlete %d on %s: %w", athleteID, date, err)
 	}
 
-	return GetWorkoutByID(db, id)
+	return GetWorkoutByID(ctx, db, id)
 }
 
 // GetWorkoutByID retrieves a workout by primary key.
-func GetWorkoutByID(db *sql.DB, id int64) (*Workout, error) {
+func GetWorkoutByID(ctx context.Context, db *sql.DB, id int64) (*Workout, error) {
 	w := &Workout{}
 	var programName sql.NullString
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT w.id, w.athlete_id, w.date, w.discipline, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
 		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
 		        COALESCE(pt.name, '')
@@ -80,10 +81,10 @@ func GetWorkoutByID(db *sql.DB, id int64) (*Workout, error) {
 }
 
 // GetWorkoutByAthleteDate retrieves a workout for an athlete on a specific date.
-func GetWorkoutByAthleteDate(db *sql.DB, athleteID int64, date string) (*Workout, error) {
+func GetWorkoutByAthleteDate(ctx context.Context, db *sql.DB, athleteID int64, date string) (*Workout, error) {
 	w := &Workout{}
 	var programName sql.NullString
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT w.id, w.athlete_id, w.date, w.discipline, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
 		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
 		        COALESCE(pt.name, '')
@@ -107,13 +108,13 @@ func GetWorkoutByAthleteDate(db *sql.DB, athleteID int64, date string) (*Workout
 // scoped to athleteID so a caller authorized for one athlete cannot mutate
 // another athlete's workout by guessing its ID (returns ErrNotFound on
 // athlete mismatch — mapped to 404 by the handler).
-func UpdateWorkoutNotes(db *sql.DB, id, athleteID int64, notes string) error {
+func UpdateWorkoutNotes(ctx context.Context, db *sql.DB, id, athleteID int64, notes string) error {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
-	result, err := db.Exec(`UPDATE workouts SET notes = ? WHERE id = ? AND athlete_id = ?`, notesVal, id, athleteID)
+	result, err := db.ExecContext(ctx, `UPDATE workouts SET notes = ? WHERE id = ? AND athlete_id = ?`, notesVal, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: update workout %d notes: %w", id, err)
 	}
@@ -127,8 +128,8 @@ func UpdateWorkoutNotes(db *sql.DB, id, athleteID int64, notes string) error {
 // DeleteWorkout removes a workout and all its sets (CASCADE). Scoped to
 // athleteID: deleting a workout that belongs to a different athlete returns
 // ErrNotFound so cross-athlete IDs cannot be tampered with.
-func DeleteWorkout(db *sql.DB, id, athleteID int64) error {
-	result, err := db.Exec(`DELETE FROM workouts WHERE id = ? AND athlete_id = ?`, id, athleteID)
+func DeleteWorkout(ctx context.Context, db *sql.DB, id, athleteID int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM workouts WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: delete workout %d: %w", id, err)
 	}
@@ -151,8 +152,8 @@ type WorkoutPage struct {
 // ListWorkouts returns workouts for an athlete, ordered by date descending.
 // Pass offset=0 for the first page. Returns up to WorkoutPageSize rows and
 // sets HasMore if additional rows exist beyond the current page.
-func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error) {
-	rows, err := db.Query(`
+func ListWorkouts(ctx context.Context, db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT w.id, w.athlete_id, w.date, w.discipline, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
 		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
 		       wr.status, COALESCE(pt.name, '')
@@ -192,9 +193,9 @@ func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error)
 
 // WorkoutStats returns the total workout count and earliest workout date for
 // an athlete in a single query. Returns count=0 and earliest="" if no workouts exist.
-func WorkoutStats(db *sql.DB, athleteID int64) (count int, earliest string, err error) {
+func WorkoutStats(ctx context.Context, db *sql.DB, athleteID int64) (count int, earliest string, err error) {
 	var earliestVal sql.NullString
-	err = db.QueryRow(
+	err = db.QueryRowContext(ctx,
 		`SELECT COUNT(*), MIN(date) FROM workouts WHERE athlete_id = ? AND discipline = 'resistance'`,
 		athleteID,
 	).Scan(&count, &earliestVal)

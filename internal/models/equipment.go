@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -55,20 +56,20 @@ type ProgramCompatibility struct {
 	TemplateID   int64
 	TemplateName string
 	Ready        bool                     // true if athlete has equipment for all exercises
-	Exercises    []EquipmentCompatibility  // per-exercise breakdown
+	Exercises    []EquipmentCompatibility // per-exercise breakdown
 	ReadyCount   int                      // exercises with all required equipment
 	TotalCount   int                      // total unique exercises in program
 }
 
 // CreateEquipment inserts a new equipment item.
-func CreateEquipment(db *sql.DB, name, description string) (*Equipment, error) {
+func CreateEquipment(ctx context.Context, db *sql.DB, name, description string) (*Equipment, error) {
 	var descVal sql.NullString
 	if description != "" {
 		descVal = sql.NullString{String: description, Valid: true}
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO equipment (name, description) VALUES (?, ?) RETURNING id`,
 		name, descVal,
 	).Scan(&id)
@@ -79,13 +80,13 @@ func CreateEquipment(db *sql.DB, name, description string) (*Equipment, error) {
 		return nil, fmt.Errorf("models: create equipment %q: %w", name, err)
 	}
 
-	return GetEquipmentByID(db, id)
+	return GetEquipmentByID(ctx, db, id)
 }
 
 // GetEquipmentByID retrieves an equipment item by primary key.
-func GetEquipmentByID(db *sql.DB, id int64) (*Equipment, error) {
+func GetEquipmentByID(ctx context.Context, db *sql.DB, id int64) (*Equipment, error) {
 	e := &Equipment{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, name, description, created_at, updated_at
 		 FROM equipment WHERE id = ?`, id,
 	).Scan(&e.ID, &e.Name, &e.Description, &e.CreatedAt, &e.UpdatedAt)
@@ -99,13 +100,13 @@ func GetEquipmentByID(db *sql.DB, id int64) (*Equipment, error) {
 }
 
 // UpdateEquipment modifies an existing equipment item.
-func UpdateEquipment(db *sql.DB, id int64, name, description string) (*Equipment, error) {
+func UpdateEquipment(ctx context.Context, db *sql.DB, id int64, name, description string) (*Equipment, error) {
 	var descVal sql.NullString
 	if description != "" {
 		descVal = sql.NullString{String: description, Valid: true}
 	}
 
-	result, err := db.Exec(
+	result, err := db.ExecContext(ctx,
 		`UPDATE equipment SET name = ?, description = ? WHERE id = ?`,
 		name, descVal, id,
 	)
@@ -121,12 +122,12 @@ func UpdateEquipment(db *sql.DB, id int64, name, description string) (*Equipment
 		return nil, ErrNotFound
 	}
 
-	return GetEquipmentByID(db, id)
+	return GetEquipmentByID(ctx, db, id)
 }
 
 // DeleteEquipment removes an equipment item by ID.
-func DeleteEquipment(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM equipment WHERE id = ?`, id)
+func DeleteEquipment(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM equipment WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete equipment %d: %w", id, err)
 	}
@@ -138,8 +139,8 @@ func DeleteEquipment(db *sql.DB, id int64) error {
 }
 
 // ListEquipment returns all equipment items ordered by name.
-func ListEquipment(db *sql.DB) ([]*Equipment, error) {
-	rows, err := db.Query(
+func ListEquipment(ctx context.Context, db *sql.DB) ([]*Equipment, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, name, description, created_at, updated_at
 		 FROM equipment ORDER BY name COLLATE NOCASE LIMIT 200`,
 	)
@@ -165,12 +166,12 @@ func ListEquipment(db *sql.DB) ([]*Equipment, error) {
 // --- Exercise Equipment (requirements) ---
 
 // AddExerciseEquipment links an equipment item to an exercise.
-func AddExerciseEquipment(db *sql.DB, exerciseID, equipmentID int64, optional bool) error {
+func AddExerciseEquipment(ctx context.Context, db *sql.DB, exerciseID, equipmentID int64, optional bool) error {
 	optVal := 0
 	if optional {
 		optVal = 1
 	}
-	_, err := db.Exec(
+	_, err := db.ExecContext(ctx,
 		`INSERT INTO exercise_equipment (exercise_id, equipment_id, optional)
 		 VALUES (?, ?, ?)
 		 ON CONFLICT(exercise_id, equipment_id) DO UPDATE SET optional = excluded.optional`,
@@ -183,8 +184,8 @@ func AddExerciseEquipment(db *sql.DB, exerciseID, equipmentID int64, optional bo
 }
 
 // RemoveExerciseEquipment unlinks an equipment item from an exercise.
-func RemoveExerciseEquipment(db *sql.DB, exerciseID, equipmentID int64) error {
-	result, err := db.Exec(
+func RemoveExerciseEquipment(ctx context.Context, db *sql.DB, exerciseID, equipmentID int64) error {
+	result, err := db.ExecContext(ctx,
 		`DELETE FROM exercise_equipment WHERE exercise_id = ? AND equipment_id = ?`,
 		exerciseID, equipmentID,
 	)
@@ -199,8 +200,8 @@ func RemoveExerciseEquipment(db *sql.DB, exerciseID, equipmentID int64) error {
 }
 
 // ListExerciseEquipment returns all equipment linked to an exercise.
-func ListExerciseEquipment(db *sql.DB, exerciseID int64) ([]ExerciseEquipment, error) {
-	rows, err := db.Query(
+func ListExerciseEquipment(ctx context.Context, db *sql.DB, exerciseID int64) ([]ExerciseEquipment, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT ee.id, ee.exercise_id, ee.equipment_id, e.name, ee.optional
 		 FROM exercise_equipment ee
 		 JOIN equipment e ON e.id = ee.equipment_id
@@ -230,8 +231,8 @@ func ListExerciseEquipment(db *sql.DB, exerciseID int64) ([]ExerciseEquipment, e
 // --- Athlete Equipment (inventory) ---
 
 // AddAthleteEquipment adds an equipment item to an athlete's inventory.
-func AddAthleteEquipment(db *sql.DB, athleteID, equipmentID int64) error {
-	_, err := db.Exec(
+func AddAthleteEquipment(ctx context.Context, db *sql.DB, athleteID, equipmentID int64) error {
+	_, err := db.ExecContext(ctx,
 		`INSERT OR IGNORE INTO athlete_equipment (athlete_id, equipment_id) VALUES (?, ?)`,
 		athleteID, equipmentID,
 	)
@@ -242,8 +243,8 @@ func AddAthleteEquipment(db *sql.DB, athleteID, equipmentID int64) error {
 }
 
 // RemoveAthleteEquipment removes an equipment item from an athlete's inventory.
-func RemoveAthleteEquipment(db *sql.DB, athleteID, equipmentID int64) error {
-	result, err := db.Exec(
+func RemoveAthleteEquipment(ctx context.Context, db *sql.DB, athleteID, equipmentID int64) error {
+	result, err := db.ExecContext(ctx,
 		`DELETE FROM athlete_equipment WHERE athlete_id = ? AND equipment_id = ?`,
 		athleteID, equipmentID,
 	)
@@ -258,8 +259,8 @@ func RemoveAthleteEquipment(db *sql.DB, athleteID, equipmentID int64) error {
 }
 
 // ListAthleteEquipment returns all equipment available to an athlete.
-func ListAthleteEquipment(db *sql.DB, athleteID int64) ([]AthleteEquipment, error) {
-	rows, err := db.Query(
+func ListAthleteEquipment(ctx context.Context, db *sql.DB, athleteID int64) ([]AthleteEquipment, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT ae.id, ae.athlete_id, ae.equipment_id, e.name
 		 FROM athlete_equipment ae
 		 JOIN equipment e ON e.id = ae.equipment_id
@@ -287,8 +288,8 @@ func ListAthleteEquipment(db *sql.DB, athleteID int64) ([]AthleteEquipment, erro
 }
 
 // AthleteEquipmentIDs returns a set of equipment IDs available to an athlete.
-func AthleteEquipmentIDs(db *sql.DB, athleteID int64) (map[int64]bool, error) {
-	rows, err := db.Query(
+func AthleteEquipmentIDs(ctx context.Context, db *sql.DB, athleteID int64) (map[int64]bool, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT equipment_id FROM athlete_equipment WHERE athlete_id = ?`,
 		athleteID,
 	)
@@ -315,21 +316,21 @@ func AthleteEquipmentIDs(db *sql.DB, athleteID int64) (map[int64]bool, error) {
 
 // CheckExerciseCompatibility checks whether an athlete has the required equipment
 // for a specific exercise.
-func CheckExerciseCompatibility(db *sql.DB, athleteID, exerciseID int64) (*EquipmentCompatibility, error) {
+func CheckExerciseCompatibility(ctx context.Context, db *sql.DB, athleteID, exerciseID int64) (*EquipmentCompatibility, error) {
 	// Get exercise info.
-	exercise, err := GetExerciseByID(db, exerciseID)
+	exercise, err := GetExerciseByID(ctx, db, exerciseID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get all equipment requirements for this exercise.
-	eqList, err := ListExerciseEquipment(db, exerciseID)
+	eqList, err := ListExerciseEquipment(ctx, db, exerciseID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get athlete's available equipment.
-	athleteIDs, err := AthleteEquipmentIDs(db, athleteID)
+	athleteIDs, err := AthleteEquipmentIDs(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -359,9 +360,9 @@ func CheckExerciseCompatibility(db *sql.DB, athleteID, exerciseID int64) (*Equip
 // CheckAthleteExerciseCompatibility checks equipment compatibility for all
 // actively assigned exercises for an athlete. Returns a slice of compatibility
 // results, one per assigned exercise.
-func CheckAthleteExerciseCompatibility(db *sql.DB, athleteID int64) ([]EquipmentCompatibility, error) {
+func CheckAthleteExerciseCompatibility(ctx context.Context, db *sql.DB, athleteID int64) ([]EquipmentCompatibility, error) {
 	// Get active assignments.
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT DISTINCT ae.exercise_id, e.name
 		 FROM athlete_exercises ae
 		 JOIN exercises e ON e.id = ae.exercise_id
@@ -391,14 +392,14 @@ func CheckAthleteExerciseCompatibility(db *sql.DB, athleteID int64) ([]Equipment
 	}
 
 	// Get athlete's equipment set once.
-	athleteIDs, err := AthleteEquipmentIDs(db, athleteID)
+	athleteIDs, err := AthleteEquipmentIDs(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
 
 	var results []EquipmentCompatibility
 	for _, ex := range exercises {
-		eqList, err := ListExerciseEquipment(db, ex.id)
+		eqList, err := ListExerciseEquipment(ctx, db, ex.id)
 		if err != nil {
 			return nil, err
 		}
@@ -431,15 +432,15 @@ func CheckAthleteExerciseCompatibility(db *sql.DB, athleteID int64) ([]Equipment
 // CheckProgramCompatibility checks whether an athlete has the required equipment
 // for every exercise in a program template. It examines all unique exercises
 // referenced by the template's prescribed sets.
-func CheckProgramCompatibility(db *sql.DB, athleteID, templateID int64) (*ProgramCompatibility, error) {
+func CheckProgramCompatibility(ctx context.Context, db *sql.DB, athleteID, templateID int64) (*ProgramCompatibility, error) {
 	// Get program template info.
-	tmpl, err := GetProgramTemplateByID(db, templateID)
+	tmpl, err := GetProgramTemplateByID(ctx, db, templateID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get all unique exercises referenced by this template's prescribed sets.
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT DISTINCT ps.exercise_id, e.name
 		 FROM prescribed_sets ps
 		 JOIN exercises e ON e.id = ps.exercise_id
@@ -469,7 +470,7 @@ func CheckProgramCompatibility(db *sql.DB, athleteID, templateID int64) (*Progra
 	}
 
 	// Get athlete's equipment set once.
-	athleteIDs, err := AthleteEquipmentIDs(db, athleteID)
+	athleteIDs, err := AthleteEquipmentIDs(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -482,7 +483,7 @@ func CheckProgramCompatibility(db *sql.DB, athleteID, templateID int64) (*Progra
 	}
 
 	for _, ex := range exercises {
-		eqList, err := ListExerciseEquipment(db, ex.id)
+		eqList, err := ListExerciseEquipment(ctx, db, ex.id)
 		if err != nil {
 			return nil, err
 		}
@@ -521,15 +522,15 @@ func CheckProgramCompatibility(db *sql.DB, athleteID, templateID int64) (*Progra
 // BatchCheckExerciseCompatibility checks equipment compatibility for ALL exercises
 // against an athlete's equipment inventory in a single query. Returns a map from
 // exercise ID to whether the athlete has all required equipment.
-func BatchCheckExerciseCompatibility(db *sql.DB, athleteID int64) (map[int64]bool, error) {
+func BatchCheckExerciseCompatibility(ctx context.Context, db *sql.DB, athleteID int64) (map[int64]bool, error) {
 	// Get athlete's available equipment IDs.
-	athleteIDs, err := AthleteEquipmentIDs(db, athleteID)
+	athleteIDs, err := AthleteEquipmentIDs(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get all exercises and their required equipment in one query.
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT e.id, ee.equipment_id
 		 FROM exercises e
 		 LEFT JOIN exercise_equipment ee ON ee.exercise_id = e.id AND ee.optional = 0

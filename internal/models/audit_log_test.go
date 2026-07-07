@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 )
@@ -9,12 +10,12 @@ func TestWriteAuditLog(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("insert with target and details", func(t *testing.T) {
-		err := WriteAuditLog(db, 1, sql.NullInt64{Int64: 2, Valid: true}, "impersonate_start", "admin -> kid")
+		err := WriteAuditLog(context.Background(), db, 1, sql.NullInt64{Int64: 2, Valid: true}, "impersonate_start", "admin -> kid")
 		if err != nil {
 			t.Fatalf("write audit log: %v", err)
 		}
 
-		entries, err := ListAuditLog(db, 10)
+		entries, err := ListAuditLog(context.Background(), db, 10)
 		if err != nil {
 			t.Fatalf("list audit log: %v", err)
 		}
@@ -40,12 +41,12 @@ func TestWriteAuditLog(t *testing.T) {
 	})
 
 	t.Run("empty details stored as NULL", func(t *testing.T) {
-		err := WriteAuditLog(db, 5, sql.NullInt64{}, "impersonate_stop", "")
+		err := WriteAuditLog(context.Background(), db, 5, sql.NullInt64{}, "impersonate_stop", "")
 		if err != nil {
 			t.Fatalf("write audit log: %v", err)
 		}
 
-		entries, err := ListAuditLog(db, 1)
+		entries, err := ListAuditLog(context.Background(), db, 1)
 		if err != nil {
 			t.Fatalf("list audit log: %v", err)
 		}

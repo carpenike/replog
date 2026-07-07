@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"testing"
@@ -8,10 +9,10 @@ import (
 
 func TestCreateBodyWeight(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("basic create", func(t *testing.T) {
-		bw, err := CreateBodyWeight(db, a.ID, "2026-02-01", 185.5, "morning weigh-in")
+		bw, err := CreateBodyWeight(context.Background(), db, a.ID, "2026-02-01", 185.5, "morning weigh-in")
 		if err != nil {
 			t.Fatalf("create body weight: %v", err)
 		}
@@ -27,15 +28,15 @@ func TestCreateBodyWeight(t *testing.T) {
 	})
 
 	t.Run("duplicate date", func(t *testing.T) {
-		_, err := CreateBodyWeight(db, a.ID, "2026-02-01", 186.0, "")
+		_, err := CreateBodyWeight(context.Background(), db, a.ID, "2026-02-01", 186.0, "")
 		if err != ErrDuplicateBodyWeight {
 			t.Errorf("err = %v, want ErrDuplicateBodyWeight", err)
 		}
 	})
 
 	t.Run("different athlete same date", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Another Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-		bw, err := CreateBodyWeight(db, a2.ID, "2026-02-01", 150.0, "")
+		a2, _ := CreateAthlete(context.Background(), db, "Another Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+		bw, err := CreateBodyWeight(context.Background(), db, a2.ID, "2026-02-01", 150.0, "")
 		if err != nil {
 			t.Fatalf("create body weight for different athlete: %v", err)
 		}
@@ -45,7 +46,7 @@ func TestCreateBodyWeight(t *testing.T) {
 	})
 
 	t.Run("empty notes", func(t *testing.T) {
-		bw, err := CreateBodyWeight(db, a.ID, "2026-02-02", 184.0, "")
+		bw, err := CreateBodyWeight(context.Background(), db, a.ID, "2026-02-02", 184.0, "")
 		if err != nil {
 			t.Fatalf("create body weight: %v", err)
 		}
@@ -57,11 +58,11 @@ func TestCreateBodyWeight(t *testing.T) {
 
 func TestGetBodyWeightByID(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("found", func(t *testing.T) {
-		created, _ := CreateBodyWeight(db, a.ID, "2026-02-01", 185.0, "")
-		bw, err := GetBodyWeightByID(db, created.ID)
+		created, _ := CreateBodyWeight(context.Background(), db, a.ID, "2026-02-01", 185.0, "")
+		bw, err := GetBodyWeightByID(context.Background(), db, created.ID)
 		if err != nil {
 			t.Fatalf("get body weight: %v", err)
 		}
@@ -71,7 +72,7 @@ func TestGetBodyWeightByID(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		_, err := GetBodyWeightByID(db, 9999)
+		_, err := GetBodyWeightByID(context.Background(), db, 9999)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -80,21 +81,21 @@ func TestGetBodyWeightByID(t *testing.T) {
 
 func TestDeleteBodyWeight(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("delete existing", func(t *testing.T) {
-		bw, _ := CreateBodyWeight(db, a.ID, "2026-02-01", 185.0, "")
-		if err := DeleteBodyWeight(db, bw.ID, a.ID); err != nil {
+		bw, _ := CreateBodyWeight(context.Background(), db, a.ID, "2026-02-01", 185.0, "")
+		if err := DeleteBodyWeight(context.Background(), db, bw.ID, a.ID); err != nil {
 			t.Fatalf("delete body weight: %v", err)
 		}
-		_, err := GetBodyWeightByID(db, bw.ID)
+		_, err := GetBodyWeightByID(context.Background(), db, bw.ID)
 		if err != ErrNotFound {
 			t.Errorf("after delete, err = %v, want ErrNotFound", err)
 		}
 	})
 
 	t.Run("delete nonexistent", func(t *testing.T) {
-		err := DeleteBodyWeight(db, 9999, a.ID)
+		err := DeleteBodyWeight(context.Background(), db, 9999, a.ID)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -103,10 +104,10 @@ func TestDeleteBodyWeight(t *testing.T) {
 
 func TestListBodyWeights(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("empty list", func(t *testing.T) {
-		page, err := ListBodyWeights(db, a.ID, 0)
+		page, err := ListBodyWeights(context.Background(), db, a.ID, 0)
 		if err != nil {
 			t.Fatalf("list body weights: %v", err)
 		}
@@ -119,11 +120,11 @@ func TestListBodyWeights(t *testing.T) {
 	})
 
 	t.Run("ordered by date descending", func(t *testing.T) {
-		CreateBodyWeight(db, a.ID, "2026-02-01", 185.0, "")
-		CreateBodyWeight(db, a.ID, "2026-02-03", 184.0, "")
-		CreateBodyWeight(db, a.ID, "2026-02-02", 184.5, "")
+		CreateBodyWeight(context.Background(), db, a.ID, "2026-02-01", 185.0, "")
+		CreateBodyWeight(context.Background(), db, a.ID, "2026-02-03", 184.0, "")
+		CreateBodyWeight(context.Background(), db, a.ID, "2026-02-02", 184.5, "")
 
-		page, err := ListBodyWeights(db, a.ID, 0)
+		page, err := ListBodyWeights(context.Background(), db, a.ID, 0)
 		if err != nil {
 			t.Fatalf("list body weights: %v", err)
 		}
@@ -140,14 +141,14 @@ func TestListBodyWeights(t *testing.T) {
 	})
 
 	t.Run("pagination", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Paginator", "", "", "", "", "", "", sql.NullInt64{}, true)
+		a2, _ := CreateAthlete(context.Background(), db, "Paginator", "", "", "", "", "", "", sql.NullInt64{}, true)
 		// Insert more than one page of entries.
 		for i := 1; i <= BodyWeightPageSize+5; i++ {
 			date := mustParseDate("2026-01-01").AddDate(0, 0, i).Format("2006-01-02")
-			CreateBodyWeight(db, a2.ID, date, float64(180+i%5), "")
+			CreateBodyWeight(context.Background(), db, a2.ID, date, float64(180+i%5), "")
 		}
 
-		page, err := ListBodyWeights(db, a2.ID, 0)
+		page, err := ListBodyWeights(context.Background(), db, a2.ID, 0)
 		if err != nil {
 			t.Fatalf("list page 1: %v", err)
 		}
@@ -158,7 +159,7 @@ func TestListBodyWeights(t *testing.T) {
 			t.Error("expected HasMore = true on first page")
 		}
 
-		page2, err := ListBodyWeights(db, a2.ID, BodyWeightPageSize)
+		page2, err := ListBodyWeights(context.Background(), db, a2.ID, BodyWeightPageSize)
 		if err != nil {
 			t.Fatalf("list page 2: %v", err)
 		}
@@ -173,10 +174,10 @@ func TestListBodyWeights(t *testing.T) {
 
 func TestLatestBodyWeight(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("no entries", func(t *testing.T) {
-		bw, err := LatestBodyWeight(db, a.ID)
+		bw, err := LatestBodyWeight(context.Background(), db, a.ID)
 		if err != nil {
 			t.Fatalf("latest body weight: %v", err)
 		}
@@ -186,11 +187,11 @@ func TestLatestBodyWeight(t *testing.T) {
 	})
 
 	t.Run("returns most recent", func(t *testing.T) {
-		CreateBodyWeight(db, a.ID, "2026-02-01", 185.0, "")
-		CreateBodyWeight(db, a.ID, "2026-02-03", 183.0, "latest")
-		CreateBodyWeight(db, a.ID, "2026-02-02", 184.0, "")
+		CreateBodyWeight(context.Background(), db, a.ID, "2026-02-01", 185.0, "")
+		CreateBodyWeight(context.Background(), db, a.ID, "2026-02-03", 183.0, "latest")
+		CreateBodyWeight(context.Background(), db, a.ID, "2026-02-02", 184.0, "")
 
-		bw, err := LatestBodyWeight(db, a.ID)
+		bw, err := LatestBodyWeight(context.Background(), db, a.ID)
 		if err != nil {
 			t.Fatalf("latest body weight: %v", err)
 		}

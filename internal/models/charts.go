@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"math"
@@ -181,12 +182,12 @@ func formatChartValue(v float64) string {
 
 // BodyWeightChartData returns chart data for an athlete's body weight history.
 // Returns the last `limit` entries in chronological order.
-func BodyWeightChartData(db *sql.DB, athleteID int64, limit int, unit string) (*ChartData, error) {
+func BodyWeightChartData(ctx context.Context, db *sql.DB, athleteID int64, limit int, unit string) (*ChartData, error) {
 	if limit <= 0 {
 		limit = 30
 	}
 
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(ctx, `
 		SELECT date, weight FROM body_weights
 		WHERE athlete_id = ?
 		ORDER BY date DESC
@@ -222,8 +223,8 @@ func BodyWeightChartData(db *sql.DB, athleteID int64, limit int, unit string) (*
 
 // TrainingMaxChartData returns chart data for a training max progression.
 // Returns all TM records in chronological order.
-func TrainingMaxChartData(db *sql.DB, athleteID, exerciseID int64, unit string) (*ChartData, error) {
-	rows, err := db.Query(`
+func TrainingMaxChartData(ctx context.Context, db *sql.DB, athleteID, exerciseID int64, unit string) (*ChartData, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT effective_date, weight FROM training_maxes
 		WHERE athlete_id = ? AND exercise_id = ?
 		ORDER BY effective_date ASC
@@ -269,12 +270,12 @@ type ExerciseVolumeChartData struct {
 }
 
 // ExerciseVolumeChart returns bar chart data for an exercise's per-session volume.
-func ExerciseVolumeChart(db *sql.DB, athleteID, exerciseID int64, limit int) (*ExerciseVolumeChartData, error) {
+func ExerciseVolumeChart(ctx context.Context, db *sql.DB, athleteID, exerciseID int64, limit int) (*ExerciseVolumeChartData, error) {
 	if limit <= 0 {
 		limit = 20
 	}
 
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(ctx, `
 		SELECT w.date, SUM(ws.reps * COALESCE(ws.weight, 0)) as volume
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id
@@ -376,7 +377,7 @@ type HeatmapMonthLabel struct {
 
 // WorkoutHeatmap returns a GitHub-style heatmap of workout volume over the
 // last 52 weeks for an athlete. Each cell is one day.
-func WorkoutHeatmap(db *sql.DB, athleteID int64) (*HeatmapData, error) {
+func WorkoutHeatmap(ctx context.Context, db *sql.DB, athleteID int64) (*HeatmapData, error) {
 	// Calculate date range: 52 weeks back from today, aligned to Sunday starts.
 	now := time.Now()
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
@@ -390,7 +391,7 @@ func WorkoutHeatmap(db *sql.DB, athleteID int64) (*HeatmapData, error) {
 	endDate := today
 
 	// Query workout volumes per day.
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(ctx, `
 		SELECT w.date, SUM(ws.reps * COALESCE(ws.weight, 0)) as volume
 		FROM workouts w
 		LEFT JOIN workout_sets ws ON ws.workout_id = w.id
@@ -496,7 +497,7 @@ type DashboardStats struct {
 }
 
 // GetDashboardStats computes summary statistics for the coach dashboard.
-func GetDashboardStats(db *sql.DB) (*DashboardStats, error) {
+func GetDashboardStats(ctx context.Context, db *sql.DB) (*DashboardStats, error) {
 	stats := &DashboardStats{}
 
 	now := time.Now()
@@ -509,7 +510,7 @@ func GetDashboardStats(db *sql.DB) (*DashboardStats, error) {
 	mondayStr := time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, time.UTC).Format("2006-01-02")
 
 	// Total sessions this week.
-	err := db.QueryRow(`
+	err := db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM workouts
 		WHERE date(date) >= date(?)`, mondayStr).Scan(&stats.WeekSessions)
 	if err != nil {
@@ -517,7 +518,7 @@ func GetDashboardStats(db *sql.DB) (*DashboardStats, error) {
 	}
 
 	// Total volume this week.
-	err = db.QueryRow(`
+	err = db.QueryRowContext(ctx, `
 		SELECT COALESCE(SUM(ws.reps * COALESCE(ws.weight, 0)), 0)
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id
@@ -527,13 +528,13 @@ func GetDashboardStats(db *sql.DB) (*DashboardStats, error) {
 	}
 
 	// Total athletes.
-	err = db.QueryRow(`SELECT COUNT(*) FROM athletes`).Scan(&stats.TotalAthletes)
+	err = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM athletes`).Scan(&stats.TotalAthletes)
 	if err != nil {
 		return nil, fmt.Errorf("models: dashboard total athletes: %w", err)
 	}
 
 	// Distinct athletes who trained this week.
-	err = db.QueryRow(`
+	err = db.QueryRowContext(ctx, `
 		SELECT COUNT(DISTINCT athlete_id) FROM workouts
 		WHERE date(date) >= date(?)`, mondayStr).Scan(&stats.TrainedThisWeek)
 	if err != nil {
@@ -541,20 +542,20 @@ func GetDashboardStats(db *sql.DB) (*DashboardStats, error) {
 	}
 
 	// Consecutive weeks streak (weeks with at least one workout, going backward).
-	stats.ConsecutiveWeeks = computeWeekStreak(db, monday)
+	stats.ConsecutiveWeeks = computeWeekStreak(ctx, db, monday)
 
 	return stats, nil
 }
 
 // computeWeekStreak counts consecutive past weeks (including current) with workouts.
-func computeWeekStreak(db *sql.DB, currentMonday time.Time) int {
+func computeWeekStreak(ctx context.Context, db *sql.DB, currentMonday time.Time) int {
 	streak := 0
 	for i := 0; i < 52; i++ {
 		weekStart := currentMonday.AddDate(0, 0, -i*7)
 		weekEnd := weekStart.AddDate(0, 0, 6)
 
 		var count int
-		err := db.QueryRow(`
+		err := db.QueryRowContext(ctx, `
 			SELECT COUNT(*) FROM workouts
 			WHERE date(date) >= date(?) AND date(date) <= date(?)`,
 			weekStart.Format("2006-01-02"), weekEnd.Format("2006-01-02")).Scan(&count)

@@ -29,7 +29,7 @@ func (h *Handlers) CatalogExportJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	catalog, err := models.BuildCatalogExportJSON(h.DB)
+	catalog, err := models.BuildCatalogExportJSON(r.Context(), h.DB)
 	if err != nil {
 		log.Printf("api: build catalog export: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to build catalog")
@@ -93,10 +93,10 @@ func (h *Handlers) CatalogImportUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build mappings against existing entities.
-	existingEx, _ := models.ListExercises(h.DB, "")
+	existingEx, _ := models.ListExercises(r.Context(), h.DB, "")
 	exEntities := exercisesToEntities(existingEx)
 
-	existingEq, _ := models.ListEquipment(h.DB)
+	existingEq, _ := models.ListEquipment(r.Context(), h.DB)
 	eqEntities := make([]importers.ExistingEntity, len(existingEq))
 	for i, e := range existingEq {
 		eqEntities[i] = importers.ExistingEntity{ID: e.ID, Name: e.Name}
@@ -163,7 +163,7 @@ func (h *Handlers) CatalogImportExecute(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	result, err := models.ExecuteCatalogImport(h.DB, ms, nil, false)
+	result, err := models.ExecuteCatalogImport(r.Context(), h.DB, ms, nil, false)
 	if err != nil {
 		log.Printf("api: execute catalog import: %v", err)
 		WriteError(w, http.StatusInternalServerError, "catalog import failed: "+err.Error())
@@ -173,10 +173,10 @@ func (h *Handlers) CatalogImportExecute(w http.ResponseWriter, r *http.Request) 
 	h.Sessions.Remove(r.Context(), "api_catalog_import")
 
 	WriteJSON(w, http.StatusOK, map[string]any{
-		"exercises_created":   result.ExercisesCreated,
-		"equipment_created":   result.EquipmentCreated,
-		"programs_created":    result.ProgramsCreated,
-		"prescribed_sets":     result.PrescribedSets,
-		"progression_rules":   result.ProgressionRules,
+		"exercises_created": result.ExercisesCreated,
+		"equipment_created": result.EquipmentCreated,
+		"programs_created":  result.ProgramsCreated,
+		"prescribed_sets":   result.PrescribedSets,
+		"progression_rules": result.ProgressionRules,
 	})
 }

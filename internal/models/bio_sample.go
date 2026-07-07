@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -32,7 +33,7 @@ type BioSampleInput struct {
 }
 
 // CreateBioSample records a biometric reading. Rows are immutable once written.
-func CreateBioSample(db *sql.DB, athleteID int64, in BioSampleInput) (*BioSample, error) {
+func CreateBioSample(ctx context.Context, db *sql.DB, athleteID int64, in BioSampleInput) (*BioSample, error) {
 	if in.Metric == "" {
 		return nil, fmt.Errorf("models: bio sample metric required: %w", ErrInvalidInput)
 	}
@@ -48,7 +49,7 @@ func CreateBioSample(db *sql.DB, athleteID int64, in BioSampleInput) (*BioSample
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO bio_samples (athlete_id, recorded_at, metric, value, unit, source, notes)
 		 VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, in.RecordedAt, in.Metric, in.Value,
@@ -57,13 +58,13 @@ func CreateBioSample(db *sql.DB, athleteID int64, in BioSampleInput) (*BioSample
 	if err != nil {
 		return nil, fmt.Errorf("models: create bio sample for athlete %d: %w", athleteID, err)
 	}
-	return GetBioSampleByID(db, id)
+	return GetBioSampleByID(ctx, db, id)
 }
 
 // GetBioSampleByID retrieves a bio sample by primary key.
-func GetBioSampleByID(db *sql.DB, id int64) (*BioSample, error) {
+func GetBioSampleByID(ctx context.Context, db *sql.DB, id int64) (*BioSample, error) {
 	bs := &BioSample{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, athlete_id, recorded_at, metric, value, unit, source, notes, created_at
 		 FROM bio_samples WHERE id = ?`, id,
 	).Scan(&bs.ID, &bs.AthleteID, &bs.RecordedAt, &bs.Metric, &bs.Value, &bs.Unit, &bs.Source, &bs.Notes, &bs.CreatedAt)
@@ -78,7 +79,7 @@ func GetBioSampleByID(db *sql.DB, id int64) (*BioSample, error) {
 
 // ListBioSamples returns an athlete's bio samples, newest first. If metric is
 // non-empty, results are filtered to that metric.
-func ListBioSamples(db *sql.DB, athleteID int64, metric string, limit int) ([]*BioSample, error) {
+func ListBioSamples(ctx context.Context, db *sql.DB, athleteID int64, metric string, limit int) ([]*BioSample, error) {
 	if limit <= 0 {
 		limit = 100
 	}
@@ -87,12 +88,12 @@ func ListBioSamples(db *sql.DB, athleteID int64, metric string, limit int) ([]*B
 		err  error
 	)
 	if metric != "" {
-		rows, err = db.Query(
+		rows, err = db.QueryContext(ctx,
 			`SELECT id, athlete_id, recorded_at, metric, value, unit, source, notes, created_at
 			 FROM bio_samples WHERE athlete_id = ? AND metric = ?
 			 ORDER BY recorded_at DESC, id DESC LIMIT ?`, athleteID, metric, limit)
 	} else {
-		rows, err = db.Query(
+		rows, err = db.QueryContext(ctx,
 			`SELECT id, athlete_id, recorded_at, metric, value, unit, source, notes, created_at
 			 FROM bio_samples WHERE athlete_id = ?
 			 ORDER BY recorded_at DESC, id DESC LIMIT ?`, athleteID, limit)

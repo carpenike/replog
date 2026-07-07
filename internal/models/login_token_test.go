@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -8,13 +9,13 @@ import (
 
 func TestCreateLoginToken(t *testing.T) {
 	db := testDB(t)
-	user, err := CreateUser(db, "kid1", "", "password123", "", false, false, sql.NullInt64{})
+	user, err := CreateUser(context.Background(), db, "kid1", "", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
 
 	t.Run("basic create", func(t *testing.T) {
-		lt, err := CreateLoginToken(db, user.ID, "iPad", nil)
+		lt, err := CreateLoginToken(context.Background(), db, user.ID, "iPad", nil)
 		if err != nil {
 			t.Fatalf("create login token: %v", err)
 		}
@@ -42,7 +43,7 @@ func TestCreateLoginToken(t *testing.T) {
 
 	t.Run("with expiry", func(t *testing.T) {
 		expires := time.Now().Add(24 * time.Hour)
-		lt, err := CreateLoginToken(db, user.ID, "iPhone", &expires)
+		lt, err := CreateLoginToken(context.Background(), db, user.ID, "iPhone", &expires)
 		if err != nil {
 			t.Fatalf("create login token with expiry: %v", err)
 		}
@@ -52,7 +53,7 @@ func TestCreateLoginToken(t *testing.T) {
 	})
 
 	t.Run("no label", func(t *testing.T) {
-		lt, err := CreateLoginToken(db, user.ID, "", nil)
+		lt, err := CreateLoginToken(context.Background(), db, user.ID, "", nil)
 		if err != nil {
 			t.Fatalf("create login token without label: %v", err)
 		}
@@ -62,8 +63,8 @@ func TestCreateLoginToken(t *testing.T) {
 	})
 
 	t.Run("unique tokens", func(t *testing.T) {
-		lt1, _ := CreateLoginToken(db, user.ID, "device1", nil)
-		lt2, _ := CreateLoginToken(db, user.ID, "device2", nil)
+		lt1, _ := CreateLoginToken(context.Background(), db, user.ID, "device1", nil)
+		lt2, _ := CreateLoginToken(context.Background(), db, user.ID, "device2", nil)
 		if lt1.Token == lt2.Token {
 			t.Error("tokens should be unique")
 		}
@@ -75,9 +76,9 @@ func TestCreateLoginToken(t *testing.T) {
 // not yield usable magic links.
 func TestLoginTokenHashedAtRest(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "hashkid", "", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(context.Background(), db, "hashkid", "", "password123", "", false, false, sql.NullInt64{})
 
-	lt, err := CreateLoginToken(db, user.ID, "device", nil)
+	lt, err := CreateLoginToken(context.Background(), db, user.ID, "device", nil)
 	if err != nil {
 		t.Fatalf("create login token: %v", err)
 	}
@@ -96,11 +97,11 @@ func TestLoginTokenHashedAtRest(t *testing.T) {
 
 func TestValidateLoginToken(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid2", "", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(context.Background(), db, "kid2", "", "password123", "", false, false, sql.NullInt64{})
 
 	t.Run("valid token", func(t *testing.T) {
-		lt, _ := CreateLoginToken(db, user.ID, "iPad", nil)
-		u, err := ValidateLoginToken(db, lt.Token)
+		lt, _ := CreateLoginToken(context.Background(), db, user.ID, "iPad", nil)
+		u, err := ValidateLoginToken(context.Background(), db, lt.Token)
 		if err != nil {
 			t.Fatalf("validate token: %v", err)
 		}
@@ -113,7 +114,7 @@ func TestValidateLoginToken(t *testing.T) {
 	})
 
 	t.Run("invalid token", func(t *testing.T) {
-		_, err := ValidateLoginToken(db, "nonexistent-token-value")
+		_, err := ValidateLoginToken(context.Background(), db, "nonexistent-token-value")
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -121,8 +122,8 @@ func TestValidateLoginToken(t *testing.T) {
 
 	t.Run("expired token", func(t *testing.T) {
 		past := time.Now().Add(-1 * time.Hour)
-		lt, _ := CreateLoginToken(db, user.ID, "expired", &past)
-		_, err := ValidateLoginToken(db, lt.Token)
+		lt, _ := CreateLoginToken(context.Background(), db, user.ID, "expired", &past)
+		_, err := ValidateLoginToken(context.Background(), db, lt.Token)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound for expired token", err)
 		}
@@ -130,8 +131,8 @@ func TestValidateLoginToken(t *testing.T) {
 
 	t.Run("future expiry is valid", func(t *testing.T) {
 		future := time.Now().Add(24 * time.Hour)
-		lt, _ := CreateLoginToken(db, user.ID, "future", &future)
-		u, err := ValidateLoginToken(db, lt.Token)
+		lt, _ := CreateLoginToken(context.Background(), db, user.ID, "future", &future)
+		u, err := ValidateLoginToken(context.Background(), db, lt.Token)
 		if err != nil {
 			t.Fatalf("validate future token: %v", err)
 		}
@@ -143,12 +144,12 @@ func TestValidateLoginToken(t *testing.T) {
 	t.Run("token is single-use", func(t *testing.T) {
 		// Tokens must be consumed on first successful validate so a leaked
 		// magic-link URL (e.g. from access logs) cannot be replayed.
-		lt, _ := CreateLoginToken(db, user.ID, "one-shot", nil)
+		lt, _ := CreateLoginToken(context.Background(), db, user.ID, "one-shot", nil)
 
-		if _, err := ValidateLoginToken(db, lt.Token); err != nil {
+		if _, err := ValidateLoginToken(context.Background(), db, lt.Token); err != nil {
 			t.Fatalf("first validate: %v", err)
 		}
-		if _, err := ValidateLoginToken(db, lt.Token); err != ErrNotFound {
+		if _, err := ValidateLoginToken(context.Background(), db, lt.Token); err != ErrNotFound {
 			t.Errorf("second validate err = %v, want ErrNotFound (single-use)", err)
 		}
 	})
@@ -157,12 +158,12 @@ func TestValidateLoginToken(t *testing.T) {
 		// Even an expired token row should be deleted on lookup so the
 		// table doesn't grow unbounded between scheduled cleanups.
 		past := time.Now().Add(-1 * time.Hour)
-		lt, _ := CreateLoginToken(db, user.ID, "expired-consumed", &past)
+		lt, _ := CreateLoginToken(context.Background(), db, user.ID, "expired-consumed", &past)
 
-		if _, err := ValidateLoginToken(db, lt.Token); err != ErrNotFound {
+		if _, err := ValidateLoginToken(context.Background(), db, lt.Token); err != ErrNotFound {
 			t.Fatalf("first validate err = %v, want ErrNotFound", err)
 		}
-		if _, err := ValidateLoginToken(db, lt.Token); err != ErrNotFound {
+		if _, err := ValidateLoginToken(context.Background(), db, lt.Token); err != ErrNotFound {
 			t.Errorf("second validate err = %v, want ErrNotFound", err)
 		}
 	})
@@ -170,10 +171,10 @@ func TestValidateLoginToken(t *testing.T) {
 
 func TestListLoginTokensByUser(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid3", "", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(context.Background(), db, "kid3", "", "password123", "", false, false, sql.NullInt64{})
 
 	t.Run("empty list", func(t *testing.T) {
-		tokens, err := ListLoginTokensByUser(db, user.ID)
+		tokens, err := ListLoginTokensByUser(context.Background(), db, user.ID)
 		if err != nil {
 			t.Fatalf("list tokens: %v", err)
 		}
@@ -183,11 +184,11 @@ func TestListLoginTokensByUser(t *testing.T) {
 	})
 
 	t.Run("multiple tokens", func(t *testing.T) {
-		CreateLoginToken(db, user.ID, "device1", nil)
-		CreateLoginToken(db, user.ID, "device2", nil)
-		CreateLoginToken(db, user.ID, "device3", nil)
+		CreateLoginToken(context.Background(), db, user.ID, "device1", nil)
+		CreateLoginToken(context.Background(), db, user.ID, "device2", nil)
+		CreateLoginToken(context.Background(), db, user.ID, "device3", nil)
 
-		tokens, err := ListLoginTokensByUser(db, user.ID)
+		tokens, err := ListLoginTokensByUser(context.Background(), db, user.ID)
 		if err != nil {
 			t.Fatalf("list tokens: %v", err)
 		}
@@ -199,24 +200,24 @@ func TestListLoginTokensByUser(t *testing.T) {
 
 func TestDeleteLoginToken(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid4", "", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(context.Background(), db, "kid4", "", "password123", "", false, false, sql.NullInt64{})
 
 	t.Run("delete existing", func(t *testing.T) {
-		lt, _ := CreateLoginToken(db, user.ID, "to-delete", nil)
-		err := DeleteLoginToken(db, lt.ID, user.ID)
+		lt, _ := CreateLoginToken(context.Background(), db, user.ID, "to-delete", nil)
+		err := DeleteLoginToken(context.Background(), db, lt.ID, user.ID)
 		if err != nil {
 			t.Fatalf("delete token: %v", err)
 		}
 
 		// Verify it's gone.
-		_, err = ValidateLoginToken(db, lt.Token)
+		_, err = ValidateLoginToken(context.Background(), db, lt.Token)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound after delete", err)
 		}
 	})
 
 	t.Run("delete non-existent", func(t *testing.T) {
-		err := DeleteLoginToken(db, 99999, user.ID)
+		err := DeleteLoginToken(context.Background(), db, 99999, user.ID)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -225,17 +226,17 @@ func TestDeleteLoginToken(t *testing.T) {
 
 func TestDeleteLoginTokensByUser(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid5", "", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(context.Background(), db, "kid5", "", "password123", "", false, false, sql.NullInt64{})
 
-	CreateLoginToken(db, user.ID, "d1", nil)
-	CreateLoginToken(db, user.ID, "d2", nil)
+	CreateLoginToken(context.Background(), db, user.ID, "d1", nil)
+	CreateLoginToken(context.Background(), db, user.ID, "d2", nil)
 
-	err := DeleteLoginTokensByUser(db, user.ID)
+	err := DeleteLoginTokensByUser(context.Background(), db, user.ID)
 	if err != nil {
 		t.Fatalf("delete all tokens: %v", err)
 	}
 
-	tokens, _ := ListLoginTokensByUser(db, user.ID)
+	tokens, _ := ListLoginTokensByUser(context.Background(), db, user.ID)
 	if len(tokens) != 0 {
 		t.Errorf("len = %d, want 0 after delete all", len(tokens))
 	}
@@ -270,16 +271,16 @@ func TestIsExpired(t *testing.T) {
 
 func TestLoginTokenCascadeDelete(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid6", "", "password123", "", false, false, sql.NullInt64{})
-	CreateLoginToken(db, user.ID, "device", nil)
+	user, _ := CreateUser(context.Background(), db, "kid6", "", "password123", "", false, false, sql.NullInt64{})
+	CreateLoginToken(context.Background(), db, user.ID, "device", nil)
 
 	// Delete the user — tokens should cascade.
-	err := DeleteUser(db, user.ID)
+	err := DeleteUser(context.Background(), db, user.ID)
 	if err != nil {
 		t.Fatalf("delete user: %v", err)
 	}
 
-	tokens, _ := ListLoginTokensByUser(db, user.ID)
+	tokens, _ := ListLoginTokensByUser(context.Background(), db, user.ID)
 	if len(tokens) != 0 {
 		t.Errorf("len = %d, want 0 after user delete cascade", len(tokens))
 	}
@@ -287,22 +288,22 @@ func TestLoginTokenCascadeDelete(t *testing.T) {
 
 func TestDeleteExpiredLoginTokens(t *testing.T) {
 	db := testDB(t)
-	user, _ := CreateUser(db, "kid7", "", "password123", "", false, false, sql.NullInt64{})
+	user, _ := CreateUser(context.Background(), db, "kid7", "", "password123", "", false, false, sql.NullInt64{})
 
 	// Create an expired token (1 hour in the past).
 	past := time.Now().Add(-1 * time.Hour)
-	CreateLoginToken(db, user.ID, "expired1", &past)
+	CreateLoginToken(context.Background(), db, user.ID, "expired1", &past)
 
 	// Create a second expired token.
 	pastMore := time.Now().Add(-2 * time.Hour)
-	CreateLoginToken(db, user.ID, "expired2", &pastMore)
+	CreateLoginToken(context.Background(), db, user.ID, "expired2", &pastMore)
 
 	// Create a valid token (1 hour in the future).
 	future := time.Now().Add(1 * time.Hour)
-	validToken, _ := CreateLoginToken(db, user.ID, "valid", &future)
+	validToken, _ := CreateLoginToken(context.Background(), db, user.ID, "valid", &future)
 
 	// Run cleanup.
-	deleted, err := DeleteExpiredLoginTokens(db)
+	deleted, err := DeleteExpiredLoginTokens(context.Background(), db)
 	if err != nil {
 		t.Fatalf("delete expired tokens: %v", err)
 	}
@@ -311,7 +312,7 @@ func TestDeleteExpiredLoginTokens(t *testing.T) {
 	}
 
 	// The valid token should still exist.
-	remaining, _ := ListLoginTokensByUser(db, user.ID)
+	remaining, _ := ListLoginTokensByUser(context.Background(), db, user.ID)
 	if len(remaining) != 1 {
 		t.Fatalf("remaining = %d, want 1", len(remaining))
 	}
@@ -324,7 +325,7 @@ func TestDeleteExpiredLoginTokensNoop(t *testing.T) {
 	db := testDB(t)
 
 	// No tokens at all — should succeed with 0 deleted.
-	deleted, err := DeleteExpiredLoginTokens(db)
+	deleted, err := DeleteExpiredLoginTokens(context.Background(), db)
 	if err != nil {
 		t.Fatalf("delete expired tokens: %v", err)
 	}

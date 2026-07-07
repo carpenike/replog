@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sort"
@@ -200,8 +201,8 @@ type AthleteExportJSON struct {
 // athlete's data (ADR 006). It reuses the existing model query functions where
 // available and issues a handful of full-history queries for data that only has
 // paginated list helpers (workouts, training maxes, body weights, assignments).
-func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, error) {
-	athlete, err := GetAthleteByID(db, athleteID)
+func BuildAthleteExportJSON(ctx context.Context, db *sql.DB, athleteID int64) (*AthleteExportJSON, error) {
+	athlete, err := GetAthleteByID(ctx, db, athleteID)
 	if err != nil {
 		return nil, err // includes ErrNotFound
 	}
@@ -243,7 +244,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 	referencedExercises := make(map[int64]bool)
 
 	// --- Athlete equipment inventory ---
-	equip, err := ListAthleteEquipment(db, athleteID)
+	equip, err := ListAthleteEquipment(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("models: export athlete equipment: %w", err)
 	}
@@ -252,7 +253,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 	}
 
 	// --- Assignments (active + historical) ---
-	assignRows, err := db.Query(`
+	assignRows, err := db.QueryContext(ctx, `
 		SELECT ae.exercise_id, e.name, ae.target_reps, ae.active, ae.assigned_at, ae.deactivated_at
 		FROM athlete_exercises ae
 		JOIN exercises e ON e.id = ae.exercise_id
@@ -288,7 +289,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 	assignRows.Close()
 
 	// --- Training maxes (full history) ---
-	tmRows, err := db.Query(`
+	tmRows, err := db.QueryContext(ctx, `
 		SELECT tm.exercise_id, e.name, tm.weight, tm.effective_date, tm.notes
 		FROM training_maxes tm
 		JOIN exercises e ON e.id = tm.exercise_id
@@ -321,7 +322,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 	tmRows.Close()
 
 	// --- Body weights (full history) ---
-	bwRows, err := db.Query(`
+	bwRows, err := db.QueryContext(ctx, `
 		SELECT date, weight, notes
 		FROM body_weights
 		WHERE athlete_id = ?
@@ -350,7 +351,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 	bwRows.Close()
 
 	// --- Notes (includes private) ---
-	notes, err := ListAthleteNotes(db, athleteID, true)
+	notes, err := ListAthleteNotes(ctx, db, athleteID, true)
 	if err != nil {
 		return nil, fmt.Errorf("models: export notes: %w", err)
 	}
@@ -365,12 +366,12 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 	}
 
 	// --- Workouts (all disciplines) with sets and reviews ---
-	if err := buildExportWorkouts(db, athleteID, out, referencedExercises); err != nil {
+	if err := buildExportWorkouts(ctx, db, athleteID, out, referencedExercises); err != nil {
 		return nil, err
 	}
 
 	// --- Program assignments (with template definition) ---
-	programs, err := ListAthletePrograms(db, athleteID)
+	programs, err := ListAthletePrograms(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("models: export programs: %w", err)
 	}
@@ -382,7 +383,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 			IsLoop:   ap.IsLoop,
 		}
 
-		pSets, err := ListPrescribedSets(db, ap.TemplateID)
+		pSets, err := ListPrescribedSets(ctx, db, ap.TemplateID)
 		if err != nil {
 			return nil, fmt.Errorf("models: export prescribed sets for template %d: %w", ap.TemplateID, err)
 		}
@@ -412,7 +413,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 			tmpl.PrescribedSets = append(tmpl.PrescribedSets, eps)
 		}
 
-		rules, err := ListProgressionRules(db, ap.TemplateID)
+		rules, err := ListProgressionRules(ctx, db, ap.TemplateID)
 		if err != nil {
 			return nil, fmt.Errorf("models: export progression rules for template %d: %w", ap.TemplateID, err)
 		}
@@ -434,7 +435,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 	}
 
 	// --- Multimodal sessions ---
-	if err := buildExportSessions(db, athleteID, out); err != nil {
+	if err := buildExportSessions(ctx, db, athleteID, out); err != nil {
 		return nil, err
 	}
 
@@ -445,7 +446,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 	}
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	for _, id := range ids {
-		ex, err := GetExerciseByID(db, id)
+		ex, err := GetExerciseByID(ctx, db, id)
 		if err != nil {
 			// Skip a missing exercise rather than fail the whole export.
 			continue
@@ -461,7 +462,7 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 			rs := int(ex.RestSeconds.Int64)
 			ee.RestSeconds = &rs
 		}
-		eqLinks, err := ListExerciseEquipment(db, ex.ID)
+		eqLinks, err := ListExerciseEquipment(ctx, db, ex.ID)
 		if err != nil {
 			return nil, fmt.Errorf("models: export exercise equipment for %d: %w", ex.ID, err)
 		}
@@ -480,8 +481,8 @@ func BuildAthleteExportJSON(db *sql.DB, athleteID int64) (*AthleteExportJSON, er
 // buildExportWorkouts loads every workout for the athlete (all disciplines) with
 // its sets and review, appending them to out.Workouts and recording referenced
 // exercise IDs.
-func buildExportWorkouts(db *sql.DB, athleteID int64, out *AthleteExportJSON, refs map[int64]bool) error {
-	rows, err := db.Query(`
+func buildExportWorkouts(ctx context.Context, db *sql.DB, athleteID int64, out *AthleteExportJSON, refs map[int64]bool) error {
+	rows, err := db.QueryContext(ctx, `
 		SELECT id, date, discipline, notes
 		FROM workouts
 		WHERE athlete_id = ?
@@ -515,7 +516,7 @@ func buildExportWorkouts(db *sql.DB, athleteID int64, out *AthleteExportJSON, re
 		return nil
 	}
 
-	setsByWorkout, err := ListSetsByWorkoutIDs(db, ids)
+	setsByWorkout, err := ListSetsByWorkoutIDs(ctx, db, ids)
 	if err != nil {
 		return fmt.Errorf("models: export workout sets: %w", err)
 	}
@@ -544,7 +545,7 @@ func buildExportWorkouts(db *sql.DB, athleteID int64, out *AthleteExportJSON, re
 			}
 		}
 
-		review, err := GetWorkoutReviewByWorkoutID(db, wr.id)
+		review, err := GetWorkoutReviewByWorkoutID(ctx, db, wr.id)
 		if err == nil {
 			ew.Review = &ExportReview{
 				Status: review.Status,
@@ -558,10 +559,10 @@ func buildExportWorkouts(db *sql.DB, athleteID int64, out *AthleteExportJSON, re
 }
 
 // buildExportSessions loads the four multimodal session types for the athlete.
-func buildExportSessions(db *sql.DB, athleteID int64, out *AthleteExportJSON) error {
+func buildExportSessions(ctx context.Context, db *sql.DB, athleteID int64, out *AthleteExportJSON) error {
 	const allSessions = 100000
 
-	cond, err := ListConditioningSessions(db, athleteID, allSessions)
+	cond, err := ListConditioningSessions(ctx, db, athleteID, allSessions)
 	if err != nil {
 		return fmt.Errorf("models: export conditioning sessions: %w", err)
 	}
@@ -579,7 +580,7 @@ func buildExportSessions(db *sql.DB, athleteID int64, out *AthleteExportJSON) er
 		})
 	}
 
-	throw, err := ListThrowingSessions(db, athleteID, allSessions)
+	throw, err := ListThrowingSessions(ctx, db, athleteID, allSessions)
 	if err != nil {
 		return fmt.Errorf("models: export throwing sessions: %w", err)
 	}
@@ -598,7 +599,7 @@ func buildExportSessions(db *sql.DB, athleteID int64, out *AthleteExportJSON) er
 		})
 	}
 
-	skill, err := ListSkillSessions(db, athleteID, allSessions)
+	skill, err := ListSkillSessions(ctx, db, athleteID, allSessions)
 	if err != nil {
 		return fmt.Errorf("models: export skill sessions: %w", err)
 	}
@@ -614,7 +615,7 @@ func buildExportSessions(db *sql.DB, athleteID int64, out *AthleteExportJSON) er
 		})
 	}
 
-	rec, err := ListRecoveryCheckins(db, athleteID, allSessions)
+	rec, err := ListRecoveryCheckins(ctx, db, athleteID, allSessions)
 	if err != nil {
 		return fmt.Errorf("models: export recovery checkins: %w", err)
 	}

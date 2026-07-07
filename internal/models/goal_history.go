@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -24,7 +25,7 @@ type GoalHistory struct {
 // RecordGoalChange inserts a goal history entry. Called when an athlete's goal
 // is created or changed. previousGoal should be the old goal value (empty string
 // if none). setByUserID is the user making the change.
-func RecordGoalChange(db *sql.DB, athleteID int64, goal, previousGoal string, setByUserID int64, effectiveDate, notes string) (*GoalHistory, error) {
+func RecordGoalChange(ctx context.Context, db *sql.DB, athleteID int64, goal, previousGoal string, setByUserID int64, effectiveDate, notes string) (*GoalHistory, error) {
 	var prevVal sql.NullString
 	if previousGoal != "" {
 		prevVal = sql.NullString{String: previousGoal, Valid: true}
@@ -38,7 +39,7 @@ func RecordGoalChange(db *sql.DB, athleteID int64, goal, previousGoal string, se
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO goal_history (athlete_id, goal, previous_goal, set_by, effective_date, notes)
 		 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, goal, prevVal, setByUserID, effectiveDate, notesVal,
@@ -47,13 +48,13 @@ func RecordGoalChange(db *sql.DB, athleteID int64, goal, previousGoal string, se
 		return nil, fmt.Errorf("models: record goal change for athlete %d: %w", athleteID, err)
 	}
 
-	return GetGoalHistoryByID(db, id)
+	return GetGoalHistoryByID(ctx, db, id)
 }
 
 // GetGoalHistoryByID retrieves a single goal history entry by primary key.
-func GetGoalHistoryByID(db *sql.DB, id int64) (*GoalHistory, error) {
+func GetGoalHistoryByID(ctx context.Context, db *sql.DB, id int64) (*GoalHistory, error) {
 	gh := &GoalHistory{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT gh.id, gh.athlete_id, gh.goal, gh.previous_goal, gh.set_by,
 		        gh.effective_date, gh.notes, gh.created_at,
 		        COALESCE(u.name, u.username, '') AS set_by_name
@@ -69,8 +70,8 @@ func GetGoalHistoryByID(db *sql.DB, id int64) (*GoalHistory, error) {
 }
 
 // ListGoalHistory returns the goal change history for an athlete, newest first.
-func ListGoalHistory(db *sql.DB, athleteID int64) ([]*GoalHistory, error) {
-	rows, err := db.Query(
+func ListGoalHistory(ctx context.Context, db *sql.DB, athleteID int64) ([]*GoalHistory, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT gh.id, gh.athlete_id, gh.goal, gh.previous_goal, gh.set_by,
 		        gh.effective_date, gh.notes, gh.created_at,
 		        COALESCE(u.name, u.username, '') AS set_by_name

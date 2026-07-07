@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"testing"
@@ -8,11 +9,11 @@ import (
 
 func TestRecordTierChange(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
-	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
+	coach, _ := CreateUser(context.Background(), db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	t.Run("initial tier", func(t *testing.T) {
-		th, err := RecordTierChange(db, a.ID, "foundational", "", coach.ID, "", "")
+		th, err := RecordTierChange(context.Background(), db, a.ID, "foundational", "", coach.ID, "", "")
 		if err != nil {
 			t.Fatalf("record tier change: %v", err)
 		}
@@ -28,7 +29,7 @@ func TestRecordTierChange(t *testing.T) {
 	})
 
 	t.Run("tier promotion", func(t *testing.T) {
-		th, err := RecordTierChange(db, a.ID, "intermediate", "foundational", coach.ID, "2026-03-01", "Promoted")
+		th, err := RecordTierChange(context.Background(), db, a.ID, "intermediate", "foundational", coach.ID, "2026-03-01", "Promoted")
 		if err != nil {
 			t.Fatalf("record tier change: %v", err)
 		}
@@ -47,7 +48,7 @@ func TestRecordTierChange(t *testing.T) {
 	})
 
 	t.Run("default effective date", func(t *testing.T) {
-		th, err := RecordTierChange(db, a.ID, "sport_performance", "intermediate", coach.ID, "", "")
+		th, err := RecordTierChange(context.Background(), db, a.ID, "sport_performance", "intermediate", coach.ID, "", "")
 		if err != nil {
 			t.Fatalf("record tier change: %v", err)
 		}
@@ -59,15 +60,15 @@ func TestRecordTierChange(t *testing.T) {
 
 func TestListTierHistory(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
-	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
+	coach, _ := CreateUser(context.Background(), db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
-	RecordTierChange(db, a.ID, "foundational", "", coach.ID, "2026-01-01", "")
-	RecordTierChange(db, a.ID, "intermediate", "foundational", coach.ID, "2026-02-01", "")
-	RecordTierChange(db, a.ID, "sport_performance", "intermediate", coach.ID, "2026-03-01", "")
+	RecordTierChange(context.Background(), db, a.ID, "foundational", "", coach.ID, "2026-01-01", "")
+	RecordTierChange(context.Background(), db, a.ID, "intermediate", "foundational", coach.ID, "2026-02-01", "")
+	RecordTierChange(context.Background(), db, a.ID, "sport_performance", "intermediate", coach.ID, "2026-03-01", "")
 
 	t.Run("returns newest first", func(t *testing.T) {
-		history, err := ListTierHistory(db, a.ID)
+		history, err := ListTierHistory(context.Background(), db, a.ID)
 		if err != nil {
 			t.Fatalf("list tier history: %v", err)
 		}
@@ -83,11 +84,11 @@ func TestListTierHistory(t *testing.T) {
 	})
 
 	t.Run("cascades on athlete delete", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Delete Me", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
-		RecordTierChange(db, a2.ID, "foundational", "", coach.ID, "", "")
+		a2, _ := CreateAthlete(context.Background(), db, "Delete Me", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
+		RecordTierChange(context.Background(), db, a2.ID, "foundational", "", coach.ID, "", "")
 		db.Exec("DELETE FROM athletes WHERE id = ?", a2.ID)
 
-		history, err := ListTierHistory(db, a2.ID)
+		history, err := ListTierHistory(context.Background(), db, a2.ID)
 		if err != nil {
 			t.Fatalf("list tier history after delete: %v", err)
 		}

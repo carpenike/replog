@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -47,7 +48,7 @@ type DisciplineLoad struct {
 // It performs SELECTs only — no INSERT/UPDATE/DELETE — and returns a fixed set
 // of load-bearing disciplines (resistance, throwing, conditioning, skill) even
 // when their totals are zero, so the coach sees the full picture.
-func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
+func GetLoadSummary(ctx context.Context, db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	asOf := time.Now().Format("2006-01-02")
 	// Window anchors: acute = last 7 days inclusive, chronic = last 28 days.
 	acuteStart := time.Now().AddDate(0, 0, -6).Format("2006-01-02")
@@ -56,7 +57,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	summary := &LoadSummary{AthleteID: athleteID, AsOf: asOf}
 
 	// resistance: volume-load = sum(reps * weight) over completed sets.
-	resAcute, err := scalarLoad(db,
+	resAcute, err := scalarLoad(ctx, db,
 		`SELECT COALESCE(SUM(ws.reps * ws.weight), 0)
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id
@@ -65,7 +66,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	resChronic, err := scalarLoad(db,
+	resChronic, err := scalarLoad(ctx, db,
 		`SELECT COALESCE(SUM(ws.reps * ws.weight), 0)
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id
@@ -74,7 +75,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	resEarliest, err := earliestLoadDate(db,
+	resEarliest, err := earliestLoadDate(ctx, db,
 		`SELECT MIN(w.date)
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id
@@ -86,7 +87,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	summary.Disciplines = append(summary.Disciplines, newDisciplineLoad("resistance", "volume_load", resAcute, resChronic, resEarliest, chronicStart))
 
 	// throwing: total throws = sum(throw_count).
-	throwAcute, err := scalarLoad(db,
+	throwAcute, err := scalarLoad(ctx, db,
 		`SELECT COALESCE(SUM(ts.throw_count), 0)
 		 FROM throwing_sessions ts
 		 JOIN workouts w ON w.id = ts.workout_id
@@ -95,7 +96,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	throwChronic, err := scalarLoad(db,
+	throwChronic, err := scalarLoad(ctx, db,
 		`SELECT COALESCE(SUM(ts.throw_count), 0)
 		 FROM throwing_sessions ts
 		 JOIN workouts w ON w.id = ts.workout_id
@@ -104,7 +105,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	throwEarliest, err := earliestLoadDate(db,
+	throwEarliest, err := earliestLoadDate(ctx, db,
 		`SELECT MIN(w.date)
 		 FROM throwing_sessions ts
 		 JOIN workouts w ON w.id = ts.workout_id
@@ -116,7 +117,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	summary.Disciplines = append(summary.Disciplines, newDisciplineLoad("throwing", "throws", throwAcute, throwChronic, throwEarliest, chronicStart))
 
 	// conditioning: total work seconds = sum(duration_seconds).
-	condAcute, err := scalarLoad(db,
+	condAcute, err := scalarLoad(ctx, db,
 		`SELECT COALESCE(SUM(cs.duration_seconds), 0)
 		 FROM conditioning_sessions cs
 		 JOIN workouts w ON w.id = cs.workout_id
@@ -125,7 +126,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	condChronic, err := scalarLoad(db,
+	condChronic, err := scalarLoad(ctx, db,
 		`SELECT COALESCE(SUM(cs.duration_seconds), 0)
 		 FROM conditioning_sessions cs
 		 JOIN workouts w ON w.id = cs.workout_id
@@ -134,7 +135,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	condEarliest, err := earliestLoadDate(db,
+	condEarliest, err := earliestLoadDate(ctx, db,
 		`SELECT MIN(w.date)
 		 FROM conditioning_sessions cs
 		 JOIN workouts w ON w.id = cs.workout_id
@@ -146,7 +147,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	summary.Disciplines = append(summary.Disciplines, newDisciplineLoad("conditioning", "seconds", condAcute, condChronic, condEarliest, chronicStart))
 
 	// skill: total reps = sum(rep_count).
-	skillAcute, err := scalarLoad(db,
+	skillAcute, err := scalarLoad(ctx, db,
 		`SELECT COALESCE(SUM(ss.rep_count), 0)
 		 FROM skill_sessions ss
 		 JOIN workouts w ON w.id = ss.workout_id
@@ -155,7 +156,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	skillChronic, err := scalarLoad(db,
+	skillChronic, err := scalarLoad(ctx, db,
 		`SELECT COALESCE(SUM(ss.rep_count), 0)
 		 FROM skill_sessions ss
 		 JOIN workouts w ON w.id = ss.workout_id
@@ -164,7 +165,7 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	skillEarliest, err := earliestLoadDate(db,
+	skillEarliest, err := earliestLoadDate(ctx, db,
 		`SELECT MIN(w.date)
 		 FROM skill_sessions ss
 		 JOIN workouts w ON w.id = ss.workout_id
@@ -179,9 +180,9 @@ func GetLoadSummary(db *sql.DB, athleteID int64) (*LoadSummary, error) {
 }
 
 // scalarLoad runs a single-value COALESCE(SUM(...),0) load query.
-func scalarLoad(db *sql.DB, query string, args ...any) (float64, error) {
+func scalarLoad(ctx context.Context, db *sql.DB, query string, args ...any) (float64, error) {
 	var v float64
-	if err := db.QueryRow(query, args...).Scan(&v); err != nil {
+	if err := db.QueryRowContext(ctx, query, args...).Scan(&v); err != nil {
 		return 0, fmt.Errorf("models: compute load: %w", err)
 	}
 	return v, nil
@@ -189,9 +190,9 @@ func scalarLoad(db *sql.DB, query string, args ...any) (float64, error) {
 
 // earliestLoadDate returns the earliest logged date (YYYY-MM-DD) contributing
 // load for a discipline, or "" when the athlete has no logged sessions for it.
-func earliestLoadDate(db *sql.DB, query string, args ...any) (string, error) {
+func earliestLoadDate(ctx context.Context, db *sql.DB, query string, args ...any) (string, error) {
 	var d sql.NullString
-	if err := db.QueryRow(query, args...).Scan(&d); err != nil {
+	if err := db.QueryRowContext(ctx, query, args...).Scan(&d); err != nil {
 		return "", fmt.Errorf("models: earliest load date: %w", err)
 	}
 	if !d.Valid {

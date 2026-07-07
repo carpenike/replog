@@ -28,13 +28,8 @@ import (
 //	@Router       /athletes/{id}/notes [post]
 func (h *Handlers) CreateAthleteNote(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -49,7 +44,7 @@ func (h *Handlers) CreateAthleteNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	date := todayInUserTZ(r)
-	note, err := models.CreateAthleteNote(h.DB, athleteID, user.ID, date, req.Content, req.IsPrivate, req.Pinned)
+	note, err := models.CreateAthleteNote(r.Context(), h.DB, athleteID, user.ID, date, req.Content, req.IsPrivate, req.Pinned)
 	if err != nil {
 		log.Printf("api: create athlete note for %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to create note")
@@ -60,8 +55,8 @@ func (h *Handlers) CreateAthleteNote(w http.ResponseWriter, r *http.Request) {
 	// not the athlete themselves (ADR 008). A coach making notes on a kid
 	// fires; a kid leaving themselves a private note does not.
 	if !req.IsPrivate {
-		if recipient, lerr := models.GetUserByAthleteID(h.DB, athleteID); lerr == nil && recipient.ID != user.ID {
-			h.notifyAthlete(athleteID, models.NotifyNoteAdded,
+		if recipient, lerr := models.GetUserByAthleteID(r.Context(), h.DB, athleteID); lerr == nil && recipient.ID != user.ID {
+			h.notifyAthlete(r.Context(), athleteID, models.NotifyNoteAdded,
 				"Coach left a note", req.Content,
 				fmt.Sprintf("/athletes/%d/journal", athleteID))
 		}
@@ -93,14 +88,8 @@ func (h *Handlers) CreateAthleteNote(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/goal [put]
 func (h *Handlers) UpdateAthleteGoal(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -110,7 +99,7 @@ func (h *Handlers) UpdateAthleteGoal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.UpdateAthleteGoal(h.DB, athleteID, req.Goal); err != nil {
+	if err := models.UpdateAthleteGoal(r.Context(), h.DB, athleteID, req.Goal); err != nil {
 		log.Printf("api: update athlete %d goal: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update goal")
 		return
@@ -134,14 +123,8 @@ func (h *Handlers) UpdateAthleteGoal(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/exercises/{exerciseID}/history [get]
 func (h *Handlers) ListExerciseHistory(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -156,7 +139,7 @@ func (h *Handlers) ListExerciseHistory(w http.ResponseWriter, r *http.Request) {
 		offset, _ = strconv.Atoi(o)
 	}
 
-	page, err := models.ListExerciseHistory(h.DB, athleteID, exerciseID, offset)
+	page, err := models.ListExerciseHistory(r.Context(), h.DB, athleteID, exerciseID, offset)
 	if err != nil {
 		log.Printf("api: exercise history athlete %d exercise %d: %v", athleteID, exerciseID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to get exercise history")

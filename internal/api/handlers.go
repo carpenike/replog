@@ -4,6 +4,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/gob"
 	"encoding/json"
@@ -48,11 +49,11 @@ type Handlers struct {
 
 // llmProvider returns the configured LLM provider, falling back to the
 // production factory if none was injected.
-func (h *Handlers) llmProvider() (llm.Provider, error) {
+func (h *Handlers) llmProvider(ctx context.Context) (llm.Provider, error) {
 	if h.LLMProviderFactory != nil {
 		return h.LLMProviderFactory(h.DB)
 	}
-	return llm.NewProviderFromSettings(h.DB)
+	return llm.NewProviderFromSettings(ctx, h.DB)
 }
 
 // WaitForGenerations blocks until every in-flight AI Coach generation
@@ -122,7 +123,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := models.Authenticate(h.DB, req.Username, req.Password)
+	user, err := models.Authenticate(r.Context(), h.DB, req.Username, req.Password)
 	if err != nil {
 		var lockErr *models.LockoutError
 		switch {
@@ -145,7 +146,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 
 	h.Sessions.Put(r.Context(), "userID", user.ID)
 
-	if err := models.EnsureUserPreferences(h.DB, user.ID); err != nil {
+	if err := models.EnsureUserPreferences(r.Context(), h.DB, user.ID); err != nil {
 		log.Printf("api: ensure preferences for user %d: %v", user.ID, err)
 	}
 
@@ -183,7 +184,7 @@ func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 
 	// Load athlete cards.
 	coachFilter := middleware.CoachAthleteFilter(user)
-	athletes, err := models.ListAthleteCards(h.DB, coachFilter)
+	athletes, err := models.ListAthleteCards(r.Context(), h.DB, coachFilter)
 	if err != nil {
 		log.Printf("api: dashboard athlete cards: %v", err)
 	} else {
@@ -195,7 +196,7 @@ func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 
 	// Dashboard stats (available to coaches/admins).
 	if user.IsCoach || user.IsAdmin {
-		stats, err := models.GetDashboardStats(h.DB)
+		stats, err := models.GetDashboardStats(r.Context(), h.DB)
 		if err != nil {
 			log.Printf("api: dashboard stats: %v", err)
 		} else {
@@ -208,7 +209,7 @@ func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		reviewStats, err := models.GetReviewStats(h.DB)
+		reviewStats, err := models.GetReviewStats(r.Context(), h.DB)
 		if err != nil {
 			log.Printf("api: dashboard review stats: %v", err)
 		} else {
@@ -237,7 +238,7 @@ func (h *Handlers) ListAthletes(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 	coachFilter := middleware.CoachAthleteFilter(user)
 
-	athletes, err := models.ListAthleteCards(h.DB, coachFilter)
+	athletes, err := models.ListAthleteCards(r.Context(), h.DB, coachFilter)
 	if err != nil {
 		log.Printf("api: list athlete cards: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to list athletes")
@@ -263,19 +264,12 @@ func (h *Handlers) ListAthletes(w http.ResponseWriter, r *http.Request) {
 //	@Failure      404  {object}  api.APIError
 //	@Router       /athletes/{id} [get]
 func (h *Handlers) GetAthlete(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+	id, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
-	if !middleware.CanAccessAthlete(h.DB, user, id) {
-		WriteError(w, http.StatusForbidden, "access denied")
-		return
-	}
-
-	athlete, err := models.GetAthleteByID(h.DB, id)
+	athlete, err := models.GetAthleteByID(r.Context(), h.DB, id)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "athlete not found")
 		return
@@ -317,7 +311,7 @@ func (h *Handlers) GetAthlete(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) ListExercises(w http.ResponseWriter, r *http.Request) {
 	tierFilter := r.URL.Query().Get("tier")
 
-	exercises, err := models.ListExercises(h.DB, tierFilter)
+	exercises, err := models.ListExercises(r.Context(), h.DB, tierFilter)
 	if err != nil {
 		log.Printf("api: list exercises: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to list exercises")
@@ -348,7 +342,7 @@ func (h *Handlers) GetExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exercise, err := models.GetExerciseByID(h.DB, id)
+	exercise, err := models.GetExerciseByID(r.Context(), h.DB, id)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "exercise not found")
 		return
@@ -374,15 +368,8 @@ func (h *Handlers) GetExercise(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/workouts [get]
 func (h *Handlers) ListWorkouts(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-
-	if !middleware.CanAccessAthlete(h.DB, user, id) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	id, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -391,7 +378,7 @@ func (h *Handlers) ListWorkouts(w http.ResponseWriter, r *http.Request) {
 		offset, _ = strconv.Atoi(o)
 	}
 
-	page, err := models.ListWorkouts(h.DB, id, offset)
+	page, err := models.ListWorkouts(r.Context(), h.DB, id, offset)
 	if err != nil {
 		log.Printf("api: list workouts for athlete %d: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list workouts")
@@ -411,7 +398,7 @@ func (h *Handlers) ListWorkouts(w http.ResponseWriter, r *http.Request) {
 //	@Router       /preferences [get]
 func (h *Handlers) GetPreferences(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	prefs, err := models.GetUserPreferences(h.DB, user.ID)
+	prefs, err := models.GetUserPreferences(r.Context(), h.DB, user.ID)
 	if err != nil {
 		log.Printf("api: get preferences for user %d: %v", user.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to get preferences")

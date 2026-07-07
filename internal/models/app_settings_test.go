@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"os"
 	"testing"
 )
@@ -9,19 +10,19 @@ func TestGetSetting_EnvOverride(t *testing.T) {
 	db := testDB(t)
 
 	// Set a DB value.
-	if err := SetSetting(db, "llm.provider", "ollama"); err != nil {
+	if err := SetSetting(context.Background(), db, "llm.provider", "ollama"); err != nil {
 		t.Fatalf("set setting: %v", err)
 	}
 
 	// Without env var, should return DB value.
-	got := GetSetting(db, "llm.provider")
+	got := GetSetting(context.Background(), db, "llm.provider")
 	if got != "ollama" {
 		t.Errorf("expected 'ollama' from DB, got %q", got)
 	}
 
 	// With env var, env should win.
 	t.Setenv("REPLOG_LLM_PROVIDER", "openai")
-	got = GetSetting(db, "llm.provider")
+	got = GetSetting(context.Background(), db, "llm.provider")
 	if got != "openai" {
 		t.Errorf("expected 'openai' from env, got %q", got)
 	}
@@ -30,7 +31,7 @@ func TestGetSetting_EnvOverride(t *testing.T) {
 func TestGetSetting_Default(t *testing.T) {
 	db := testDB(t)
 
-	got := GetSetting(db, "llm.temperature")
+	got := GetSetting(context.Background(), db, "llm.temperature")
 	if got != "0.7" {
 		t.Errorf("expected default '0.7', got %q", got)
 	}
@@ -39,7 +40,7 @@ func TestGetSetting_Default(t *testing.T) {
 func TestGetSetting_UnknownKey(t *testing.T) {
 	db := testDB(t)
 
-	got := GetSetting(db, "nonexistent.key")
+	got := GetSetting(context.Background(), db, "nonexistent.key")
 	if got != "" {
 		t.Errorf("expected empty string for unknown key, got %q", got)
 	}
@@ -49,19 +50,19 @@ func TestSetSetting_CreateAndUpdate(t *testing.T) {
 	db := testDB(t)
 
 	// Create.
-	if err := SetSetting(db, "llm.model", "gpt-4o"); err != nil {
+	if err := SetSetting(context.Background(), db, "llm.model", "gpt-4o"); err != nil {
 		t.Fatalf("set setting: %v", err)
 	}
-	got := GetSetting(db, "llm.model")
+	got := GetSetting(context.Background(), db, "llm.model")
 	if got != "gpt-4o" {
 		t.Errorf("expected 'gpt-4o', got %q", got)
 	}
 
 	// Update (upsert).
-	if err := SetSetting(db, "llm.model", "claude-sonnet-4-20250514"); err != nil {
+	if err := SetSetting(context.Background(), db, "llm.model", "claude-sonnet-4-20250514"); err != nil {
 		t.Fatalf("update setting: %v", err)
 	}
-	got = GetSetting(db, "llm.model")
+	got = GetSetting(context.Background(), db, "llm.model")
 	if got != "claude-sonnet-4-20250514" {
 		t.Errorf("expected 'claude-sonnet-4-20250514', got %q", got)
 	}
@@ -69,7 +70,7 @@ func TestSetSetting_CreateAndUpdate(t *testing.T) {
 
 func TestSetSetting_UnknownKey(t *testing.T) {
 	db := testDB(t)
-	err := SetSetting(db, "fake.key", "value")
+	err := SetSetting(context.Background(), db, "fake.key", "value")
 	if err == nil {
 		t.Fatal("expected error for unknown key, got nil")
 	}
@@ -78,15 +79,15 @@ func TestSetSetting_UnknownKey(t *testing.T) {
 func TestDeleteSetting(t *testing.T) {
 	db := testDB(t)
 
-	if err := SetSetting(db, "llm.base_url", "http://localhost:11434"); err != nil {
+	if err := SetSetting(context.Background(), db, "llm.base_url", "http://localhost:11434"); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	if err := DeleteSetting(db, "llm.base_url"); err != nil {
+	if err := DeleteSetting(context.Background(), db, "llm.base_url"); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 
 	// Should fall back to default (empty string).
-	got := GetSetting(db, "llm.base_url")
+	got := GetSetting(context.Background(), db, "llm.base_url")
 	if got != "" {
 		t.Errorf("expected empty default after delete, got %q", got)
 	}
@@ -95,7 +96,7 @@ func TestDeleteSetting(t *testing.T) {
 func TestListSettings(t *testing.T) {
 	db := testDB(t)
 
-	settings := ListSettings(db)
+	settings := ListSettings(context.Background(), db)
 	if len(settings) != len(SettingsRegistry) {
 		t.Errorf("expected %d settings, got %d", len(SettingsRegistry), len(settings))
 	}
@@ -116,7 +117,7 @@ func TestListSettings(t *testing.T) {
 func TestListSettingsByCategory(t *testing.T) {
 	db := testDB(t)
 
-	groups := ListSettingsByCategory(db)
+	groups := ListSettingsByCategory(context.Background(), db)
 	aiSettings, ok := groups["AI Coach"]
 	if !ok {
 		t.Fatal("expected 'AI Coach' category in settings")
@@ -141,7 +142,7 @@ func TestSensitiveEncryption(t *testing.T) {
 	t.Setenv("REPLOG_SECRET_KEY", "test-secret-key-for-unit-tests!")
 
 	// Store an API key (sensitive field).
-	if err := SetSetting(db, "llm.api_key", "sk-test-12345"); err != nil {
+	if err := SetSetting(context.Background(), db, "llm.api_key", "sk-test-12345"); err != nil {
 		t.Fatalf("set sensitive setting: %v", err)
 	}
 
@@ -153,7 +154,7 @@ func TestSensitiveEncryption(t *testing.T) {
 	}
 
 	// Reading back should decrypt.
-	got := GetSetting(db, "llm.api_key")
+	got := GetSetting(context.Background(), db, "llm.api_key")
 	if got != "sk-test-12345" {
 		t.Errorf("expected decrypted 'sk-test-12345', got %q", got)
 	}
@@ -165,7 +166,7 @@ func TestSensitiveWithoutSecretKey(t *testing.T) {
 	// Ensure no secret key is set.
 	t.Setenv("REPLOG_SECRET_KEY", "")
 
-	err := SetSetting(db, "llm.api_key", "sk-test-12345")
+	err := SetSetting(context.Background(), db, "llm.api_key", "sk-test-12345")
 	if err == nil {
 		t.Fatal("expected error when setting sensitive value without REPLOG_SECRET_KEY")
 	}
@@ -203,15 +204,15 @@ func TestGetDefaultWeightUnit(t *testing.T) {
 	db := testDB(t)
 
 	// Default (no setting configured).
-	if got := GetDefaultWeightUnit(db); got != "lbs" {
+	if got := GetDefaultWeightUnit(context.Background(), db); got != "lbs" {
 		t.Errorf("expected default 'lbs', got %q", got)
 	}
 
 	// Override via app_settings.
-	if err := SetSetting(db, "defaults.weight_unit", "kg"); err != nil {
+	if err := SetSetting(context.Background(), db, "defaults.weight_unit", "kg"); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	if got := GetDefaultWeightUnit(db); got != "kg" {
+	if got := GetDefaultWeightUnit(context.Background(), db); got != "kg" {
 		t.Errorf("expected 'kg' after override, got %q", got)
 	}
 }
@@ -219,14 +220,14 @@ func TestGetDefaultWeightUnit(t *testing.T) {
 func TestGetDefaultTimezone(t *testing.T) {
 	db := testDB(t)
 
-	if got := GetDefaultTimezone(db); got != "America/New_York" {
+	if got := GetDefaultTimezone(context.Background(), db); got != "America/New_York" {
 		t.Errorf("expected default 'America/New_York', got %q", got)
 	}
 
-	if err := SetSetting(db, "defaults.timezone", "Europe/London"); err != nil {
+	if err := SetSetting(context.Background(), db, "defaults.timezone", "Europe/London"); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	if got := GetDefaultTimezone(db); got != "Europe/London" {
+	if got := GetDefaultTimezone(context.Background(), db); got != "Europe/London" {
 		t.Errorf("expected 'Europe/London', got %q", got)
 	}
 }
@@ -234,14 +235,14 @@ func TestGetDefaultTimezone(t *testing.T) {
 func TestGetDefaultDateFormat(t *testing.T) {
 	db := testDB(t)
 
-	if got := GetDefaultDateFormat(db); got != "Jan 2, 2006" {
+	if got := GetDefaultDateFormat(context.Background(), db); got != "Jan 2, 2006" {
 		t.Errorf("expected default 'Jan 2, 2006', got %q", got)
 	}
 
-	if err := SetSetting(db, "defaults.date_format", "2006-01-02"); err != nil {
+	if err := SetSetting(context.Background(), db, "defaults.date_format", "2006-01-02"); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	if got := GetDefaultDateFormat(db); got != "2006-01-02" {
+	if got := GetDefaultDateFormat(context.Background(), db); got != "2006-01-02" {
 		t.Errorf("expected '2006-01-02', got %q", got)
 	}
 }
@@ -249,14 +250,14 @@ func TestGetDefaultDateFormat(t *testing.T) {
 func TestGetDefaultRestSeconds(t *testing.T) {
 	db := testDB(t)
 
-	if got := GetDefaultRestSeconds(db); got != 90 {
+	if got := GetDefaultRestSeconds(context.Background(), db); got != 90 {
 		t.Errorf("expected default 90, got %d", got)
 	}
 
-	if err := SetSetting(db, "defaults.rest_seconds", "120"); err != nil {
+	if err := SetSetting(context.Background(), db, "defaults.rest_seconds", "120"); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	if got := GetDefaultRestSeconds(db); got != 120 {
+	if got := GetDefaultRestSeconds(context.Background(), db); got != 120 {
 		t.Errorf("expected 120, got %d", got)
 	}
 }
@@ -264,14 +265,14 @@ func TestGetDefaultRestSeconds(t *testing.T) {
 func TestGetAppName(t *testing.T) {
 	db := testDB(t)
 
-	if got := GetAppName(db); got != "RepLog" {
+	if got := GetAppName(context.Background(), db); got != "RepLog" {
 		t.Errorf("expected default 'RepLog', got %q", got)
 	}
 
-	if err := SetSetting(db, "app.name", "Smith Family Gym"); err != nil {
+	if err := SetSetting(context.Background(), db, "app.name", "Smith Family Gym"); err != nil {
 		t.Fatalf("set: %v", err)
 	}
-	if got := GetAppName(db); got != "Smith Family Gym" {
+	if got := GetAppName(context.Background(), db); got != "Smith Family Gym" {
 		t.Errorf("expected 'Smith Family Gym', got %q", got)
 	}
 }
@@ -283,7 +284,7 @@ func TestGetOrCreateSecretKey(t *testing.T) {
 	t.Setenv("REPLOG_SECRET_KEY", "")
 
 	// First call should generate and store a key.
-	key1, source, err := GetOrCreateSecretKey(db)
+	key1, source, err := GetOrCreateSecretKey(context.Background(), db)
 	if err != nil {
 		t.Fatalf("first call: %v", err)
 	}
@@ -303,7 +304,7 @@ func TestGetOrCreateSecretKey(t *testing.T) {
 	t.Setenv("REPLOG_SECRET_KEY", "")
 
 	// Second call should retrieve the same key from DB.
-	key2, source, err := GetOrCreateSecretKey(db)
+	key2, source, err := GetOrCreateSecretKey(context.Background(), db)
 	if err != nil {
 		t.Fatalf("second call: %v", err)
 	}
@@ -316,7 +317,7 @@ func TestGetOrCreateSecretKey(t *testing.T) {
 
 	// With env var set, should prefer env var.
 	t.Setenv("REPLOG_SECRET_KEY", "explicit-key")
-	key3, source, err := GetOrCreateSecretKey(db)
+	key3, source, err := GetOrCreateSecretKey(context.Background(), db)
 	if err != nil {
 		t.Fatalf("env var call: %v", err)
 	}
@@ -331,7 +332,7 @@ func TestGetOrCreateSecretKey(t *testing.T) {
 func TestListSettingsByCategoryOrdered(t *testing.T) {
 	db := testDB(t)
 
-	ordered := ListSettingsByCategoryOrdered(db)
+	ordered := ListSettingsByCategoryOrdered(context.Background(), db)
 
 	if len(ordered) < 5 {
 		t.Fatalf("expected at least 5 categories, got %d", len(ordered))
@@ -352,19 +353,19 @@ func TestGetMaintenanceIntervalHours(t *testing.T) {
 	db := testDB(t)
 
 	// Default should be 24.
-	if got := GetMaintenanceIntervalHours(db); got != 24 {
+	if got := GetMaintenanceIntervalHours(context.Background(), db); got != 24 {
 		t.Errorf("default interval = %d, want 24", got)
 	}
 
 	// Override to 48.
-	SetSetting(db, "maintenance.interval_hours", "48")
-	if got := GetMaintenanceIntervalHours(db); got != 48 {
+	SetSetting(context.Background(), db, "maintenance.interval_hours", "48")
+	if got := GetMaintenanceIntervalHours(context.Background(), db); got != 48 {
 		t.Errorf("overridden interval = %d, want 48", got)
 	}
 
 	// Invalid value should fall back to default.
-	SetSetting(db, "maintenance.interval_hours", "0")
-	if got := GetMaintenanceIntervalHours(db); got != 24 {
+	SetSetting(context.Background(), db, "maintenance.interval_hours", "0")
+	if got := GetMaintenanceIntervalHours(context.Background(), db); got != 24 {
 		t.Errorf("invalid interval fallback = %d, want 24", got)
 	}
 }
@@ -373,19 +374,19 @@ func TestGetMaintenanceRetentionDays(t *testing.T) {
 	db := testDB(t)
 
 	// Default should be 90.
-	if got := GetMaintenanceRetentionDays(db); got != 90 {
+	if got := GetMaintenanceRetentionDays(context.Background(), db); got != 90 {
 		t.Errorf("default retention = %d, want 90", got)
 	}
 
 	// Override to 30.
-	SetSetting(db, "maintenance.retention_days", "30")
-	if got := GetMaintenanceRetentionDays(db); got != 30 {
+	SetSetting(context.Background(), db, "maintenance.retention_days", "30")
+	if got := GetMaintenanceRetentionDays(context.Background(), db); got != 30 {
 		t.Errorf("overridden retention = %d, want 30", got)
 	}
 
 	// Value above max should fall back to default.
-	SetSetting(db, "maintenance.retention_days", "999")
-	if got := GetMaintenanceRetentionDays(db); got != 90 {
+	SetSetting(context.Background(), db, "maintenance.retention_days", "999")
+	if got := GetMaintenanceRetentionDays(context.Background(), db); got != 90 {
 		t.Errorf("invalid retention fallback = %d, want 90", got)
 	}
 }

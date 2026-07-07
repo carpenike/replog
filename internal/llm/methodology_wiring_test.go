@@ -65,7 +65,7 @@ func TestBuildAthleteContext_ScopesCatalogByMethodology(t *testing.T) {
 	athleteID := seedAthlete(t, db, "Youth", "foundational", "")
 
 	// Generation path — Methodology resolves from tier default (yessis-1x20).
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{RequireMethodology: true})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{RequireMethodology: true})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestBuildAthleteContext_NoMethodologyForUnmappedYouthTier(t *testing.T) {
 	// Intentionally NOT calling seedMethodologies — yessis-1x20 absent.
 	athleteID := seedAthlete(t, db, "Youth", "foundational", "")
 
-	_, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{RequireMethodology: true})
+	_, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{RequireMethodology: true})
 	if err == nil {
 		t.Fatal("expected error: youth athlete without resolvable methodology")
 	}
@@ -131,7 +131,7 @@ func TestBuildAthleteContext_AdultFallback(t *testing.T) {
 	seedMethodologies(t, db)
 	athleteID := seedAthlete(t, db, "Adult", "", "")
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{RequireMethodology: true})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{RequireMethodology: true})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -149,11 +149,11 @@ func TestBuildAthleteContext_ExplicitMethodologyOverridesTier(t *testing.T) {
 	seedMethodologies(t, db)
 	athleteID := seedAthlete(t, db, "Youth", "foundational", "")
 
-	int_, err := models.GetMethodologyByKey(db, "int-youth-gpp")
+	int_, err := models.GetMethodologyByKey(context.Background(), db, "int-youth-gpp")
 	if err != nil {
 		t.Fatalf("get int-youth-gpp: %v", err)
 	}
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{
 		RequireMethodology: true,
 		MethodologyID:      &int_.ID,
 	})
@@ -175,8 +175,8 @@ func TestBuildAthleteContext_EmptyExemplarFallback(t *testing.T) {
 	seedMethodologies(t, db)
 	athleteID := seedAthlete(t, db, "Youth", "foundational", "")
 
-	int_, _ := models.GetMethodologyByKey(db, "int-youth-gpp")
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{
+	int_, _ := models.GetMethodologyByKey(context.Background(), db, "int-youth-gpp")
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{
 		RequireMethodology: true,
 		MethodologyID:      &int_.ID,
 	})
@@ -198,8 +198,8 @@ func TestBuildAthleteContext_MethodologyExemplarsOverrideAudienceDefault(t *test
 	athleteID := seedAthlete(t, db, "Youth", "foundational", "")
 
 	// yessis-1x20 has exactly one exemplar (Foundations 1×20).
-	yessis, _ := models.GetMethodologyByKey(db, "yessis-1x20")
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{
+	yessis, _ := models.GetMethodologyByKey(context.Background(), db, "yessis-1x20")
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{
 		RequireMethodology: true,
 		MethodologyID:      &yessis.ID,
 	})
@@ -223,10 +223,10 @@ func TestBuildAthleteContext_CoachReferenceIDsOverrideMethodologyExemplars(t *te
 	seedMethodologies(t, db)
 	athleteID := seedAthlete(t, db, "Youth", "foundational", "")
 
-	yessis, _ := models.GetMethodologyByKey(db, "yessis-1x20")
+	yessis, _ := models.GetMethodologyByKey(context.Background(), db, "yessis-1x20")
 
 	// Find a template id that's NOT one of yessis-1x20's exemplars.
-	allTemplates, _ := models.ListProgramTemplates(db)
+	allTemplates, _ := models.ListProgramTemplates(context.Background(), db)
 	var overrideID int64
 	for _, t := range allTemplates {
 		if t.Name == "Foundations 1×15" {
@@ -238,7 +238,7 @@ func TestBuildAthleteContext_CoachReferenceIDsOverrideMethodologyExemplars(t *te
 		t.Fatal("could not find Foundations 1×15 in seeded catalog")
 	}
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{
 		RequireMethodology:   true,
 		MethodologyID:        &yessis.ID,
 		ReferenceTemplateIDs: []int64{overrideID},
@@ -265,7 +265,7 @@ func TestAthleteContext_AuditPayloadLeanness(t *testing.T) {
 	seedMethodologies(t, db)
 	athleteID := seedAthlete(t, db, "Youth", "foundational", "")
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{RequireMethodology: true})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{RequireMethodology: true})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -375,7 +375,7 @@ func TestResolveMethodology_UnmappedTier(t *testing.T) {
 	tier := "bogus_tier"
 	profile := &AthleteProfile{Tier: &tier}
 
-	_, err := resolveMethodology(db, profile, BuildContextOptions{RequireMethodology: true})
+	_, err := resolveMethodology(context.Background(), db, profile, BuildContextOptions{RequireMethodology: true})
 	if err == nil {
 		t.Fatal("expected error for unmapped tier")
 	}
@@ -391,7 +391,7 @@ func TestResolveMethodology_NotRequireSkipsResolution(t *testing.T) {
 	tier := "foundational"
 	profile := &AthleteProfile{Tier: &tier}
 
-	m, err := resolveMethodology(db, profile, BuildContextOptions{RequireMethodology: false})
+	m, err := resolveMethodology(context.Background(), db, profile, BuildContextOptions{RequireMethodology: false})
 	if err != nil {
 		t.Fatalf("form-preview path should not error; got %v", err)
 	}

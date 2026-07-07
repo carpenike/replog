@@ -22,7 +22,7 @@ import (
 //	@Success      200  {array}   api.Equipment
 //	@Router       /equipment [get]
 func (h *Handlers) ListEquipment(w http.ResponseWriter, r *http.Request) {
-	equipment, err := models.ListEquipment(h.DB)
+	equipment, err := models.ListEquipment(r.Context(), h.DB)
 	if err != nil {
 		log.Printf("api: list equipment: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to list equipment")
@@ -64,7 +64,7 @@ func (h *Handlers) CreateEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	equip, err := models.CreateEquipment(h.DB, req.Name, req.Description)
+	equip, err := models.CreateEquipment(r.Context(), h.DB, req.Name, req.Description)
 	if err != nil {
 		log.Printf("api: create equipment: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to create equipment")
@@ -97,7 +97,7 @@ func (h *Handlers) DeleteEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteEquipment(h.DB, id); err != nil {
+	if err := models.DeleteEquipment(r.Context(), h.DB, id); err != nil {
 		log.Printf("api: delete equipment %d: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete equipment")
 		return
@@ -124,7 +124,7 @@ func (h *Handlers) ListExerciseEquipment(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	equipment, err := models.ListExerciseEquipment(h.DB, exerciseID)
+	equipment, err := models.ListExerciseEquipment(r.Context(), h.DB, exerciseID)
 	if err != nil {
 		log.Printf("api: list exercise equipment %d: %v", exerciseID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list equipment")
@@ -165,7 +165,7 @@ func (h *Handlers) AddExerciseEquipment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := models.AddExerciseEquipment(h.DB, exerciseID, req.EquipmentID, req.Optional); err != nil {
+	if err := models.AddExerciseEquipment(r.Context(), h.DB, exerciseID, req.EquipmentID, req.Optional); err != nil {
 		log.Printf("api: add exercise equipment: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to add equipment")
 		return
@@ -204,7 +204,7 @@ func (h *Handlers) RemoveExerciseEquipment(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := models.RemoveExerciseEquipment(h.DB, exerciseID, equipmentID); err != nil {
+	if err := models.RemoveExerciseEquipment(r.Context(), h.DB, exerciseID, equipmentID); err != nil {
 		log.Printf("api: remove exercise equipment: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to remove equipment")
 		return
@@ -226,18 +226,12 @@ func (h *Handlers) RemoveExerciseEquipment(w http.ResponseWriter, r *http.Reques
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/equipment [get]
 func (h *Handlers) ListAthleteEquipment(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
-	equipment, err := models.ListAthleteEquipment(h.DB, athleteID)
+	equipment, err := models.ListAthleteEquipment(r.Context(), h.DB, athleteID)
 	if err != nil {
 		log.Printf("api: list athlete equipment %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list equipment")
@@ -260,14 +254,8 @@ func (h *Handlers) ListAthleteEquipment(w http.ResponseWriter, r *http.Request) 
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/equipment [post]
 func (h *Handlers) AddAthleteEquipment(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -277,7 +265,7 @@ func (h *Handlers) AddAthleteEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.AddAthleteEquipment(h.DB, athleteID, req.EquipmentID); err != nil {
+	if err := models.AddAthleteEquipment(r.Context(), h.DB, athleteID, req.EquipmentID); err != nil {
 		log.Printf("api: add athlete equipment: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to add equipment")
 		return
@@ -298,14 +286,8 @@ func (h *Handlers) AddAthleteEquipment(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/equipment/{equipmentID} [delete]
 func (h *Handlers) RemoveAthleteEquipment(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -315,7 +297,7 @@ func (h *Handlers) RemoveAthleteEquipment(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := models.RemoveAthleteEquipment(h.DB, athleteID, equipmentID); err != nil {
+	if err := models.RemoveAthleteEquipment(r.Context(), h.DB, athleteID, equipmentID); err != nil {
 		log.Printf("api: remove athlete equipment: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to remove equipment")
 		return
@@ -328,10 +310,10 @@ func (h *Handlers) RemoveAthleteEquipment(w http.ResponseWriter, r *http.Request
 
 // CycleSummaryResponse is the JSON response for cycle review data.
 type CycleSummaryResponse struct {
-	CycleNumber int                     `json:"cycle_number"`
-	CycleStart  string                  `json:"cycle_start"`
-	CycleEnd    string                  `json:"cycle_end"`
-	Suggestions []TMSuggestionResponse  `json:"suggestions"`
+	CycleNumber int                    `json:"cycle_number"`
+	CycleStart  string                 `json:"cycle_start"`
+	CycleEnd    string                 `json:"cycle_end"`
+	Suggestions []TMSuggestionResponse `json:"suggestions"`
 }
 
 // TMSuggestionResponse is a training max bump suggestion.
@@ -361,17 +343,12 @@ func (h *Handlers) GetCycleReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
-	program, err := models.GetActiveProgram(h.DB, athleteID)
+	program, err := models.GetActiveProgram(r.Context(), h.DB, athleteID)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "no active program")
 		return
@@ -382,7 +359,7 @@ func (h *Handlers) GetCycleReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary, err := models.GetCycleSummary(h.DB, program, time.Now())
+	summary, err := models.GetCycleSummary(r.Context(), h.DB, program, time.Now())
 	if err != nil {
 		log.Printf("api: cycle summary for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to get cycle summary")
@@ -434,13 +411,8 @@ func (h *Handlers) ApplyTMBumps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -458,7 +430,7 @@ func (h *Handlers) ApplyTMBumps(w http.ResponseWriter, r *http.Request) {
 	applied := 0
 	for _, bump := range req.Bumps {
 		if bump.NewWeight > 0 {
-			if _, err := models.SetTrainingMax(h.DB, athleteID, bump.ExerciseID, bump.NewWeight, time.Now().Format("2006-01-02"), "Cycle review bump"); err != nil {
+			if _, err := models.SetTrainingMax(r.Context(), h.DB, athleteID, bump.ExerciseID, bump.NewWeight, time.Now().Format("2006-01-02"), "Cycle review bump"); err != nil {
 				log.Printf("api: apply TM bump for athlete %d exercise %d: %v", athleteID, bump.ExerciseID, err)
 			} else {
 				applied++

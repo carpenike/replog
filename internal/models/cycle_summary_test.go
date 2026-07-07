@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -9,9 +10,9 @@ import (
 func TestGetCycleSummary_NoProgramReturnsNil(t *testing.T) {
 	db := testDB(t)
 
-	_, _ = CreateAthlete(db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
+	_, _ = CreateAthlete(context.Background(), db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
 
-	summary, err := GetCycleSummary(db, nil, time.Now())
+	summary, err := GetCycleSummary(context.Background(), db, nil, time.Now())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -23,12 +24,12 @@ func TestGetCycleSummary_NoProgramReturnsNil(t *testing.T) {
 func TestGetCycleSummary_NoCycleCompletedReturnsNil(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
-	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 3, 4, false, "")
-	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "", "primary", "")
+	a, _ := CreateAthlete(context.Background(), db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
+	tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "531", "", 3, 4, false, "")
+	ap, _ := AssignProgram(context.Background(), db, a.ID, tmpl.ID, "2026-01-01", "", "", "primary", "")
 
 	// No workouts logged — still in cycle 1.
-	summary, err := GetCycleSummary(db, ap, mustParseDate("2026-02-01"))
+	summary, err := GetCycleSummary(context.Background(), db, ap, mustParseDate("2026-02-01"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -40,49 +41,49 @@ func TestGetCycleSummary_NoCycleCompletedReturnsNil(t *testing.T) {
 func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
-	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
-	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
+	squat, _ := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
+	bench, _ := CreateExercise(context.Background(), db, "Bench Press", "", "", "", 0)
 
 	// Create a 3-week × 2-day program (6 workouts per cycle).
-	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 3, 2, false, "")
-	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "", "primary", "")
+	tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "531", "", 3, 2, false, "")
+	ap, _ := AssignProgram(context.Background(), db, a.ID, tmpl.ID, "2026-01-01", "", "", "primary", "")
 
 	// Add AMRAP prescribed sets (reps=NULL) on week 3 day 1.
-	CreatePrescribedSet(db, tmpl.ID, squat.ID, 3, 1, 1, nil, ptrFloat(95), nil, 0, "", "")
-	CreatePrescribedSet(db, tmpl.ID, bench.ID, 3, 1, 2, nil, ptrFloat(95), nil, 0, "", "")
+	CreatePrescribedSet(context.Background(), db, tmpl.ID, squat.ID, 3, 1, 1, nil, ptrFloat(95), nil, 0, "", "")
+	CreatePrescribedSet(context.Background(), db, tmpl.ID, bench.ID, 3, 1, 2, nil, ptrFloat(95), nil, 0, "", "")
 
 	// Add some non-AMRAP sets.
 	five := 5
-	CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, 1, &five, ptrFloat(65), nil, 0, "", "")
+	CreatePrescribedSet(context.Background(), db, tmpl.ID, squat.ID, 1, 1, 1, &five, ptrFloat(65), nil, 0, "", "")
 
 	// Add progression rules.
-	SetProgressionRule(db, tmpl.ID, squat.ID, 10.0)
-	SetProgressionRule(db, tmpl.ID, bench.ID, 5.0)
+	SetProgressionRule(context.Background(), db, tmpl.ID, squat.ID, 10.0)
+	SetProgressionRule(context.Background(), db, tmpl.ID, bench.ID, 5.0)
 
 	// Set training maxes.
-	SetTrainingMax(db, a.ID, squat.ID, 300, "2026-01-01", "")
-	SetTrainingMax(db, a.ID, bench.ID, 200, "2026-01-01", "")
+	SetTrainingMax(context.Background(), db, a.ID, squat.ID, 300, "2026-01-01", "")
+	SetTrainingMax(context.Background(), db, a.ID, bench.ID, 200, "2026-01-01", "")
 
 	// Log 6 workouts to complete cycle 1.
 	dates := []string{
 		"2026-01-02", "2026-01-03", "2026-01-06", "2026-01-07", "2026-01-09", "2026-01-10",
 	}
 	for _, d := range dates {
-		w, err := CreateWorkout(db, a.ID, d, "", ap.ID)
+		w, err := CreateWorkout(context.Background(), db, a.ID, d, "", ap.ID)
 		if err != nil {
 			t.Fatalf("create workout %s: %v", d, err)
 		}
 
 		// On the 5th workout (week 3, day 1 in the cycle), log AMRAP results.
 		if d == "2026-01-09" {
-			AddSet(db, w.ID, squat.ID, 5, 285, 0, "reps", "", "")  // 5 reps at 95%
-			AddSet(db, w.ID, bench.ID, 3, 190, 0, "reps", "", "") // 3 reps at 95%
+			AddSet(context.Background(), db, w.ID, squat.ID, 5, 285, 0, "reps", "", "") // 5 reps at 95%
+			AddSet(context.Background(), db, w.ID, bench.ID, 3, 190, 0, "reps", "", "") // 3 reps at 95%
 		}
 	}
 
 	// Get cycle summary — should show the completed first cycle.
-	summary, err := GetCycleSummary(db, ap, mustParseDate("2026-01-15"))
+	summary, err := GetCycleSummary(context.Background(), db, ap, mustParseDate("2026-01-15"))
 	if err != nil {
 		t.Fatalf("get cycle summary: %v", err)
 	}
@@ -134,20 +135,20 @@ func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 func TestGetCycleSummary_NoTMSkipsExercise(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
-	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Test", "", "", "", "", "", "", sql.NullInt64{}, true)
+	squat, _ := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "531", "", 1, 2, false, "")
-	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-01-01", "", "", "primary", "")
+	tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "531", "", 1, 2, false, "")
+	ap, _ := AssignProgram(context.Background(), db, a.ID, tmpl.ID, "2026-01-01", "", "", "primary", "")
 
 	// Progression rule but no TM set.
-	SetProgressionRule(db, tmpl.ID, squat.ID, 10.0)
+	SetProgressionRule(context.Background(), db, tmpl.ID, squat.ID, 10.0)
 
 	// Complete one cycle (2 workouts).
-	CreateWorkout(db, a.ID, "2026-01-02", "", ap.ID)
-	CreateWorkout(db, a.ID, "2026-01-03", "", ap.ID)
+	CreateWorkout(context.Background(), db, a.ID, "2026-01-02", "", ap.ID)
+	CreateWorkout(context.Background(), db, a.ID, "2026-01-03", "", ap.ID)
 
-	summary, err := GetCycleSummary(db, ap, mustParseDate("2026-01-10"))
+	summary, err := GetCycleSummary(context.Background(), db, ap, mustParseDate("2026-01-10"))
 	if err != nil {
 		t.Fatalf("get cycle summary: %v", err)
 	}
@@ -177,5 +178,3 @@ func TestTMSuggestion_IncrementLabel(t *testing.T) {
 		}
 	}
 }
-
-

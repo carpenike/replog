@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -40,7 +41,7 @@ func (e *Exercise) EffectiveRestSeconds() int {
 }
 
 // CreateExercise inserts a new exercise.
-func CreateExercise(db *sql.DB, name, tier string, formNotes, demoURL string, restSeconds int, featured ...bool) (*Exercise, error) {
+func CreateExercise(ctx context.Context, db *sql.DB, name, tier string, formNotes, demoURL string, restSeconds int, featured ...bool) (*Exercise, error) {
 	feat := false
 	if len(featured) > 0 {
 		feat = featured[0]
@@ -63,7 +64,7 @@ func CreateExercise(db *sql.DB, name, tier string, formNotes, demoURL string, re
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds, featured) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		name, tierVal, notesVal, demoVal, restVal, feat,
 	).Scan(&id)
@@ -74,13 +75,13 @@ func CreateExercise(db *sql.DB, name, tier string, formNotes, demoURL string, re
 		return nil, fmt.Errorf("models: create exercise %q: %w", name, err)
 	}
 
-	return GetExerciseByID(db, id)
+	return GetExerciseByID(ctx, db, id)
 }
 
 // GetExerciseByID retrieves an exercise by primary key.
-func GetExerciseByID(db *sql.DB, id int64) (*Exercise, error) {
+func GetExerciseByID(ctx context.Context, db *sql.DB, id int64) (*Exercise, error) {
 	e := &Exercise{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, name, tier, form_notes, demo_url, rest_seconds, featured, created_at, updated_at
 		 FROM exercises WHERE id = ?`, id,
 	).Scan(&e.ID, &e.Name, &e.Tier, &e.FormNotes, &e.DemoURL, &e.RestSeconds, &e.Featured, &e.CreatedAt, &e.UpdatedAt)
@@ -94,7 +95,7 @@ func GetExerciseByID(db *sql.DB, id int64) (*Exercise, error) {
 }
 
 // UpdateExercise modifies an existing exercise's fields.
-func UpdateExercise(db *sql.DB, id int64, name, tier string, formNotes, demoURL string, restSeconds int, featured ...bool) (*Exercise, error) {
+func UpdateExercise(ctx context.Context, db *sql.DB, id int64, name, tier string, formNotes, demoURL string, restSeconds int, featured ...bool) (*Exercise, error) {
 	feat := false
 	if len(featured) > 0 {
 		feat = featured[0]
@@ -116,7 +117,7 @@ func UpdateExercise(db *sql.DB, id int64, name, tier string, formNotes, demoURL 
 		restVal = sql.NullInt64{Int64: int64(restSeconds), Valid: true}
 	}
 
-	result, err := db.Exec(
+	result, err := db.ExecContext(ctx,
 		`UPDATE exercises SET name = ?, tier = ?, form_notes = ?, demo_url = ?, rest_seconds = ?, featured = ? WHERE id = ?`,
 		name, tierVal, notesVal, demoVal, restVal, feat, id,
 	)
@@ -132,13 +133,13 @@ func UpdateExercise(db *sql.DB, id int64, name, tier string, formNotes, demoURL 
 		return nil, ErrNotFound
 	}
 
-	return GetExerciseByID(db, id)
+	return GetExerciseByID(ctx, db, id)
 }
 
 // DeleteExercise removes an exercise by ID. Returns ErrExerciseInUse if the
 // exercise has been logged in any workout sets (RESTRICT).
-func DeleteExercise(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM exercises WHERE id = ?`, id)
+func DeleteExercise(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM exercises WHERE id = ?`, id)
 	if err != nil {
 		if errContains(err, "FOREIGN KEY constraint failed") {
 			return ErrExerciseInUse
@@ -154,7 +155,7 @@ func DeleteExercise(db *sql.DB, id int64) error {
 
 // ListExercises returns all exercises, optionally filtered by tier.
 // Pass empty string for tier to list all.
-func ListExercises(db *sql.DB, tierFilter string) ([]*Exercise, error) {
+func ListExercises(ctx context.Context, db *sql.DB, tierFilter string) ([]*Exercise, error) {
 	var query string
 	var args []any
 
@@ -170,7 +171,7 @@ func ListExercises(db *sql.DB, tierFilter string) ([]*Exercise, error) {
 		         FROM exercises ORDER BY name COLLATE NOCASE LIMIT 200`
 	}
 
-	rows, err := db.Query(query, args...)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("models: list exercises: %w", err)
 	}
@@ -225,8 +226,8 @@ func IsValidMovementPattern(s string) bool {
 // exercise, in stable alphabetical order. Returns an empty slice when the
 // exercise has no tags (the common case for exercises seeded before ADR 016
 // Phase 1 ran).
-func ListExerciseMovementPatterns(db *sql.DB, exerciseID int64) ([]string, error) {
-	rows, err := db.Query(
+func ListExerciseMovementPatterns(ctx context.Context, db *sql.DB, exerciseID int64) ([]string, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT pattern FROM exercise_movement_patterns
 		 WHERE exercise_id = ? ORDER BY pattern`,
 		exerciseID,
@@ -257,24 +258,24 @@ func ListExerciseMovementPatterns(db *sql.DB, exerciseID int64) ([]string, error
 //
 // All patterns are validated against IsValidMovementPattern; if any value
 // is invalid the entire operation is rejected and no rows are touched.
-func SetExerciseMovementPatterns(db *sql.DB, exerciseID int64, patterns []string) error {
+func SetExerciseMovementPatterns(ctx context.Context, db *sql.DB, exerciseID int64, patterns []string) error {
 	for _, p := range patterns {
 		if !IsValidMovementPattern(p) {
 			return fmt.Errorf("models: invalid movement pattern %q (allowed: push, pull, hinge, squat, carry, ground)", p)
 		}
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("models: begin tx: %w", err)
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.Exec(`DELETE FROM exercise_movement_patterns WHERE exercise_id = ?`, exerciseID); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM exercise_movement_patterns WHERE exercise_id = ?`, exerciseID); err != nil {
 		return fmt.Errorf("models: clear movement patterns %d: %w", exerciseID, err)
 	}
 	for _, p := range patterns {
-		if _, err := tx.Exec(
+		if _, err := tx.ExecContext(ctx,
 			`INSERT OR IGNORE INTO exercise_movement_patterns (exercise_id, pattern) VALUES (?, ?)`,
 			exerciseID, p,
 		); err != nil {
@@ -310,8 +311,8 @@ type FeaturedLift struct {
 // logged sets for, it returns the current TM, best set, and estimated 1RM.
 //
 // Uses a single query with window functions instead of N+1 queries per exercise.
-func ListFeaturedLifts(db *sql.DB, athleteID int64) ([]*FeaturedLift, error) {
-	rows, err := db.Query(`
+func ListFeaturedLifts(ctx context.Context, db *sql.DB, athleteID int64) ([]*FeaturedLift, error) {
+	rows, err := db.QueryContext(ctx, `
 		WITH current_tms AS (
 			SELECT tm.exercise_id, tm.id AS tm_id, tm.weight AS tm_weight,
 			       tm.effective_date AS tm_date, tm.notes AS tm_notes, tm.created_at AS tm_created,

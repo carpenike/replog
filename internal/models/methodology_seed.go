@@ -2,6 +2,7 @@ package models
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -20,10 +21,10 @@ import (
 // are app configuration, not user-importable program content (see ADR 016
 // HOF-003 [fix]).
 type MethodologySeed struct {
-	Version        string                `json:"version"`
-	Type           string                `json:"type"` // "methodologies"
-	ExportedAt     string                `json:"exported_at"`
-	Methodologies  []MethodologySeedItem `json:"methodologies"`
+	Version       string                `json:"version"`
+	Type          string                `json:"type"` // "methodologies"
+	ExportedAt    string                `json:"exported_at"`
+	Methodologies []MethodologySeedItem `json:"methodologies"`
 }
 
 // MethodologySeedItem is one row of methodology seed data plus the names
@@ -89,7 +90,7 @@ type MethodologySeedResult struct {
 // to remove a link or rewrite copy on existing installs, do it explicitly via
 // the model API or an additive migration. This is intentional — it keeps
 // seed re-runs from clobbering manual coach edits.
-func ApplyMethodologySeed(db *sql.DB, seed *MethodologySeed) (*MethodologySeedResult, error) {
+func ApplyMethodologySeed(ctx context.Context, db *sql.DB, seed *MethodologySeed) (*MethodologySeedResult, error) {
 	if seed == nil {
 		return nil, fmt.Errorf("models: ApplyMethodologySeed called with nil seed")
 	}
@@ -97,20 +98,20 @@ func ApplyMethodologySeed(db *sql.DB, seed *MethodologySeed) (*MethodologySeedRe
 
 	// Build name → id lookup maps from the live DB. Done once outside the
 	// loop so we don't query per-link.
-	programIDs, err := nameToIDMapPrograms(db)
+	programIDs, err := nameToIDMapPrograms(ctx, db)
 	if err != nil {
 		return nil, fmt.Errorf("models: methodology seed: load program template ids: %w", err)
 	}
-	equipmentIDs, err := nameToIDMapEquipment(db)
+	equipmentIDs, err := nameToIDMapEquipment(ctx, db)
 	if err != nil {
 		return nil, fmt.Errorf("models: methodology seed: load equipment ids: %w", err)
 	}
-	exerciseIDs, err := nameToIDMapExercises(db)
+	exerciseIDs, err := nameToIDMapExercises(ctx, db)
 	if err != nil {
 		return nil, fmt.Errorf("models: methodology seed: load exercise ids: %w", err)
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin methodology seed tx: %w", err)
 	}
@@ -145,7 +146,7 @@ func ApplyMethodologySeed(db *sql.DB, seed *MethodologySeed) (*MethodologySeedRe
 		}
 
 		// Insert or fetch by key.
-		methodologyID, created, err := upsertMethodologyByKey(tx, m.Key, m.Name, audience, tiers, philosophy, m.Definition)
+		methodologyID, created, err := upsertMethodologyByKey(ctx, tx, m.Key, m.Name, audience, tiers, philosophy, m.Definition)
 		if err != nil {
 			return nil, fmt.Errorf("models: methodology seed %q: %w", m.Key, err)
 		}
@@ -162,7 +163,7 @@ func ApplyMethodologySeed(db *sql.DB, seed *MethodologySeed) (*MethodologySeedRe
 				result.MissingProgramRefs = appendUnique(result.MissingProgramRefs, pname)
 				continue
 			}
-			if _, err := tx.Exec(
+			if _, err := tx.ExecContext(ctx,
 				`INSERT OR IGNORE INTO methodology_reference_programs (methodology_id, template_id) VALUES (?, ?)`,
 				methodologyID, id,
 			); err != nil {
@@ -178,7 +179,7 @@ func ApplyMethodologySeed(db *sql.DB, seed *MethodologySeed) (*MethodologySeedRe
 				result.MissingEquipment = appendUnique(result.MissingEquipment, ename)
 				continue
 			}
-			if _, err := tx.Exec(
+			if _, err := tx.ExecContext(ctx,
 				`INSERT OR IGNORE INTO methodology_allowed_equipment (methodology_id, equipment_id) VALUES (?, ?)`,
 				methodologyID, id,
 			); err != nil {
@@ -189,7 +190,7 @@ func ApplyMethodologySeed(db *sql.DB, seed *MethodologySeed) (*MethodologySeedRe
 
 		// Allowed patterns.
 		for _, p := range m.AllowedPatterns {
-			if _, err := tx.Exec(
+			if _, err := tx.ExecContext(ctx,
 				`INSERT OR IGNORE INTO methodology_allowed_patterns (methodology_id, pattern) VALUES (?, ?)`,
 				methodologyID, p,
 			); err != nil {
@@ -205,7 +206,7 @@ func ApplyMethodologySeed(db *sql.DB, seed *MethodologySeed) (*MethodologySeedRe
 				result.MissingExercises = appendUnique(result.MissingExercises, ename)
 				continue
 			}
-			if _, err := tx.Exec(
+			if _, err := tx.ExecContext(ctx,
 				`INSERT OR IGNORE INTO methodology_allowed_exercises (methodology_id, exercise_id) VALUES (?, ?)`,
 				methodologyID, id,
 			); err != nil {
@@ -223,27 +224,27 @@ func ApplyMethodologySeed(db *sql.DB, seed *MethodologySeed) (*MethodologySeedRe
 
 // ApplyMethodologySeedFromBytes is the convenience wrapper used by the
 // first-run bootstrap path in cmd/replog/main.go.
-func ApplyMethodologySeedFromBytes(db *sql.DB, data []byte) (*MethodologySeedResult, error) {
+func ApplyMethodologySeedFromBytes(ctx context.Context, db *sql.DB, data []byte) (*MethodologySeedResult, error) {
 	seed, err := ParseMethodologySeed(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
-	return ApplyMethodologySeed(db, seed)
+	return ApplyMethodologySeed(ctx, db, seed)
 }
 
 // upsertMethodologyByKey returns the id of the row matching key — inserting
 // it if absent. Returns (id, created, err). Existing rows are NOT updated
 // (definition/name edits should go through a deliberate model write).
-func upsertMethodologyByKey(tx *sql.Tx, key, name string, audience, tiers, philosophy sql.NullString, definition string) (int64, bool, error) {
+func upsertMethodologyByKey(ctx context.Context, tx *sql.Tx, key, name string, audience, tiers, philosophy sql.NullString, definition string) (int64, bool, error) {
 	var id int64
-	err := tx.QueryRow(`SELECT id FROM methodologies WHERE key = ?`, key).Scan(&id)
+	err := tx.QueryRowContext(ctx, `SELECT id FROM methodologies WHERE key = ?`, key).Scan(&id)
 	if err == nil {
 		return id, false, nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return 0, false, fmt.Errorf("lookup by key: %w", err)
 	}
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO methodologies (key, name, audience, applicable_tiers, philosophy, definition)
 		 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		key, name, audience, tiers, philosophy, definition,
@@ -254,8 +255,8 @@ func upsertMethodologyByKey(tx *sql.Tx, key, name string, audience, tiers, philo
 	return id, true, nil
 }
 
-func nameToIDMapPrograms(db *sql.DB) (map[string]int64, error) {
-	rows, err := db.Query(`SELECT id, name FROM program_templates WHERE athlete_id IS NULL`)
+func nameToIDMapPrograms(ctx context.Context, db *sql.DB) (map[string]int64, error) {
+	rows, err := db.QueryContext(ctx, `SELECT id, name FROM program_templates WHERE athlete_id IS NULL`)
 	if err != nil {
 		return nil, err
 	}
@@ -272,8 +273,8 @@ func nameToIDMapPrograms(db *sql.DB) (map[string]int64, error) {
 	return out, rows.Err()
 }
 
-func nameToIDMapEquipment(db *sql.DB) (map[string]int64, error) {
-	rows, err := db.Query(`SELECT id, name FROM equipment`)
+func nameToIDMapEquipment(ctx context.Context, db *sql.DB) (map[string]int64, error) {
+	rows, err := db.QueryContext(ctx, `SELECT id, name FROM equipment`)
 	if err != nil {
 		return nil, err
 	}
@@ -290,8 +291,8 @@ func nameToIDMapEquipment(db *sql.DB) (map[string]int64, error) {
 	return out, rows.Err()
 }
 
-func nameToIDMapExercises(db *sql.DB) (map[string]int64, error) {
-	rows, err := db.Query(`SELECT id, name FROM exercises`)
+func nameToIDMapExercises(ctx context.Context, db *sql.DB) (map[string]int64, error) {
+	rows, err := db.QueryContext(ctx, `SELECT id, name FROM exercises`)
 	if err != nil {
 		return nil, err
 	}
@@ -319,9 +320,9 @@ func appendUnique(in []string, v string) []string {
 
 // BackfillResult summarizes a BackfillExerciseMovementPatterns run.
 type BackfillResult struct {
-	ExercisesConsidered int
-	ExercisesTagged     int // had >=1 pattern added
-	PatternsInserted    int
+	ExercisesConsidered  int
+	ExercisesTagged      int // had >=1 pattern added
+	PatternsInserted     int
 	SkippedAlreadyTagged int // exercise already had at least one pattern row
 }
 
@@ -335,14 +336,14 @@ type BackfillResult struct {
 // ran. Migration 0004 created the empty table; this backfill populates it
 // from the seed catalog on the next startup. New installs (where the catalog
 // importer wrote the tags inline) hit the "already-tagged" branch and skip.
-func BackfillExerciseMovementPatterns(db *sql.DB, catalogSeed []byte) (*BackfillResult, error) {
+func BackfillExerciseMovementPatterns(ctx context.Context, db *sql.DB, catalogSeed []byte) (*BackfillResult, error) {
 	parsed, err := decodeCatalogExerciseTags(catalogSeed)
 	if err != nil {
 		return nil, fmt.Errorf("models: backfill movement patterns: %w", err)
 	}
 
 	result := &BackfillResult{}
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin backfill tx: %w", err)
 	}
@@ -355,7 +356,7 @@ func BackfillExerciseMovementPatterns(db *sql.DB, catalogSeed []byte) (*Backfill
 		result.ExercisesConsidered++
 
 		var exerciseID int64
-		err := tx.QueryRow(`SELECT id FROM exercises WHERE name = ? COLLATE NOCASE`, item.Name).Scan(&exerciseID)
+		err := tx.QueryRowContext(ctx, `SELECT id FROM exercises WHERE name = ? COLLATE NOCASE`, item.Name).Scan(&exerciseID)
 		if errors.Is(err, sql.ErrNoRows) {
 			continue
 		}
@@ -366,7 +367,7 @@ func BackfillExerciseMovementPatterns(db *sql.DB, catalogSeed []byte) (*Backfill
 		// Skip if any pattern row already exists for this exercise — preserves
 		// manual edits and avoids double-tagging on new-install repeats.
 		var existing int
-		if err := tx.QueryRow(`SELECT COUNT(*) FROM exercise_movement_patterns WHERE exercise_id = ?`, exerciseID).Scan(&existing); err != nil {
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM exercise_movement_patterns WHERE exercise_id = ?`, exerciseID).Scan(&existing); err != nil {
 			return nil, fmt.Errorf("models: count existing patterns for %q: %w", item.Name, err)
 		}
 		if existing > 0 {
@@ -379,7 +380,7 @@ func BackfillExerciseMovementPatterns(db *sql.DB, catalogSeed []byte) (*Backfill
 			if !IsValidMovementPattern(p) {
 				return nil, fmt.Errorf("models: backfill: invalid pattern %q for %q", p, item.Name)
 			}
-			if _, err := tx.Exec(
+			if _, err := tx.ExecContext(ctx,
 				`INSERT OR IGNORE INTO exercise_movement_patterns (exercise_id, pattern) VALUES (?, ?)`,
 				exerciseID, p,
 			); err != nil {

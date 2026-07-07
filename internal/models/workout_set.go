@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -44,7 +45,7 @@ func (ws *WorkoutSet) RepsLabel() string {
 // AddSet inserts a new set into a workout. set_number is auto-calculated as the
 // next number for the given workout+exercise. The read-then-write is wrapped in
 // a transaction to prevent duplicate set numbers under concurrent requests.
-func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, rpe float64, repType, category, notes string) (*WorkoutSet, error) {
+func AddSet(ctx context.Context, db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, rpe float64, repType, category, notes string) (*WorkoutSet, error) {
 	var weightVal sql.NullFloat64
 	if weight > 0 {
 		weightVal = sql.NullFloat64{Float64: weight, Valid: true}
@@ -64,7 +65,7 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 		category = "main"
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin tx for add set: %w", err)
 	}
@@ -72,7 +73,7 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 
 	// Compute next set_number for this workout+exercise.
 	var nextSet int
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`SELECT COALESCE(MAX(set_number), 0) + 1 FROM workout_sets WHERE workout_id = ? AND exercise_id = ?`,
 		workoutID, exerciseID,
 	).Scan(&nextSet)
@@ -81,7 +82,7 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 	}
 
 	var id int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		workoutID, exerciseID, nextSet, reps, weightVal, rpeVal, repType, category, notesVal,
 	).Scan(&id)
@@ -93,18 +94,18 @@ func AddSet(db *sql.DB, workoutID, exerciseID int64, reps int, weight float64, r
 		return nil, fmt.Errorf("models: commit add set: %w", err)
 	}
 
-	return GetSetByID(db, id)
+	return GetSetByID(ctx, db, id)
 }
 
 // AddMultipleSets inserts count identical sets for a workout+exercise in a
 // single transaction. Returns the created sets. Useful for logging e.g.
 // "5×5 @ 135 lbs" in one action.
-func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, weight float64, rpe float64, repType, category, notes string) ([]*WorkoutSet, error) {
+func AddMultipleSets(ctx context.Context, db *sql.DB, workoutID, exerciseID int64, count, reps int, weight float64, rpe float64, repType, category, notes string) ([]*WorkoutSet, error) {
 	if count <= 0 {
 		return nil, fmt.Errorf("models: set count must be positive, got %d", count)
 	}
 	if count == 1 {
-		s, err := AddSet(db, workoutID, exerciseID, reps, weight, rpe, repType, category, notes)
+		s, err := AddSet(ctx, db, workoutID, exerciseID, reps, weight, rpe, repType, category, notes)
 		if err != nil {
 			return nil, err
 		}
@@ -130,7 +131,7 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 		category = "main"
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin tx for add multiple sets: %w", err)
 	}
@@ -138,7 +139,7 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 
 	// Compute next set_number for this workout+exercise.
 	var nextSet int
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`SELECT COALESCE(MAX(set_number), 0) + 1 FROM workout_sets WHERE workout_id = ? AND exercise_id = ?`,
 		workoutID, exerciseID,
 	).Scan(&nextSet)
@@ -149,7 +150,7 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 	var ids []int64
 	for i := 0; i < count; i++ {
 		var id int64
-		err := tx.QueryRow(
+		err := tx.QueryRowContext(ctx,
 			`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 			workoutID, exerciseID, nextSet+i, reps, weightVal, rpeVal, repType, category, notesVal,
 		).Scan(&id)
@@ -165,7 +166,7 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 
 	sets := make([]*WorkoutSet, 0, len(ids))
 	for _, id := range ids {
-		s, err := GetSetByID(db, id)
+		s, err := GetSetByID(ctx, db, id)
 		if err != nil {
 			return nil, fmt.Errorf("models: get created set %d: %w", id, err)
 		}
@@ -181,12 +182,12 @@ func AddMultipleSets(db *sql.DB, workoutID, exerciseID int64, count, reps int, w
 // prescription is nil or has no lines. The app never decides progression — this
 // just transcribes the coach's prescription into the log for the athlete to
 // confirm (ADR 007).
-func SeedSetsFromPrescription(db *sql.DB, workoutID int64, p *Prescription) (int, error) {
+func SeedSetsFromPrescription(ctx context.Context, db *sql.DB, workoutID int64, p *Prescription) (int, error) {
 	if p == nil || len(p.Lines) == 0 {
 		return 0, nil
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("models: begin tx for seed prescription: %w", err)
 	}
@@ -210,7 +211,7 @@ func SeedSetsFromPrescription(db *sql.DB, workoutID int64, p *Prescription) (int
 				repType = "reps"
 			}
 
-			if _, err := tx.Exec(
+			if _, err := tx.ExecContext(ctx,
 				`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, NULL, ?, 'main', NULL)`,
 				workoutID, line.ExerciseID, s.SetNumber, reps, weightVal, repType,
 			); err != nil {
@@ -227,9 +228,9 @@ func SeedSetsFromPrescription(db *sql.DB, workoutID int64, p *Prescription) (int
 }
 
 // GetSetByID retrieves a workout set by primary key.
-func GetSetByID(db *sql.DB, id int64) (*WorkoutSet, error) {
+func GetSetByID(ctx context.Context, db *sql.DB, id int64) (*WorkoutSet, error) {
 	s := &WorkoutSet{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.category, ws.notes, ws.created_at, ws.updated_at,
 		        e.name
 		 FROM workout_sets ws
@@ -255,7 +256,7 @@ func GetSetByID(db *sql.DB, id int64) (*WorkoutSet, error) {
 // caller authorized for one athlete cannot mutate another athlete's set by
 // guessing its ID (returns ErrNotFound on mismatch — mapped to 404 by the
 // handler).
-func UpdateSet(db *sql.DB, id, athleteID int64, reps *int, weight *float64, rpe *float64, notes *string) (*WorkoutSet, error) {
+func UpdateSet(ctx context.Context, db *sql.DB, id, athleteID int64, reps *int, weight *float64, rpe *float64, notes *string) (*WorkoutSet, error) {
 	var setClauses []string
 	var args []any
 
@@ -292,7 +293,7 @@ func UpdateSet(db *sql.DB, id, athleteID int64, reps *int, weight *float64, rpe 
 	// so a bad/foreign set ID reports 404 rather than a silent no-op success.
 	if len(setClauses) == 0 {
 		var owned int
-		err := db.QueryRow(
+		err := db.QueryRowContext(ctx,
 			`SELECT 1 FROM workout_sets WHERE id = ? AND workout_id IN (SELECT id FROM workouts WHERE athlete_id = ?)`,
 			id, athleteID,
 		).Scan(&owned)
@@ -302,11 +303,11 @@ func UpdateSet(db *sql.DB, id, athleteID int64, reps *int, weight *float64, rpe 
 		if err != nil {
 			return nil, fmt.Errorf("models: update set %d: %w", id, err)
 		}
-		return GetSetByID(db, id)
+		return GetSetByID(ctx, db, id)
 	}
 
 	args = append(args, id, athleteID)
-	result, err := db.Exec(
+	result, err := db.ExecContext(ctx,
 		`UPDATE workout_sets SET `+strings.Join(setClauses, ", ")+
 			` WHERE id = ? AND workout_id IN (SELECT id FROM workouts WHERE athlete_id = ?)`,
 		args...,
@@ -318,15 +319,15 @@ func UpdateSet(db *sql.DB, id, athleteID int64, reps *int, weight *float64, rpe 
 	if rows == 0 {
 		return nil, ErrNotFound
 	}
-	return GetSetByID(db, id)
+	return GetSetByID(ctx, db, id)
 }
 
 // DeleteSet removes a set from a workout and renumbers the remaining sets
 // for the same workout+exercise to maintain a contiguous sequence. The initial
 // lookup is scoped to athleteID (joined through the parent workout) so a set
 // belonging to another athlete returns ErrNotFound rather than being deleted.
-func DeleteSet(db *sql.DB, id, athleteID int64) error {
-	tx, err := db.Begin()
+func DeleteSet(ctx context.Context, db *sql.DB, id, athleteID int64) error {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("models: begin tx for delete set: %w", err)
 	}
@@ -335,7 +336,7 @@ func DeleteSet(db *sql.DB, id, athleteID int64) error {
 	// Look up the set's workout and exercise before deleting, scoped to the
 	// owning athlete so cross-athlete IDs cannot be tampered with.
 	var workoutID, exerciseID int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`SELECT ws.workout_id, ws.exercise_id
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id
@@ -349,14 +350,14 @@ func DeleteSet(db *sql.DB, id, athleteID int64) error {
 	}
 
 	// Delete the target set.
-	_, err = tx.Exec(`DELETE FROM workout_sets WHERE id = ?`, id)
+	_, err = tx.ExecContext(ctx, `DELETE FROM workout_sets WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete set %d: %w", id, err)
 	}
 
 	// Renumber remaining sets for this workout+exercise.
 	// First negate all set_numbers to avoid unique constraint violations.
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`UPDATE workout_sets SET set_number = -set_number WHERE workout_id = ? AND exercise_id = ?`,
 		workoutID, exerciseID,
 	)
@@ -365,7 +366,7 @@ func DeleteSet(db *sql.DB, id, athleteID int64) error {
 	}
 
 	// Read remaining set IDs in original order (negate back for ORDER BY).
-	rows, err := tx.Query(
+	rows, err := tx.QueryContext(ctx,
 		`SELECT id FROM workout_sets WHERE workout_id = ? AND exercise_id = ? ORDER BY -set_number`,
 		workoutID, exerciseID,
 	)
@@ -388,7 +389,7 @@ func DeleteSet(db *sql.DB, id, athleteID int64) error {
 
 	// Assign new contiguous set_numbers starting at 1.
 	for i, setID := range ids {
-		_, err = tx.Exec(`UPDATE workout_sets SET set_number = ? WHERE id = ?`, i+1, setID)
+		_, err = tx.ExecContext(ctx, `UPDATE workout_sets SET set_number = ? WHERE id = ?`, i+1, setID)
 		if err != nil {
 			return fmt.Errorf("models: renumber set %d: %w", setID, err)
 		}
@@ -405,8 +406,8 @@ type ExerciseGroup struct {
 }
 
 // ListSetsByWorkout returns all sets for a workout, grouped by exercise.
-func ListSetsByWorkout(db *sql.DB, workoutID int64) ([]*ExerciseGroup, error) {
-	rows, err := db.Query(`
+func ListSetsByWorkout(ctx context.Context, db *sql.DB, workoutID int64) ([]*ExerciseGroup, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.category, ws.notes, ws.created_at, ws.updated_at,
 		       e.name
 		FROM workout_sets ws
@@ -454,7 +455,7 @@ func ListSetsByWorkout(db *sql.DB, workoutID int64) ([]*ExerciseGroup, error) {
 // ListSetsByWorkoutIDs returns all sets for multiple workouts in a single query,
 // keyed by workout ID. Each value is a slice of ExerciseGroups for that workout.
 // This replaces N calls to ListSetsByWorkout with 1 query.
-func ListSetsByWorkoutIDs(db *sql.DB, workoutIDs []int64) (map[int64][]*ExerciseGroup, error) {
+func ListSetsByWorkoutIDs(ctx context.Context, db *sql.DB, workoutIDs []int64) (map[int64][]*ExerciseGroup, error) {
 	if len(workoutIDs) == 0 {
 		return make(map[int64][]*ExerciseGroup), nil
 	}
@@ -470,7 +471,7 @@ func ListSetsByWorkoutIDs(db *sql.DB, workoutIDs []int64) (map[int64][]*Exercise
 		args[i] = id
 	}
 
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(ctx, `
 		SELECT ws.id, ws.workout_id, ws.exercise_id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.rep_type, ws.category, ws.notes, ws.created_at, ws.updated_at,
 		       e.name
 		FROM workout_sets ws
@@ -560,9 +561,9 @@ type ExerciseHistoryPage struct {
 // ListExerciseHistory returns sets for a specific exercise performed by an
 // athlete, grouped by workout date (most recent first). Uses offset-based
 // pagination on distinct workout dates. Pass offset=0 for the first page.
-func ListExerciseHistory(db *sql.DB, athleteID, exerciseID int64, offset int) (*ExerciseHistoryPage, error) {
+func ListExerciseHistory(ctx context.Context, db *sql.DB, athleteID, exerciseID int64, offset int) (*ExerciseHistoryPage, error) {
 	// First, get the distinct workout IDs for this athlete+exercise with pagination.
-	idRows, err := db.Query(`
+	idRows, err := db.QueryContext(ctx, `
 		SELECT DISTINCT w.id, w.date
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id
@@ -611,7 +612,7 @@ func ListExerciseHistory(db *sql.DB, athleteID, exerciseID int64, offset int) (*
 	}
 	args = append(args, exerciseID)
 
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(ctx, `
 		SELECT ws.workout_id, w.date, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.notes
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id
@@ -668,8 +669,8 @@ type RecentExerciseSet struct {
 
 // ListRecentSetsForExercise returns the most recent sets logged for an exercise
 // across all athletes, limited to 20 entries.
-func ListRecentSetsForExercise(db *sql.DB, exerciseID int64) ([]*RecentExerciseSet, error) {
-	rows, err := db.Query(`
+func ListRecentSetsForExercise(ctx context.Context, db *sql.DB, exerciseID int64) ([]*RecentExerciseSet, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT a.name, a.id, w.date, ws.set_number, ws.reps, ws.weight, ws.rpe
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id

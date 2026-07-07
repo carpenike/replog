@@ -3,7 +3,6 @@ package api
 import (
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/carpenike/replog/internal/middleware"
@@ -12,9 +11,9 @@ import (
 
 // PrescriptionLineResponse is a single exercise's prescription for today.
 type PrescriptionLineResponse struct {
-	ExerciseName string                  `json:"exercise_name"`
-	ExerciseID   int64                   `json:"exercise_id"`
-	TrainingMax  *float64                `json:"training_max,omitempty"`
+	ExerciseName string                    `json:"exercise_name"`
+	ExerciseID   int64                     `json:"exercise_id"`
+	TrainingMax  *float64                  `json:"training_max,omitempty"`
 	Sets         []PrescriptionSetResponse `json:"sets"`
 }
 
@@ -52,14 +51,8 @@ type PrescriptionResponse struct {
 //	@Failure      404  {object}  api.APIError
 //	@Router       /athletes/{id}/prescription [get]
 func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -69,7 +62,7 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 		tz = prefs.Timezone
 	}
 
-	program, err := models.ResolveAssignment(h.DB, athleteID, time.Now(), tz)
+	program, err := models.ResolveAssignment(r.Context(), h.DB, athleteID, time.Now(), tz)
 	if err != nil {
 		log.Printf("api: resolve assignment for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to resolve program")
@@ -80,7 +73,7 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prescription, err := models.GetPrescription(h.DB, program, time.Now())
+	prescription, err := models.GetPrescription(r.Context(), h.DB, program, time.Now())
 	if err != nil {
 		log.Printf("api: get prescription for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to get prescription")

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -65,7 +66,7 @@ type MethodologyWithLinks struct {
 
 // CreateMethodology inserts a new methodology. Returns ErrDuplicateMethodologyKey
 // when the key is already taken.
-func CreateMethodology(db *sql.DB, m *Methodology) (*Methodology, error) {
+func CreateMethodology(ctx context.Context, db *sql.DB, m *Methodology) (*Methodology, error) {
 	if m == nil {
 		return nil, fmt.Errorf("models: create methodology with nil input")
 	}
@@ -83,7 +84,7 @@ func CreateMethodology(db *sql.DB, m *Methodology) (*Methodology, error) {
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO methodologies (key, name, audience, applicable_tiers, philosophy, definition)
 		 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		m.Key, m.Name, m.Audience, m.ApplicableTiers, m.Philosophy, m.Definition,
@@ -94,13 +95,13 @@ func CreateMethodology(db *sql.DB, m *Methodology) (*Methodology, error) {
 		}
 		return nil, fmt.Errorf("models: create methodology %q: %w", m.Key, err)
 	}
-	return GetMethodologyByID(db, id)
+	return GetMethodologyByID(ctx, db, id)
 }
 
 // GetMethodologyByID retrieves a methodology by primary key.
-func GetMethodologyByID(db *sql.DB, id int64) (*Methodology, error) {
+func GetMethodologyByID(ctx context.Context, db *sql.DB, id int64) (*Methodology, error) {
 	m := &Methodology{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, key, name, audience, applicable_tiers, philosophy, definition, created_at, updated_at
 		 FROM methodologies WHERE id = ?`, id,
 	).Scan(&m.ID, &m.Key, &m.Name, &m.Audience, &m.ApplicableTiers, &m.Philosophy, &m.Definition, &m.CreatedAt, &m.UpdatedAt)
@@ -115,9 +116,9 @@ func GetMethodologyByID(db *sql.DB, id int64) (*Methodology, error) {
 
 // GetMethodologyByKey retrieves a methodology by its stable key (the form
 // callers use to look up the Yessis-1×20 row, for example).
-func GetMethodologyByKey(db *sql.DB, key string) (*Methodology, error) {
+func GetMethodologyByKey(ctx context.Context, db *sql.DB, key string) (*Methodology, error) {
 	m := &Methodology{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, key, name, audience, applicable_tiers, philosophy, definition, created_at, updated_at
 		 FROM methodologies WHERE key = ?`, key,
 	).Scan(&m.ID, &m.Key, &m.Name, &m.Audience, &m.ApplicableTiers, &m.Philosophy, &m.Definition, &m.CreatedAt, &m.UpdatedAt)
@@ -133,7 +134,7 @@ func GetMethodologyByKey(db *sql.DB, key string) (*Methodology, error) {
 // ListMethodologies returns all methodologies, optionally filtered by audience.
 // Pass empty string for audience to list all. Ordering is by name COLLATE NOCASE
 // for stable UI display.
-func ListMethodologies(db *sql.DB, audienceFilter string) ([]*Methodology, error) {
+func ListMethodologies(ctx context.Context, db *sql.DB, audienceFilter string) ([]*Methodology, error) {
 	var query string
 	var args []any
 	if audienceFilter == "" {
@@ -148,7 +149,7 @@ func ListMethodologies(db *sql.DB, audienceFilter string) ([]*Methodology, error
 		args = append(args, audienceFilter)
 	}
 
-	rows, err := db.Query(query, args...)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("models: list methodologies: %w", err)
 	}
@@ -170,35 +171,35 @@ func ListMethodologies(db *sql.DB, audienceFilter string) ([]*Methodology, error
 
 // LoadMethodologyWithLinks returns a methodology along with all its
 // link-table rows in one call. Used by Phase-2 generation wiring.
-func LoadMethodologyWithLinks(db *sql.DB, id int64) (*MethodologyWithLinks, error) {
-	base, err := GetMethodologyByID(db, id)
+func LoadMethodologyWithLinks(ctx context.Context, db *sql.DB, id int64) (*MethodologyWithLinks, error) {
+	base, err := GetMethodologyByID(ctx, db, id)
 	if err != nil {
 		return nil, err
 	}
 	out := &MethodologyWithLinks{Methodology: *base}
 
-	refs, err := scanInt64Column(db,
+	refs, err := scanInt64Column(ctx, db,
 		`SELECT template_id FROM methodology_reference_programs WHERE methodology_id = ? ORDER BY template_id`, id)
 	if err != nil {
 		return nil, fmt.Errorf("models: load methodology reference programs %d: %w", id, err)
 	}
 	out.ReferenceProgramIDs = refs
 
-	equip, err := scanInt64Column(db,
+	equip, err := scanInt64Column(ctx, db,
 		`SELECT equipment_id FROM methodology_allowed_equipment WHERE methodology_id = ? ORDER BY equipment_id`, id)
 	if err != nil {
 		return nil, fmt.Errorf("models: load methodology allowed equipment %d: %w", id, err)
 	}
 	out.AllowedEquipmentIDs = equip
 
-	patterns, err := scanStringColumn(db,
+	patterns, err := scanStringColumn(ctx, db,
 		`SELECT pattern FROM methodology_allowed_patterns WHERE methodology_id = ? ORDER BY pattern`, id)
 	if err != nil {
 		return nil, fmt.Errorf("models: load methodology allowed patterns %d: %w", id, err)
 	}
 	out.AllowedPatterns = patterns
 
-	exIDs, err := scanInt64Column(db,
+	exIDs, err := scanInt64Column(ctx, db,
 		`SELECT exercise_id FROM methodology_allowed_exercises WHERE methodology_id = ? ORDER BY exercise_id`, id)
 	if err != nil {
 		return nil, fmt.Errorf("models: load methodology allowed exercises %d: %w", id, err)
@@ -210,16 +211,16 @@ func LoadMethodologyWithLinks(db *sql.DB, id int64) (*MethodologyWithLinks, erro
 
 // AddMethodologyReferencePrograms links the given program_templates to the
 // methodology. Idempotent (INSERT OR IGNORE).
-func AddMethodologyReferencePrograms(db *sql.DB, methodologyID int64, templateIDs []int64) error {
-	return addMethodologyLinks(db,
+func AddMethodologyReferencePrograms(ctx context.Context, db *sql.DB, methodologyID int64, templateIDs []int64) error {
+	return addMethodologyLinks(ctx, db,
 		`INSERT OR IGNORE INTO methodology_reference_programs (methodology_id, template_id) VALUES (?, ?)`,
 		methodologyID, dedupInt64(templateIDs))
 }
 
 // AddMethodologyAllowedEquipment links equipment to the methodology allow-list.
 // Idempotent.
-func AddMethodologyAllowedEquipment(db *sql.DB, methodologyID int64, equipmentIDs []int64) error {
-	return addMethodologyLinks(db,
+func AddMethodologyAllowedEquipment(ctx context.Context, db *sql.DB, methodologyID int64, equipmentIDs []int64) error {
+	return addMethodologyLinks(ctx, db,
 		`INSERT OR IGNORE INTO methodology_allowed_equipment (methodology_id, equipment_id) VALUES (?, ?)`,
 		methodologyID, dedupInt64(equipmentIDs))
 }
@@ -227,8 +228,8 @@ func AddMethodologyAllowedEquipment(db *sql.DB, methodologyID int64, equipmentID
 // AddMethodologyAllowedExercises links exercises to the methodology
 // explicit-list allow-list (the override surface on top of pattern scoping).
 // Idempotent.
-func AddMethodologyAllowedExercises(db *sql.DB, methodologyID int64, exerciseIDs []int64) error {
-	return addMethodologyLinks(db,
+func AddMethodologyAllowedExercises(ctx context.Context, db *sql.DB, methodologyID int64, exerciseIDs []int64) error {
+	return addMethodologyLinks(ctx, db,
 		`INSERT OR IGNORE INTO methodology_allowed_exercises (methodology_id, exercise_id) VALUES (?, ?)`,
 		methodologyID, dedupInt64(exerciseIDs))
 }
@@ -236,7 +237,7 @@ func AddMethodologyAllowedExercises(db *sql.DB, methodologyID int64, exerciseIDs
 // AddMethodologyAllowedPatterns links Dan John pattern strings to the
 // methodology pattern allow-list. All pattern values are validated against
 // IsValidMovementPattern before any rows are written.
-func AddMethodologyAllowedPatterns(db *sql.DB, methodologyID int64, patterns []string) error {
+func AddMethodologyAllowedPatterns(ctx context.Context, db *sql.DB, methodologyID int64, patterns []string) error {
 	for _, p := range patterns {
 		if !IsValidMovementPattern(p) {
 			return fmt.Errorf("models: invalid movement pattern %q for methodology %d (allowed: push, pull, hinge, squat, carry, ground)", p, methodologyID)
@@ -245,7 +246,7 @@ func AddMethodologyAllowedPatterns(db *sql.DB, methodologyID int64, patterns []s
 
 	uniq := dedupString(patterns)
 	for _, p := range uniq {
-		if _, err := db.Exec(
+		if _, err := db.ExecContext(ctx,
 			`INSERT OR IGNORE INTO methodology_allowed_patterns (methodology_id, pattern) VALUES (?, ?)`,
 			methodologyID, p,
 		); err != nil {
@@ -257,8 +258,8 @@ func AddMethodologyAllowedPatterns(db *sql.DB, methodologyID int64, patterns []s
 
 // DeleteMethodology removes a methodology and (via ON DELETE CASCADE) all
 // its link-table rows. Returns ErrNotFound if no row matches.
-func DeleteMethodology(db *sql.DB, id int64) error {
-	res, err := db.Exec(`DELETE FROM methodologies WHERE id = ?`, id)
+func DeleteMethodology(ctx context.Context, db *sql.DB, id int64) error {
+	res, err := db.ExecContext(ctx, `DELETE FROM methodologies WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete methodology %d: %w", id, err)
 	}
@@ -272,17 +273,17 @@ func DeleteMethodology(db *sql.DB, id int64) error {
 // addMethodologyLinks is the shared INSERT OR IGNORE loop for the int64-id
 // link tables. The caller supplies the SQL with two `?` placeholders
 // (methodology_id, link_id).
-func addMethodologyLinks(db *sql.DB, query string, methodologyID int64, ids []int64) error {
+func addMethodologyLinks(ctx context.Context, db *sql.DB, query string, methodologyID int64, ids []int64) error {
 	for _, lid := range ids {
-		if _, err := db.Exec(query, methodologyID, lid); err != nil {
+		if _, err := db.ExecContext(ctx, query, methodologyID, lid); err != nil {
 			return fmt.Errorf("models: add methodology link (%d, %d): %w", methodologyID, lid, err)
 		}
 	}
 	return nil
 }
 
-func scanInt64Column(db *sql.DB, query string, args ...any) ([]int64, error) {
-	rows, err := db.Query(query, args...)
+func scanInt64Column(ctx context.Context, db *sql.DB, query string, args ...any) ([]int64, error) {
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -298,8 +299,8 @@ func scanInt64Column(db *sql.DB, query string, args ...any) ([]int64, error) {
 	return out, rows.Err()
 }
 
-func scanStringColumn(db *sql.DB, query string, args ...any) ([]string, error) {
-	rows, err := db.Query(query, args...)
+func scanStringColumn(ctx context.Context, db *sql.DB, query string, args ...any) ([]string, error) {
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"testing"
@@ -8,11 +9,11 @@ import (
 
 func TestRecordGoalChange(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	coach, _ := CreateUser(context.Background(), db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	t.Run("initial goal", func(t *testing.T) {
-		gh, err := RecordGoalChange(db, a.ID, "Build overall strength", "", coach.ID, "", "")
+		gh, err := RecordGoalChange(context.Background(), db, a.ID, "Build overall strength", "", coach.ID, "", "")
 		if err != nil {
 			t.Fatalf("record goal change: %v", err)
 		}
@@ -31,7 +32,7 @@ func TestRecordGoalChange(t *testing.T) {
 	})
 
 	t.Run("goal change with previous", func(t *testing.T) {
-		gh, err := RecordGoalChange(db, a.ID, "Prepare for football season", "Build overall strength", coach.ID, "2026-03-01", "Shifting focus")
+		gh, err := RecordGoalChange(context.Background(), db, a.ID, "Prepare for football season", "Build overall strength", coach.ID, "2026-03-01", "Shifting focus")
 		if err != nil {
 			t.Fatalf("record goal change: %v", err)
 		}
@@ -50,7 +51,7 @@ func TestRecordGoalChange(t *testing.T) {
 	})
 
 	t.Run("default effective date", func(t *testing.T) {
-		gh, err := RecordGoalChange(db, a.ID, "Recovery phase", "", coach.ID, "", "")
+		gh, err := RecordGoalChange(context.Background(), db, a.ID, "Recovery phase", "", coach.ID, "", "")
 		if err != nil {
 			t.Fatalf("record goal change: %v", err)
 		}
@@ -62,16 +63,16 @@ func TestRecordGoalChange(t *testing.T) {
 
 func TestListGoalHistory(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	coach, _ := CreateUser(context.Background(), db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	// Record multiple goal changes.
-	RecordGoalChange(db, a.ID, "Goal 1", "", coach.ID, "2026-01-01", "")
-	RecordGoalChange(db, a.ID, "Goal 2", "Goal 1", coach.ID, "2026-02-01", "")
-	RecordGoalChange(db, a.ID, "Goal 3", "Goal 2", coach.ID, "2026-03-01", "")
+	RecordGoalChange(context.Background(), db, a.ID, "Goal 1", "", coach.ID, "2026-01-01", "")
+	RecordGoalChange(context.Background(), db, a.ID, "Goal 2", "Goal 1", coach.ID, "2026-02-01", "")
+	RecordGoalChange(context.Background(), db, a.ID, "Goal 3", "Goal 2", coach.ID, "2026-03-01", "")
 
 	t.Run("returns newest first", func(t *testing.T) {
-		history, err := ListGoalHistory(db, a.ID)
+		history, err := ListGoalHistory(context.Background(), db, a.ID)
 		if err != nil {
 			t.Fatalf("list goal history: %v", err)
 		}
@@ -87,8 +88,8 @@ func TestListGoalHistory(t *testing.T) {
 	})
 
 	t.Run("empty for different athlete", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Other Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-		history, err := ListGoalHistory(db, a2.ID)
+		a2, _ := CreateAthlete(context.Background(), db, "Other Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+		history, err := ListGoalHistory(context.Background(), db, a2.ID)
 		if err != nil {
 			t.Fatalf("list goal history: %v", err)
 		}
@@ -98,13 +99,13 @@ func TestListGoalHistory(t *testing.T) {
 	})
 
 	t.Run("cascades on athlete delete", func(t *testing.T) {
-		a3, _ := CreateAthlete(db, "Delete Me", "", "", "", "", "", "", sql.NullInt64{}, true)
-		RecordGoalChange(db, a3.ID, "Temp goal", "", coach.ID, "", "")
+		a3, _ := CreateAthlete(context.Background(), db, "Delete Me", "", "", "", "", "", "", sql.NullInt64{}, true)
+		RecordGoalChange(context.Background(), db, a3.ID, "Temp goal", "", coach.ID, "", "")
 
 		// Delete athlete — goal history should cascade.
 		db.Exec("DELETE FROM athletes WHERE id = ?", a3.ID)
 
-		history, err := ListGoalHistory(db, a3.ID)
+		history, err := ListGoalHistory(context.Background(), db, a3.ID)
 		if err != nil {
 			t.Fatalf("list goal history after delete: %v", err)
 		}

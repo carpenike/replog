@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"errors"
 	"testing"
 )
@@ -9,17 +10,17 @@ func TestSetProgressionRule(t *testing.T) {
 	db := testDB(t)
 
 	// Seed exercise and template.
-	ex, err := CreateExercise(db, "Squat", "", "", "", 0)
+	ex, err := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
-	tmpl, err := CreateProgramTemplate(db, nil, "5/3/1", "", 4, 4, false, "")
+	tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "5/3/1", "", 4, 4, false, "")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
 
 	t.Run("create new rule", func(t *testing.T) {
-		pr, err := SetProgressionRule(db, tmpl.ID, ex.ID, 10.0)
+		pr, err := SetProgressionRule(context.Background(), db, tmpl.ID, ex.ID, 10.0)
 		if err != nil {
 			t.Fatalf("set progression rule: %v", err)
 		}
@@ -32,7 +33,7 @@ func TestSetProgressionRule(t *testing.T) {
 	})
 
 	t.Run("upsert updates existing", func(t *testing.T) {
-		pr, err := SetProgressionRule(db, tmpl.ID, ex.ID, 5.0)
+		pr, err := SetProgressionRule(context.Background(), db, tmpl.ID, ex.ID, 5.0)
 		if err != nil {
 			t.Fatalf("upsert progression rule: %v", err)
 		}
@@ -45,7 +46,7 @@ func TestSetProgressionRule(t *testing.T) {
 func TestGetProgressionRule_NotFound(t *testing.T) {
 	db := testDB(t)
 
-	_, err := GetProgressionRule(db, 999, 999)
+	_, err := GetProgressionRule(context.Background(), db, 999, 999)
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
@@ -54,23 +55,23 @@ func TestGetProgressionRule_NotFound(t *testing.T) {
 func TestListProgressionRules(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, err := CreateProgramTemplate(db, nil, "5/3/1", "", 4, 4, false, "")
+	tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "5/3/1", "", 4, 4, false, "")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
-	squat, err := CreateExercise(db, "Squat", "", "", "", 0)
+	squat, err := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create squat: %v", err)
 	}
-	bench, err := CreateExercise(db, "Bench Press", "", "", "", 0)
+	bench, err := CreateExercise(context.Background(), db, "Bench Press", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create bench: %v", err)
 	}
 
-	SetProgressionRule(db, tmpl.ID, squat.ID, 10.0)
-	SetProgressionRule(db, tmpl.ID, bench.ID, 5.0)
+	SetProgressionRule(context.Background(), db, tmpl.ID, squat.ID, 10.0)
+	SetProgressionRule(context.Background(), db, tmpl.ID, bench.ID, 5.0)
 
-	rules, err := ListProgressionRules(db, tmpl.ID)
+	rules, err := ListProgressionRules(context.Background(), db, tmpl.ID)
 	if err != nil {
 		t.Fatalf("list progression rules: %v", err)
 	}
@@ -90,32 +91,32 @@ func TestListProgressionRules(t *testing.T) {
 func TestDeleteProgressionRule(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, err := CreateProgramTemplate(db, nil, "5/3/1", "", 4, 4, false, "")
+	tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "5/3/1", "", 4, 4, false, "")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
-	ex, err := CreateExercise(db, "Squat", "", "", "", 0)
+	ex, err := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
 
-	pr, err := SetProgressionRule(db, tmpl.ID, ex.ID, 10.0)
+	pr, err := SetProgressionRule(context.Background(), db, tmpl.ID, ex.ID, 10.0)
 	if err != nil {
 		t.Fatalf("set rule: %v", err)
 	}
 
-	if err := DeleteProgressionRule(db, pr.ID); err != nil {
+	if err := DeleteProgressionRule(context.Background(), db, pr.ID); err != nil {
 		t.Fatalf("delete rule: %v", err)
 	}
 
 	// Should not be found after deletion.
-	_, err = GetProgressionRule(db, tmpl.ID, ex.ID)
+	_, err = GetProgressionRule(context.Background(), db, tmpl.ID, ex.ID)
 	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("expected ErrNotFound after delete, got %v", err)
 	}
 
 	// Deleting again should return ErrNotFound.
-	if err := DeleteProgressionRule(db, pr.ID); !errors.Is(err, ErrNotFound) {
+	if err := DeleteProgressionRule(context.Background(), db, pr.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("expected ErrNotFound on second delete, got %v", err)
 	}
 }
@@ -142,26 +143,26 @@ func TestProgressionRule_IncrementLabel(t *testing.T) {
 func TestProgressionRule_CascadeDeleteTemplate(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, err := CreateProgramTemplate(db, nil, "Temp", "", 1, 1, false, "")
+	tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "Temp", "", 1, 1, false, "")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
-	ex, err := CreateExercise(db, "Squat", "", "", "", 0)
+	ex, err := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
 
-	_, err = SetProgressionRule(db, tmpl.ID, ex.ID, 10.0)
+	_, err = SetProgressionRule(context.Background(), db, tmpl.ID, ex.ID, 10.0)
 	if err != nil {
 		t.Fatalf("set rule: %v", err)
 	}
 
 	// Delete the template — rule should cascade.
-	if err := DeleteProgramTemplate(db, tmpl.ID); err != nil {
+	if err := DeleteProgramTemplate(context.Background(), db, tmpl.ID); err != nil {
 		t.Fatalf("delete template: %v", err)
 	}
 
-	rules, err := ListProgressionRules(db, tmpl.ID)
+	rules, err := ListProgressionRules(context.Background(), db, tmpl.ID)
 	if err != nil {
 		t.Fatalf("list rules after template delete: %v", err)
 	}

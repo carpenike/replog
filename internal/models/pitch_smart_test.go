@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"testing"
@@ -14,14 +15,14 @@ import (
 func TestComputePitchSmartStatus_RestDaysOwed(t *testing.T) {
 	db := testDB(t)
 	dob := "2013-01-01"
-	a, err := CreateAthlete(db, "Pitcher", "", "", "", dob, "", "", sql.NullInt64{}, false)
+	a, err := CreateAthlete(context.Background(), db, "Pitcher", "", "", "", dob, "", "", sql.NullInt64{}, false)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
 
 	// 80 pitches on 2026-05-10 → for age 13 (95 max), 66+ band → 4 rest days.
 	count := int64(80)
-	if _, err := CreateThrowingSession(db, a.ID, ThrowingSessionInput{
+	if _, err := CreateThrowingSession(context.Background(), db, a.ID, ThrowingSessionInput{
 		Date: "2026-05-10", ThrowType: "game", ThrowCount: &count,
 	}); err != nil {
 		t.Fatalf("create throwing session: %v", err)
@@ -29,7 +30,7 @@ func TestComputePitchSmartStatus_RestDaysOwed(t *testing.T) {
 
 	// Check one day later: 4 required − 1 elapsed = 3 owed.
 	asOf := time.Date(2026, 5, 11, 12, 0, 0, 0, time.UTC)
-	status, err := ComputePitchSmartStatus(db, a.ID, asOf)
+	status, err := ComputePitchSmartStatus(context.Background(), db, a.ID, asOf)
 	if err != nil {
 		t.Fatalf("compute pitch smart: %v", err)
 	}
@@ -51,7 +52,7 @@ func TestComputePitchSmartStatus_RestDaysOwed(t *testing.T) {
 
 	// After the rest window, nothing is owed.
 	rested := time.Date(2026, 5, 15, 12, 0, 0, 0, time.UTC)
-	status, err = ComputePitchSmartStatus(db, a.ID, rested)
+	status, err = ComputePitchSmartStatus(context.Background(), db, a.ID, rested)
 	if err != nil {
 		t.Fatalf("compute pitch smart (rested): %v", err)
 	}
@@ -70,14 +71,14 @@ func TestComputePitchSmartStatus_RestDaysOwed(t *testing.T) {
 func TestComputePitchSmartStatus_NonPitchingThrowDoesNotResetAdvisory(t *testing.T) {
 	db := testDB(t)
 	dob := "2013-01-01" // age 13 → daily max 95, 66+ band → 4 rest days.
-	a, err := CreateAthlete(db, "Two-Way", "", "", "", dob, "", "", sql.NullInt64{}, false)
+	a, err := CreateAthlete(context.Background(), db, "Two-Way", "", "", "", dob, "", "", sql.NullInt64{}, false)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
 
 	// A bullpen of 80 pitches on 2026-05-10 → 4 rest days required.
 	pitches := int64(80)
-	if _, err := CreateThrowingSession(db, a.ID, ThrowingSessionInput{
+	if _, err := CreateThrowingSession(context.Background(), db, a.ID, ThrowingSessionInput{
 		Date: "2026-05-10", ThrowType: "bullpen", ThrowCount: &pitches,
 	}); err != nil {
 		t.Fatalf("create bullpen session: %v", err)
@@ -87,7 +88,7 @@ func TestComputePitchSmartStatus_NonPitchingThrowDoesNotResetAdvisory(t *testing
 	// This is real arm load, but it is NOT pitching — it must not touch the
 	// pitch-count advisory.
 	infield := int64(60)
-	if _, err := CreateThrowingSession(db, a.ID, ThrowingSessionInput{
+	if _, err := CreateThrowingSession(context.Background(), db, a.ID, ThrowingSessionInput{
 		Date: "2026-05-11", ThrowType: "position", ThrowCount: &infield,
 	}); err != nil {
 		t.Fatalf("create position session: %v", err)
@@ -96,7 +97,7 @@ func TestComputePitchSmartStatus_NonPitchingThrowDoesNotResetAdvisory(t *testing
 	// As of 2026-05-12: the advisory must reflect the 2026-05-10 BULLPEN, not
 	// the later position throw. 4 required − 2 elapsed = 2 owed.
 	asOf := time.Date(2026, 5, 12, 12, 0, 0, 0, time.UTC)
-	status, err := ComputePitchSmartStatus(db, a.ID, asOf)
+	status, err := ComputePitchSmartStatus(context.Background(), db, a.ID, asOf)
 	if err != nil {
 		t.Fatalf("compute pitch smart: %v", err)
 	}
@@ -116,19 +117,19 @@ func TestComputePitchSmartStatus_NonPitchingThrowDoesNotResetAdvisory(t *testing
 // advisory is pitch-count-scoped, so catch/position/long_toss don't register.
 func TestComputePitchSmartStatus_OnlyNonPitchingThrows(t *testing.T) {
 	db := testDB(t)
-	a, err := CreateAthlete(db, "Position Only", "", "", "", "2013-01-01", "", "", sql.NullInt64{}, false)
+	a, err := CreateAthlete(context.Background(), db, "Position Only", "", "", "", "2013-01-01", "", "", sql.NullInt64{}, false)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
 
 	count := int64(50)
-	if _, err := CreateThrowingSession(db, a.ID, ThrowingSessionInput{
+	if _, err := CreateThrowingSession(context.Background(), db, a.ID, ThrowingSessionInput{
 		Date: "2026-05-10", ThrowType: "position", ThrowCount: &count,
 	}); err != nil {
 		t.Fatalf("create position session: %v", err)
 	}
 
-	status, err := ComputePitchSmartStatus(db, a.ID, time.Date(2026, 5, 11, 12, 0, 0, 0, time.UTC))
+	status, err := ComputePitchSmartStatus(context.Background(), db, a.ID, time.Date(2026, 5, 11, 12, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatalf("compute pitch smart: %v", err)
 	}
@@ -144,11 +145,11 @@ func TestComputePitchSmartStatus_OnlyNonPitchingThrows(t *testing.T) {
 // "no advisory") rather than a hard error when age can't be determined.
 func TestComputePitchSmartStatus_NoDOB(t *testing.T) {
 	db := testDB(t)
-	a, err := CreateAthlete(db, "Unknown Age", "", "", "", "", "", "", sql.NullInt64{}, false)
+	a, err := CreateAthlete(context.Background(), db, "Unknown Age", "", "", "", "", "", "", sql.NullInt64{}, false)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
-	if _, err := ComputePitchSmartStatus(db, a.ID, time.Now()); err != ErrNoPitchSmartLimit {
+	if _, err := ComputePitchSmartStatus(context.Background(), db, a.ID, time.Now()); err != ErrNoPitchSmartLimit {
 		t.Errorf("err=%v, want ErrNoPitchSmartLimit", err)
 	}
 }

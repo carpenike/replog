@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -60,7 +61,7 @@ type NotificationPreference struct {
 }
 
 // CreateNotification inserts a new notification. Returns the created notification.
-func CreateNotification(db *sql.DB, userID int64, nType, title, message, link string, athleteID sql.NullInt64) (*Notification, error) {
+func CreateNotification(ctx context.Context, db *sql.DB, userID int64, nType, title, message, link string, athleteID sql.NullInt64) (*Notification, error) {
 	var msgVal, linkVal sql.NullString
 	if message != "" {
 		msgVal = sql.NullString{String: message, Valid: true}
@@ -69,7 +70,7 @@ func CreateNotification(db *sql.DB, userID int64, nType, title, message, link st
 		linkVal = sql.NullString{String: link, Valid: true}
 	}
 
-	row := db.QueryRow(
+	row := db.QueryRowContext(ctx,
 		`INSERT INTO notifications (user_id, type, title, message, link, athlete_id)
 		 VALUES (?, ?, ?, ?, ?, ?)
 		 RETURNING id, user_id, type, title, message, link, read, athlete_id, created_at`,
@@ -85,9 +86,9 @@ func CreateNotification(db *sql.DB, userID int64, nType, title, message, link st
 }
 
 // GetUnreadCount returns the number of unread notifications for a user.
-func GetUnreadCount(db *sql.DB, userID int64) (int, error) {
+func GetUnreadCount(ctx context.Context, db *sql.DB, userID int64) (int, error) {
 	var count int
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM notifications WHERE user_id = ? AND read = 0`,
 		userID,
 	).Scan(&count)
@@ -99,8 +100,8 @@ func GetUnreadCount(db *sql.DB, userID int64) (int, error) {
 
 // GetUnreadNotifications returns up to `limit` unread notifications for a user,
 // ordered newest first. Used for toast polling.
-func GetUnreadNotifications(db *sql.DB, userID int64, limit int) ([]*Notification, error) {
-	rows, err := db.Query(
+func GetUnreadNotifications(ctx context.Context, db *sql.DB, userID int64, limit int) ([]*Notification, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, user_id, type, title, message, link, read, athlete_id, created_at
 		 FROM notifications
 		 WHERE user_id = ? AND read = 0
@@ -117,8 +118,8 @@ func GetUnreadNotifications(db *sql.DB, userID int64, limit int) ([]*Notificatio
 }
 
 // ListNotifications returns notifications for a user with pagination.
-func ListNotifications(db *sql.DB, userID int64, limit, offset int) ([]*Notification, error) {
-	rows, err := db.Query(
+func ListNotifications(ctx context.Context, db *sql.DB, userID int64, limit, offset int) ([]*Notification, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, user_id, type, title, message, link, read, athlete_id, created_at
 		 FROM notifications
 		 WHERE user_id = ?
@@ -135,8 +136,8 @@ func ListNotifications(db *sql.DB, userID int64, limit, offset int) ([]*Notifica
 }
 
 // MarkAsRead marks a single notification as read.
-func MarkAsRead(db *sql.DB, id, userID int64) error {
-	result, err := db.Exec(
+func MarkAsRead(ctx context.Context, db *sql.DB, id, userID int64) error {
+	result, err := db.ExecContext(ctx,
 		`UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?`,
 		id, userID,
 	)
@@ -151,8 +152,8 @@ func MarkAsRead(db *sql.DB, id, userID int64) error {
 }
 
 // MarkAllAsRead marks all unread notifications as read for a user.
-func MarkAllAsRead(db *sql.DB, userID int64) (int64, error) {
-	result, err := db.Exec(
+func MarkAllAsRead(ctx context.Context, db *sql.DB, userID int64) (int64, error) {
+	result, err := db.ExecContext(ctx,
 		`UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0`,
 		userID,
 	)
@@ -163,8 +164,8 @@ func MarkAllAsRead(db *sql.DB, userID int64) (int64, error) {
 }
 
 // DeleteOldNotifications removes read notifications older than the given time.
-func DeleteOldNotifications(db *sql.DB, olderThan time.Time) (int64, error) {
-	result, err := db.Exec(
+func DeleteOldNotifications(ctx context.Context, db *sql.DB, olderThan time.Time) (int64, error) {
+	result, err := db.ExecContext(ctx,
 		`DELETE FROM notifications WHERE read = 1 AND created_at < ?`,
 		olderThan,
 	)
@@ -176,8 +177,8 @@ func DeleteOldNotifications(db *sql.DB, olderThan time.Time) (int64, error) {
 
 // GetNotificationsSince returns unread notifications created since the given time
 // for a user. Used for toast polling — only show new notifications.
-func GetNotificationsSince(db *sql.DB, userID int64, since time.Time) ([]*Notification, error) {
-	rows, err := db.Query(
+func GetNotificationsSince(ctx context.Context, db *sql.DB, userID int64, since time.Time) ([]*Notification, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, user_id, type, title, message, link, read, athlete_id, created_at
 		 FROM notifications
 		 WHERE user_id = ? AND read = 0 AND created_at > ?
@@ -196,7 +197,7 @@ func GetNotificationsSince(db *sql.DB, userID int64, since time.Time) ([]*Notifi
 // --- Notification Preferences ---
 
 // GetNotificationPreference returns the preference for a user+type, or defaults.
-func GetNotificationPreference(db *sql.DB, userID int64, nType string) NotificationPreference {
+func GetNotificationPreference(ctx context.Context, db *sql.DB, userID int64, nType string) NotificationPreference {
 	pref := NotificationPreference{
 		UserID:   userID,
 		Type:     nType,
@@ -204,7 +205,7 @@ func GetNotificationPreference(db *sql.DB, userID int64, nType string) Notificat
 		External: false, // default
 	}
 
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, in_app, external FROM notification_preferences WHERE user_id = ? AND type = ?`,
 		userID, nType,
 	).Scan(&pref.ID, &pref.InApp, &pref.External)
@@ -217,10 +218,10 @@ func GetNotificationPreference(db *sql.DB, userID int64, nType string) Notificat
 
 // ListNotificationPreferences returns all preferences for a user, filling in
 // defaults for types without a stored preference.
-func ListNotificationPreferences(db *sql.DB, userID int64) []NotificationPreference {
+func ListNotificationPreferences(ctx context.Context, db *sql.DB, userID int64) []NotificationPreference {
 	// Load stored preferences.
 	stored := make(map[string]NotificationPreference)
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, user_id, type, in_app, external FROM notification_preferences WHERE user_id = ?`,
 		userID,
 	)
@@ -252,8 +253,8 @@ func ListNotificationPreferences(db *sql.DB, userID int64) []NotificationPrefere
 }
 
 // SetNotificationPreference upserts a preference for a user+type.
-func SetNotificationPreference(db *sql.DB, userID int64, nType string, inApp, external bool) error {
-	_, err := db.Exec(
+func SetNotificationPreference(ctx context.Context, db *sql.DB, userID int64, nType string, inApp, external bool) error {
+	_, err := db.ExecContext(ctx,
 		`INSERT INTO notification_preferences (user_id, type, in_app, external)
 		 VALUES (?, ?, ?, ?)
 		 ON CONFLICT(user_id, type) DO UPDATE SET in_app = excluded.in_app, external = excluded.external`,

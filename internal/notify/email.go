@@ -2,6 +2,7 @@ package notify
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"embed"
 	"html/template"
@@ -89,20 +90,20 @@ func renderEmail(templateName string, data EmailData) string {
 
 // RenderMagicLinkEmail renders the magic link email template with app branding.
 // Returns the full HTML body ready to pass to SendToUser.
-func RenderMagicLinkEmail(db *sql.DB, loginURL string) string {
+func RenderMagicLinkEmail(ctx context.Context, db *sql.DB, loginURL string) string {
 	return renderEmail("magic_link.html", EmailData{
-		AppName:  models.GetAppName(db),
-		BaseURL:  models.GetSetting(db, "app.base_url"),
+		AppName:  models.GetAppName(ctx, db),
+		BaseURL:  models.GetSetting(ctx, db, "app.base_url"),
 		LoginURL: loginURL,
 	})
 }
 
 // RenderNotificationEmail renders the general notification email template.
 // Returns the full HTML body ready to pass to SendToUser.
-func RenderNotificationEmail(db *sql.DB, title, message, link string) string {
+func RenderNotificationEmail(ctx context.Context, db *sql.DB, title, message, link string) string {
 	return renderEmail("notification.html", EmailData{
-		AppName: models.GetAppName(db),
-		BaseURL: models.GetSetting(db, "app.base_url"),
+		AppName: models.GetAppName(ctx, db),
+		BaseURL: models.GetSetting(ctx, db, "app.base_url"),
 		Title:   title,
 		Message: message,
 		Link:    link,

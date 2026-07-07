@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -24,13 +25,13 @@ import (
 func linkedAthleteUser(t *testing.T, env *testEnv, coachID int64, athleteName, recipientName string) (*models.Athlete, *models.User) {
 	t.Helper()
 	athlete := env.createAthlete(t, athleteName, coachID)
-	recipient, err := models.CreateUser(env.DB, recipientName, recipientName, "password123",
+	recipient, err := models.CreateUser(context.Background(), env.DB, recipientName, recipientName, "password123",
 		recipientName+"@example.com", false, false,
 		sql.NullInt64{Int64: athlete.ID, Valid: true})
 	if err != nil {
 		t.Fatalf("create linked recipient: %v", err)
 	}
-	if err := models.EnsureUserPreferences(env.DB, recipient.ID); err != nil {
+	if err := models.EnsureUserPreferences(context.Background(), env.DB, recipient.ID); err != nil {
 		t.Fatalf("ensure prefs: %v", err)
 	}
 	return athlete, recipient
@@ -40,7 +41,7 @@ func linkedAthleteUser(t *testing.T, env *testEnv, coachID int64, athleteName, r
 // notifications table for a given user, newest first.
 func listNotifications(t *testing.T, env *testEnv, userID int64) []*models.Notification {
 	t.Helper()
-	notifs, err := models.ListNotifications(env.DB, userID, 50, 0)
+	notifs, err := models.ListNotifications(context.Background(), env.DB, userID, 50, 0)
 	if err != nil {
 		t.Fatalf("list notifications: %v", err)
 	}
@@ -100,7 +101,7 @@ func TestNotify_ProgramAssigned(t *testing.T) {
 	env := setupTest(t)
 	coach := env.createUser(t, "coach", true, false)
 	athlete, recipient := linkedAthleteUser(t, env, coach.ID, "Charlie", "charlie")
-	tpl, err := models.CreateProgramTemplate(env.DB, nil, "5/3/1 Beginner", "", 4, 3, false, "")
+	tpl, err := models.CreateProgramTemplate(context.Background(), env.DB, nil, "5/3/1 Beginner", "", 4, 3, false, "")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}

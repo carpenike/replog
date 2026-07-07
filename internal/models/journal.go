@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 )
@@ -26,7 +27,7 @@ type JournalEntry struct {
 // ListJournalEntries returns a unified timeline of events for an athlete,
 // newest first. If includePrivate is false, private notes are excluded
 // (for non-coach view).
-func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit int) ([]*JournalEntry, error) {
+func ListJournalEntries(ctx context.Context, db *sql.DB, athleteID int64, includePrivate bool, limit int) ([]*JournalEntry, error) {
 	if limit <= 0 {
 		limit = 100
 	}
@@ -321,7 +322,7 @@ func ListJournalEntries(db *sql.DB, athleteID int64, includePrivate bool, limit 
 		privateFilter,
 	)
 
-	rows, err := db.Query(query,
+	rows, err := db.QueryContext(ctx, query,
 		athleteID, athleteID, athleteID, athleteID, athleteID,
 		athleteID, athleteID, athleteID, athleteID, athleteID,
 		athleteID, athleteID, athleteID, athleteID,

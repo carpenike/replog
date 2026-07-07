@@ -62,12 +62,12 @@ func (e *mcpTestEnv) invokerFor(user *models.User) *mcpInvoker {
 
 func (e *mcpTestEnv) createCoach(t *testing.T, username, email string, mcpEnabled bool) *models.User {
 	t.Helper()
-	u, err := models.CreateUser(e.db, username, "", "password123", email, true, false, sql.NullInt64{})
+	u, err := models.CreateUser(context.Background(), e.db, username, "", "password123", email, true, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create %q: %v", username, err)
 	}
 	if mcpEnabled {
-		if err := models.SetUserMCPEnabled(e.db, u.ID, true); err != nil {
+		if err := models.SetUserMCPEnabled(context.Background(), e.db, u.ID, true); err != nil {
 			t.Fatalf("enable mcp for %q: %v", username, err)
 		}
 	}
@@ -76,7 +76,7 @@ func (e *mcpTestEnv) createCoach(t *testing.T, username, email string, mcpEnable
 
 func (e *mcpTestEnv) createAthleteFor(t *testing.T, name string, coachID int64) *models.Athlete {
 	t.Helper()
-	a, err := models.CreateAthlete(e.db, name, "", "", "", "", "", "",
+	a, err := models.CreateAthlete(context.Background(), e.db, name, "", "", "", "", "", "",
 		sql.NullInt64{Int64: coachID, Valid: true}, false)
 	if err != nil {
 		t.Fatalf("create athlete %q: %v", name, err)
@@ -153,7 +153,7 @@ func TestMCPInvoker_CanManageAthlete_ParityWithWebui(t *testing.T) {
 		}
 		workoutID := int64(workout["id"].(float64))
 
-		ex, err := models.CreateExercise(env.db, "TestSquat", "", "", "", 0, false)
+		ex, err := models.CreateExercise(context.Background(), env.db, "TestSquat", "", "", "", 0, false)
 		if err != nil {
 			t.Fatalf("create exercise: %v", err)
 		}

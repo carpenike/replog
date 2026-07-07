@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -24,7 +25,7 @@ type TierHistory struct {
 // RecordTierChange inserts a tier history entry. Called when an athlete's tier
 // is changed via edit or promote. previousTier should be the old tier value
 // (empty string if none). setByUserID is the user making the change.
-func RecordTierChange(db *sql.DB, athleteID int64, tier, previousTier string, setByUserID int64, effectiveDate, notes string) (*TierHistory, error) {
+func RecordTierChange(ctx context.Context, db *sql.DB, athleteID int64, tier, previousTier string, setByUserID int64, effectiveDate, notes string) (*TierHistory, error) {
 	var prevVal sql.NullString
 	if previousTier != "" {
 		prevVal = sql.NullString{String: previousTier, Valid: true}
@@ -38,7 +39,7 @@ func RecordTierChange(db *sql.DB, athleteID int64, tier, previousTier string, se
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO tier_history (athlete_id, tier, previous_tier, set_by, effective_date, notes)
 		 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, tier, prevVal, setByUserID, effectiveDate, notesVal,
@@ -47,13 +48,13 @@ func RecordTierChange(db *sql.DB, athleteID int64, tier, previousTier string, se
 		return nil, fmt.Errorf("models: record tier change for athlete %d: %w", athleteID, err)
 	}
 
-	return GetTierHistoryByID(db, id)
+	return GetTierHistoryByID(ctx, db, id)
 }
 
 // GetTierHistoryByID retrieves a single tier history entry by primary key.
-func GetTierHistoryByID(db *sql.DB, id int64) (*TierHistory, error) {
+func GetTierHistoryByID(ctx context.Context, db *sql.DB, id int64) (*TierHistory, error) {
 	th := &TierHistory{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT th.id, th.athlete_id, th.tier, th.previous_tier, th.set_by,
 		        th.effective_date, th.notes, th.created_at,
 		        COALESCE(u.name, u.username, '') AS set_by_name
@@ -69,8 +70,8 @@ func GetTierHistoryByID(db *sql.DB, id int64) (*TierHistory, error) {
 }
 
 // ListTierHistory returns the tier change history for an athlete, newest first.
-func ListTierHistory(db *sql.DB, athleteID int64) ([]*TierHistory, error) {
-	rows, err := db.Query(
+func ListTierHistory(ctx context.Context, db *sql.DB, athleteID int64) ([]*TierHistory, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT th.id, th.athlete_id, th.tier, th.previous_tier, th.set_by,
 		        th.effective_date, th.notes, th.created_at,
 		        COALESCE(u.name, u.username, '') AS set_by_name

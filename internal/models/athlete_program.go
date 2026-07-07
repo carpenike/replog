@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -52,7 +53,7 @@ func (ap *AthleteProgram) ScheduleDays() []int {
 // AssignProgram assigns a program template to an athlete.
 // role must be "primary" or "supplemental". schedule is a JSON weekday array (e.g. "[2,4]") or empty.
 // Only one active primary is allowed. Supplemental schedules are validated against existing assignments.
-func AssignProgram(db *sql.DB, athleteID, templateID int64, startDate, notes, goal, role, schedule string) (*AthleteProgram, error) {
+func AssignProgram(ctx context.Context, db *sql.DB, athleteID, templateID int64, startDate, notes, goal, role, schedule string) (*AthleteProgram, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
@@ -71,13 +72,13 @@ func AssignProgram(db *sql.DB, athleteID, templateID int64, startDate, notes, go
 
 	// Validate schedule conflicts for supplemental programs.
 	if role == "supplemental" && schedule != "" {
-		if err := validateScheduleConflict(db, athleteID, schedule, 0); err != nil {
+		if err := validateScheduleConflict(ctx, db, athleteID, schedule, 0); err != nil {
 			return nil, err
 		}
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO athlete_programs (athlete_id, template_id, start_date, role, schedule, notes, goal) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, templateID, startDate, role, scheduleVal, notesVal, goalVal,
 	).Scan(&id)
@@ -88,18 +89,18 @@ func AssignProgram(db *sql.DB, athleteID, templateID int64, startDate, notes, go
 		return nil, fmt.Errorf("models: assign program to athlete %d: %w", athleteID, err)
 	}
 
-	return GetAthleteProgramByID(db, id)
+	return GetAthleteProgramByID(ctx, db, id)
 }
 
 // validateScheduleConflict checks that the proposed schedule doesn't overlap with any
 // existing active assignment. excludeID is an assignment ID to skip (0 to skip none).
-func validateScheduleConflict(db *sql.DB, athleteID int64, schedule string, excludeID int64) error {
+func validateScheduleConflict(ctx context.Context, db *sql.DB, athleteID int64, schedule string, excludeID int64) error {
 	var proposedDays []int
 	if err := json.Unmarshal([]byte(schedule), &proposedDays); err != nil {
 		return fmt.Errorf("models: invalid schedule JSON: %w", err)
 	}
 
-	existing, err := ListActiveProgramAssignments(db, athleteID)
+	existing, err := ListActiveProgramAssignments(ctx, db, athleteID)
 	if err != nil {
 		return err
 	}
@@ -135,8 +136,8 @@ const athleteProgramColumns = `ap.id, ap.athlete_id, ap.template_id, ap.start_da
 		        ap.created_at, ap.updated_at, pt.name, pt.num_weeks, pt.num_days, pt.is_loop`
 
 // GetAthleteProgramByID retrieves an athlete program by primary key.
-func GetAthleteProgramByID(db *sql.DB, id int64) (*AthleteProgram, error) {
-	row := db.QueryRow(
+func GetAthleteProgramByID(ctx context.Context, db *sql.DB, id int64) (*AthleteProgram, error) {
+	row := db.QueryRowContext(ctx,
 		`SELECT `+athleteProgramColumns+`
 		 FROM athlete_programs ap
 		 JOIN program_templates pt ON pt.id = ap.template_id
@@ -154,8 +155,8 @@ func GetAthleteProgramByID(db *sql.DB, id int64) (*AthleteProgram, error) {
 }
 
 // GetActiveProgram returns the current active primary program for an athlete, or nil if none.
-func GetActiveProgram(db *sql.DB, athleteID int64) (*AthleteProgram, error) {
-	row := db.QueryRow(
+func GetActiveProgram(ctx context.Context, db *sql.DB, athleteID int64) (*AthleteProgram, error) {
+	row := db.QueryRowContext(ctx,
 		`SELECT `+athleteProgramColumns+`
 		 FROM athlete_programs ap
 		 JOIN program_templates pt ON pt.id = ap.template_id
@@ -174,8 +175,8 @@ func GetActiveProgram(db *sql.DB, athleteID int64) (*AthleteProgram, error) {
 
 // ListActiveProgramAssignments returns all active program assignments for an athlete
 // (primary + supplementals), ordered by role then created_at.
-func ListActiveProgramAssignments(db *sql.DB, athleteID int64) ([]*AthleteProgram, error) {
-	rows, err := db.Query(
+func ListActiveProgramAssignments(ctx context.Context, db *sql.DB, athleteID int64) ([]*AthleteProgram, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT `+athleteProgramColumns+`
 		 FROM athlete_programs ap
 		 JOIN program_templates pt ON pt.id = ap.template_id
@@ -205,8 +206,8 @@ func ListActiveProgramAssignments(db *sql.DB, athleteID int64) ([]*AthleteProgra
 // ListAthletePrograms returns all program assignments for an athlete,
 // ordered by start_date descending (most recent first). Includes both
 // active and deactivated programs.
-func ListAthletePrograms(db *sql.DB, athleteID int64) ([]*AthleteProgram, error) {
-	rows, err := db.Query(
+func ListAthletePrograms(ctx context.Context, db *sql.DB, athleteID int64) ([]*AthleteProgram, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT `+athleteProgramColumns+`
 		 FROM athlete_programs ap
 		 JOIN program_templates pt ON pt.id = ap.template_id
@@ -234,8 +235,8 @@ func ListAthletePrograms(db *sql.DB, athleteID int64) ([]*AthleteProgram, error)
 }
 
 // DeactivateProgram deactivates an athlete's program.
-func DeactivateProgram(db *sql.DB, athleteProgramID int64) error {
-	_, err := db.Exec(
+func DeactivateProgram(ctx context.Context, db *sql.DB, athleteProgramID int64) error {
+	_, err := db.ExecContext(ctx,
 		`UPDATE athlete_programs SET active = 0, deactivated_at = CURRENT_TIMESTAMP WHERE id = ?`,
 		athleteProgramID,
 	)
@@ -246,8 +247,8 @@ func DeactivateProgram(db *sql.DB, athleteProgramID int64) error {
 }
 
 // ReactivateProgram reactivates a deactivated athlete program assignment.
-func ReactivateProgram(db *sql.DB, athleteProgramID int64) error {
-	_, err := db.Exec(
+func ReactivateProgram(ctx context.Context, db *sql.DB, athleteProgramID int64) error {
+	_, err := db.ExecContext(ctx,
 		`UPDATE athlete_programs SET active = 1, deactivated_at = NULL WHERE id = ?`,
 		athleteProgramID,
 	)
@@ -258,8 +259,8 @@ func ReactivateProgram(db *sql.DB, athleteProgramID int64) error {
 }
 
 // DeleteAthleteProgram removes an athlete program assignment entirely.
-func DeleteAthleteProgram(db *sql.DB, athleteProgramID int64) error {
-	result, err := db.Exec(`DELETE FROM athlete_programs WHERE id = ?`, athleteProgramID)
+func DeleteAthleteProgram(ctx context.Context, db *sql.DB, athleteProgramID int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM athlete_programs WHERE id = ?`, athleteProgramID)
 	if err != nil {
 		return fmt.Errorf("models: delete athlete program %d: %w", athleteProgramID, err)
 	}

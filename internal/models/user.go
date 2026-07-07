@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -93,7 +94,7 @@ func CheckPassword(hash, password string) bool {
 // CreateUser inserts a new user. Returns ErrDuplicateUsername if the username
 // is already taken. When athleteID is valid the user is linked atomically.
 // If password is empty the user is created without a password (passwordless).
-func CreateUser(db *sql.DB, username, name, password, email string, isCoach bool, isAdmin bool, athleteID sql.NullInt64) (*User, error) {
+func CreateUser(ctx context.Context, db *sql.DB, username, name, password, email string, isCoach bool, isAdmin bool, athleteID sql.NullInt64) (*User, error) {
 	var hashVal sql.NullString
 	if password != "" {
 		hash, err := HashPassword(password)
@@ -124,7 +125,7 @@ func CreateUser(db *sql.DB, username, name, password, email string, isCoach bool
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO users (username, name, email, password_hash, is_coach, is_admin, athlete_id) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		username, nameVal, emailVal, hashVal, coachInt, adminInt, athleteID,
 	).Scan(&id)
@@ -138,13 +139,13 @@ func CreateUser(db *sql.DB, username, name, password, email string, isCoach bool
 		return nil, fmt.Errorf("models: create user %q: %w", username, err)
 	}
 
-	return GetUserByID(db, id)
+	return GetUserByID(ctx, db, id)
 }
 
 // GetUserByID retrieves a user by primary key.
-func GetUserByID(db *sql.DB, id int64) (*User, error) {
+func GetUserByID(ctx context.Context, db *sql.DB, id int64) (*User, error) {
 	u := &User{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, avatar_path, created_at, updated_at
 		 FROM users WHERE id = ?`, id,
 	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
@@ -165,9 +166,9 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 //
 // users.athlete_id has a partial unique index (`WHERE athlete_id IS NOT NULL`),
 // so at most one user per athlete.
-func GetUserByAthleteID(db *sql.DB, athleteID int64) (*User, error) {
+func GetUserByAthleteID(ctx context.Context, db *sql.DB, athleteID int64) (*User, error) {
 	u := &User{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, avatar_path, created_at, updated_at
 		 FROM users WHERE athlete_id = ?`, athleteID,
 	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
@@ -181,9 +182,9 @@ func GetUserByAthleteID(db *sql.DB, athleteID int64) (*User, error) {
 }
 
 // GetUserByUsername retrieves a user by username (case-insensitive).
-func GetUserByUsername(db *sql.DB, username string) (*User, error) {
+func GetUserByUsername(ctx context.Context, db *sql.DB, username string) (*User, error) {
 	u := &User{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, avatar_path, created_at, updated_at
 		 FROM users WHERE username = ?`, username,
 	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
@@ -206,9 +207,9 @@ func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 // NULL row. This function is intentionally a thin SELECT and does NOT
 // guard against empty input itself; the bearer middleware enforces the
 // rule at the request boundary.
-func GetUserByEmail(db *sql.DB, email string) (*User, error) {
+func GetUserByEmail(ctx context.Context, db *sql.DB, email string) (*User, error) {
 	u := &User{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, avatar_path, created_at, updated_at
 		 FROM users WHERE email = ?`, email,
 	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
@@ -230,9 +231,9 @@ func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 // is UNIQUE but permits multiple NULLs in SQLite, so an empty lookup must
 // never be allowed to resolve to an unbound row. UpsertUserFromOIDC enforces
 // that guard; this function is a thin SELECT and does not.
-func GetUserByPocketIDSub(db *sql.DB, sub string) (*User, error) {
+func GetUserByPocketIDSub(ctx context.Context, db *sql.DB, sub string) (*User, error) {
 	u := &User{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, username, name, email, COALESCE(password_hash, ''), athlete_id, is_coach, is_admin, mcp_enabled, COALESCE(pocketid_sub, ''), avatar_path, created_at, updated_at
 		 FROM users WHERE pocketid_sub = ?`, sub,
 	).Scan(&u.ID, &u.Username, &u.Name, &u.Email, &u.PasswordHash, &u.AthleteID, &u.IsCoach, &u.IsAdmin, &u.MCPEnabled, &u.PocketIDSub, &u.AvatarPath, &u.CreatedAt, &u.UpdatedAt)
@@ -249,8 +250,8 @@ func GetUserByPocketIDSub(db *sql.DB, sub string) (*User, error) {
 // for the one-time verified-email cutover of a pre-existing account and right
 // after a JIT-create. Returns ErrDuplicateUsername-style mapping is not needed
 // here — a sub collision means a concurrent bind, surfaced as a wrapped error.
-func bindPocketIDSub(db *sql.DB, userID int64, sub string) error {
-	result, err := db.Exec(`UPDATE users SET pocketid_sub = ? WHERE id = ?`, sub, userID)
+func bindPocketIDSub(ctx context.Context, db *sql.DB, userID int64, sub string) error {
+	result, err := db.ExecContext(ctx, `UPDATE users SET pocketid_sub = ? WHERE id = ?`, sub, userID)
 	if err != nil {
 		return fmt.Errorf("models: bind pocketid_sub to user %d: %w", userID, err)
 	}
@@ -277,13 +278,13 @@ func bindPocketIDSub(db *sql.DB, userID int64, sub string) error {
 // An empty `sub` is rejected (ErrInvalidInput) — defense in depth; the OIDC
 // callback handler also rejects it at the request boundary, mirroring the
 // bearer middleware's empty-claim 401.
-func UpsertUserFromOIDC(db *sql.DB, sub, email, name string, emailVerified bool) (*User, error) {
+func UpsertUserFromOIDC(ctx context.Context, db *sql.DB, sub, email, name string, emailVerified bool) (*User, error) {
 	if sub == "" {
 		return nil, ErrInvalidInput
 	}
 
 	// 1. Steady state: already bound.
-	u, err := GetUserByPocketIDSub(db, sub)
+	u, err := GetUserByPocketIDSub(ctx, db, sub)
 	if err == nil {
 		return u, nil
 	}
@@ -293,13 +294,13 @@ func UpsertUserFromOIDC(db *sql.DB, sub, email, name string, emailVerified bool)
 
 	// 2. Verified-email cutover: bind sub to the existing account.
 	if email != "" && emailVerified {
-		existing, err := GetUserByEmail(db, email)
+		existing, err := GetUserByEmail(ctx, db, email)
 		switch {
 		case err == nil:
-			if err := bindPocketIDSub(db, existing.ID, sub); err != nil {
+			if err := bindPocketIDSub(ctx, db, existing.ID, sub); err != nil {
 				return nil, err
 			}
-			return GetUserByPocketIDSub(db, sub)
+			return GetUserByPocketIDSub(ctx, db, sub)
 		case errors.Is(err, ErrNotFound):
 			// fall through to JIT-create
 		default:
@@ -308,7 +309,7 @@ func UpsertUserFromOIDC(db *sql.DB, sub, email, name string, emailVerified bool)
 	}
 
 	// 3. JIT-create a passwordless user with a derived unique username.
-	username, err := deriveUniqueUsername(db, email, sub)
+	username, err := deriveUniqueUsername(ctx, db, email, sub)
 	if err != nil {
 		return nil, err
 	}
@@ -316,21 +317,21 @@ func UpsertUserFromOIDC(db *sql.DB, sub, email, name string, emailVerified bool)
 	if emailVerified {
 		createEmail = email
 	}
-	created, err := CreateUser(db, username, name, "", createEmail, false, false, sql.NullInt64{})
+	created, err := CreateUser(ctx, db, username, name, "", createEmail, false, false, sql.NullInt64{})
 	if err != nil {
 		return nil, err
 	}
-	if err := bindPocketIDSub(db, created.ID, sub); err != nil {
+	if err := bindPocketIDSub(ctx, db, created.ID, sub); err != nil {
 		return nil, err
 	}
-	return GetUserByPocketIDSub(db, sub)
+	return GetUserByPocketIDSub(ctx, db, sub)
 }
 
 // deriveUniqueUsername builds a username for a JIT-created OIDC user. It seeds
 // from the email local-part (falling back to a sub-derived stub), then resolves
 // collisions by appending an incrementing suffix. usernames are UNIQUE COLLATE
 // NOCASE so the lookup is case-insensitive.
-func deriveUniqueUsername(db *sql.DB, email, sub string) (string, error) {
+func deriveUniqueUsername(ctx context.Context, db *sql.DB, email, sub string) (string, error) {
 	base := "user"
 	if at := strings.IndexByte(email, '@'); at > 0 {
 		base = email[:at]
@@ -342,7 +343,7 @@ func deriveUniqueUsername(db *sql.DB, email, sub string) (string, error) {
 
 	candidate := base
 	for i := 2; i < 1000; i++ {
-		_, err := GetUserByUsername(db, candidate)
+		_, err := GetUserByUsername(ctx, db, candidate)
 		if errors.Is(err, ErrNotFound) {
 			return candidate, nil
 		}
@@ -445,8 +446,8 @@ func dummyHash() []byte {
 // while locked extends locked_until. Successful login resets the counter.
 // Unknown-username attempts do NOT consume any per-account budget so
 // attackers cannot DoS arbitrary accounts knowing only the username.
-func Authenticate(db *sql.DB, username, password string) (*User, error) {
-	u, err := GetUserByUsername(db, username)
+func Authenticate(ctx context.Context, db *sql.DB, username, password string) (*User, error) {
+	u, err := GetUserByUsername(ctx, db, username)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			// Burn the same time a real bcrypt compare would. Result discarded.
@@ -462,7 +463,7 @@ func Authenticate(db *sql.DB, username, password string) (*User, error) {
 	// Account-level lockout check. If currently locked, refuse without
 	// running bcrypt — that keeps the locked response cheap and removes
 	// any "still locked, but right password" timing oracle.
-	if remaining, err := checkAndExtendLockout(db, u.ID); err != nil {
+	if remaining, err := checkAndExtendLockout(ctx, db, u.ID); err != nil {
 		return nil, err
 	} else if remaining > 0 {
 		return nil, &LockoutError{Remaining: remaining}
@@ -473,12 +474,12 @@ func Authenticate(db *sql.DB, username, password string) (*User, error) {
 		// the threshold. Best-effort: if the UPDATE fails we still
 		// return the auth failure (better to refuse login than to leak
 		// success on an unrelated DB error).
-		_ = recordFailedLogin(db, u.ID)
+		_ = recordFailedLogin(ctx, db, u.ID)
 		return nil, ErrNotFound
 	}
 
 	// Success — clear any leftover failure state.
-	_ = clearFailedLogin(db, u.ID)
+	_ = clearFailedLogin(ctx, db, u.ID)
 	return u, nil
 }
 
@@ -487,9 +488,9 @@ func Authenticate(db *sql.DB, username, password string) (*User, error) {
 // by LockoutDuration so the attacker cannot wait out the window in the
 // background by spreading attempts across accounts. Returns 0 when not
 // locked.
-func checkAndExtendLockout(db *sql.DB, userID int64) (time.Duration, error) {
+func checkAndExtendLockout(ctx context.Context, db *sql.DB, userID int64) (time.Duration, error) {
 	var lockedUntil sql.NullTime
-	err := db.QueryRow(`SELECT locked_until FROM users WHERE id = ?`, userID).Scan(&lockedUntil)
+	err := db.QueryRowContext(ctx, `SELECT locked_until FROM users WHERE id = ?`, userID).Scan(&lockedUntil)
 	if err != nil {
 		return 0, fmt.Errorf("models: read lockout state for user %d: %w", userID, err)
 	}
@@ -500,17 +501,17 @@ func checkAndExtendLockout(db *sql.DB, userID int64) (time.Duration, error) {
 	// unlock further out. We do NOT increment the counter here; the
 	// counter exists to trip the lock, not to track attempts during.
 	newUntil := time.Now().Add(LockoutDuration)
-	_, _ = db.Exec(`UPDATE users SET locked_until = ? WHERE id = ?`, newUntil, userID)
+	_, _ = db.ExecContext(ctx, `UPDATE users SET locked_until = ? WHERE id = ?`, newUntil, userID)
 	return LockoutDuration, nil
 }
 
 // recordFailedLogin increments failed_login_count and, if it crosses
 // LockoutThreshold, sets locked_until = now + LockoutDuration.
-func recordFailedLogin(db *sql.DB, userID int64) error {
+func recordFailedLogin(ctx context.Context, db *sql.DB, userID int64) error {
 	// Single statement — atomic under SQLite's single-writer model.
 	// CASE expression decides whether to set locked_until in the same
 	// UPDATE based on the post-increment count.
-	_, err := db.Exec(`
+	_, err := db.ExecContext(ctx, `
 		UPDATE users
 		   SET failed_login_count = failed_login_count + 1,
 		       locked_until = CASE
@@ -526,8 +527,8 @@ func recordFailedLogin(db *sql.DB, userID int64) error {
 }
 
 // clearFailedLogin resets failure counter and lockout on successful login.
-func clearFailedLogin(db *sql.DB, userID int64) error {
-	_, err := db.Exec(
+func clearFailedLogin(ctx context.Context, db *sql.DB, userID int64) error {
+	_, err := db.ExecContext(ctx,
 		`UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE id = ?`,
 		userID,
 	)
@@ -535,9 +536,9 @@ func clearFailedLogin(db *sql.DB, userID int64) error {
 }
 
 // CountUsers returns the total number of users in the database.
-func CountUsers(db *sql.DB) (int, error) {
+func CountUsers(ctx context.Context, db *sql.DB) (int, error) {
 	var count int
-	err := db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&count)
+	err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("models: count users: %w", err)
 	}
@@ -545,8 +546,8 @@ func CountUsers(db *sql.DB) (int, error) {
 }
 
 // ListUsers returns all users with linked athlete names, ordered by username.
-func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
-	rows, err := db.Query(`
+func ListUsers(ctx context.Context, db *sql.DB) ([]*UserWithAthlete, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT u.id, u.username, u.name, u.email, COALESCE(u.password_hash, ''), u.athlete_id, u.is_coach, u.is_admin, u.mcp_enabled, u.avatar_path, u.created_at, u.updated_at,
 		       a.name
 		FROM users u
@@ -575,7 +576,7 @@ func ListUsers(db *sql.DB) ([]*UserWithAthlete, error) {
 
 // UpdateUser updates a user's profile fields (not password).
 // Returns ErrDuplicateUsername if the new username conflicts.
-func UpdateUser(db *sql.DB, id int64, username, name, email string, athleteID sql.NullInt64, isCoach bool, isAdmin bool) (*User, error) {
+func UpdateUser(ctx context.Context, db *sql.DB, id int64, username, name, email string, athleteID sql.NullInt64, isCoach bool, isAdmin bool) (*User, error) {
 	var emailVal sql.NullString
 	if email != "" {
 		emailVal = sql.NullString{String: email, Valid: true}
@@ -596,7 +597,7 @@ func UpdateUser(db *sql.DB, id int64, username, name, email string, athleteID sq
 		adminInt = 1
 	}
 
-	result, err := db.Exec(
+	result, err := db.ExecContext(ctx,
 		`UPDATE users SET username = ?, name = ?, email = ?, athlete_id = ?, is_coach = ?, is_admin = ? WHERE id = ?`,
 		username, nameVal, emailVal, athleteID, coachInt, adminInt, id,
 	)
@@ -618,18 +619,18 @@ func UpdateUser(db *sql.DB, id int64, username, name, email string, athleteID sq
 		return nil, ErrNotFound
 	}
 
-	return GetUserByID(db, id)
+	return GetUserByID(ctx, db, id)
 }
 
 // UpdatePassword changes a user's password hash. Also clears any lockout
 // state (failed_login_count + locked_until) — a successful password change
 // is the canonical recovery path from a forgotten-password lockout.
-func UpdatePassword(db *sql.DB, id int64, newPassword string) error {
+func UpdatePassword(ctx context.Context, db *sql.DB, id int64, newPassword string) error {
 	hash, err := HashPassword(newPassword)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(
+	result, err := db.ExecContext(ctx,
 		`UPDATE users
 		    SET password_hash = ?,
 		        failed_login_count = 0,
@@ -648,8 +649,8 @@ func UpdatePassword(db *sql.DB, id int64, newPassword string) error {
 }
 
 // UpdateAvatarPath sets the avatar_path for a user.
-func UpdateAvatarPath(db *sql.DB, id int64, avatarPath sql.NullString) error {
-	result, err := db.Exec(`UPDATE users SET avatar_path = ? WHERE id = ?`, avatarPath, id)
+func UpdateAvatarPath(ctx context.Context, db *sql.DB, id int64, avatarPath sql.NullString) error {
+	result, err := db.ExecContext(ctx, `UPDATE users SET avatar_path = ? WHERE id = ?`, avatarPath, id)
 	if err != nil {
 		return fmt.Errorf("models: update avatar for user %d: %w", id, err)
 	}
@@ -661,8 +662,8 @@ func UpdateAvatarPath(db *sql.DB, id int64, avatarPath sql.NullString) error {
 }
 
 // DeleteUser removes a user by ID.
-func DeleteUser(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM users WHERE id = ?`, id)
+func DeleteUser(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete user %d: %w", id, err)
 	}
@@ -678,12 +679,12 @@ func DeleteUser(db *sql.DB, id int64) error {
 // Toggled by an admin via PUT /api/users/{userID}/mcp; consumed by the
 // bearer middleware on every /api-mcp/* request. Returns ErrNotFound if
 // no row exists for the given id.
-func SetUserMCPEnabled(db *sql.DB, id int64, enabled bool) error {
+func SetUserMCPEnabled(ctx context.Context, db *sql.DB, id int64, enabled bool) error {
 	flag := 0
 	if enabled {
 		flag = 1
 	}
-	result, err := db.Exec(`UPDATE users SET mcp_enabled = ? WHERE id = ?`, flag, id)
+	result, err := db.ExecContext(ctx, `UPDATE users SET mcp_enabled = ? WHERE id = ?`, flag, id)
 	if err != nil {
 		return fmt.Errorf("models: set mcp_enabled for user %d: %w", id, err)
 	}

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 )
@@ -9,7 +10,7 @@ func TestCreateProgramTemplate(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("basic create global", func(t *testing.T) {
-		tmpl, err := CreateProgramTemplate(db, nil, "5/3/1 BBB", "Boring But Big", 4, 4, false, "")
+		tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "5/3/1 BBB", "Boring But Big", 4, 4, false, "")
 		if err != nil {
 			t.Fatalf("create program template: %v", err)
 		}
@@ -31,8 +32,8 @@ func TestCreateProgramTemplate(t *testing.T) {
 	})
 
 	t.Run("athlete-scoped create", func(t *testing.T) {
-		a, _ := CreateAthlete(db, "Scoped Test", "", "", "", "", "", "", sql.NullInt64{}, true)
-		tmpl, err := CreateProgramTemplate(db, &a.ID, "Athlete Program", "", 3, 3, false, "")
+		a, _ := CreateAthlete(context.Background(), db, "Scoped Test", "", "", "", "", "", "", sql.NullInt64{}, true)
+		tmpl, err := CreateProgramTemplate(context.Background(), db, &a.ID, "Athlete Program", "", 3, 3, false, "")
 		if err != nil {
 			t.Fatalf("create athlete-scoped template: %v", err)
 		}
@@ -42,7 +43,7 @@ func TestCreateProgramTemplate(t *testing.T) {
 	})
 
 	t.Run("duplicate name global", func(t *testing.T) {
-		_, err := CreateProgramTemplate(db, nil, "5/3/1 BBB", "", 1, 1, false, "")
+		_, err := CreateProgramTemplate(context.Background(), db, nil, "5/3/1 BBB", "", 1, 1, false, "")
 		if err == nil {
 			t.Error("expected error for duplicate name")
 		}
@@ -52,10 +53,10 @@ func TestCreateProgramTemplate(t *testing.T) {
 func TestListProgramTemplates(t *testing.T) {
 	db := testDB(t)
 
-	CreateProgramTemplate(db, nil, "Program A", "", 4, 4, false, "")
-	CreateProgramTemplate(db, nil, "Program B", "", 3, 3, false, "")
+	CreateProgramTemplate(context.Background(), db, nil, "Program A", "", 4, 4, false, "")
+	CreateProgramTemplate(context.Background(), db, nil, "Program B", "", 3, 3, false, "")
 
-	templates, err := ListProgramTemplates(db)
+	templates, err := ListProgramTemplates(context.Background(), db)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -67,16 +68,16 @@ func TestListProgramTemplates(t *testing.T) {
 func TestListAthleteScopedTemplates(t *testing.T) {
 	db := testDB(t)
 
-	a1, _ := CreateAthlete(db, "Alice", "", "", "", "", "", "", sql.NullInt64{}, true)
-	a2, _ := CreateAthlete(db, "Bob", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a1, _ := CreateAthlete(context.Background(), db, "Alice", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a2, _ := CreateAthlete(context.Background(), db, "Bob", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	// Global template — should NOT appear.
-	CreateProgramTemplate(db, nil, "Global Program", "", 4, 4, false, "")
+	CreateProgramTemplate(context.Background(), db, nil, "Global Program", "", 4, 4, false, "")
 	// Athlete-scoped templates — should appear.
-	CreateProgramTemplate(db, &a1.ID, "Alice Custom", "", 3, 3, false, "")
-	CreateProgramTemplate(db, &a2.ID, "Bob Custom", "", 2, 2, false, "")
+	CreateProgramTemplate(context.Background(), db, &a1.ID, "Alice Custom", "", 3, 3, false, "")
+	CreateProgramTemplate(context.Background(), db, &a2.ID, "Bob Custom", "", 2, 2, false, "")
 
-	templates, err := ListAthleteScopedTemplates(db)
+	templates, err := ListAthleteScopedTemplates(context.Background(), db)
 	if err != nil {
 		t.Fatalf("list athlete-scoped: %v", err)
 	}
@@ -97,18 +98,18 @@ func TestListAthleteScopedTemplates(t *testing.T) {
 func TestListProgramTemplatesForAthlete(t *testing.T) {
 	db := testDB(t)
 
-	a1, _ := CreateAthlete(db, "Athlete One", "", "", "", "", "", "", sql.NullInt64{}, true)
-	a2, _ := CreateAthlete(db, "Athlete Two", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a1, _ := CreateAthlete(context.Background(), db, "Athlete One", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a2, _ := CreateAthlete(context.Background(), db, "Athlete Two", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	// Global template.
-	CreateProgramTemplate(db, nil, "Global Program", "", 4, 4, false, "")
+	CreateProgramTemplate(context.Background(), db, nil, "Global Program", "", 4, 4, false, "")
 	// Athlete-1-scoped template.
-	CreateProgramTemplate(db, &a1.ID, "A1 Program", "", 3, 3, false, "")
+	CreateProgramTemplate(context.Background(), db, &a1.ID, "A1 Program", "", 3, 3, false, "")
 	// Athlete-2-scoped template.
-	CreateProgramTemplate(db, &a2.ID, "A2 Program", "", 2, 2, false, "")
+	CreateProgramTemplate(context.Background(), db, &a2.ID, "A2 Program", "", 2, 2, false, "")
 
 	t.Run("athlete 1 sees global + own", func(t *testing.T) {
-		templates, err := ListProgramTemplatesForAthlete(db, a1.ID)
+		templates, err := ListProgramTemplatesForAthlete(context.Background(), db, a1.ID)
 		if err != nil {
 			t.Fatalf("list for athlete 1: %v", err)
 		}
@@ -127,7 +128,7 @@ func TestListProgramTemplatesForAthlete(t *testing.T) {
 	})
 
 	t.Run("athlete 2 sees global + own", func(t *testing.T) {
-		templates, err := ListProgramTemplatesForAthlete(db, a2.ID)
+		templates, err := ListProgramTemplatesForAthlete(context.Background(), db, a2.ID)
 		if err != nil {
 			t.Fatalf("list for athlete 2: %v", err)
 		}
@@ -137,7 +138,7 @@ func TestListProgramTemplatesForAthlete(t *testing.T) {
 	})
 
 	t.Run("all templates listed globally", func(t *testing.T) {
-		templates, err := ListProgramTemplates(db)
+		templates, err := ListProgramTemplates(context.Background(), db)
 		if err != nil {
 			t.Fatalf("list all: %v", err)
 		}
@@ -147,7 +148,7 @@ func TestListProgramTemplatesForAthlete(t *testing.T) {
 	})
 
 	t.Run("global-only list excludes athlete-scoped", func(t *testing.T) {
-		templates, err := ListGlobalProgramTemplates(db)
+		templates, err := ListGlobalProgramTemplates(context.Background(), db)
 		if err != nil {
 			t.Fatalf("list global: %v", err)
 		}
@@ -160,14 +161,14 @@ func TestListProgramTemplatesForAthlete(t *testing.T) {
 	})
 
 	t.Run("same name allowed for different athletes", func(t *testing.T) {
-		_, err := CreateProgramTemplate(db, &a2.ID, "A1 Program", "", 1, 1, false, "")
+		_, err := CreateProgramTemplate(context.Background(), db, &a2.ID, "A1 Program", "", 1, 1, false, "")
 		if err != nil {
 			t.Errorf("should allow same name for different athlete, got: %v", err)
 		}
 	})
 
 	t.Run("duplicate name within same athlete rejected", func(t *testing.T) {
-		_, err := CreateProgramTemplate(db, &a1.ID, "A1 Program", "", 1, 1, false, "")
+		_, err := CreateProgramTemplate(context.Background(), db, &a1.ID, "A1 Program", "", 1, 1, false, "")
 		if err == nil {
 			t.Error("expected unique violation for duplicate name within same athlete")
 		}
@@ -178,16 +179,16 @@ func TestListReferenceTemplatesByAudience(t *testing.T) {
 	db := testDB(t)
 
 	// Create templates with different audiences.
-	CreateProgramTemplate(db, nil, "Youth Foundations", "For kids", 1, 2, true, "youth")
-	CreateProgramTemplate(db, nil, "5/3/1 Program", "For adults", 4, 4, true, "adult")
-	CreateProgramTemplate(db, nil, "No Audience", "Unclassified", 1, 1, false, "")
+	CreateProgramTemplate(context.Background(), db, nil, "Youth Foundations", "For kids", 1, 2, true, "youth")
+	CreateProgramTemplate(context.Background(), db, nil, "5/3/1 Program", "For adults", 4, 4, true, "adult")
+	CreateProgramTemplate(context.Background(), db, nil, "No Audience", "Unclassified", 1, 1, false, "")
 
 	// Athlete-scoped template should NOT appear.
-	a, _ := CreateAthlete(db, "Aud Test", "", "", "", "", "", "", sql.NullInt64{}, true)
-	CreateProgramTemplate(db, &a.ID, "Athlete Program", "", 3, 3, false, "youth")
+	a, _ := CreateAthlete(context.Background(), db, "Aud Test", "", "", "", "", "", "", sql.NullInt64{}, true)
+	CreateProgramTemplate(context.Background(), db, &a.ID, "Athlete Program", "", 3, 3, false, "youth")
 
 	t.Run("youth audience", func(t *testing.T) {
-		templates, err := ListReferenceTemplatesByAudience(db, "youth")
+		templates, err := ListReferenceTemplatesByAudience(context.Background(), db, "youth")
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -203,7 +204,7 @@ func TestListReferenceTemplatesByAudience(t *testing.T) {
 	})
 
 	t.Run("adult audience", func(t *testing.T) {
-		templates, err := ListReferenceTemplatesByAudience(db, "adult")
+		templates, err := ListReferenceTemplatesByAudience(context.Background(), db, "adult")
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -220,7 +221,7 @@ func TestCreateProgramTemplateAudience(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("youth audience", func(t *testing.T) {
-		tmpl, err := CreateProgramTemplate(db, nil, "Youth Prog", "", 1, 2, true, "youth")
+		tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "Youth Prog", "", 1, 2, true, "youth")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -230,7 +231,7 @@ func TestCreateProgramTemplateAudience(t *testing.T) {
 	})
 
 	t.Run("adult audience", func(t *testing.T) {
-		tmpl, err := CreateProgramTemplate(db, nil, "Adult Prog", "", 4, 4, false, "adult")
+		tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "Adult Prog", "", 4, 4, false, "adult")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -240,7 +241,7 @@ func TestCreateProgramTemplateAudience(t *testing.T) {
 	})
 
 	t.Run("no audience", func(t *testing.T) {
-		tmpl, err := CreateProgramTemplate(db, nil, "Generic Prog", "", 1, 1, false, "")
+		tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "Generic Prog", "", 1, 1, false, "")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -253,9 +254,9 @@ func TestCreateProgramTemplateAudience(t *testing.T) {
 func TestUpdateProgramTemplate(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "Old Name", "", 4, 4, false, "")
+	tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "Old Name", "", 4, 4, false, "")
 
-	updated, err := UpdateProgramTemplate(db, tmpl.ID, "New Name", "Updated description", 3, 3, false)
+	updated, err := UpdateProgramTemplate(context.Background(), db, tmpl.ID, "New Name", "Updated description", 3, 3, false)
 	if err != nil {
 		t.Fatalf("update: %v", err)
 	}
@@ -271,21 +272,21 @@ func TestDeleteProgramTemplate(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("delete unused", func(t *testing.T) {
-		tmpl, _ := CreateProgramTemplate(db, nil, "To Delete", "", 1, 1, false, "")
-		if err := DeleteProgramTemplate(db, tmpl.ID); err != nil {
+		tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "To Delete", "", 1, 1, false, "")
+		if err := DeleteProgramTemplate(context.Background(), db, tmpl.ID); err != nil {
 			t.Fatalf("delete: %v", err)
 		}
 	})
 
 	t.Run("delete in use", func(t *testing.T) {
-		tmpl, _ := CreateProgramTemplate(db, nil, "In Use", "", 1, 1, false, "")
-		a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
+		tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "In Use", "", 1, 1, false, "")
+		a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+		_, err := AssignProgram(context.Background(), db, a.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
 		if err != nil {
 			t.Fatalf("assign program: %v", err)
 		}
 
-		err = DeleteProgramTemplate(db, tmpl.ID)
+		err = DeleteProgramTemplate(context.Background(), db, tmpl.ID)
 		if err != ErrTemplateInUse {
 			t.Errorf("err = %v, want ErrTemplateInUse", err)
 		}
@@ -295,13 +296,13 @@ func TestDeleteProgramTemplate(t *testing.T) {
 func TestPrescribedSets(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "Test Program", "", 4, 4, false, "")
-	e, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
+	tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "Test Program", "", 4, 4, false, "")
+	e, _ := CreateExercise(context.Background(), db, "Bench Press", "", "", "", 0)
 
 	t.Run("create prescribed set", func(t *testing.T) {
 		reps := 5
 		pct := 75.0
-		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 1, &reps, &pct, nil, 0, "", "heavy")
+		ps, err := CreatePrescribedSet(context.Background(), db, tmpl.ID, e.ID, 1, 1, 1, &reps, &pct, nil, 0, "", "heavy")
 		if err != nil {
 			t.Fatalf("create prescribed set: %v", err)
 		}
@@ -318,7 +319,7 @@ func TestPrescribedSets(t *testing.T) {
 
 	t.Run("create AMRAP set (nil reps)", func(t *testing.T) {
 		pct := 85.0
-		ps, err := CreatePrescribedSet(db, tmpl.ID, e.ID, 1, 1, 2, nil, &pct, nil, 0, "", "")
+		ps, err := CreatePrescribedSet(context.Background(), db, tmpl.ID, e.ID, 1, 1, 2, nil, &pct, nil, 0, "", "")
 		if err != nil {
 			t.Fatalf("create AMRAP set: %v", err)
 		}
@@ -331,7 +332,7 @@ func TestPrescribedSets(t *testing.T) {
 	})
 
 	t.Run("list for day", func(t *testing.T) {
-		sets, err := ListPrescribedSetsForDay(db, tmpl.ID, 1, 1)
+		sets, err := ListPrescribedSetsForDay(context.Background(), db, tmpl.ID, 1, 1)
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -341,7 +342,7 @@ func TestPrescribedSets(t *testing.T) {
 	})
 
 	t.Run("list all", func(t *testing.T) {
-		sets, err := ListPrescribedSets(db, tmpl.ID)
+		sets, err := ListPrescribedSets(context.Background(), db, tmpl.ID)
 		if err != nil {
 			t.Fatalf("list all: %v", err)
 		}
@@ -352,8 +353,8 @@ func TestPrescribedSets(t *testing.T) {
 
 	t.Run("delete", func(t *testing.T) {
 		reps := 10
-		ps, _ := CreatePrescribedSet(db, tmpl.ID, e.ID, 2, 1, 1, &reps, nil, nil, 0, "", "")
-		if err := DeletePrescribedSet(db, ps.ID); err != nil {
+		ps, _ := CreatePrescribedSet(context.Background(), db, tmpl.ID, e.ID, 2, 1, 1, &reps, nil, nil, 0, "", "")
+		if err := DeletePrescribedSet(context.Background(), db, ps.ID); err != nil {
 			t.Fatalf("delete: %v", err)
 		}
 	})
@@ -362,11 +363,11 @@ func TestPrescribedSets(t *testing.T) {
 func TestAthleteProgram(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "5/3/1", "", 4, 4, false, "")
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "5/3/1", "", 4, 4, false, "")
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("assign program", func(t *testing.T) {
-		ap, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "Starting cycle", "", "primary", "")
+		ap, err := AssignProgram(context.Background(), db, a.ID, tmpl.ID, "2026-02-01", "Starting cycle", "", "primary", "")
 		if err != nil {
 			t.Fatalf("assign: %v", err)
 		}
@@ -379,14 +380,14 @@ func TestAthleteProgram(t *testing.T) {
 	})
 
 	t.Run("duplicate active", func(t *testing.T) {
-		_, err := AssignProgram(db, a.ID, tmpl.ID, "2026-02-15", "", "", "primary", "")
+		_, err := AssignProgram(context.Background(), db, a.ID, tmpl.ID, "2026-02-15", "", "", "primary", "")
 		if err != ErrProgramAlreadyActive {
 			t.Errorf("err = %v, want ErrProgramAlreadyActive", err)
 		}
 	})
 
 	t.Run("get active", func(t *testing.T) {
-		ap, err := GetActiveProgram(db, a.ID)
+		ap, err := GetActiveProgram(context.Background(), db, a.ID)
 		if err != nil {
 			t.Fatalf("get active: %v", err)
 		}
@@ -396,12 +397,12 @@ func TestAthleteProgram(t *testing.T) {
 	})
 
 	t.Run("deactivate and reassign", func(t *testing.T) {
-		ap, _ := GetActiveProgram(db, a.ID)
-		if err := DeactivateProgram(db, ap.ID); err != nil {
+		ap, _ := GetActiveProgram(context.Background(), db, a.ID)
+		if err := DeactivateProgram(context.Background(), db, ap.ID); err != nil {
 			t.Fatalf("deactivate: %v", err)
 		}
 
-		ap2, err := GetActiveProgram(db, a.ID)
+		ap2, err := GetActiveProgram(context.Background(), db, a.ID)
 		if err != nil {
 			t.Fatalf("get active after deactivate: %v", err)
 		}
@@ -410,7 +411,7 @@ func TestAthleteProgram(t *testing.T) {
 		}
 
 		// Should be able to assign again.
-		_, err = AssignProgram(db, a.ID, tmpl.ID, "2026-03-01", "", "", "primary", "")
+		_, err = AssignProgram(context.Background(), db, a.ID, tmpl.ID, "2026-03-01", "", "", "primary", "")
 		if err != nil {
 			t.Fatalf("reassign: %v", err)
 		}
@@ -421,38 +422,38 @@ func TestGetPrescription(t *testing.T) {
 	db := testDB(t)
 
 	// Set up template: 4 weeks × 4 days, with exercises on W1D1.
-	tmpl, _ := CreateProgramTemplate(db, nil, "Test 531", "", 4, 4, false, "")
-	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
-	squat, _ := CreateExercise(db, "Back Squat", "", "", "", 0)
+	tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "Test 531", "", 4, 4, false, "")
+	bench, _ := CreateExercise(context.Background(), db, "Bench Press", "", "", "", 0)
+	squat, _ := CreateExercise(context.Background(), db, "Back Squat", "", "", "", 0)
 
 	// W1D1: Bench 3×5 @ 65%, Squat 3×5 @ 65%
 	for i := 1; i <= 3; i++ {
 		reps := 5
 		pct := 65.0
-		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 1, i, &reps, &pct, nil, 0, "", "")
-		CreatePrescribedSet(db, tmpl.ID, squat.ID, 1, 1, i, &reps, &pct, nil, 0, "", "")
+		CreatePrescribedSet(context.Background(), db, tmpl.ID, bench.ID, 1, 1, i, &reps, &pct, nil, 0, "", "")
+		CreatePrescribedSet(context.Background(), db, tmpl.ID, squat.ID, 1, 1, i, &reps, &pct, nil, 0, "", "")
 	}
 
 	// W1D2: Bench 3×3 @ 75%
 	for i := 1; i <= 3; i++ {
 		reps := 3
 		pct := 75.0
-		CreatePrescribedSet(db, tmpl.ID, bench.ID, 1, 2, i, &reps, &pct, nil, 0, "", "")
+		CreatePrescribedSet(context.Background(), db, tmpl.ID, bench.ID, 1, 2, i, &reps, &pct, nil, 0, "", "")
 	}
 
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	// Set training maxes.
-	SetTrainingMax(db, a.ID, bench.ID, 200, "2026-01-01", "")
-	SetTrainingMax(db, a.ID, squat.ID, 300, "2026-01-01", "")
+	SetTrainingMax(context.Background(), db, a.ID, bench.ID, 200, "2026-01-01", "")
+	SetTrainingMax(context.Background(), db, a.ID, squat.ID, 300, "2026-01-01", "")
 
 	// Assign program starting Feb 1.
-	ap, _ := AssignProgram(db, a.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
+	ap, _ := AssignProgram(context.Background(), db, a.ID, tmpl.ID, "2026-02-01", "", "", "primary", "")
 
 	t.Run("first workout (W1D1)", func(t *testing.T) {
 		// Parse a fixed date for repeatable tests.
 		today := mustParseDate("2026-02-01")
-		rx, err := GetPrescription(db, ap, today)
+		rx, err := GetPrescription(context.Background(), db, ap, today)
 		if err != nil {
 			t.Fatalf("get prescription: %v", err)
 		}
@@ -491,10 +492,10 @@ func TestGetPrescription(t *testing.T) {
 
 	t.Run("after one workout (W1D2)", func(t *testing.T) {
 		// Log one workout linked to the assignment to advance to next day.
-		CreateWorkout(db, a.ID, "2026-02-01", "", ap.ID)
+		CreateWorkout(context.Background(), db, a.ID, "2026-02-01", "", ap.ID)
 
 		today := mustParseDate("2026-02-02")
-		rx, err := GetPrescription(db, ap, today)
+		rx, err := GetPrescription(context.Background(), db, ap, today)
 		if err != nil {
 			t.Fatalf("get prescription: %v", err)
 		}
@@ -507,7 +508,7 @@ func TestGetPrescription(t *testing.T) {
 	})
 
 	t.Run("no active program", func(t *testing.T) {
-		rx, err := GetPrescription(db, nil, mustParseDate("2026-02-01"))
+		rx, err := GetPrescription(context.Background(), db, nil, mustParseDate("2026-02-01"))
 		if err != nil {
 			t.Fatalf("get prescription: %v", err)
 		}
@@ -520,20 +521,20 @@ func TestGetPrescription(t *testing.T) {
 func TestCopyWeek(t *testing.T) {
 	db := testDB(t)
 
-	tmpl, _ := CreateProgramTemplate(db, nil, "Copy Test", "", 3, 3, false, "")
-	e1, _ := CreateExercise(db, "Squat", "", "", "", 0)
-	e2, _ := CreateExercise(db, "Bench", "", "", "", 0)
+	tmpl, _ := CreateProgramTemplate(context.Background(), db, nil, "Copy Test", "", 3, 3, false, "")
+	e1, _ := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
+	e2, _ := CreateExercise(context.Background(), db, "Bench", "", "", "", 0)
 
 	// Populate week 1 with sets across two days.
 	r5 := 5
 	r10 := 10
 	pct := 75.0
-	CreatePrescribedSet(db, tmpl.ID, e1.ID, 1, 1, 1, &r5, &pct, nil, 1, "", "")
-	CreatePrescribedSet(db, tmpl.ID, e1.ID, 1, 1, 2, &r5, &pct, nil, 1, "", "")
-	CreatePrescribedSet(db, tmpl.ID, e2.ID, 1, 2, 1, &r10, nil, nil, 2, "", "notes here")
+	CreatePrescribedSet(context.Background(), db, tmpl.ID, e1.ID, 1, 1, 1, &r5, &pct, nil, 1, "", "")
+	CreatePrescribedSet(context.Background(), db, tmpl.ID, e1.ID, 1, 1, 2, &r5, &pct, nil, 1, "", "")
+	CreatePrescribedSet(context.Background(), db, tmpl.ID, e2.ID, 1, 2, 1, &r10, nil, nil, 2, "", "notes here")
 
 	t.Run("copy to empty week", func(t *testing.T) {
-		inserted, err := CopyWeek(db, tmpl.ID, 1, 2)
+		inserted, err := CopyWeek(context.Background(), db, tmpl.ID, 1, 2)
 		if err != nil {
 			t.Fatalf("copy week: %v", err)
 		}
@@ -542,7 +543,7 @@ func TestCopyWeek(t *testing.T) {
 		}
 
 		// Verify target week has the sets.
-		sets, err := ListPrescribedSets(db, tmpl.ID)
+		sets, err := ListPrescribedSets(context.Background(), db, tmpl.ID)
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -560,12 +561,12 @@ func TestCopyWeek(t *testing.T) {
 	t.Run("copy replaces existing sets in target week", func(t *testing.T) {
 		// Week 2 already has 3 sets from the previous subtest.
 		// Add an extra set to week 2 that doesn't exist in week 1.
-		e3, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
+		e3, _ := CreateExercise(context.Background(), db, "Deadlift", "", "", "", 0)
 		r8 := 8
-		CreatePrescribedSet(db, tmpl.ID, e3.ID, 2, 3, 1, &r8, nil, nil, 0, "", "")
+		CreatePrescribedSet(context.Background(), db, tmpl.ID, e3.ID, 2, 3, 1, &r8, nil, nil, 0, "", "")
 
 		// Copy week 1 → week 2 again; should replace all 4 sets with 3.
-		inserted, err := CopyWeek(db, tmpl.ID, 1, 2)
+		inserted, err := CopyWeek(context.Background(), db, tmpl.ID, 1, 2)
 		if err != nil {
 			t.Fatalf("copy week: %v", err)
 		}
@@ -574,7 +575,7 @@ func TestCopyWeek(t *testing.T) {
 		}
 
 		// Verify the extra set is gone.
-		sets, err := ListPrescribedSets(db, tmpl.ID)
+		sets, err := ListPrescribedSets(context.Background(), db, tmpl.ID)
 		if err != nil {
 			t.Fatalf("list: %v", err)
 		}
@@ -590,7 +591,7 @@ func TestCopyWeek(t *testing.T) {
 	})
 
 	t.Run("copy from empty week inserts nothing", func(t *testing.T) {
-		inserted, err := CopyWeek(db, tmpl.ID, 3, 2)
+		inserted, err := CopyWeek(context.Background(), db, tmpl.ID, 3, 2)
 		if err != nil {
 			t.Fatalf("copy week: %v", err)
 		}
