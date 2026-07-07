@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 )
@@ -15,7 +16,7 @@ func seedCoachUser(t testing.TB, db *sql.DB) *User {
 	if err != nil {
 		t.Fatalf("seed coach user: %v", err)
 	}
-	user, err := GetUserByUsername(db, "testcoach")
+	user, err := GetUserByUsername(context.Background(), db, "testcoach")
 	if err != nil {
 		t.Fatalf("get seeded coach: %v", err)
 	}
@@ -25,12 +26,12 @@ func seedCoachUser(t testing.TB, db *sql.DB) *User {
 func TestWorkoutReviewCRUD(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Review Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, _ := CreateAthlete(context.Background(), db, "Review Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-02-15", "test workout", 0)
+	workout, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-02-15", "test workout", 0)
 
 	t.Run("create review", func(t *testing.T) {
-		rev, err := CreateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusApproved, "Great job!")
+		rev, err := CreateWorkoutReview(context.Background(), db, workout.ID, coach.ID, ReviewStatusApproved, "Great job!")
 		if err != nil {
 			t.Fatalf("create review: %v", err)
 		}
@@ -49,14 +50,14 @@ func TestWorkoutReviewCRUD(t *testing.T) {
 	})
 
 	t.Run("duplicate review returns error", func(t *testing.T) {
-		_, err := CreateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusApproved, "")
+		_, err := CreateWorkoutReview(context.Background(), db, workout.ID, coach.ID, ReviewStatusApproved, "")
 		if err == nil {
 			t.Fatal("expected error for duplicate review, got nil")
 		}
 	})
 
 	t.Run("get review by workout ID", func(t *testing.T) {
-		rev, err := GetWorkoutReviewByWorkoutID(db, workout.ID)
+		rev, err := GetWorkoutReviewByWorkoutID(context.Background(), db, workout.ID)
 		if err != nil {
 			t.Fatalf("get review: %v", err)
 		}
@@ -66,8 +67,8 @@ func TestWorkoutReviewCRUD(t *testing.T) {
 	})
 
 	t.Run("update review", func(t *testing.T) {
-		existing, _ := GetWorkoutReviewByWorkoutID(db, workout.ID)
-		rev, err := UpdateWorkoutReview(db, existing.ID, coach.ID, ReviewStatusNeedsWork, "Try heavier next time")
+		existing, _ := GetWorkoutReviewByWorkoutID(context.Background(), db, workout.ID)
+		rev, err := UpdateWorkoutReview(context.Background(), db, existing.ID, coach.ID, ReviewStatusNeedsWork, "Try heavier next time")
 		if err != nil {
 			t.Fatalf("update review: %v", err)
 		}
@@ -80,11 +81,11 @@ func TestWorkoutReviewCRUD(t *testing.T) {
 	})
 
 	t.Run("delete review", func(t *testing.T) {
-		existing, _ := GetWorkoutReviewByWorkoutID(db, workout.ID)
-		if err := DeleteWorkoutReview(db, existing.ID); err != nil {
+		existing, _ := GetWorkoutReviewByWorkoutID(context.Background(), db, workout.ID)
+		if err := DeleteWorkoutReview(context.Background(), db, existing.ID); err != nil {
 			t.Fatalf("delete review: %v", err)
 		}
-		_, err := GetWorkoutReviewByWorkoutID(db, workout.ID)
+		_, err := GetWorkoutReviewByWorkoutID(context.Background(), db, workout.ID)
 		if err != ErrNotFound {
 			t.Errorf("expected ErrNotFound after delete, got %v", err)
 		}
@@ -95,28 +96,28 @@ func TestWorkoutReview_NotFound(t *testing.T) {
 	db := testDB(t)
 
 	t.Run("get by workout ID not found", func(t *testing.T) {
-		_, err := GetWorkoutReviewByWorkoutID(db, 99999)
+		_, err := GetWorkoutReviewByWorkoutID(context.Background(), db, 99999)
 		if err != ErrNotFound {
 			t.Errorf("expected ErrNotFound, got %v", err)
 		}
 	})
 
 	t.Run("get by ID not found", func(t *testing.T) {
-		_, err := GetWorkoutReviewByID(db, 99999)
+		_, err := GetWorkoutReviewByID(context.Background(), db, 99999)
 		if err != ErrNotFound {
 			t.Errorf("expected ErrNotFound, got %v", err)
 		}
 	})
 
 	t.Run("delete not found", func(t *testing.T) {
-		err := DeleteWorkoutReview(db, 99999)
+		err := DeleteWorkoutReview(context.Background(), db, 99999)
 		if err != ErrNotFound {
 			t.Errorf("expected ErrNotFound, got %v", err)
 		}
 	})
 
 	t.Run("update not found", func(t *testing.T) {
-		_, err := UpdateWorkoutReview(db, 99999, 1, ReviewStatusApproved, "")
+		_, err := UpdateWorkoutReview(context.Background(), db, 99999, 1, ReviewStatusApproved, "")
 		if err != ErrNotFound {
 			t.Errorf("expected ErrNotFound, got %v", err)
 		}
@@ -126,12 +127,12 @@ func TestWorkoutReview_NotFound(t *testing.T) {
 func TestCreateOrUpdateWorkoutReview(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Upsert Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, _ := CreateAthlete(context.Background(), db, "Upsert Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-03-01", "", 0)
+	workout, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-03-01", "", 0)
 
 	t.Run("creates when none exists", func(t *testing.T) {
-		rev, err := CreateOrUpdateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusApproved, "Looks good")
+		rev, err := CreateOrUpdateWorkoutReview(context.Background(), db, workout.ID, coach.ID, ReviewStatusApproved, "Looks good")
 		if err != nil {
 			t.Fatalf("create or update: %v", err)
 		}
@@ -141,7 +142,7 @@ func TestCreateOrUpdateWorkoutReview(t *testing.T) {
 	})
 
 	t.Run("updates when already exists", func(t *testing.T) {
-		rev, err := CreateOrUpdateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusNeedsWork, "Go heavier")
+		rev, err := CreateOrUpdateWorkoutReview(context.Background(), db, workout.ID, coach.ID, ReviewStatusNeedsWork, "Go heavier")
 		if err != nil {
 			t.Fatalf("create or update: %v", err)
 		}
@@ -157,17 +158,17 @@ func TestCreateOrUpdateWorkoutReview(t *testing.T) {
 func TestListUnreviewedWorkouts(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Unreviewed Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, _ := CreateAthlete(context.Background(), db, "Unreviewed Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
 
-	w1, _ := CreateWorkout(db, athlete.ID, "2026-02-10", "", 0)
-	w2, _ := CreateWorkout(db, athlete.ID, "2026-02-11", "", 0)
-	CreateWorkout(db, athlete.ID, "2026-02-12", "", 0)
+	w1, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-02-10", "", 0)
+	w2, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-02-11", "", 0)
+	CreateWorkout(context.Background(), db, athlete.ID, "2026-02-12", "", 0)
 
 	// Review w1 only.
-	CreateWorkoutReview(db, w1.ID, coach.ID, ReviewStatusApproved, "")
+	CreateWorkoutReview(context.Background(), db, w1.ID, coach.ID, ReviewStatusApproved, "")
 
-	unreviewed, err := ListUnreviewedWorkouts(db)
+	unreviewed, err := ListUnreviewedWorkouts(context.Background(), db)
 	if err != nil {
 		t.Fatalf("list unreviewed: %v", err)
 	}
@@ -195,17 +196,17 @@ func TestListUnreviewedWorkouts(t *testing.T) {
 func TestGetReviewStats(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Stats Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, _ := CreateAthlete(context.Background(), db, "Stats Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
 
-	w1, _ := CreateWorkout(db, athlete.ID, "2026-02-01", "", 0)
-	w2, _ := CreateWorkout(db, athlete.ID, "2026-02-02", "", 0)
-	CreateWorkout(db, athlete.ID, "2026-02-03", "", 0) // unreviewed
+	w1, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-02-01", "", 0)
+	w2, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-02-02", "", 0)
+	CreateWorkout(context.Background(), db, athlete.ID, "2026-02-03", "", 0) // unreviewed
 
-	CreateWorkoutReview(db, w1.ID, coach.ID, ReviewStatusApproved, "")
-	CreateWorkoutReview(db, w2.ID, coach.ID, ReviewStatusNeedsWork, "Fix form")
+	CreateWorkoutReview(context.Background(), db, w1.ID, coach.ID, ReviewStatusApproved, "")
+	CreateWorkoutReview(context.Background(), db, w2.ID, coach.ID, ReviewStatusNeedsWork, "Fix form")
 
-	stats, err := GetReviewStats(db)
+	stats, err := GetReviewStats(context.Background(), db)
 	if err != nil {
 		t.Fatalf("get review stats: %v", err)
 	}
@@ -224,23 +225,23 @@ func TestGetReviewStats(t *testing.T) {
 func TestDeleteCoachPreservesReview(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Preserved Review Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, _ := CreateAthlete(context.Background(), db, "Preserved Review Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-03-10", "", 0)
+	workout, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-03-10", "", 0)
 
 	// Coach reviews the workout.
-	rev, err := CreateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusApproved, "Solid work")
+	rev, err := CreateWorkoutReview(context.Background(), db, workout.ID, coach.ID, ReviewStatusApproved, "Solid work")
 	if err != nil {
 		t.Fatalf("create review: %v", err)
 	}
 
 	// Delete the coach user account.
-	if err := DeleteUser(db, coach.ID); err != nil {
+	if err := DeleteUser(context.Background(), db, coach.ID); err != nil {
 		t.Fatalf("delete coach: %v", err)
 	}
 
 	// Review should still exist with NULL coach_id.
-	got, err := GetWorkoutReviewByID(db, rev.ID)
+	got, err := GetWorkoutReviewByID(context.Background(), db, rev.ID)
 	if err != nil {
 		t.Fatalf("get review after coach delete: %v", err)
 	}
@@ -261,16 +262,16 @@ func TestDeleteCoachPreservesReview(t *testing.T) {
 func TestAutoApproveWorkout(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Auto-Approve Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, _ := CreateAthlete(context.Background(), db, "Auto-Approve Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-04-01", "", 0)
+	workout, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-04-01", "", 0)
 
 	// Auto-approve should create a review.
-	if err := AutoApproveWorkout(db, workout.ID, coach.ID); err != nil {
+	if err := AutoApproveWorkout(context.Background(), db, workout.ID, coach.ID); err != nil {
 		t.Fatalf("auto-approve: %v", err)
 	}
 
-	rev, err := GetWorkoutReviewByWorkoutID(db, workout.ID)
+	rev, err := GetWorkoutReviewByWorkoutID(context.Background(), db, workout.ID)
 	if err != nil {
 		t.Fatalf("get review after auto-approve: %v", err)
 	}
@@ -282,7 +283,7 @@ func TestAutoApproveWorkout(t *testing.T) {
 	}
 
 	// Calling again should be a no-op (no error, no duplicate).
-	if err := AutoApproveWorkout(db, workout.ID, coach.ID); err != nil {
+	if err := AutoApproveWorkout(context.Background(), db, workout.ID, coach.ID); err != nil {
 		t.Fatalf("auto-approve idempotent: %v", err)
 	}
 
@@ -297,22 +298,22 @@ func TestAutoApproveWorkout(t *testing.T) {
 func TestAutoApproveWorkout_SkipsExistingReview(t *testing.T) {
 	db := testDB(t)
 
-	athlete, _ := CreateAthlete(db, "Skip Approve Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, _ := CreateAthlete(context.Background(), db, "Skip Approve Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	coach := seedCoachUser(t, db)
-	workout, _ := CreateWorkout(db, athlete.ID, "2026-04-02", "", 0)
+	workout, _ := CreateWorkout(context.Background(), db, athlete.ID, "2026-04-02", "", 0)
 
 	// Manually mark as needs_work.
-	_, err := CreateWorkoutReview(db, workout.ID, coach.ID, ReviewStatusNeedsWork, "Fix your form")
+	_, err := CreateWorkoutReview(context.Background(), db, workout.ID, coach.ID, ReviewStatusNeedsWork, "Fix your form")
 	if err != nil {
 		t.Fatalf("create review: %v", err)
 	}
 
 	// Auto-approve should not overwrite the existing review.
-	if err := AutoApproveWorkout(db, workout.ID, coach.ID); err != nil {
+	if err := AutoApproveWorkout(context.Background(), db, workout.ID, coach.ID); err != nil {
 		t.Fatalf("auto-approve with existing review: %v", err)
 	}
 
-	rev, err := GetWorkoutReviewByWorkoutID(db, workout.ID)
+	rev, err := GetWorkoutReviewByWorkoutID(context.Background(), db, workout.ID)
 	if err != nil {
 		t.Fatalf("get review: %v", err)
 	}

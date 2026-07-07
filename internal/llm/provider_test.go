@@ -15,7 +15,7 @@ import (
 
 func TestNewProviderFromSettings_NotConfigured(t *testing.T) {
 	db := testDB(t)
-	_, err := NewProviderFromSettings(db)
+	_, err := NewProviderFromSettings(context.Background(), db)
 	if err != ErrNotConfigured {
 		t.Errorf("got %v, want ErrNotConfigured", err)
 	}
@@ -23,11 +23,11 @@ func TestNewProviderFromSettings_NotConfigured(t *testing.T) {
 
 func TestNewProviderFromSettings_Anthropic(t *testing.T) {
 	db := testDB(t)
-	models.SetSetting(db, "llm.provider", "anthropic")
-	models.SetSetting(db, "llm.model", "claude-3-haiku-20240307")
-	models.SetSetting(db, "llm.api_key", "test-key")
+	models.SetSetting(context.Background(), db, "llm.provider", "anthropic")
+	models.SetSetting(context.Background(), db, "llm.model", "claude-3-haiku-20240307")
+	models.SetSetting(context.Background(), db, "llm.api_key", "test-key")
 
-	p, err := NewProviderFromSettings(db)
+	p, err := NewProviderFromSettings(context.Background(), db)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -38,10 +38,10 @@ func TestNewProviderFromSettings_Anthropic(t *testing.T) {
 
 func TestNewProviderFromSettings_OpenAI(t *testing.T) {
 	db := testDB(t)
-	models.SetSetting(db, "llm.provider", "openai")
-	models.SetSetting(db, "llm.model", "gpt-4o")
+	models.SetSetting(context.Background(), db, "llm.provider", "openai")
+	models.SetSetting(context.Background(), db, "llm.model", "gpt-4o")
 
-	p, err := NewProviderFromSettings(db)
+	p, err := NewProviderFromSettings(context.Background(), db)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -52,9 +52,9 @@ func TestNewProviderFromSettings_OpenAI(t *testing.T) {
 
 func TestNewProviderFromSettings_Ollama(t *testing.T) {
 	db := testDB(t)
-	models.SetSetting(db, "llm.provider", "ollama")
+	models.SetSetting(context.Background(), db, "llm.provider", "ollama")
 
-	p, err := NewProviderFromSettings(db)
+	p, err := NewProviderFromSettings(context.Background(), db)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -65,9 +65,9 @@ func TestNewProviderFromSettings_Ollama(t *testing.T) {
 
 func TestNewProviderFromSettings_InvalidProvider(t *testing.T) {
 	db := testDB(t)
-	models.SetSetting(db, "llm.provider", "invalid")
+	models.SetSetting(context.Background(), db, "llm.provider", "invalid")
 
-	_, err := NewProviderFromSettings(db)
+	_, err := NewProviderFromSettings(context.Background(), db)
 	if err == nil {
 		t.Fatal("expected error for unknown provider")
 	}
@@ -77,14 +77,14 @@ func TestTemperatureFromSettings(t *testing.T) {
 	db := testDB(t)
 
 	// Default when not set.
-	temp := TemperatureFromSettings(db)
+	temp := TemperatureFromSettings(context.Background(), db)
 	if temp != 0.7 {
 		t.Errorf("default temperature = %f, want 0.7", temp)
 	}
 
 	// Custom value.
-	models.SetSetting(db, "llm.temperature", "0.3")
-	temp = TemperatureFromSettings(db)
+	models.SetSetting(context.Background(), db, "llm.temperature", "0.3")
+	temp = TemperatureFromSettings(context.Background(), db)
 	if temp != 0.3 {
 		t.Errorf("custom temperature = %f, want 0.3", temp)
 	}
@@ -94,14 +94,14 @@ func TestMaxTokensFromSettings(t *testing.T) {
 	db := testDB(t)
 
 	// Default when not set.
-	tokens := MaxTokensFromSettings(db)
+	tokens := MaxTokensFromSettings(context.Background(), db)
 	if tokens != 32768 {
 		t.Errorf("default tokens = %d, want 32768", tokens)
 	}
 
 	// Custom value.
-	models.SetSetting(db, "llm.max_tokens", "16384")
-	tokens = MaxTokensFromSettings(db)
+	models.SetSetting(context.Background(), db, "llm.max_tokens", "16384")
+	tokens = MaxTokensFromSettings(context.Background(), db)
 	if tokens != 16384 {
 		t.Errorf("custom tokens = %d, want 16384", tokens)
 	}
@@ -111,14 +111,14 @@ func TestSystemPromptOverrideFromSettings(t *testing.T) {
 	db := testDB(t)
 
 	// Default when not set.
-	override := SystemPromptOverrideFromSettings(db)
+	override := SystemPromptOverrideFromSettings(context.Background(), db)
 	if override != "" {
 		t.Errorf("default override = %q, want empty", override)
 	}
 
 	// Custom value.
-	models.SetSetting(db, "llm.system_prompt_override", "Custom prompt")
-	override = SystemPromptOverrideFromSettings(db)
+	models.SetSetting(context.Background(), db, "llm.system_prompt_override", "Custom prompt")
+	override = SystemPromptOverrideFromSettings(context.Background(), db)
 	if override != "Custom prompt" {
 		t.Errorf("override = %q, want 'Custom prompt'", override)
 	}

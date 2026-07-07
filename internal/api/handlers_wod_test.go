@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -75,7 +76,7 @@ func TestWODSubmit_NotifiesWithWODLink(t *testing.T) {
 
 	wodSubmitAndWait(t, env, adult.ID, cookies, `{}`)
 
-	notifs, err := models.ListNotifications(env.DB, coach.ID, 50, 0)
+	notifs, err := models.ListNotifications(context.Background(), env.DB, coach.ID, 50, 0)
 	if err != nil {
 		t.Fatalf("ListNotifications: %v", err)
 	}

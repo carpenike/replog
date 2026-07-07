@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -56,10 +57,10 @@ func mockLLMFactory(p llm.Provider) func(*sql.DB) (llm.Provider, error) {
 // Returns the mock so the test can mutate FixedContent / GenerateErr.
 func useMockLLM(t *testing.T, env *testEnv) *llm.MockProvider {
 	t.Helper()
-	if err := models.SetSetting(env.DB, "llm.provider", "anthropic"); err != nil {
+	if err := models.SetSetting(context.Background(), env.DB, "llm.provider", "anthropic"); err != nil {
 		t.Fatalf("set llm.provider: %v", err)
 	}
-	if err := models.SetSetting(env.DB, "llm.model", "claude-sonnet-mock"); err != nil {
+	if err := models.SetSetting(context.Background(), env.DB, "llm.model", "claude-sonnet-mock"); err != nil {
 		t.Fatalf("set llm.model: %v", err)
 	}
 	mock := &llm.MockProvider{FixedContent: mockLLMResponse}
@@ -164,7 +165,7 @@ func TestGenerateFormData_MethodologyOptions_Youth(t *testing.T) {
 	if got.DefaultMethodologyID == nil {
 		t.Fatal("youth athlete should have a default methodology id")
 	}
-	def, err := models.GetMethodologyByID(env.DB, *got.DefaultMethodologyID)
+	def, err := models.GetMethodologyByID(context.Background(), env.DB, *got.DefaultMethodologyID)
 	if err != nil {
 		t.Fatalf("look up default: %v", err)
 	}
@@ -225,7 +226,7 @@ func TestGenerateFormData_ReferencePoolNotFilteredByMethodology(t *testing.T) {
 
 	// Expect BOTH youth and adult program templates to appear — the
 	// reference pool is the full ListProgramTemplates output.
-	allTemplates, _ := models.ListProgramTemplates(env.DB)
+	allTemplates, _ := models.ListProgramTemplates(context.Background(), env.DB)
 	if len(got.ReferencePrograms) != len(allTemplates) {
 		t.Errorf("reference pool was filtered (got %d, want %d) — D2 invariant violated", len(got.ReferencePrograms), len(allTemplates))
 	}
@@ -243,7 +244,7 @@ func TestGenerateSubmit_AcceptsMethodologyID(t *testing.T) {
 
 	// Pick the intermediate methodology — different from the tier default
 	// — so we can confirm the explicit ID actually flows through.
-	m, err := models.GetMethodologyByKey(env.DB, "yessis-1x15")
+	m, err := models.GetMethodologyByKey(context.Background(), env.DB, "yessis-1x15")
 	if err != nil {
 		t.Fatalf("get methodology: %v", err)
 	}
@@ -279,7 +280,7 @@ func TestGenerateFormData_SuggestsProgramName(t *testing.T) {
 
 	// Simulate a draft already imported today under the suggested name by
 	// creating an athlete-scoped template with that exact name.
-	if _, err := models.CreateProgramTemplate(env.DB, &athlete.ID, wantFirst, "", 4, 3, false, ""); err != nil {
+	if _, err := models.CreateProgramTemplate(context.Background(), env.DB, &athlete.ID, wantFirst, "", 4, 3, false, ""); err != nil {
 		t.Fatalf("create colliding template: %v", err)
 	}
 
@@ -313,7 +314,7 @@ func TestGenerateSubmit_NormalizesNumWeeksWhenLooping(t *testing.T) {
 
 	// Read the persisted request_json off the generation row and confirm
 	// the normalize landed BEFORE the marshal.
-	gen, err := models.GetGeneration(env.DB, genID)
+	gen, err := models.GetGeneration(context.Background(), env.DB, genID)
 	if err != nil {
 		t.Fatalf("get generation: %v", err)
 	}
@@ -351,7 +352,7 @@ func seedMethodologiesForTest(t *testing.T, env *testEnv) {
 		// in every test file.
 		seedCatalogInline(t, env)
 	}
-	if _, err := models.ApplyMethodologySeedFromBytes(env.DB, database.SeedMethodologies()); err != nil {
+	if _, err := models.ApplyMethodologySeedFromBytes(context.Background(), env.DB, database.SeedMethodologies()); err != nil {
 		t.Fatalf("seed methodologies: %v", err)
 	}
 }
@@ -361,7 +362,7 @@ func seedMethodologiesForTest(t *testing.T, env *testEnv) {
 func seedCatalogInline(t *testing.T, env *testEnv) {
 	t.Helper()
 	t.Cleanup(func() {})
-	if err := applyCatalogSeed(env.DB); err != nil {
+	if err := applyCatalogSeed(context.Background(), env.DB); err != nil {
 		t.Fatalf("seed catalog: %v", err)
 	}
 }
@@ -562,7 +563,7 @@ func TestGenerationCancel_PendingRowMarkedCancelled(t *testing.T) {
 	cookies := env.loginAs(t, coach)
 
 	// Insert a pending row directly so it never picks up the goroutine.
-	g, err := models.CreateGeneration(env.DB, athlete.ID, coach.ID,
+	g, err := models.CreateGeneration(context.Background(), env.DB, athlete.ID, coach.ID,
 		`{"program_name":"x","num_days":1,"num_weeks":1}`)
 	if err != nil {
 		t.Fatalf("seed pending generation: %v", err)
@@ -620,7 +621,7 @@ func TestGenerationExecute_RejectsNonSucceeded(t *testing.T) {
 	athlete := env.createAthlete(t, "Charlie", coach.ID)
 	cookies := env.loginAs(t, coach)
 
-	g, err := models.CreateGeneration(env.DB, athlete.ID, coach.ID,
+	g, err := models.CreateGeneration(context.Background(), env.DB, athlete.ID, coach.ID,
 		`{"program_name":"x","num_days":1,"num_weeks":1}`)
 	if err != nil {
 		t.Fatalf("seed pending generation: %v", err)
@@ -648,16 +649,16 @@ func TestResetStaleRunningGenerations_MarksPriorRunsFailed(t *testing.T) {
 	coach := env.createUser(t, "coach", true, false)
 	athlete := env.createAthlete(t, "Charlie", coach.ID)
 
-	g, err := models.CreateGeneration(env.DB, athlete.ID, coach.ID,
+	g, err := models.CreateGeneration(context.Background(), env.DB, athlete.ID, coach.ID,
 		`{"program_name":"x","num_days":1,"num_weeks":1}`)
 	if err != nil {
 		t.Fatalf("seed generation: %v", err)
 	}
-	if err := models.MarkGenerationRunning(env.DB, g.ID); err != nil {
+	if err := models.MarkGenerationRunning(context.Background(), env.DB, g.ID); err != nil {
 		t.Fatalf("mark running: %v", err)
 	}
 
-	n, err := models.ResetStaleRunningGenerations(env.DB)
+	n, err := models.ResetStaleRunningGenerations(context.Background(), env.DB)
 	if err != nil {
 		t.Fatalf("reset stale: %v", err)
 	}
@@ -665,7 +666,7 @@ func TestResetStaleRunningGenerations_MarksPriorRunsFailed(t *testing.T) {
 		t.Errorf("expected 1 row reset, got %d", n)
 	}
 
-	got, err := models.GetGeneration(env.DB, g.ID)
+	got, err := models.GetGeneration(context.Background(), env.DB, g.ID)
 	if err != nil {
 		t.Fatalf("reload: %v", err)
 	}
@@ -689,7 +690,7 @@ func TestGenerateSubmit_DuplicateRejectedWith409(t *testing.T) {
 	// Seed a pending generation for this athlete WITHOUT waiting on it,
 	// to simulate "a draft is in flight". We bypass the handler so the
 	// goroutine doesn't race the second submit.
-	if _, err := models.CreateGeneration(env.DB, athlete.ID, coach.ID,
+	if _, err := models.CreateGeneration(context.Background(), env.DB, athlete.ID, coach.ID,
 		`{"program_name":"first","num_days":3,"num_weeks":2}`); err != nil {
 		t.Fatalf("seed pending generation: %v", err)
 	}
@@ -720,7 +721,7 @@ func TestGenerationExecute_DoesNotAssignProgramToAthlete(t *testing.T) {
 	// The athlete must have NO active program after approving the draft —
 	// ADR 007 / HOF-001: approve creates an unassigned template; explicit
 	// assignment via POST /athletes/{id}/programs is a separate coach step.
-	progs, err := models.ListAthletePrograms(env.DB, athlete.ID)
+	progs, err := models.ListAthletePrograms(context.Background(), env.DB, athlete.ID)
 	if err != nil {
 		t.Fatalf("ListAthletePrograms: %v", err)
 	}
@@ -731,7 +732,7 @@ func TestGenerationExecute_DoesNotAssignProgramToAthlete(t *testing.T) {
 	}
 
 	// The template SHOULD have been created (athlete-scoped via athlete_id).
-	templates, err := models.ListProgramTemplates(env.DB)
+	templates, err := models.ListProgramTemplates(context.Background(), env.DB)
 	if err != nil {
 		t.Fatalf("ListProgramTemplates: %v", err)
 	}
@@ -761,7 +762,7 @@ func TestRunGeneration_NotifiesOnProviderFailure(t *testing.T) {
 	submitAndWait(t, env, athlete.ID, cookies,
 		`{"program_name":"x","num_days":4,"num_weeks":3}`)
 
-	notifs, err := models.ListNotifications(env.DB, coach.ID, 50, 0)
+	notifs, err := models.ListNotifications(context.Background(), env.DB, coach.ID, 50, 0)
 	if err != nil {
 		t.Fatalf("ListNotifications: %v", err)
 	}
@@ -798,7 +799,7 @@ func TestRunGeneration_TruncationHintInError(t *testing.T) {
 	genID := submitAndWait(t, env, athlete.ID, cookies,
 		`{"program_name":"x","num_days":4,"num_weeks":3}`)
 
-	g, err := models.GetGeneration(env.DB, genID)
+	g, err := models.GetGeneration(context.Background(), env.DB, genID)
 	if err != nil {
 		t.Fatalf("reload generation: %v", err)
 	}
@@ -892,7 +893,7 @@ func TestGenerationExecute_PersistsContextAndPrompt(t *testing.T) {
 	genID := submitAndWait(t, env, athlete.ID, cookies,
 		`{"program_name":"Mock","num_days":4,"num_weeks":3}`)
 
-	g, err := models.GetGeneration(env.DB, genID)
+	g, err := models.GetGeneration(context.Background(), env.DB, genID)
 	if err != nil {
 		t.Fatalf("reload generation: %v", err)
 	}

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"testing"
@@ -8,24 +9,24 @@ import (
 
 func TestListJournalEntries(t *testing.T) {
 	db := testDB(t)
-	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
-	a, _ := CreateAthlete(db, "Test Athlete", "foundational", "", "Build strength", "", "", "", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
+	coach, _ := CreateUser(context.Background(), db, "coach", "", "password123", "", true, false, sql.NullInt64{})
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "foundational", "", "Build strength", "", "", "", sql.NullInt64{Int64: coach.ID, Valid: true}, true)
 
 	// Seed some data across multiple tables.
-	w, _ := CreateWorkout(db, a.ID, "2026-02-10", "Felt strong today", 0)
-	e, _ := CreateExercise(db, "Squat", "", "", "", 0)
-	e2, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
-	AddSet(db, w.ID, e.ID, 5, 225, 0, "reps", "", "")
-	AddSet(db, w.ID, e.ID, 5, 225, 0, "reps", "", "")
-	AddSet(db, w.ID, e2.ID, 8, 135, 0, "reps", "", "")
-	CreateBodyWeight(db, a.ID, "2026-02-11", 185.0, "morning weight")
-	RecordGoalChange(db, a.ID, "Build strength", "", coach.ID, "2026-02-01", "")
-	RecordTierChange(db, a.ID, "foundational", "", coach.ID, "2026-01-15", "")
-	CreateAthleteNote(db, a.ID, coach.ID, "2026-02-12", "Good progress", false, false)
-	CreateAthleteNote(db, a.ID, coach.ID, "2026-02-12", "Internal observation", true, false)
+	w, _ := CreateWorkout(context.Background(), db, a.ID, "2026-02-10", "Felt strong today", 0)
+	e, _ := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
+	e2, _ := CreateExercise(context.Background(), db, "Bench Press", "", "", "", 0)
+	AddSet(context.Background(), db, w.ID, e.ID, 5, 225, 0, "reps", "", "")
+	AddSet(context.Background(), db, w.ID, e.ID, 5, 225, 0, "reps", "", "")
+	AddSet(context.Background(), db, w.ID, e2.ID, 8, 135, 0, "reps", "", "")
+	CreateBodyWeight(context.Background(), db, a.ID, "2026-02-11", 185.0, "morning weight")
+	RecordGoalChange(context.Background(), db, a.ID, "Build strength", "", coach.ID, "2026-02-01", "")
+	RecordTierChange(context.Background(), db, a.ID, "foundational", "", coach.ID, "2026-01-15", "")
+	CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "2026-02-12", "Good progress", false, false)
+	CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "2026-02-12", "Internal observation", true, false)
 
 	t.Run("includes all event types", func(t *testing.T) {
-		entries, err := ListJournalEntries(db, a.ID, true, 100)
+		entries, err := ListJournalEntries(context.Background(), db, a.ID, true, 100)
 		if err != nil {
 			t.Fatalf("list journal entries: %v", err)
 		}
@@ -56,7 +57,7 @@ func TestListJournalEntries(t *testing.T) {
 	})
 
 	t.Run("excludes private notes for non-coach", func(t *testing.T) {
-		entries, err := ListJournalEntries(db, a.ID, false, 100)
+		entries, err := ListJournalEntries(context.Background(), db, a.ID, false, 100)
 		if err != nil {
 			t.Fatalf("list journal entries: %v", err)
 		}
@@ -80,7 +81,7 @@ func TestListJournalEntries(t *testing.T) {
 	})
 
 	t.Run("respects limit", func(t *testing.T) {
-		entries, err := ListJournalEntries(db, a.ID, true, 2)
+		entries, err := ListJournalEntries(context.Background(), db, a.ID, true, 2)
 		if err != nil {
 			t.Fatalf("list journal entries: %v", err)
 		}
@@ -90,8 +91,8 @@ func TestListJournalEntries(t *testing.T) {
 	})
 
 	t.Run("empty for different athlete", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Other Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-		entries, err := ListJournalEntries(db, a2.ID, true, 100)
+		a2, _ := CreateAthlete(context.Background(), db, "Other Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+		entries, err := ListJournalEntries(context.Background(), db, a2.ID, true, 100)
 		if err != nil {
 			t.Fatalf("list journal entries: %v", err)
 		}
@@ -101,7 +102,7 @@ func TestListJournalEntries(t *testing.T) {
 	})
 
 	t.Run("workout summary includes exercise names", func(t *testing.T) {
-		entries, err := ListJournalEntries(db, a.ID, true, 100)
+		entries, err := ListJournalEntries(context.Background(), db, a.ID, true, 100)
 		if err != nil {
 			t.Fatalf("list journal entries: %v", err)
 		}
@@ -122,7 +123,7 @@ func TestListJournalEntries(t *testing.T) {
 	})
 
 	t.Run("workout detail contains notes", func(t *testing.T) {
-		entries, err := ListJournalEntries(db, a.ID, true, 100)
+		entries, err := ListJournalEntries(context.Background(), db, a.ID, true, 100)
 		if err != nil {
 			t.Fatalf("list journal entries: %v", err)
 		}
@@ -137,7 +138,7 @@ func TestListJournalEntries(t *testing.T) {
 	})
 
 	t.Run("body weight detail contains notes", func(t *testing.T) {
-		entries, err := ListJournalEntries(db, a.ID, true, 100)
+		entries, err := ListJournalEntries(context.Background(), db, a.ID, true, 100)
 		if err != nil {
 			t.Fatalf("list journal entries: %v", err)
 		}

@@ -7,6 +7,7 @@
 package llm
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -302,103 +303,103 @@ type BuildContextOptions struct {
 //
 // Coach-supplied ReferenceTemplateIDs always override the methodology's
 // default exemplars.
-func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, opts BuildContextOptions) (*AthleteContext, error) {
-	ctx := &AthleteContext{}
+func BuildAthleteContext(ctx context.Context, db *sql.DB, athleteID int64, now time.Time, opts BuildContextOptions) (*AthleteContext, error) {
+	ac := &AthleteContext{}
 
 	// Athlete profile.
-	profile, err := buildProfile(db, athleteID, now)
+	profile, err := buildProfile(ctx, db, athleteID, now)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build profile: %w", err)
 	}
-	ctx.Athlete = *profile
+	ac.Athlete = *profile
 
 	// Equipment.
-	equip, err := buildEquipmentList(db, athleteID)
+	equip, err := buildEquipmentList(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build equipment: %w", err)
 	}
-	ctx.Equipment = equip
+	ac.Equipment = equip
 
 	// Current programs (primary + supplementals).
-	currentProgs, err := buildCurrentPrograms(db, athleteID)
+	currentProgs, err := buildCurrentPrograms(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build programs: %w", err)
 	}
-	ctx.CurrentPrograms = currentProgs
+	ac.CurrentPrograms = currentProgs
 
 	// Program history (all assignments, active + past).
-	history, err := buildProgramHistory(db, athleteID)
+	history, err := buildProgramHistory(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build program history: %w", err)
 	}
-	ctx.ProgramHistory = history
+	ac.ProgramHistory = history
 
 	// Training maxes.
-	tms, err := buildTrainingMaxes(db, athleteID)
+	tms, err := buildTrainingMaxes(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build training maxes: %w", err)
 	}
-	ctx.Performance.TrainingMaxes = tms
+	ac.Performance.TrainingMaxes = tms
 
 	// Body weights.
-	bws, err := buildBodyWeights(db, athleteID)
+	bws, err := buildBodyWeights(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build body weights: %w", err)
 	}
-	ctx.Performance.BodyWeights = bws
+	ac.Performance.BodyWeights = bws
 
 	// Coach notes (from athlete_notes + journal entries).
-	notes, err := buildCoachNotes(db, athleteID)
+	notes, err := buildCoachNotes(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build coach notes: %w", err)
 	}
-	ctx.CoachNotes = notes
+	ac.CoachNotes = notes
 
 	// Goals (with history from goal_history table).
-	ctx.Goals = buildGoals(db, profile, athleteID)
+	ac.Goals = buildGoals(ctx, db, profile, athleteID)
 
 	// Resolve methodology (ADR 016 Phase 2). MUST run before
 	// buildExerciseCatalog because the catalog is scoped to the
 	// methodology's allow-lists when one is bound.
-	methodology, err := resolveMethodology(db, profile, opts)
+	methodology, err := resolveMethodology(ctx, db, profile, opts)
 	if err != nil {
 		return nil, err
 	}
-	ctx.methodology = methodology
+	ac.methodology = methodology
 	if methodology != nil {
-		ctx.Methodology = projectMethodology(methodology)
+		ac.Methodology = projectMethodology(methodology)
 	}
 
 	// Exercise catalog (filtered by equipment compatibility + methodology
 	// allow-lists when a methodology is bound).
-	exercises, err := buildExerciseCatalog(db, athleteID, methodology)
+	exercises, err := buildExerciseCatalog(ctx, db, athleteID, methodology)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build exercise catalog: %w", err)
 	}
-	ctx.ExerciseCatalog = exercises
+	ac.ExerciseCatalog = exercises
 
 	// Recent workouts with sets.
-	workouts, err := buildRecentWorkouts(db, athleteID)
+	workouts, err := buildRecentWorkouts(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build recent workouts: %w", err)
 	}
-	ctx.RecentWorkouts = workouts
+	ac.RecentWorkouts = workouts
 
 	// Exercise performance trends (computed from recent workouts).
-	ctx.Performance.Trends = buildPerformanceTrends(workouts)
+	ac.Performance.Trends = buildPerformanceTrends(workouts)
 
 	// Cross-discipline recent-activity rollup (ADR 018): season phase,
 	// recovery, throwing/conditioning volume, and load advisories. Best-effort
 	// — a query failure here degrades the context but must not fail generation,
 	// since none of it is load-bearing for the JSON schema.
-	ctx.RecentActivity = buildRecentActivity(db, athleteID, now)
+	ac.RecentActivity = buildRecentActivity(ctx, db, athleteID, now)
 
 	// Prior program templates (athlete-scoped only — previously generated for this athlete).
-	templates, err := buildPriorTemplates(db, athleteID)
+	templates, err := buildPriorTemplates(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build prior templates: %w", err)
 	}
-	ctx.PriorTemplates = templates
+	ac.PriorTemplates = templates
 
 	// Reference programs:
 	//   1. coach-supplied ReferenceTemplateIDs override everything;
@@ -409,15 +410,15 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, opts BuildC
 	var refProgs []ReferenceProgramSummary
 	switch {
 	case len(opts.ReferenceTemplateIDs) > 0:
-		refProgs, err = buildReferenceProgramsByIDs(db, opts.ReferenceTemplateIDs)
+		refProgs, err = buildReferenceProgramsByIDs(ctx, db, opts.ReferenceTemplateIDs)
 	case methodology != nil && len(methodology.ReferenceProgramIDs) > 0:
-		refProgs, err = buildReferenceProgramsByIDs(db, methodology.ReferenceProgramIDs)
+		refProgs, err = buildReferenceProgramsByIDs(ctx, db, methodology.ReferenceProgramIDs)
 	default:
 		audience := "adult"
 		if profile.Tier != nil {
 			audience = "youth"
 		}
-		refProgs, err = buildReferencePrograms(db, audience)
+		refProgs, err = buildReferencePrograms(ctx, db, audience)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("llm: build reference programs: %w", err)
@@ -429,9 +430,9 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, opts BuildC
 	if profile.Tier != nil {
 		refProgs = sortReferencesByTier(refProgs, *profile.Tier)
 	}
-	ctx.ReferencePrograms = refProgs
+	ac.ReferencePrograms = refProgs
 
-	return ctx, nil
+	return ac, nil
 }
 
 // tierMethodologyKey maps a youth tier to its default methodology key.
@@ -457,9 +458,9 @@ func tierMethodologyKey(tier string) string {
 //     fail if not found — youth never generates rules-less;
 //   - else (adult, or non-RequireMethodology path): return nil and let
 //     the caller fall back to in-code defaults.
-func resolveMethodology(db *sql.DB, profile *AthleteProfile, opts BuildContextOptions) (*models.MethodologyWithLinks, error) {
+func resolveMethodology(ctx context.Context, db *sql.DB, profile *AthleteProfile, opts BuildContextOptions) (*models.MethodologyWithLinks, error) {
 	if opts.MethodologyID != nil {
-		m, err := models.LoadMethodologyWithLinks(db, *opts.MethodologyID)
+		m, err := models.LoadMethodologyWithLinks(ctx, db, *opts.MethodologyID)
 		if err != nil {
 			return nil, fmt.Errorf("llm: load methodology %d: %w", *opts.MethodologyID, err)
 		}
@@ -477,11 +478,11 @@ func resolveMethodology(db *sql.DB, profile *AthleteProfile, opts BuildContextOp
 	if key == "" {
 		return nil, fmt.Errorf("llm: no methodology mapped for youth tier %q — configure a methodology for this athlete or fix tier mapping", *profile.Tier)
 	}
-	m, err := models.GetMethodologyByKey(db, key)
+	m, err := models.GetMethodologyByKey(ctx, db, key)
 	if err != nil {
 		return nil, fmt.Errorf("llm: load tier-default methodology %q for tier %q: %w", key, *profile.Tier, err)
 	}
-	return models.LoadMethodologyWithLinks(db, m.ID)
+	return models.LoadMethodologyWithLinks(ctx, db, m.ID)
 }
 
 // projectMethodology returns the lean view of a methodology that ships in
@@ -510,15 +511,15 @@ func projectMethodology(m *models.MethodologyWithLinks) *MethodologyProjection {
 }
 
 // buildProfile constructs the athlete profile with computed summary stats.
-func buildProfile(db *sql.DB, athleteID int64, now time.Time) (*AthleteProfile, error) {
-	athlete, err := models.GetAthleteByID(db, athleteID)
+func buildProfile(ctx context.Context, db *sql.DB, athleteID int64, now time.Time) (*AthleteProfile, error) {
+	athlete, err := models.GetAthleteByID(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("get athlete %d: %w", athleteID, err)
 	}
 
 	profile := &AthleteProfile{
 		Name:       athlete.Name,
-		WeightUnit: models.GetDefaultWeightUnit(db),
+		WeightUnit: models.GetDefaultWeightUnit(ctx, db),
 	}
 	if athlete.Tier.Valid {
 		profile.Tier = &athlete.Tier.String
@@ -543,7 +544,7 @@ func buildProfile(db *sql.DB, athleteID int64, now time.Time) (*AthleteProfile, 
 	}
 
 	// Compute training months from earliest workout (single query, no paging).
-	count, earliest, err := models.WorkoutStats(db, athleteID)
+	count, earliest, err := models.WorkoutStats(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("workout stats for profile: %w", err)
 	}
@@ -557,7 +558,7 @@ func buildProfile(db *sql.DB, athleteID int64, now time.Time) (*AthleteProfile, 
 	}
 
 	// Latest body weight.
-	bw, err := models.LatestBodyWeight(db, athleteID)
+	bw, err := models.LatestBodyWeight(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("latest body weight: %w", err)
 	}
@@ -569,8 +570,8 @@ func buildProfile(db *sql.DB, athleteID int64, now time.Time) (*AthleteProfile, 
 }
 
 // buildEquipmentList returns the names of equipment the athlete has access to.
-func buildEquipmentList(db *sql.DB, athleteID int64) ([]string, error) {
-	items, err := models.ListAthleteEquipment(db, athleteID)
+func buildEquipmentList(ctx context.Context, db *sql.DB, athleteID int64) ([]string, error) {
+	items, err := models.ListAthleteEquipment(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -582,8 +583,8 @@ func buildEquipmentList(db *sql.DB, athleteID int64) ([]string, error) {
 }
 
 // buildCurrentPrograms returns all of the athlete's active programs (primary + supplementals).
-func buildCurrentPrograms(db *sql.DB, athleteID int64) ([]ProgramSummary, error) {
-	programs, err := models.ListActiveProgramAssignments(db, athleteID)
+func buildCurrentPrograms(ctx context.Context, db *sql.DB, athleteID int64) ([]ProgramSummary, error) {
+	programs, err := models.ListActiveProgramAssignments(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -609,8 +610,8 @@ func buildCurrentPrograms(db *sql.DB, athleteID int64) ([]ProgramSummary, error)
 }
 
 // buildTrainingMaxes returns the athlete's current training maxes.
-func buildTrainingMaxes(db *sql.DB, athleteID int64) ([]TMEntry, error) {
-	tms, err := models.ListCurrentTrainingMaxes(db, athleteID)
+func buildTrainingMaxes(ctx context.Context, db *sql.DB, athleteID int64) ([]TMEntry, error) {
+	tms, err := models.ListCurrentTrainingMaxes(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -626,8 +627,8 @@ func buildTrainingMaxes(db *sql.DB, athleteID int64) ([]TMEntry, error) {
 }
 
 // buildBodyWeights returns the athlete's recent body weight entries (up to 30).
-func buildBodyWeights(db *sql.DB, athleteID int64) ([]BodyWeightEntry, error) {
-	page, err := models.ListBodyWeights(db, athleteID, 0)
+func buildBodyWeights(ctx context.Context, db *sql.DB, athleteID int64) ([]BodyWeightEntry, error) {
+	page, err := models.ListBodyWeights(ctx, db, athleteID, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -693,9 +694,9 @@ func buildPerformanceTrends(workouts []WorkoutSummary) []ExercisePerformance {
 }
 
 // buildCoachNotes returns a combined view of coach notes and relevant journal entries.
-func buildCoachNotes(db *sql.DB, athleteID int64) ([]NoteEntry, error) {
+func buildCoachNotes(ctx context.Context, db *sql.DB, athleteID int64) ([]NoteEntry, error) {
 	// Athlete notes (coach observations, pinned items).
-	notes, err := models.ListAthleteNotes(db, athleteID, true)
+	notes, err := models.ListAthleteNotes(ctx, db, athleteID, true)
 	if err != nil {
 		return nil, fmt.Errorf("list athlete notes: %w", err)
 	}
@@ -712,7 +713,7 @@ func buildCoachNotes(db *sql.DB, athleteID int64) ([]NoteEntry, error) {
 	}
 
 	// Journal entries (workout reviews, goal changes, etc.) — limit to 50 most recent.
-	journal, err := models.ListJournalEntries(db, athleteID, true, 50)
+	journal, err := models.ListJournalEntries(ctx, db, athleteID, true, 50)
 	if err != nil {
 		return nil, fmt.Errorf("list journal entries: %w", err)
 	}
@@ -734,14 +735,14 @@ func buildCoachNotes(db *sql.DB, athleteID int64) ([]NoteEntry, error) {
 }
 
 // buildGoals constructs the goal context from the athlete profile and goal history.
-func buildGoals(db *sql.DB, profile *AthleteProfile, athleteID int64) GoalContext {
+func buildGoals(ctx context.Context, db *sql.DB, profile *AthleteProfile, athleteID int64) GoalContext {
 	gc := GoalContext{}
 	if profile.Goal != nil {
 		gc.Current = *profile.Goal
 	}
 
 	// Populate goal history from the goal_history table.
-	history, err := models.ListGoalHistory(db, athleteID)
+	history, err := models.ListGoalHistory(ctx, db, athleteID)
 	if err == nil && len(history) > 0 {
 		for _, h := range history {
 			gc.History = append(gc.History, h.Goal)
@@ -771,14 +772,14 @@ func buildGoals(db *sql.DB, profile *AthleteProfile, athleteID int64) GoalContex
 //
 // The athlete-side equipment-compatibility flag is preserved on every surviving
 // entry; the methodology scope is structural, the compat flag is athlete-specific.
-func buildExerciseCatalog(db *sql.DB, athleteID int64, methodology *models.MethodologyWithLinks) ([]ExerciseEntry, error) {
-	exercises, err := models.ListExercises(db, "")
+func buildExerciseCatalog(ctx context.Context, db *sql.DB, athleteID int64, methodology *models.MethodologyWithLinks) ([]ExerciseEntry, error) {
+	exercises, err := models.ListExercises(ctx, db, "")
 	if err != nil {
 		return nil, err
 	}
 
 	// Batch compatibility check (single query instead of N per-exercise calls).
-	compatMap, err := models.BatchCheckExerciseCompatibility(db, athleteID)
+	compatMap, err := models.BatchCheckExerciseCompatibility(ctx, db, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("batch exercise compatibility: %w", err)
 	}
@@ -798,11 +799,11 @@ func buildExerciseCatalog(db *sql.DB, athleteID int64, methodology *models.Metho
 		allowedExercises = int64SliceToSet(methodology.AllowedExerciseIDs)
 		allowedEquipment = int64SliceToSet(methodology.AllowedEquipmentIDs)
 
-		patternsByExercise, err = batchExerciseMovementPatterns(db)
+		patternsByExercise, err = batchExerciseMovementPatterns(ctx, db)
 		if err != nil {
 			return nil, fmt.Errorf("batch exercise movement patterns: %w", err)
 		}
-		requiredEquipByExercise, err = batchRequiredExerciseEquipment(db)
+		requiredEquipByExercise, err = batchRequiredExerciseEquipment(ctx, db)
 		if err != nil {
 			return nil, fmt.Errorf("batch required exercise equipment: %w", err)
 		}
@@ -871,8 +872,8 @@ func exerciseInMethodologyScope(
 
 // batchExerciseMovementPatterns returns exercise_id → []pattern for all
 // tagged exercises. Single query instead of N per-exercise calls.
-func batchExerciseMovementPatterns(db *sql.DB) (map[int64][]string, error) {
-	rows, err := db.Query(`SELECT exercise_id, pattern FROM exercise_movement_patterns ORDER BY exercise_id, pattern`)
+func batchExerciseMovementPatterns(ctx context.Context, db *sql.DB) (map[int64][]string, error) {
+	rows, err := db.QueryContext(ctx, `SELECT exercise_id, pattern FROM exercise_movement_patterns ORDER BY exercise_id, pattern`)
 	if err != nil {
 		return nil, err
 	}
@@ -892,8 +893,8 @@ func batchExerciseMovementPatterns(db *sql.DB) (map[int64][]string, error) {
 // batchRequiredExerciseEquipment returns exercise_id → []equipment_id for
 // REQUIRED equipment links (optional=0). Optional equipment is intentionally
 // excluded — see buildExerciseCatalog's equipment gate.
-func batchRequiredExerciseEquipment(db *sql.DB) (map[int64][]int64, error) {
-	rows, err := db.Query(`SELECT exercise_id, equipment_id FROM exercise_equipment WHERE optional = 0 ORDER BY exercise_id, equipment_id`)
+func batchRequiredExerciseEquipment(ctx context.Context, db *sql.DB) (map[int64][]int64, error) {
+	rows, err := db.QueryContext(ctx, `SELECT exercise_id, equipment_id FROM exercise_equipment WHERE optional = 0 ORDER BY exercise_id, equipment_id`)
 	if err != nil {
 		return nil, err
 	}
@@ -927,8 +928,8 @@ func int64SliceToSet(s []int64) map[int64]struct{} {
 
 // buildRecentWorkouts returns the athlete's most recent workouts with their sets.
 // Returns up to 20 workouts.
-func buildRecentWorkouts(db *sql.DB, athleteID int64) ([]WorkoutSummary, error) {
-	page, err := models.ListWorkouts(db, athleteID, 0)
+func buildRecentWorkouts(ctx context.Context, db *sql.DB, athleteID int64) ([]WorkoutSummary, error) {
+	page, err := models.ListWorkouts(ctx, db, athleteID, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -944,7 +945,7 @@ func buildRecentWorkouts(db *sql.DB, athleteID int64) ([]WorkoutSummary, error) 
 	for i, w := range workouts {
 		workoutIDs[i] = w.ID
 	}
-	allSets, err := models.ListSetsByWorkoutIDs(db, workoutIDs)
+	allSets, err := models.ListSetsByWorkoutIDs(ctx, db, workoutIDs)
 	if err != nil {
 		return nil, fmt.Errorf("batch list sets: %w", err)
 	}
@@ -987,13 +988,13 @@ func buildRecentWorkouts(db *sql.DB, athleteID int64) ([]WorkoutSummary, error) 
 // best-effort: any sub-query failure is swallowed (the field is simply omitted)
 // because none of this data is required for a valid CatalogJSON — it only
 // improves programming judgment and youth safety.
-func buildRecentActivity(db *sql.DB, athleteID int64, now time.Time) RecentActivity {
+func buildRecentActivity(ctx context.Context, db *sql.DB, athleteID int64, now time.Time) RecentActivity {
 	var ra RecentActivity
 	cutoff := now.AddDate(0, 0, -14).Format("2006-01-02")
 	today := now.Format("2006-01-02")
 
 	// Current season phase: the phase spanning today.
-	if phases, err := models.ListSeasonPhases(db, athleteID); err == nil {
+	if phases, err := models.ListSeasonPhases(ctx, db, athleteID); err == nil {
 		for _, sp := range phases {
 			endsOK := !sp.EndDate.Valid || sp.EndDate.String >= today
 			if sp.StartDate <= today && endsOK {
@@ -1008,7 +1009,7 @@ func buildRecentActivity(db *sql.DB, athleteID int64, now time.Time) RecentActiv
 	}
 
 	// Most recent recovery check-in.
-	if checkins, err := models.ListRecoveryCheckins(db, athleteID, 1); err == nil && len(checkins) > 0 {
+	if checkins, err := models.ListRecoveryCheckins(ctx, db, athleteID, 1); err == nil && len(checkins) > 0 {
 		c := checkins[0]
 		snap := &RecoverySnapshot{Date: normalizeDate(c.Date)}
 		if c.SleepHours.Valid {
@@ -1027,7 +1028,7 @@ func buildRecentActivity(db *sql.DB, athleteID int64, now time.Time) RecentActiv
 	}
 
 	// Throwing volume over the last 14 days.
-	if sessions, err := models.ListThrowingSessions(db, athleteID, 100); err == nil {
+	if sessions, err := models.ListThrowingSessions(ctx, db, athleteID, 100); err == nil {
 		count, throws := 0, int64(0)
 		for _, s := range sessions {
 			if s.Date >= cutoff {
@@ -1043,7 +1044,7 @@ func buildRecentActivity(db *sql.DB, athleteID int64, now time.Time) RecentActiv
 	}
 
 	// Conditioning volume over the last 14 days.
-	if sessions, err := models.ListConditioningSessions(db, athleteID, 100); err == nil {
+	if sessions, err := models.ListConditioningSessions(ctx, db, athleteID, 100); err == nil {
 		count, secs := 0, int64(0)
 		for _, s := range sessions {
 			if s.Date >= cutoff {
@@ -1060,7 +1061,7 @@ func buildRecentActivity(db *sql.DB, athleteID int64, now time.Time) RecentActiv
 
 	// Load advisories: surface any discipline whose ACWR is elevated (>1.3) or
 	// very high (>1.5), the conventional injury-risk thresholds.
-	if ls, err := models.GetLoadSummary(db, athleteID); err == nil && ls != nil {
+	if ls, err := models.GetLoadSummary(ctx, db, athleteID); err == nil && ls != nil {
 		for _, d := range ls.Disciplines {
 			if d.ACWR == nil {
 				continue
@@ -1079,8 +1080,8 @@ func buildRecentActivity(db *sql.DB, athleteID int64, now time.Time) RecentActiv
 
 // buildProgramHistory returns all program assignments for the athlete,
 // ordered most recent first. Includes start date, notes, goals, and active status.
-func buildProgramHistory(db *sql.DB, athleteID int64) ([]ProgramHistoryEntry, error) {
-	programs, err := models.ListAthletePrograms(db, athleteID)
+func buildProgramHistory(ctx context.Context, db *sql.DB, athleteID int64) ([]ProgramHistoryEntry, error) {
+	programs, err := models.ListAthletePrograms(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -1111,8 +1112,8 @@ func buildProgramHistory(db *sql.DB, athleteID int64) ([]ProgramHistoryEntry, er
 // buildPriorTemplates returns athlete-scoped program templates (previously
 // generated for this athlete) as lightweight metadata summaries.
 // Global reference programs are handled separately by buildReferencePrograms.
-func buildPriorTemplates(db *sql.DB, athleteID int64) ([]TemplateSummary, error) {
-	templates, err := models.ListProgramTemplatesForAthlete(db, athleteID)
+func buildPriorTemplates(ctx context.Context, db *sql.DB, athleteID int64) ([]TemplateSummary, error) {
+	templates, err := models.ListProgramTemplatesForAthlete(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -1135,28 +1136,28 @@ func buildPriorTemplates(db *sql.DB, athleteID int64) ([]TemplateSummary, error)
 // buildReferencePrograms returns global seed/reference programs filtered by audience
 // ("youth" or "adult") with their full prescribed sets. This gives the LLM concrete
 // structural examples of correctly-built programs for the athlete's audience.
-func buildReferencePrograms(db *sql.DB, audience string) ([]ReferenceProgramSummary, error) {
-	templates, err := models.ListReferenceTemplatesByAudience(db, audience)
+func buildReferencePrograms(ctx context.Context, db *sql.DB, audience string) ([]ReferenceProgramSummary, error) {
+	templates, err := models.ListReferenceTemplatesByAudience(ctx, db, audience)
 	if err != nil {
 		return nil, err
 	}
-	return templatesToReferenceSummaries(db, templates)
+	return templatesToReferenceSummaries(ctx, db, templates)
 }
 
 // buildReferenceProgramsByIDs loads specific program templates by their IDs
 // with full prescribed sets. Used when the coach explicitly selects which
 // reference programs to provide to the LLM.
-func buildReferenceProgramsByIDs(db *sql.DB, ids []int64) ([]ReferenceProgramSummary, error) {
-	templates, err := models.ListProgramTemplatesByIDs(db, ids)
+func buildReferenceProgramsByIDs(ctx context.Context, db *sql.DB, ids []int64) ([]ReferenceProgramSummary, error) {
+	templates, err := models.ListProgramTemplatesByIDs(ctx, db, ids)
 	if err != nil {
 		return nil, err
 	}
-	return templatesToReferenceSummaries(db, templates)
+	return templatesToReferenceSummaries(ctx, db, templates)
 }
 
 // templatesToReferenceSummaries converts a slice of program templates into
 // ReferenceProgramSummary values, loading full prescribed sets for each.
-func templatesToReferenceSummaries(db *sql.DB, templates []*models.ProgramTemplate) ([]ReferenceProgramSummary, error) {
+func templatesToReferenceSummaries(ctx context.Context, db *sql.DB, templates []*models.ProgramTemplate) ([]ReferenceProgramSummary, error) {
 	var programs []ReferenceProgramSummary
 	for _, t := range templates {
 		rp := ReferenceProgramSummary{
@@ -1173,7 +1174,7 @@ func templatesToReferenceSummaries(db *sql.DB, templates []*models.ProgramTempla
 			rp.Audience = t.Audience.String
 		}
 
-		sets, err := models.ListPrescribedSets(db, t.ID)
+		sets, err := models.ListPrescribedSets(ctx, db, t.ID)
 		if err != nil {
 			return nil, fmt.Errorf("list prescribed sets for template %d: %w", t.ID, err)
 		}

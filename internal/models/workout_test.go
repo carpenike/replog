@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"testing"
@@ -9,10 +10,10 @@ import (
 func TestWorkoutCRUD(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Workout Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Workout Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	t.Run("create workout", func(t *testing.T) {
-		w, err := CreateWorkout(db, a.ID, "2026-02-01", "leg day", 0)
+		w, err := CreateWorkout(context.Background(), db, a.ID, "2026-02-01", "leg day", 0)
 		if err != nil {
 			t.Fatalf("create workout: %v", err)
 		}
@@ -25,14 +26,14 @@ func TestWorkoutCRUD(t *testing.T) {
 	})
 
 	t.Run("one workout per day", func(t *testing.T) {
-		_, err := CreateWorkout(db, a.ID, "2026-02-01", "", 0)
+		_, err := CreateWorkout(context.Background(), db, a.ID, "2026-02-01", "", 0)
 		if err != ErrWorkoutExists {
 			t.Errorf("err = %v, want ErrWorkoutExists", err)
 		}
 	})
 
 	t.Run("different dates ok", func(t *testing.T) {
-		_, err := CreateWorkout(db, a.ID, "2026-02-02", "", 0)
+		_, err := CreateWorkout(context.Background(), db, a.ID, "2026-02-02", "", 0)
 		if err != nil {
 			t.Fatalf("create workout: %v", err)
 		}
@@ -42,14 +43,14 @@ func TestWorkoutCRUD(t *testing.T) {
 func TestUpdateWorkoutNotes(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Notes Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	w, _ := CreateWorkout(db, a.ID, "2026-03-01", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Notes Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	w, _ := CreateWorkout(context.Background(), db, a.ID, "2026-03-01", "", 0)
 
-	if err := UpdateWorkoutNotes(db, w.ID, a.ID, "updated notes"); err != nil {
+	if err := UpdateWorkoutNotes(context.Background(), db, w.ID, a.ID, "updated notes"); err != nil {
 		t.Fatalf("update notes: %v", err)
 	}
 
-	updated, _ := GetWorkoutByID(db, w.ID)
+	updated, _ := GetWorkoutByID(context.Background(), db, w.ID)
 	if !updated.Notes.Valid || updated.Notes.String != "updated notes" {
 		t.Errorf("notes = %v, want updated notes", updated.Notes)
 	}
@@ -58,13 +59,13 @@ func TestUpdateWorkoutNotes(t *testing.T) {
 func TestDeleteWorkout(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Del Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	w, _ := CreateWorkout(db, a.ID, "2026-04-01", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Del Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	w, _ := CreateWorkout(context.Background(), db, a.ID, "2026-04-01", "", 0)
 
-	if err := DeleteWorkout(db, w.ID, a.ID); err != nil {
+	if err := DeleteWorkout(context.Background(), db, w.ID, a.ID); err != nil {
 		t.Fatalf("delete workout: %v", err)
 	}
-	_, err := GetWorkoutByID(db, w.ID)
+	_, err := GetWorkoutByID(context.Background(), db, w.ID)
 	if err != ErrNotFound {
 		t.Errorf("expected ErrNotFound after delete, got %v", err)
 	}
@@ -73,12 +74,12 @@ func TestDeleteWorkout(t *testing.T) {
 func TestListWorkouts(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "List Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	CreateWorkout(db, a.ID, "2026-01-01", "", 0)
-	CreateWorkout(db, a.ID, "2026-01-15", "", 0)
-	CreateWorkout(db, a.ID, "2026-01-10", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "List Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	CreateWorkout(context.Background(), db, a.ID, "2026-01-01", "", 0)
+	CreateWorkout(context.Background(), db, a.ID, "2026-01-15", "", 0)
+	CreateWorkout(context.Background(), db, a.ID, "2026-01-10", "", 0)
 
-	workouts, err := ListWorkouts(db, a.ID, 0)
+	workouts, err := ListWorkouts(context.Background(), db, a.ID, 0)
 	if err != nil {
 		t.Fatalf("list workouts: %v", err)
 	}
@@ -94,11 +95,11 @@ func TestListWorkouts(t *testing.T) {
 func TestGetWorkoutByAthleteDate(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "Date Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	w, _ := CreateWorkout(db, a.ID, "2026-03-15", "found me", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Date Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	w, _ := CreateWorkout(context.Background(), db, a.ID, "2026-03-15", "found me", 0)
 
 	t.Run("found", func(t *testing.T) {
-		got, err := GetWorkoutByAthleteDate(db, a.ID, "2026-03-15")
+		got, err := GetWorkoutByAthleteDate(context.Background(), db, a.ID, "2026-03-15")
 		if err != nil {
 			t.Fatalf("get workout by date: %v", err)
 		}
@@ -111,14 +112,14 @@ func TestGetWorkoutByAthleteDate(t *testing.T) {
 	})
 
 	t.Run("not found wrong date", func(t *testing.T) {
-		_, err := GetWorkoutByAthleteDate(db, a.ID, "2026-03-16")
+		_, err := GetWorkoutByAthleteDate(context.Background(), db, a.ID, "2026-03-16")
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
 	})
 
 	t.Run("not found wrong athlete", func(t *testing.T) {
-		_, err := GetWorkoutByAthleteDate(db, 99999, "2026-03-15")
+		_, err := GetWorkoutByAthleteDate(context.Background(), db, 99999, "2026-03-15")
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}

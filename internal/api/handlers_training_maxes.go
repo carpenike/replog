@@ -26,7 +26,7 @@ func (h *Handlers) ListTrainingMaxes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tms, err := models.ListCurrentTrainingMaxes(h.DB, athleteID)
+	tms, err := models.ListCurrentTrainingMaxes(r.Context(), h.DB, athleteID)
 	if err != nil {
 		log.Printf("api: list training maxes for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list training maxes")
@@ -63,7 +63,7 @@ func (h *Handlers) GetTrainingMaxHistory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	history, err := models.ListTrainingMaxHistory(h.DB, athleteID, exerciseID)
+	history, err := models.ListTrainingMaxHistory(r.Context(), h.DB, athleteID, exerciseID)
 	if err != nil {
 		log.Printf("api: training max history for athlete %d exercise %d: %v", athleteID, exerciseID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to get training max history")

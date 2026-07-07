@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"strings"
 	"testing"
@@ -10,11 +11,11 @@ import (
 func TestTrainingMaxCRUD(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "TM Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	e, _ := CreateExercise(db, "TM Exercise", "", "", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "TM Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	e, _ := CreateExercise(context.Background(), db, "TM Exercise", "", "", "", 0)
 
 	t.Run("set training max", func(t *testing.T) {
-		tm, err := SetTrainingMax(db, a.ID, e.ID, 100.0, "2024-01-01", "")
+		tm, err := SetTrainingMax(context.Background(), db, a.ID, e.ID, 100.0, "2024-01-01", "")
 		if err != nil {
 			t.Fatalf("set TM: %v", err)
 		}
@@ -27,7 +28,7 @@ func TestTrainingMaxCRUD(t *testing.T) {
 	})
 
 	t.Run("current training max", func(t *testing.T) {
-		tm, err := CurrentTrainingMax(db, a.ID, e.ID)
+		tm, err := CurrentTrainingMax(context.Background(), db, a.ID, e.ID)
 		if err != nil {
 			t.Fatalf("current TM: %v", err)
 		}
@@ -37,12 +38,12 @@ func TestTrainingMaxCRUD(t *testing.T) {
 	})
 
 	t.Run("update training max uses latest date", func(t *testing.T) {
-		_, err := SetTrainingMax(db, a.ID, e.ID, 110.0, "2024-02-01", "")
+		_, err := SetTrainingMax(context.Background(), db, a.ID, e.ID, 110.0, "2024-02-01", "")
 		if err != nil {
 			t.Fatalf("set TM: %v", err)
 		}
 
-		tm, _ := CurrentTrainingMax(db, a.ID, e.ID)
+		tm, _ := CurrentTrainingMax(context.Background(), db, a.ID, e.ID)
 		if tm.Weight != 110.0 {
 			t.Errorf("weight = %f, want 110 (latest)", tm.Weight)
 		}
@@ -50,7 +51,7 @@ func TestTrainingMaxCRUD(t *testing.T) {
 
 	t.Run("upsert same date updates weight", func(t *testing.T) {
 		// Set TM to 120 on the same date as the existing 110 entry.
-		tm, err := SetTrainingMax(db, a.ID, e.ID, 120.0, "2024-02-01", "updated")
+		tm, err := SetTrainingMax(context.Background(), db, a.ID, e.ID, 120.0, "2024-02-01", "updated")
 		if err != nil {
 			t.Fatalf("upsert TM: %v", err)
 		}
@@ -59,7 +60,7 @@ func TestTrainingMaxCRUD(t *testing.T) {
 		}
 
 		// History count should NOT increase — same row was updated.
-		history, err := ListTrainingMaxHistory(db, a.ID, e.ID)
+		history, err := ListTrainingMaxHistory(context.Background(), db, a.ID, e.ID)
 		if err != nil {
 			t.Fatalf("list history: %v", err)
 		}
@@ -68,14 +69,14 @@ func TestTrainingMaxCRUD(t *testing.T) {
 		}
 
 		// Current TM should reflect the update.
-		cur, _ := CurrentTrainingMax(db, a.ID, e.ID)
+		cur, _ := CurrentTrainingMax(context.Background(), db, a.ID, e.ID)
 		if cur.Weight != 120.0 {
 			t.Errorf("current weight = %f, want 120", cur.Weight)
 		}
 	})
 
 	t.Run("history returns all entries", func(t *testing.T) {
-		history, err := ListTrainingMaxHistory(db, a.ID, e.ID)
+		history, err := ListTrainingMaxHistory(context.Background(), db, a.ID, e.ID)
 		if err != nil {
 			t.Fatalf("list history: %v", err)
 		}
@@ -92,15 +93,15 @@ func TestTrainingMaxCRUD(t *testing.T) {
 func TestListCurrentTrainingMaxes(t *testing.T) {
 	db := testDB(t)
 
-	a, _ := CreateAthlete(db, "TM List Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	e1, _ := CreateExercise(db, "TM List Ex 1", "", "", "", 0)
-	e2, _ := CreateExercise(db, "TM List Ex 2", "", "", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "TM List Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	e1, _ := CreateExercise(context.Background(), db, "TM List Ex 1", "", "", "", 0)
+	e2, _ := CreateExercise(context.Background(), db, "TM List Ex 2", "", "", "", 0)
 
 	today := time.Now().Format("2006-01-02")
-	SetTrainingMax(db, a.ID, e1.ID, 200.0, today, "")
-	SetTrainingMax(db, a.ID, e2.ID, 150.0, today, "")
+	SetTrainingMax(context.Background(), db, a.ID, e1.ID, 200.0, today, "")
+	SetTrainingMax(context.Background(), db, a.ID, e2.ID, 150.0, today, "")
 
-	maxes, err := ListCurrentTrainingMaxes(db, a.ID)
+	maxes, err := ListCurrentTrainingMaxes(context.Background(), db, a.ID)
 	if err != nil {
 		t.Fatalf("list current TMs: %v", err)
 	}

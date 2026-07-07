@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -40,7 +41,7 @@ type AthleteCardInfo struct {
 
 // CreateAthlete inserts a new athlete. coachID links the athlete to a coach.
 // trackBodyWeight controls whether body weight tracking is enabled (default true for new athletes).
-func CreateAthlete(db *sql.DB, name, tier, notes, goal, dateOfBirth, grade, gender string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
+func CreateAthlete(ctx context.Context, db *sql.DB, name, tier, notes, goal, dateOfBirth, grade, gender string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -72,7 +73,7 @@ func CreateAthlete(db *sql.DB, name, tier, notes, goal, dateOfBirth, grade, gend
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO athletes (name, tier, notes, goal, date_of_birth, grade, gender, coach_id, track_body_weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		name, tierVal, notesVal, goalVal, dobVal, gradeVal, genderVal, coachID, trackBWInt,
 	).Scan(&id)
@@ -80,13 +81,13 @@ func CreateAthlete(db *sql.DB, name, tier, notes, goal, dateOfBirth, grade, gend
 		return nil, fmt.Errorf("models: create athlete %q: %w", name, err)
 	}
 
-	return GetAthleteByID(db, id)
+	return GetAthleteByID(ctx, db, id)
 }
 
 // GetAthleteByID retrieves an athlete by primary key.
-func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
+func GetAthleteByID(ctx context.Context, db *sql.DB, id int64) (*Athlete, error) {
 	a := &Athlete{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT a.id, a.name, a.tier, a.notes, a.goal, a.date_of_birth, a.grade, a.gender,
 		        a.coach_id, a.track_body_weight,
 		        a.created_at, a.updated_at,
@@ -106,7 +107,7 @@ func GetAthleteByID(db *sql.DB, id int64) (*Athlete, error) {
 }
 
 // UpdateAthlete modifies an existing athlete's fields.
-func UpdateAthlete(db *sql.DB, id int64, name, tier, notes, goal, dateOfBirth, grade, gender string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
+func UpdateAthlete(ctx context.Context, db *sql.DB, id int64, name, tier, notes, goal, dateOfBirth, grade, gender string, coachID sql.NullInt64, trackBodyWeight bool) (*Athlete, error) {
 	var tierVal sql.NullString
 	if tier != "" {
 		tierVal = sql.NullString{String: tier, Valid: true}
@@ -132,7 +133,7 @@ func UpdateAthlete(db *sql.DB, id int64, name, tier, notes, goal, dateOfBirth, g
 		genderVal = sql.NullString{String: gender, Valid: true}
 	}
 
-	result, err := db.Exec(
+	result, err := db.ExecContext(ctx,
 		`UPDATE athletes SET name = ?, tier = ?, notes = ?, goal = ?, date_of_birth = ?, grade = ?, gender = ?, coach_id = ?, track_body_weight = ? WHERE id = ?`,
 		name, tierVal, notesVal, goalVal, dobVal, gradeVal, genderVal, coachID, trackBodyWeight, id,
 	)
@@ -145,18 +146,18 @@ func UpdateAthlete(db *sql.DB, id int64, name, tier, notes, goal, dateOfBirth, g
 		return nil, ErrNotFound
 	}
 
-	return GetAthleteByID(db, id)
+	return GetAthleteByID(ctx, db, id)
 }
 
 // UpdateAthleteGoal updates only the goal field for an athlete. This is used
 // for self-service goal editing by the athlete themselves.
-func UpdateAthleteGoal(db *sql.DB, id int64, goal string) error {
+func UpdateAthleteGoal(ctx context.Context, db *sql.DB, id int64, goal string) error {
 	var goalVal sql.NullString
 	if goal != "" {
 		goalVal = sql.NullString{String: goal, Valid: true}
 	}
 
-	result, err := db.Exec(`UPDATE athletes SET goal = ? WHERE id = ?`, goalVal, id)
+	result, err := db.ExecContext(ctx, `UPDATE athletes SET goal = ? WHERE id = ?`, goalVal, id)
 	if err != nil {
 		return fmt.Errorf("models: update athlete %d goal: %w", id, err)
 	}
@@ -169,8 +170,8 @@ func UpdateAthleteGoal(db *sql.DB, id int64, goal string) error {
 
 // DeleteAthlete removes an athlete by ID. CASCADE deletes their workouts,
 // assignments, and training maxes.
-func DeleteAthlete(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM athletes WHERE id = ?`, id)
+func DeleteAthlete(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM athletes WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete athlete %d: %w", id, err)
 	}
@@ -196,8 +197,8 @@ func NextTier(current string) (string, bool) {
 
 // PromoteAthlete advances an athlete to the next tier. Returns ErrNotFound
 // if the athlete doesn't exist, or an error if the athlete can't be promoted.
-func PromoteAthlete(db *sql.DB, id int64) (*Athlete, error) {
-	athlete, err := GetAthleteByID(db, id)
+func PromoteAthlete(ctx context.Context, db *sql.DB, id int64) (*Athlete, error) {
+	athlete, err := GetAthleteByID(ctx, db, id)
 	if err != nil {
 		return nil, err
 	}
@@ -211,22 +212,22 @@ func PromoteAthlete(db *sql.DB, id int64) (*Athlete, error) {
 		return nil, fmt.Errorf("models: promote athlete %d: %w (already at highest tier)", id, ErrInvalidInput)
 	}
 
-	_, err = db.Exec(`UPDATE athletes SET tier = ? WHERE id = ?`, next, id)
+	_, err = db.ExecContext(ctx, `UPDATE athletes SET tier = ? WHERE id = ?`, next, id)
 	if err != nil {
 		return nil, fmt.Errorf("models: promote athlete %d: %w", id, err)
 	}
 
-	return GetAthleteByID(db, id)
+	return GetAthleteByID(ctx, db, id)
 }
 
 // ListAthletes returns athletes with their active assignment count.
 // If coachID is valid, only returns athletes belonging to that coach.
 // Pass sql.NullInt64{} (invalid) to return all athletes (admin view).
-func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
+func ListAthletes(ctx context.Context, db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 	var rows *sql.Rows
 	var err error
 	if coachID.Valid {
-		rows, err = db.Query(`
+		rows, err = db.QueryContext(ctx, `
 			SELECT a.id, a.name, a.tier, a.notes, a.goal, a.date_of_birth, a.grade, a.gender,
 			       a.coach_id, a.track_body_weight,
 			       a.created_at, a.updated_at,
@@ -237,7 +238,7 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 			ORDER BY a.name COLLATE NOCASE
 			LIMIT 100`, coachID.Int64)
 	} else {
-		rows, err = db.Query(`
+		rows, err = db.QueryContext(ctx, `
 			SELECT a.id, a.name, a.tier, a.notes, a.goal, a.date_of_birth, a.grade, a.gender,
 			       a.coach_id, a.track_body_weight,
 			       a.created_at, a.updated_at,
@@ -271,8 +272,8 @@ func ListAthletes(db *sql.DB, coachID sql.NullInt64) ([]*Athlete, error) {
 // ListAvailableAthletes returns athletes not yet linked to any user, plus the
 // athlete with exceptAthleteID (so the current link shows in an edit form).
 // Pass 0 for exceptAthleteID to exclude no one extra.
-func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error) {
-	rows, err := db.Query(`
+func ListAvailableAthletes(ctx context.Context, db *sql.DB, exceptAthleteID int64) ([]*Athlete, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT a.id, a.name, a.tier, a.notes, a.goal, a.date_of_birth, a.grade, a.gender,
 		       a.coach_id, a.track_body_weight,
 		       a.created_at, a.updated_at,
@@ -308,11 +309,11 @@ func ListAvailableAthletes(db *sql.DB, exceptAthleteID int64) ([]*Athlete, error
 // Includes last workout date, week streak, and body weight trend.
 // If coachID is valid, only returns athletes belonging to that coach.
 // Pass sql.NullInt64{} (invalid) to return all athletes (admin view).
-func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, error) {
+func ListAthleteCards(ctx context.Context, db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, error) {
 	var rows *sql.Rows
 	var err error
 	if coachID.Valid {
-		rows, err = db.Query(`
+		rows, err = db.QueryContext(ctx, `
 			SELECT a.id, a.name, a.tier,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
@@ -324,7 +325,7 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 			ORDER BY a.name COLLATE NOCASE
 			LIMIT 100`, coachID.Int64)
 	} else {
-		rows, err = db.Query(`
+		rows, err = db.QueryContext(ctx, `
 			SELECT a.id, a.name, a.tier,
 			       COALESCE((SELECT COUNT(*) FROM athlete_exercises ae
 			                 WHERE ae.athlete_id = a.id AND ae.active = 1), 0) AS active_assignments,
@@ -362,13 +363,13 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 		athleteIDs[i] = c.ID
 	}
 
-	streaks, err := batchWeekStreaks(db, athleteIDs)
+	streaks, err := batchWeekStreaks(ctx, db, athleteIDs)
 	if err != nil {
 		log.Printf("models: batch week streaks: %v", err)
 		// Non-fatal — streaks will show as 0.
 	}
 
-	bwTrends, err := batchBWTrends(db, athleteIDs)
+	bwTrends, err := batchBWTrends(ctx, db, athleteIDs)
 	if err != nil {
 		log.Printf("models: batch BW trends: %v", err)
 		// Non-fatal — trends will show as "".
@@ -389,7 +390,7 @@ func ListAthleteCards(db *sql.DB, coachID sql.NullInt64) ([]*AthleteCardInfo, er
 // batchWeekStreaks computes consecutive week streaks for multiple athletes in
 // two queries total (one for workout dates, computed in Go) instead of up to
 // 52 queries per athlete.
-func batchWeekStreaks(db *sql.DB, athleteIDs []int64) (map[int64]int, error) {
+func batchWeekStreaks(ctx context.Context, db *sql.DB, athleteIDs []int64) (map[int64]int, error) {
 	if len(athleteIDs) == 0 {
 		return nil, nil
 	}
@@ -417,7 +418,7 @@ func batchWeekStreaks(db *sql.DB, athleteIDs []int64) (map[int64]int, error) {
 	args = append(args, cutoffStr, endStr)
 
 	// Single query: get all workout dates for all athletes in the last year.
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(ctx, `
 		SELECT athlete_id, date(date) FROM workouts
 		WHERE athlete_id IN (`+string(placeholders)+`)
 		  AND date(date) >= date(?) AND date(date) < date(?)
@@ -485,7 +486,7 @@ func batchWeekStreaks(db *sql.DB, athleteIDs []int64) (map[int64]int, error) {
 
 // batchBWTrends computes body weight trends for multiple athletes in a single
 // query using ROW_NUMBER() instead of one query per athlete.
-func batchBWTrends(db *sql.DB, athleteIDs []int64) (map[int64]string, error) {
+func batchBWTrends(ctx context.Context, db *sql.DB, athleteIDs []int64) (map[int64]string, error) {
 	if len(athleteIDs) == 0 {
 		return nil, nil
 	}
@@ -502,7 +503,7 @@ func batchBWTrends(db *sql.DB, athleteIDs []int64) (map[int64]string, error) {
 	}
 
 	// Single query: last 3 body weight entries per athlete via window function.
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(ctx, `
 		SELECT athlete_id, weight FROM (
 			SELECT athlete_id, weight, date,
 			       ROW_NUMBER() OVER (PARTITION BY athlete_id ORDER BY date DESC) AS rn

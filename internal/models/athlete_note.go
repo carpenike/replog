@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -24,7 +25,7 @@ type AthleteNote struct {
 }
 
 // CreateAthleteNote inserts a new note for an athlete.
-func CreateAthleteNote(db *sql.DB, athleteID, authorID int64, date, content string, isPrivate, pinned bool) (*AthleteNote, error) {
+func CreateAthleteNote(ctx context.Context, db *sql.DB, athleteID, authorID int64, date, content string, isPrivate, pinned bool) (*AthleteNote, error) {
 	if content == "" {
 		return nil, fmt.Errorf("models: create athlete note: %w: content is required", ErrInvalidInput)
 	}
@@ -42,7 +43,7 @@ func CreateAthleteNote(db *sql.DB, athleteID, authorID int64, date, content stri
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO athlete_notes (athlete_id, author_id, date, content, is_private, pinned)
 		 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, authorID, date, content, privInt, pinnedInt,
@@ -51,14 +52,14 @@ func CreateAthleteNote(db *sql.DB, athleteID, authorID int64, date, content stri
 		return nil, fmt.Errorf("models: create athlete note for athlete %d: %w", athleteID, err)
 	}
 
-	return GetAthleteNoteByID(db, id)
+	return GetAthleteNoteByID(ctx, db, id)
 }
 
 // GetAthleteNoteByID retrieves a single athlete note by primary key.
-func GetAthleteNoteByID(db *sql.DB, id int64) (*AthleteNote, error) {
+func GetAthleteNoteByID(ctx context.Context, db *sql.DB, id int64) (*AthleteNote, error) {
 	n := &AthleteNote{}
 	var privInt, pinnedInt int
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT n.id, n.athlete_id, n.author_id, n.date, n.content,
 		        n.is_private, n.pinned, n.created_at, n.updated_at,
 		        COALESCE(u.name, u.username, '') AS author_name
@@ -81,7 +82,7 @@ func GetAthleteNoteByID(db *sql.DB, id int64) (*AthleteNote, error) {
 // UpdateAthleteNote updates the content, visibility, and pinned status of a
 // note. Scoped to athleteID so a caller cannot edit a coach's private note
 // about a different athlete by guessing its ID (ErrNotFound on mismatch).
-func UpdateAthleteNote(db *sql.DB, id, athleteID int64, content string, isPrivate, pinned bool) (*AthleteNote, error) {
+func UpdateAthleteNote(ctx context.Context, db *sql.DB, id, athleteID int64, content string, isPrivate, pinned bool) (*AthleteNote, error) {
 	if content == "" {
 		return nil, fmt.Errorf("models: update athlete note: %w: content is required", ErrInvalidInput)
 	}
@@ -95,7 +96,7 @@ func UpdateAthleteNote(db *sql.DB, id, athleteID int64, content string, isPrivat
 		pinnedInt = 1
 	}
 
-	result, err := db.Exec(
+	result, err := db.ExecContext(ctx,
 		`UPDATE athlete_notes SET content = ?, is_private = ?, pinned = ? WHERE id = ? AND athlete_id = ?`,
 		content, privInt, pinnedInt, id, athleteID,
 	)
@@ -107,13 +108,13 @@ func UpdateAthleteNote(db *sql.DB, id, athleteID int64, content string, isPrivat
 		return nil, ErrNotFound
 	}
 
-	return GetAthleteNoteByID(db, id)
+	return GetAthleteNoteByID(ctx, db, id)
 }
 
 // DeleteAthleteNote removes a note by ID, scoped to the owning athlete so a
 // caller cannot delete another athlete's note by guessing its ID.
-func DeleteAthleteNote(db *sql.DB, id, athleteID int64) error {
-	result, err := db.Exec(`DELETE FROM athlete_notes WHERE id = ? AND athlete_id = ?`, id, athleteID)
+func DeleteAthleteNote(ctx context.Context, db *sql.DB, id, athleteID int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM athlete_notes WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: delete athlete note %d: %w", id, err)
 	}
@@ -126,7 +127,7 @@ func DeleteAthleteNote(db *sql.DB, id, athleteID int64) error {
 
 // ListAthleteNotes returns notes for an athlete, newest first.
 // If includePrivate is false, only public notes are returned (for non-coach view).
-func ListAthleteNotes(db *sql.DB, athleteID int64, includePrivate bool) ([]*AthleteNote, error) {
+func ListAthleteNotes(ctx context.Context, db *sql.DB, athleteID int64, includePrivate bool) ([]*AthleteNote, error) {
 	query := `SELECT n.id, n.athlete_id, n.author_id, n.date, n.content,
 	                 n.is_private, n.pinned, n.created_at, n.updated_at,
 	                 COALESCE(u.name, u.username, '') AS author_name
@@ -138,7 +139,7 @@ func ListAthleteNotes(db *sql.DB, athleteID int64, includePrivate bool) ([]*Athl
 	}
 	query += ` ORDER BY n.pinned DESC, n.date DESC, n.created_at DESC LIMIT 200`
 
-	rows, err := db.Query(query, athleteID)
+	rows, err := db.QueryContext(ctx, query, athleteID)
 	if err != nil {
 		return nil, fmt.Errorf("models: list athlete notes for athlete %d: %w", athleteID, err)
 	}

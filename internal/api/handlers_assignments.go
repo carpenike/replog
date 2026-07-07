@@ -33,7 +33,7 @@ func (h *Handlers) ListAssignments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	assignments, err := models.ListActiveAssignments(h.DB, athleteID)
+	assignments, err := models.ListActiveAssignments(r.Context(), h.DB, athleteID)
 	if err != nil {
 		log.Printf("api: list assignments for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list assignments")
@@ -41,7 +41,7 @@ func (h *Handlers) ListAssignments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.URL.Query().Get("include_inactive") == "true" {
-		inactive, err := models.ListDeactivatedAssignments(h.DB, athleteID)
+		inactive, err := models.ListDeactivatedAssignments(r.Context(), h.DB, athleteID)
 		if err != nil {
 			log.Printf("api: list deactivated assignments for athlete %d: %v", athleteID, err)
 			WriteError(w, http.StatusInternalServerError, "failed to list assignments")
@@ -92,7 +92,7 @@ func (h *Handlers) AssignExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	assignment, err := models.AssignExercise(h.DB, athleteID, req.ExerciseID, req.TargetReps)
+	assignment, err := models.AssignExercise(r.Context(), h.DB, athleteID, req.ExerciseID, req.TargetReps)
 	if err != nil {
 		log.Printf("api: assign exercise to athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to assign exercise")
@@ -126,7 +126,7 @@ func (h *Handlers) DeactivateAssignment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := models.DeactivateAssignment(h.DB, assignmentID); err != nil {
+	if err := models.DeactivateAssignment(r.Context(), h.DB, assignmentID); err != nil {
 		log.Printf("api: deactivate assignment %d: %v", assignmentID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to deactivate assignment")
 		return
@@ -139,11 +139,11 @@ func (h *Handlers) DeactivateAssignment(w http.ResponseWriter, r *http.Request) 
 
 // CompatibilityResponse shows equipment compatibility for a program.
 type CompatibilityResponse struct {
-	TemplateID   int64                         `json:"template_id"`
-	TemplateName string                        `json:"template_name"`
-	Ready        bool                          `json:"ready"`
-	ReadyCount   int                           `json:"ready_count"`
-	TotalCount   int                           `json:"total_count"`
+	TemplateID   int64                           `json:"template_id"`
+	TemplateName string                          `json:"template_name"`
+	Ready        bool                            `json:"ready"`
+	ReadyCount   int                             `json:"ready_count"`
+	TotalCount   int                             `json:"total_count"`
 	Exercises    []ExerciseCompatibilityResponse `json:"exercises"`
 }
 
@@ -177,7 +177,7 @@ func (h *Handlers) CheckProgramCompatibility(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	compat, err := models.CheckProgramCompatibility(h.DB, athleteID, templateID)
+	compat, err := models.CheckProgramCompatibility(r.Context(), h.DB, athleteID, templateID)
 	if err != nil {
 		log.Printf("api: check compatibility athlete %d template %d: %v", athleteID, templateID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to check compatibility")
@@ -238,7 +238,7 @@ func (h *Handlers) ReactivateAssignment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	assignment, err := models.ReactivateAssignment(h.DB, athleteID, req.ExerciseID, req.TargetReps)
+	assignment, err := models.ReactivateAssignment(r.Context(), h.DB, athleteID, req.ExerciseID, req.TargetReps)
 	if err != nil {
 		log.Printf("api: reactivate assignment athlete %d exercise %d: %v", athleteID, req.ExerciseID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to reactivate assignment")

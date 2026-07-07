@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"testing"
@@ -16,18 +17,18 @@ import (
 func TestUpsertUserFromOIDC(t *testing.T) {
 	t.Run("empty sub is rejected", func(t *testing.T) {
 		db := testDB(t)
-		if _, err := UpsertUserFromOIDC(db, "", "a@example.com", "A", true); !errors.Is(err, ErrInvalidInput) {
+		if _, err := UpsertUserFromOIDC(context.Background(), db, "", "a@example.com", "A", true); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("empty sub: err = %v, want ErrInvalidInput", err)
 		}
 	})
 
 	t.Run("steady state: match by sub", func(t *testing.T) {
 		db := testDB(t)
-		first, err := UpsertUserFromOIDC(db, "sub-1", "kid@example.com", "Kid", true)
+		first, err := UpsertUserFromOIDC(context.Background(), db, "sub-1", "kid@example.com", "Kid", true)
 		if err != nil {
 			t.Fatalf("first upsert: %v", err)
 		}
-		again, err := UpsertUserFromOIDC(db, "sub-1", "kid@example.com", "Kid", true)
+		again, err := UpsertUserFromOIDC(context.Background(), db, "sub-1", "kid@example.com", "Kid", true)
 		if err != nil {
 			t.Fatalf("second upsert: %v", err)
 		}
@@ -38,18 +39,18 @@ func TestUpsertUserFromOIDC(t *testing.T) {
 
 	t.Run("verified email binds to existing account", func(t *testing.T) {
 		db := testDB(t)
-		existing, err := CreateUser(db, "coach", "Coach", "pw123456", "coach@example.com", true, true, sql.NullInt64{})
+		existing, err := CreateUser(context.Background(), db, "coach", "Coach", "pw123456", "coach@example.com", true, true, sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("seed user: %v", err)
 		}
-		got, err := UpsertUserFromOIDC(db, "sub-coach", "coach@example.com", "Coach", true)
+		got, err := UpsertUserFromOIDC(context.Background(), db, "sub-coach", "coach@example.com", "Coach", true)
 		if err != nil {
 			t.Fatalf("upsert: %v", err)
 		}
 		if got.ID != existing.ID {
 			t.Errorf("did not bind to existing account: got %d, want %d", got.ID, existing.ID)
 		}
-		bound, err := GetUserByPocketIDSub(db, "sub-coach")
+		bound, err := GetUserByPocketIDSub(context.Background(), db, "sub-coach")
 		if err != nil {
 			t.Fatalf("lookup by sub: %v", err)
 		}
@@ -60,11 +61,11 @@ func TestUpsertUserFromOIDC(t *testing.T) {
 
 	t.Run("unverified email does NOT bind, JIT-creates instead", func(t *testing.T) {
 		db := testDB(t)
-		existing, err := CreateUser(db, "victim", "Victim", "pw123456", "victim@example.com", true, true, sql.NullInt64{})
+		existing, err := CreateUser(context.Background(), db, "victim", "Victim", "pw123456", "victim@example.com", true, true, sql.NullInt64{})
 		if err != nil {
 			t.Fatalf("seed user: %v", err)
 		}
-		got, err := UpsertUserFromOIDC(db, "sub-attacker", "victim@example.com", "Attacker", false)
+		got, err := UpsertUserFromOIDC(context.Background(), db, "sub-attacker", "victim@example.com", "Attacker", false)
 		if err != nil {
 			t.Fatalf("upsert: %v", err)
 		}
@@ -79,11 +80,11 @@ func TestUpsertUserFromOIDC(t *testing.T) {
 
 	t.Run("colliding local-parts get unique usernames", func(t *testing.T) {
 		db := testDB(t)
-		a, err := UpsertUserFromOIDC(db, "sub-a", "sam@a.example.com", "Sam A", true)
+		a, err := UpsertUserFromOIDC(context.Background(), db, "sub-a", "sam@a.example.com", "Sam A", true)
 		if err != nil {
 			t.Fatalf("upsert a: %v", err)
 		}
-		b, err := UpsertUserFromOIDC(db, "sub-b", "sam@b.example.com", "Sam B", true)
+		b, err := UpsertUserFromOIDC(context.Background(), db, "sub-b", "sam@b.example.com", "Sam B", true)
 		if err != nil {
 			t.Fatalf("upsert b: %v", err)
 		}

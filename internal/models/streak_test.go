@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -50,9 +51,9 @@ func TestWeeklyStreak_Label(t *testing.T) {
 
 func TestWeeklyStreaks_NoAssignments(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
-	streaks, err := WeeklyStreaks(db, a.ID, 4)
+	streaks, err := WeeklyStreaks(context.Background(), db, a.ID, 4)
 	if err != nil {
 		t.Fatalf("weekly streaks: %v", err)
 	}
@@ -74,10 +75,10 @@ func TestWeeklyStreaks_NoAssignments(t *testing.T) {
 
 func TestWeeklyStreaks_DefaultWeeks(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	// Pass 0 weeks — should default to 8.
-	streaks, err := WeeklyStreaks(db, a.ID, 0)
+	streaks, err := WeeklyStreaks(context.Background(), db, a.ID, 0)
 	if err != nil {
 		t.Fatalf("weekly streaks: %v", err)
 	}
@@ -88,25 +89,25 @@ func TestWeeklyStreaks_DefaultWeeks(t *testing.T) {
 
 func TestWeeklyStreaks_WithData(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Streak Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	bench, _ := CreateExercise(db, "Bench Press", "", "", "", 0)
-	squat, _ := CreateExercise(db, "Back Squat", "", "", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Streak Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	bench, _ := CreateExercise(context.Background(), db, "Bench Press", "", "", "", 0)
+	squat, _ := CreateExercise(context.Background(), db, "Back Squat", "", "", "", 0)
 
 	// Assign both exercises.
-	AssignExercise(db, a.ID, bench.ID, 0)
-	AssignExercise(db, a.ID, squat.ID, 0)
+	AssignExercise(context.Background(), db, a.ID, bench.ID, 0)
+	AssignExercise(context.Background(), db, a.ID, squat.ID, 0)
 
 	// Create a workout and log sets for both exercises this week.
 	// Use today's date so the workout falls in the current week.
 	today := time.Now().Format("2006-01-02")
-	w, err := CreateWorkout(db, a.ID, today, "", 0)
+	w, err := CreateWorkout(context.Background(), db, a.ID, today, "", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
-	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "", "", "")
-	AddSet(db, w.ID, squat.ID, 5, 225.0, 0, "", "", "")
+	AddSet(context.Background(), db, w.ID, bench.ID, 5, 135.0, 0, "", "", "")
+	AddSet(context.Background(), db, w.ID, squat.ID, 5, 225.0, 0, "", "", "")
 
-	streaks, err := WeeklyStreaks(db, a.ID, 4)
+	streaks, err := WeeklyStreaks(context.Background(), db, a.ID, 4)
 	if err != nil {
 		t.Fatalf("weekly streaks: %v", err)
 	}
@@ -129,21 +130,21 @@ func TestWeeklyStreaks_WithData(t *testing.T) {
 
 func TestWeeklyStreaks_PartialCompletion(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Partial Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	bench, _ := CreateExercise(db, "Bench", "", "", "", 0)
-	squat, _ := CreateExercise(db, "Squat", "", "", "", 0)
-	deadlift, _ := CreateExercise(db, "Deadlift", "", "", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Partial Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	bench, _ := CreateExercise(context.Background(), db, "Bench", "", "", "", 0)
+	squat, _ := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
+	deadlift, _ := CreateExercise(context.Background(), db, "Deadlift", "", "", "", 0)
 
-	AssignExercise(db, a.ID, bench.ID, 0)
-	AssignExercise(db, a.ID, squat.ID, 0)
-	AssignExercise(db, a.ID, deadlift.ID, 0)
+	AssignExercise(context.Background(), db, a.ID, bench.ID, 0)
+	AssignExercise(context.Background(), db, a.ID, squat.ID, 0)
+	AssignExercise(context.Background(), db, a.ID, deadlift.ID, 0)
 
 	// Log only bench this week using today's date.
 	today := time.Now().Format("2006-01-02")
-	w, _ := CreateWorkout(db, a.ID, today, "", 0)
-	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "", "", "")
+	w, _ := CreateWorkout(context.Background(), db, a.ID, today, "", 0)
+	AddSet(context.Background(), db, w.ID, bench.ID, 5, 135.0, 0, "", "", "")
 
-	streaks, err := WeeklyStreaks(db, a.ID, 1)
+	streaks, err := WeeklyStreaks(context.Background(), db, a.ID, 1)
 	if err != nil {
 		t.Fatalf("weekly streaks: %v", err)
 	}
@@ -161,20 +162,20 @@ func TestWeeklyStreaks_PartialCompletion(t *testing.T) {
 
 func TestWeeklyStreaks_UnassignedExercisesNotCounted(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Unassigned Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	bench, _ := CreateExercise(db, "Press", "", "", "", 0)
-	extra, _ := CreateExercise(db, "Extra Move", "", "", "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Unassigned Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	bench, _ := CreateExercise(context.Background(), db, "Press", "", "", "", 0)
+	extra, _ := CreateExercise(context.Background(), db, "Extra Move", "", "", "", 0)
 
 	// Only assign bench.
-	AssignExercise(db, a.ID, bench.ID, 0)
+	AssignExercise(context.Background(), db, a.ID, bench.ID, 0)
 
 	// Log both exercises.
 	today := time.Now().Format("2006-01-02")
-	w, _ := CreateWorkout(db, a.ID, today, "", 0)
-	AddSet(db, w.ID, bench.ID, 5, 135.0, 0, "", "", "")
-	AddSet(db, w.ID, extra.ID, 10, 0, 0, "", "", "")
+	w, _ := CreateWorkout(context.Background(), db, a.ID, today, "", 0)
+	AddSet(context.Background(), db, w.ID, bench.ID, 5, 135.0, 0, "", "", "")
+	AddSet(context.Background(), db, w.ID, extra.ID, 10, 0, 0, "", "", "")
 
-	streaks, err := WeeklyStreaks(db, a.ID, 1)
+	streaks, err := WeeklyStreaks(context.Background(), db, a.ID, 1)
 	if err != nil {
 		t.Fatalf("weekly streaks: %v", err)
 	}

@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"sync"
@@ -32,16 +33,22 @@ type Scheduler struct {
 	stop chan struct{}
 	done chan struct{}
 
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	mu     sync.RWMutex
 	status Status
 }
 
 // New creates a new Scheduler for the given database.
 func New(db *sql.DB) *Scheduler {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
-		db:   db,
-		stop: make(chan struct{}),
-		done: make(chan struct{}),
+		db:     db,
+		stop:   make(chan struct{}),
+		done:   make(chan struct{}),
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
@@ -55,6 +62,7 @@ func (s *Scheduler) Start() {
 // Stop signals the scheduler to shut down and waits for it to finish.
 func (s *Scheduler) Stop() {
 	close(s.stop)
+	s.cancel()
 	<-s.done
 }
 
@@ -88,13 +96,13 @@ func (s *Scheduler) run() {
 
 // getInterval reads the configured interval from app settings.
 func (s *Scheduler) getInterval() time.Duration {
-	hours := models.GetMaintenanceIntervalHours(s.db)
+	hours := models.GetMaintenanceIntervalHours(s.ctx, s.db)
 	return time.Duration(hours) * time.Hour
 }
 
 // getRetention reads the configured retention period from app settings.
 func (s *Scheduler) getRetention() time.Duration {
-	days := models.GetMaintenanceRetentionDays(s.db)
+	days := models.GetMaintenanceRetentionDays(s.ctx, s.db)
 	return time.Duration(days) * 24 * time.Hour
 }
 
@@ -118,8 +126,8 @@ func (s *Scheduler) runMaintenance() {
 		NotificationsPruned: notifsPruned,
 		MCPTokensDeleted:    mcpTokensDeleted,
 		DCRClientsDeleted:   dcrClientsDeleted,
-		IntervalHours:       models.GetMaintenanceIntervalHours(s.db),
-		RetentionDays:       models.GetMaintenanceRetentionDays(s.db),
+		IntervalHours:       models.GetMaintenanceIntervalHours(s.ctx, s.db),
+		RetentionDays:       models.GetMaintenanceRetentionDays(s.ctx, s.db),
 	}
 	s.mu.Unlock()
 
@@ -128,7 +136,7 @@ func (s *Scheduler) runMaintenance() {
 
 // cleanExpiredTokens removes login tokens past their expiry date.
 func (s *Scheduler) cleanExpiredTokens() int64 {
-	deleted, err := models.DeleteExpiredLoginTokens(s.db)
+	deleted, err := models.DeleteExpiredLoginTokens(s.ctx, s.db)
 	if err != nil {
 		log.Printf("Maintenance: clean expired tokens: %v", err)
 		return 0
@@ -143,7 +151,7 @@ func (s *Scheduler) cleanExpiredTokens() int64 {
 // revoked more than the grace window ago.
 func (s *Scheduler) cleanExpiredMCPTokens() int64 {
 	cutoff := time.Now().Add(-mcpTokenGraceWindow)
-	deleted, err := models.DeleteExpiredMCPTokens(s.db, cutoff)
+	deleted, err := models.DeleteExpiredMCPTokens(s.ctx, s.db, cutoff)
 	if err != nil {
 		log.Printf("Maintenance: clean expired mcp tokens: %v", err)
 		return 0
@@ -158,7 +166,7 @@ func (s *Scheduler) cleanExpiredMCPTokens() int64 {
 // than the grace window that never produced a surviving token (abandoned flows).
 func (s *Scheduler) cleanOrphanDCRClients() int64 {
 	cutoff := time.Now().Add(-mcpTokenGraceWindow)
-	deleted, err := models.DeleteOrphanDCRClients(s.db, cutoff)
+	deleted, err := models.DeleteOrphanDCRClients(s.ctx, s.db, cutoff)
 	if err != nil {
 		log.Printf("Maintenance: clean orphan dcr clients: %v", err)
 		return 0
@@ -172,7 +180,7 @@ func (s *Scheduler) cleanOrphanDCRClients() int64 {
 // pruneOldNotifications removes read notifications older than the configured retention period.
 func (s *Scheduler) pruneOldNotifications() int64 {
 	cutoff := time.Now().Add(-s.getRetention())
-	deleted, err := models.DeleteOldNotifications(s.db, cutoff)
+	deleted, err := models.DeleteOldNotifications(s.ctx, s.db, cutoff)
 	if err != nil {
 		log.Printf("Maintenance: prune old notifications: %v", err)
 		return 0

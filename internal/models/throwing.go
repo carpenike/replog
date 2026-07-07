@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -54,7 +55,7 @@ var validThrowTypes = map[string]bool{
 // parent workout (discipline='throwing') and the throwing_sessions detail row
 // in a single transaction. An over-Pitch-Smart-limit session still succeeds —
 // limits are advisory (ADR 007/018), never a hard log-block.
-func CreateThrowingSession(db *sql.DB, athleteID int64, in ThrowingSessionInput) (*ThrowingSession, error) {
+func CreateThrowingSession(ctx context.Context, db *sql.DB, athleteID int64, in ThrowingSessionInput) (*ThrowingSession, error) {
 	if !validThrowTypes[in.ThrowType] {
 		return nil, fmt.Errorf("models: invalid throw_type %q: %w", in.ThrowType, ErrInvalidInput)
 	}
@@ -66,14 +67,14 @@ func CreateThrowingSession(db *sql.DB, athleteID int64, in ThrowingSessionInput)
 		return nil, fmt.Errorf("models: invalid source %q: %w", source, ErrInvalidInput)
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin throwing session tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	var workoutID int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO workouts (athlete_id, date, discipline) VALUES (?, ?, 'throwing') RETURNING id`,
 		athleteID, in.Date,
 	).Scan(&workoutID)
@@ -85,7 +86,7 @@ func CreateThrowingSession(db *sql.DB, athleteID int64, in ThrowingSessionInput)
 	}
 
 	var id int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO throwing_sessions
 		    (workout_id, throw_type, throw_count, max_intent, velocity, fatigue, pain, source, team, notes)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
@@ -102,13 +103,13 @@ func CreateThrowingSession(db *sql.DB, athleteID int64, in ThrowingSessionInput)
 		return nil, fmt.Errorf("models: commit throwing session: %w", err)
 	}
 
-	return GetThrowingSessionByID(db, id)
+	return GetThrowingSessionByID(ctx, db, id)
 }
 
 // GetThrowingSessionByID retrieves a throwing session (with parent date) by ID.
-func GetThrowingSessionByID(db *sql.DB, id int64) (*ThrowingSession, error) {
+func GetThrowingSessionByID(ctx context.Context, db *sql.DB, id int64) (*ThrowingSession, error) {
 	ts := &ThrowingSession{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT ts.id, ts.workout_id, ts.throw_type, ts.throw_count, ts.max_intent, ts.velocity,
 		        ts.fatigue, ts.pain, ts.source, ts.team, ts.notes, ts.created_at, ts.updated_at,
 		        w.athlete_id, w.date
@@ -128,11 +129,11 @@ func GetThrowingSessionByID(db *sql.DB, id int64) (*ThrowingSession, error) {
 }
 
 // ListThrowingSessions returns an athlete's throwing sessions, newest first.
-func ListThrowingSessions(db *sql.DB, athleteID int64, limit int) ([]*ThrowingSession, error) {
+func ListThrowingSessions(ctx context.Context, db *sql.DB, athleteID int64, limit int) ([]*ThrowingSession, error) {
 	if limit <= 0 {
 		limit = 100
 	}
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT ts.id, ts.workout_id, ts.throw_type, ts.throw_count, ts.max_intent, ts.velocity,
 		        ts.fatigue, ts.pain, ts.source, ts.team, ts.notes, ts.created_at, ts.updated_at,
 		        w.athlete_id, w.date
@@ -160,13 +161,13 @@ func ListThrowingSessions(db *sql.DB, athleteID int64, limit int) ([]*ThrowingSe
 }
 
 // DeleteThrowingSession removes a throwing session and its parent workout.
-func DeleteThrowingSession(db *sql.DB, id int64) error {
+func DeleteThrowingSession(ctx context.Context, db *sql.DB, id int64) error {
 	// Deleting the parent workout cascades to the throwing_sessions row.
-	ts, err := GetThrowingSessionByID(db, id)
+	ts, err := GetThrowingSessionByID(ctx, db, id)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(`DELETE FROM workouts WHERE id = ?`, ts.WorkoutID)
+	result, err := db.ExecContext(ctx, `DELETE FROM workouts WHERE id = ?`, ts.WorkoutID)
 	if err != nil {
 		return fmt.Errorf("models: delete throwing session %d: %w", id, err)
 	}

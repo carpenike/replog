@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -92,7 +93,7 @@ type CatalogJSON struct {
 }
 
 // BuildCatalogExportJSON gathers all exercises, equipment, and program templates.
-func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
+func BuildCatalogExportJSON(ctx context.Context, db *sql.DB) (*CatalogJSON, error) {
 	catalog := &CatalogJSON{
 		Version:    "1.0",
 		ExportedAt: time.Now().UTC().Format(time.RFC3339),
@@ -100,7 +101,7 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 	}
 
 	// Equipment — all.
-	allEquipment, err := ListEquipment(db)
+	allEquipment, err := ListEquipment(ctx, db)
 	if err != nil {
 		return nil, fmt.Errorf("models: catalog export equipment: %w", err)
 	}
@@ -112,7 +113,7 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 	}
 
 	// Exercises — all, with equipment dependencies.
-	allExercises, err := ListExercises(db, "")
+	allExercises, err := ListExercises(ctx, db, "")
 	if err != nil {
 		return nil, fmt.Errorf("models: catalog export exercises: %w", err)
 	}
@@ -129,7 +130,7 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 			ee.RestSeconds = &rs
 		}
 
-		eqLinks, err := ListExerciseEquipment(db, ex.ID)
+		eqLinks, err := ListExerciseEquipment(ctx, db, ex.ID)
 		if err != nil {
 			return nil, fmt.Errorf("models: catalog export exercise equipment for %d: %w", ex.ID, err)
 		}
@@ -143,7 +144,7 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 	}
 
 	// Program templates — all, with prescribed sets and progression rules.
-	allTemplates, err := ListProgramTemplates(db)
+	allTemplates, err := ListProgramTemplates(ctx, db)
 	if err != nil {
 		return nil, fmt.Errorf("models: catalog export program templates: %w", err)
 	}
@@ -156,7 +157,7 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 			IsLoop:      pt.IsLoop,
 		}
 
-		pSets, err := ListPrescribedSets(db, pt.ID)
+		pSets, err := ListPrescribedSets(ctx, db, pt.ID)
 		if err != nil {
 			return nil, fmt.Errorf("models: catalog export prescribed sets for template %d: %w", pt.ID, err)
 		}
@@ -185,7 +186,7 @@ func BuildCatalogExportJSON(db *sql.DB) (*CatalogJSON, error) {
 			ept.PrescribedSets = append(ept.PrescribedSets, eps)
 		}
 
-		rules, err := ListProgressionRules(db, pt.ID)
+		rules, err := ListProgressionRules(ctx, db, pt.ID)
 		if err != nil {
 			return nil, fmt.Errorf("models: catalog export progression rules for template %d: %w", pt.ID, err)
 		}

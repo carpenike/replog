@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -155,7 +156,7 @@ var SettingsRegistry = []SettingDefinition{
 
 // GetSetting returns a configuration value using the resolution chain:
 // env var → app_settings row → built-in default.
-func GetSetting(db *sql.DB, key string) string {
+func GetSetting(ctx context.Context, db *sql.DB, key string) string {
 	def := findDefinition(key)
 	if def == nil {
 		return ""
@@ -170,7 +171,7 @@ func GetSetting(db *sql.DB, key string) string {
 
 	// 2. Database setting.
 	var raw string
-	err := db.QueryRow(`SELECT value FROM app_settings WHERE key = ?`, key).Scan(&raw)
+	err := db.QueryRowContext(ctx, `SELECT value FROM app_settings WHERE key = ?`, key).Scan(&raw)
 	if err == nil {
 		if def.Sensitive && strings.HasPrefix(raw, "enc:") {
 			decrypted, err := decryptValue(raw[4:])
@@ -189,7 +190,7 @@ func GetSetting(db *sql.DB, key string) string {
 
 // SetSetting stores a configuration value in the database.
 // Sensitive values are encrypted if REPLOG_SECRET_KEY is set.
-func SetSetting(db *sql.DB, key, value string) error {
+func SetSetting(ctx context.Context, db *sql.DB, key, value string) error {
 	def := findDefinition(key)
 	if def == nil {
 		return fmt.Errorf("models: unknown setting key %q", key)
@@ -204,7 +205,7 @@ func SetSetting(db *sql.DB, key, value string) error {
 		storeValue = "enc:" + encrypted
 	}
 
-	_, err := db.Exec(
+	_, err := db.ExecContext(ctx,
 		`INSERT INTO app_settings (key, value) VALUES (?, ?)
 		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
 		key, storeValue,
@@ -216,8 +217,8 @@ func SetSetting(db *sql.DB, key, value string) error {
 }
 
 // DeleteSetting removes a setting from the database (reverts to env var or default).
-func DeleteSetting(db *sql.DB, key string) error {
-	_, err := db.Exec(`DELETE FROM app_settings WHERE key = ?`, key)
+func DeleteSetting(ctx context.Context, db *sql.DB, key string) error {
+	_, err := db.ExecContext(ctx, `DELETE FROM app_settings WHERE key = ?`, key)
 	if err != nil {
 		return fmt.Errorf("models: delete setting %q: %w", key, err)
 	}
@@ -225,20 +226,20 @@ func DeleteSetting(db *sql.DB, key string) error {
 }
 
 // ListSettings returns all known settings with their resolved values and sources.
-func ListSettings(db *sql.DB) []SettingValue {
+func ListSettings(ctx context.Context, db *sql.DB) []SettingValue {
 	var results []SettingValue
 	for _, def := range SettingsRegistry {
-		sv := resolveSettingValue(db, def)
+		sv := resolveSettingValue(ctx, db, def)
 		results = append(results, sv)
 	}
 	return results
 }
 
 // ListSettingsByCategory returns settings grouped by category.
-func ListSettingsByCategory(db *sql.DB) map[string][]SettingValue {
+func ListSettingsByCategory(ctx context.Context, db *sql.DB) map[string][]SettingValue {
 	groups := make(map[string][]SettingValue)
 	for _, def := range SettingsRegistry {
-		sv := resolveSettingValue(db, def)
+		sv := resolveSettingValue(ctx, db, def)
 		groups[def.Category] = append(groups[def.Category], sv)
 	}
 	return groups
@@ -251,32 +252,32 @@ func GetSettingDefinition(key string) *SettingDefinition {
 
 // GetDefaultWeightUnit returns the configured default weight unit from app settings,
 // falling back to the hardcoded constant.
-func GetDefaultWeightUnit(db *sql.DB) string {
-	if v := GetSetting(db, "defaults.weight_unit"); v != "" {
+func GetDefaultWeightUnit(ctx context.Context, db *sql.DB) string {
+	if v := GetSetting(ctx, db, "defaults.weight_unit"); v != "" {
 		return v
 	}
 	return "lbs"
 }
 
 // GetDefaultTimezone returns the configured default timezone from app settings.
-func GetDefaultTimezone(db *sql.DB) string {
-	if v := GetSetting(db, "defaults.timezone"); v != "" {
+func GetDefaultTimezone(ctx context.Context, db *sql.DB) string {
+	if v := GetSetting(ctx, db, "defaults.timezone"); v != "" {
 		return v
 	}
 	return "America/New_York"
 }
 
 // GetDefaultDateFormat returns the configured default date format from app settings.
-func GetDefaultDateFormat(db *sql.DB) string {
-	if v := GetSetting(db, "defaults.date_format"); v != "" {
+func GetDefaultDateFormat(ctx context.Context, db *sql.DB) string {
+	if v := GetSetting(ctx, db, "defaults.date_format"); v != "" {
 		return v
 	}
 	return "Jan 2, 2006"
 }
 
 // GetDefaultRestSeconds returns the configured default rest seconds from app settings.
-func GetDefaultRestSeconds(db *sql.DB) int {
-	if v := GetSetting(db, "defaults.rest_seconds"); v != "" {
+func GetDefaultRestSeconds(ctx context.Context, db *sql.DB) int {
+	if v := GetSetting(ctx, db, "defaults.rest_seconds"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			return n
 		}
@@ -285,16 +286,16 @@ func GetDefaultRestSeconds(db *sql.DB) int {
 }
 
 // GetAppName returns the configured application name from app settings.
-func GetAppName(db *sql.DB) string {
-	if v := GetSetting(db, "app.name"); v != "" {
+func GetAppName(ctx context.Context, db *sql.DB) string {
+	if v := GetSetting(ctx, db, "app.name"); v != "" {
 		return v
 	}
 	return "RepLog"
 }
 
 // GetMaintenanceIntervalHours returns the scheduler interval from app settings.
-func GetMaintenanceIntervalHours(db *sql.DB) int {
-	if v := GetSetting(db, "maintenance.interval_hours"); v != "" {
+func GetMaintenanceIntervalHours(ctx context.Context, db *sql.DB) int {
+	if v := GetSetting(ctx, db, "maintenance.interval_hours"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 168 {
 			return n
 		}
@@ -303,8 +304,8 @@ func GetMaintenanceIntervalHours(db *sql.DB) int {
 }
 
 // GetMaintenanceRetentionDays returns the notification retention period from app settings.
-func GetMaintenanceRetentionDays(db *sql.DB) int {
-	if v := GetSetting(db, "maintenance.retention_days"); v != "" {
+func GetMaintenanceRetentionDays(ctx context.Context, db *sql.DB) int {
+	if v := GetSetting(ctx, db, "maintenance.retention_days"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 365 {
 			return n
 		}
@@ -316,11 +317,11 @@ func GetMaintenanceRetentionDays(db *sql.DB) int {
 // Resolution: REPLOG_SECRET_KEY env var → _internal.secret_key DB row → auto-generate.
 // The key is stored in plaintext in app_settings (since it IS the encryption key).
 // Returns the key and sets it as an env var so the rest of the code can use it.
-func GetOrCreateSecretKey(db *sql.DB) (key, source string, err error) {
+func GetOrCreateSecretKey(ctx context.Context, db *sql.DB) (key, source string, err error) {
 	// 1. Check env var — if provided, persist to DB so the key survives
 	//    even if the env var is later removed.
 	if key = os.Getenv("REPLOG_SECRET_KEY"); key != "" {
-		_, _ = db.Exec(
+		_, _ = db.ExecContext(ctx,
 			`INSERT INTO app_settings (key, value) VALUES ('_internal.secret_key', ?)
 			 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key,
 		)
@@ -328,7 +329,7 @@ func GetOrCreateSecretKey(db *sql.DB) (key, source string, err error) {
 	}
 
 	// 2. Check DB for previously generated key.
-	err = db.QueryRow(`SELECT value FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&key)
+	err = db.QueryRowContext(ctx, `SELECT value FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&key)
 	if err == nil && key != "" {
 		os.Setenv("REPLOG_SECRET_KEY", key)
 		return key, "database", nil
@@ -341,7 +342,7 @@ func GetOrCreateSecretKey(db *sql.DB) (key, source string, err error) {
 	}
 	key = base64.StdEncoding.EncodeToString(buf)
 
-	_, err = db.Exec(
+	_, err = db.ExecContext(ctx,
 		`INSERT INTO app_settings (key, value) VALUES ('_internal.secret_key', ?)
 		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key,
 	)
@@ -355,8 +356,8 @@ func GetOrCreateSecretKey(db *sql.DB) (key, source string, err error) {
 
 // ListSettingsByCategoryOrdered returns settings grouped by category in the
 // order defined by CategoryOrder.
-func ListSettingsByCategoryOrdered(db *sql.DB) []CategoryGroup {
-	groups := ListSettingsByCategory(db)
+func ListSettingsByCategoryOrdered(ctx context.Context, db *sql.DB) []CategoryGroup {
+	groups := ListSettingsByCategory(ctx, db)
 	var ordered []CategoryGroup
 	seen := make(map[string]bool)
 	for _, cat := range CategoryOrder {
@@ -391,7 +392,7 @@ func findDefinition(key string) *SettingDefinition {
 	return nil
 }
 
-func resolveSettingValue(db *sql.DB, def SettingDefinition) SettingValue {
+func resolveSettingValue(ctx context.Context, db *sql.DB, def SettingDefinition) SettingValue {
 	sv := SettingValue{Key: def.Key}
 
 	// Check env var first.
@@ -407,7 +408,7 @@ func resolveSettingValue(db *sql.DB, def SettingDefinition) SettingValue {
 
 	// Check database.
 	var raw string
-	err := db.QueryRow(`SELECT value FROM app_settings WHERE key = ?`, def.Key).Scan(&raw)
+	err := db.QueryRowContext(ctx, `SELECT value FROM app_settings WHERE key = ?`, def.Key).Scan(&raw)
 	if err == nil {
 		sv.Source = "db"
 		if def.Sensitive && strings.HasPrefix(raw, "enc:") {

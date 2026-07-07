@@ -39,7 +39,7 @@ func (h *Handlers) ListJournalEntries(w http.ResponseWriter, r *http.Request) {
 		limit, _ = strconv.Atoi(l)
 	}
 
-	entries, err := models.ListJournalEntries(h.DB, athleteID, includePrivate, limit)
+	entries, err := models.ListJournalEntries(r.Context(), h.DB, athleteID, includePrivate, limit)
 	if err != nil {
 		log.Printf("api: list journal for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list journal")

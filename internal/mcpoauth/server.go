@@ -219,7 +219,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		authMethod = "client_secret_post"
 	}
 
-	client, secret, err := models.RegisterDCRClient(s.db, req.ClientName, filtered, authMethod)
+	client, secret, err := models.RegisterDCRClient(r.Context(), s.db, req.ClientName, filtered, authMethod)
 	if err != nil {
 		log.Printf("mcpoauth: register client: %v", err)
 		oauthError(w, http.StatusInternalServerError, "server_error", "could not register client")
@@ -250,7 +250,7 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clientID := q.Get("client_id")
-	client, err := models.GetDCRClient(s.db, clientID)
+	client, err := models.GetDCRClient(r.Context(), s.db, clientID)
 	if err != nil {
 		// Unknown client: we cannot trust any redirect, so fail in-band.
 		oauthError(w, http.StatusBadRequest, "invalid_client", "unknown client_id")
@@ -379,7 +379,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	// with the verified-email bind and JIT-create handled in the model. The
 	// REAL email_verified claim is passed through (not hardcoded), preserving
 	// RepLog's verified-email hardening.
-	user, err := models.UpsertUserFromOIDC(s.db, idToken.Subject, claims.Email, claims.Name, claims.EmailVerified)
+	user, err := models.UpsertUserFromOIDC(ctx, s.db, idToken.Subject, claims.Email, claims.Name, claims.EmailVerified)
 	if err != nil {
 		log.Printf("mcpoauth: callback: user upsert failed: %v", err)
 		redirectError(w, r, st.claudeRedirectURI, st.claudeState, "access_denied", "could not resolve user")
@@ -443,7 +443,7 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := models.ValidateDCRClientSecret(s.db, clientID, clientSecret); err != nil {
+	if _, err := models.ValidateDCRClientSecret(r.Context(), s.db, clientID, clientSecret); err != nil {
 		oauthError(w, http.StatusUnauthorized, "invalid_client", "client authentication failed")
 		return
 	}
@@ -469,7 +469,7 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plaintext, _, err := models.CreateMCPToken(s.db, authz.userID, clientID, "")
+	plaintext, _, err := models.CreateMCPToken(r.Context(), s.db, authz.userID, clientID, "")
 	if err != nil {
 		log.Printf("mcpoauth: token: mint failed: %v", err)
 		oauthError(w, http.StatusInternalServerError, "server_error", "could not issue token")

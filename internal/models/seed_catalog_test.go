@@ -2,6 +2,7 @@ package models
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestSeedCatalogImport(t *testing.T) {
 		Parsed:    parsed,
 	}
 
-	result, err := ExecuteCatalogImport(db, ms, nil, false)
+	result, err := ExecuteCatalogImport(context.Background(), db, ms, nil, false)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
@@ -51,7 +52,7 @@ func TestSeedCatalogImport(t *testing.T) {
 	}
 
 	// Verify data is queryable.
-	exercises, err := ListExercises(db, "")
+	exercises, err := ListExercises(context.Background(), db, "")
 	if err != nil {
 		t.Fatalf("ListExercises: %v", err)
 	}
@@ -59,7 +60,7 @@ func TestSeedCatalogImport(t *testing.T) {
 		t.Errorf("ListExercises: got %d, want %d", len(exercises), len(parsed.Exercises))
 	}
 
-	equipment, err := ListEquipment(db)
+	equipment, err := ListEquipment(context.Background(), db)
 	if err != nil {
 		t.Fatalf("ListEquipment: %v", err)
 	}
@@ -67,7 +68,7 @@ func TestSeedCatalogImport(t *testing.T) {
 		t.Errorf("ListEquipment: got %d, want %d", len(equipment), len(parsed.Equipment))
 	}
 
-	programs, err := ListProgramTemplates(db)
+	programs, err := ListProgramTemplates(context.Background(), db)
 	if err != nil {
 		t.Fatalf("ListProgramTemplates: %v", err)
 	}
@@ -94,7 +95,7 @@ func TestSeedCatalogImport_Idempotent(t *testing.T) {
 		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
 		Parsed:    parsed,
 	}
-	first, err := ExecuteCatalogImport(db, ms, nil, false)
+	first, err := ExecuteCatalogImport(context.Background(), db, ms, nil, false)
 	if err != nil {
 		t.Fatalf("first import: %v", err)
 	}
@@ -115,7 +116,7 @@ func TestSeedCatalogImport_Idempotent(t *testing.T) {
 		Programs:  importers.BuildProgramMappings(parsed2.Programs, existingPr),
 		Parsed:    parsed2,
 	}
-	second, err := ExecuteCatalogImport(db, ms2, nil, false)
+	second, err := ExecuteCatalogImport(context.Background(), db, ms2, nil, false)
 	if err != nil {
 		t.Fatalf("second import: %v", err)
 	}
@@ -150,7 +151,7 @@ func TestSeedCatalogImport_MovementPatterns(t *testing.T) {
 		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
 		Parsed:    parsed,
 	}
-	if _, err := ExecuteCatalogImport(db, ms, nil, false); err != nil {
+	if _, err := ExecuteCatalogImport(context.Background(), db, ms, nil, false); err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
 
@@ -168,12 +169,12 @@ func TestSeedCatalogImport_MovementPatterns(t *testing.T) {
 		{"Trap Bar Deadlift", []string{"hinge", "squat"}},
 	}
 	for _, tc := range cases {
-		ex, err := getExerciseByName(db, tc.name)
+		ex, err := getExerciseByName(context.Background(), db, tc.name)
 		if err != nil {
 			t.Errorf("look up %q: %v", tc.name, err)
 			continue
 		}
-		got, err := ListExerciseMovementPatterns(db, ex.ID)
+		got, err := ListExerciseMovementPatterns(context.Background(), db, ex.ID)
 		if err != nil {
 			t.Errorf("list patterns for %q: %v", tc.name, err)
 			continue
@@ -190,8 +191,8 @@ func TestSeedCatalogImport_MovementPatterns(t *testing.T) {
 	}
 
 	// And confirm an intentionally-untagged exercise has zero tags.
-	if ex, err := getExerciseByName(db, "Track Sprint"); err == nil {
-		got, _ := ListExerciseMovementPatterns(db, ex.ID)
+	if ex, err := getExerciseByName(context.Background(), db, "Track Sprint"); err == nil {
+		got, _ := ListExerciseMovementPatterns(context.Background(), db, ex.ID)
 		if len(got) != 0 {
 			t.Errorf("Track Sprint should be untagged; got %v", got)
 		}
@@ -208,7 +209,7 @@ func TestSeedCatalogImport_MovementPatterns(t *testing.T) {
 	}
 }
 
-func getExerciseByName(db *sql.DB, name string) (*Exercise, error) {
+func getExerciseByName(ctx context.Context, db *sql.DB, name string) (*Exercise, error) {
 	rows, err := db.Query(`SELECT id, name, tier, form_notes, demo_url, rest_seconds, featured, created_at, updated_at FROM exercises WHERE name = ? COLLATE NOCASE`, name)
 	if err != nil {
 		return nil, err
@@ -227,7 +228,7 @@ func getExerciseByName(db *sql.DB, name string) (*Exercise, error) {
 // listEntityExercises returns exercises as ExistingEntity for mapping tests.
 func listEntityExercises(t testing.TB, db *sql.DB) []importers.ExistingEntity {
 	t.Helper()
-	exercises, err := ListExercises(db, "")
+	exercises, err := ListExercises(context.Background(), db, "")
 	if err != nil {
 		t.Fatalf("list exercises: %v", err)
 	}
@@ -241,7 +242,7 @@ func listEntityExercises(t testing.TB, db *sql.DB) []importers.ExistingEntity {
 // listEntityEquipment returns equipment as ExistingEntity for mapping tests.
 func listEntityEquipment(t testing.TB, db *sql.DB) []importers.ExistingEntity {
 	t.Helper()
-	equipment, err := ListEquipment(db)
+	equipment, err := ListEquipment(context.Background(), db)
 	if err != nil {
 		t.Fatalf("list equipment: %v", err)
 	}
@@ -255,7 +256,7 @@ func listEntityEquipment(t testing.TB, db *sql.DB) []importers.ExistingEntity {
 // listEntityPrograms returns programs as ExistingEntity for mapping tests.
 func listEntityPrograms(t testing.TB, db *sql.DB) []importers.ExistingEntity {
 	t.Helper()
-	programs, err := ListProgramTemplates(db)
+	programs, err := ListProgramTemplates(context.Background(), db)
 	if err != nil {
 		t.Fatalf("list programs: %v", err)
 	}
@@ -270,7 +271,7 @@ func TestCatalogImport_AssignsToAthlete(t *testing.T) {
 	db := testDB(t)
 
 	// Create an athlete to import for.
-	athlete, err := CreateAthlete(db, "Import Test", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, err := CreateAthlete(context.Background(), db, "Import Test", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -309,7 +310,7 @@ func TestCatalogImport_AssignsToAthlete(t *testing.T) {
 	}
 
 	// Import with athlete ID — should create template AND assign it.
-	result, err := ExecuteCatalogImport(db, ms, &athlete.ID, true)
+	result, err := ExecuteCatalogImport(context.Background(), db, ms, &athlete.ID, true)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
@@ -325,7 +326,7 @@ func TestCatalogImport_AssignsToAthlete(t *testing.T) {
 	}
 
 	// Verify the athlete has an active program.
-	active, err := GetActiveProgram(db, athlete.ID)
+	active, err := GetActiveProgram(context.Background(), db, athlete.ID)
 	if err != nil {
 		t.Fatalf("GetActiveProgram: %v", err)
 	}
@@ -366,7 +367,7 @@ func TestCatalogImport_ReferencesExistingExercise(t *testing.T) {
 		Exercises: importers.BuildExerciseMappings(seedParsed.Exercises, nil),
 		Parsed:    seedParsed,
 	}
-	if _, err := ExecuteCatalogImport(db, seedMS, nil, false); err != nil {
+	if _, err := ExecuteCatalogImport(context.Background(), db, seedMS, nil, false); err != nil {
 		t.Fatalf("seed import: %v", err)
 	}
 
@@ -406,7 +407,7 @@ func TestCatalogImport_ReferencesExistingExercise(t *testing.T) {
 		Parsed:    parsed,
 	}
 
-	result, err := ExecuteCatalogImport(db, ms, nil, false)
+	result, err := ExecuteCatalogImport(context.Background(), db, ms, nil, false)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
@@ -440,23 +441,23 @@ func TestCatalogImport_ReferencesExistingExercise(t *testing.T) {
 func TestCatalogImport_DeactivatesPriorProgram(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Deact Test", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, err := CreateAthlete(context.Background(), db, "Deact Test", "foundational", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
 
 	// Create and assign a program manually first.
-	tmpl, err := CreateProgramTemplate(db, nil, "Old Program", "", 4, 3, false, "")
+	tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "Old Program", "", 4, 3, false, "")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
-	_, err = AssignProgram(db, athlete.ID, tmpl.ID, "2025-01-01", "", "", "primary", "")
+	_, err = AssignProgram(context.Background(), db, athlete.ID, tmpl.ID, "2025-01-01", "", "", "primary", "")
 	if err != nil {
 		t.Fatalf("assign program: %v", err)
 	}
 
 	// Verify old program is active.
-	activeBefore, _ := GetActiveProgram(db, athlete.ID)
+	activeBefore, _ := GetActiveProgram(context.Background(), db, athlete.ID)
 	if activeBefore == nil || activeBefore.TemplateName != "Old Program" {
 		t.Fatal("expected Old Program to be active before import")
 	}
@@ -492,7 +493,7 @@ func TestCatalogImport_DeactivatesPriorProgram(t *testing.T) {
 		Parsed:    parsed,
 	}
 
-	result, err := ExecuteCatalogImport(db, ms, &athlete.ID, true)
+	result, err := ExecuteCatalogImport(context.Background(), db, ms, &athlete.ID, true)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
@@ -501,7 +502,7 @@ func TestCatalogImport_DeactivatesPriorProgram(t *testing.T) {
 	}
 
 	// Verify the new program is now active and old is deactivated.
-	activeAfter, err := GetActiveProgram(db, athlete.ID)
+	activeAfter, err := GetActiveProgram(context.Background(), db, athlete.ID)
 	if err != nil {
 		t.Fatalf("GetActiveProgram after import: %v", err)
 	}
@@ -513,7 +514,7 @@ func TestCatalogImport_DeactivatesPriorProgram(t *testing.T) {
 	}
 
 	// Verify old program is deactivated.
-	allPrograms, err := ListAthletePrograms(db, athlete.ID)
+	allPrograms, err := ListAthletePrograms(context.Background(), db, athlete.ID)
 	if err != nil {
 		t.Fatalf("ListAthletePrograms: %v", err)
 	}
@@ -560,7 +561,7 @@ func TestCatalogImport_NilAthlete_NoAssignment(t *testing.T) {
 		Parsed:    parsed,
 	}
 
-	result, err := ExecuteCatalogImport(db, ms, nil, false)
+	result, err := ExecuteCatalogImport(context.Background(), db, ms, nil, false)
 	if err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}

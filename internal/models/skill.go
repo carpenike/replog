@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -47,19 +48,19 @@ var validSkillTypes = map[string]bool{
 
 // CreateSkillSession logs a skill session for an athlete, creating the parent
 // workout (discipline='skill') and the detail row in one transaction.
-func CreateSkillSession(db *sql.DB, athleteID int64, in SkillSessionInput) (*SkillSession, error) {
+func CreateSkillSession(ctx context.Context, db *sql.DB, athleteID int64, in SkillSessionInput) (*SkillSession, error) {
 	if !validSkillTypes[in.SkillType] {
 		return nil, fmt.Errorf("models: invalid skill_type %q: %w", in.SkillType, ErrInvalidInput)
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin skill session tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	var workoutID int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO workouts (athlete_id, date, discipline) VALUES (?, ?, 'skill') RETURNING id`,
 		athleteID, in.Date,
 	).Scan(&workoutID)
@@ -71,7 +72,7 @@ func CreateSkillSession(db *sql.DB, athleteID int64, in SkillSessionInput) (*Ski
 	}
 
 	var id int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO skill_sessions
 		    (workout_id, skill_type, rep_count, load_kg, velocity, duration_seconds, notes)
 		 VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
@@ -87,13 +88,13 @@ func CreateSkillSession(db *sql.DB, athleteID int64, in SkillSessionInput) (*Ski
 		return nil, fmt.Errorf("models: commit skill session: %w", err)
 	}
 
-	return GetSkillSessionByID(db, id)
+	return GetSkillSessionByID(ctx, db, id)
 }
 
 // GetSkillSessionByID retrieves a skill session by ID.
-func GetSkillSessionByID(db *sql.DB, id int64) (*SkillSession, error) {
+func GetSkillSessionByID(ctx context.Context, db *sql.DB, id int64) (*SkillSession, error) {
 	ss := &SkillSession{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT ss.id, ss.workout_id, ss.skill_type, ss.rep_count, ss.load_kg,
 		        ss.velocity, ss.duration_seconds, ss.notes, ss.created_at, ss.updated_at,
 		        w.athlete_id, w.date
@@ -113,11 +114,11 @@ func GetSkillSessionByID(db *sql.DB, id int64) (*SkillSession, error) {
 }
 
 // ListSkillSessions returns an athlete's skill sessions, newest first.
-func ListSkillSessions(db *sql.DB, athleteID int64, limit int) ([]*SkillSession, error) {
+func ListSkillSessions(ctx context.Context, db *sql.DB, athleteID int64, limit int) ([]*SkillSession, error) {
 	if limit <= 0 {
 		limit = 100
 	}
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT ss.id, ss.workout_id, ss.skill_type, ss.rep_count, ss.load_kg,
 		        ss.velocity, ss.duration_seconds, ss.notes, ss.created_at, ss.updated_at,
 		        w.athlete_id, w.date
@@ -145,12 +146,12 @@ func ListSkillSessions(db *sql.DB, athleteID int64, limit int) ([]*SkillSession,
 }
 
 // DeleteSkillSession removes a skill session and its parent workout.
-func DeleteSkillSession(db *sql.DB, id int64) error {
-	ss, err := GetSkillSessionByID(db, id)
+func DeleteSkillSession(ctx context.Context, db *sql.DB, id int64) error {
+	ss, err := GetSkillSessionByID(ctx, db, id)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(`DELETE FROM workouts WHERE id = ?`, ss.WorkoutID)
+	result, err := db.ExecContext(ctx, `DELETE FROM workouts WHERE id = ?`, ss.WorkoutID)
 	if err != nil {
 		return fmt.Errorf("models: delete skill session %d: %w", id, err)
 	}

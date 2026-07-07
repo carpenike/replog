@@ -99,7 +99,7 @@ func (h *Handlers) WODSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+	athlete, err := models.GetAthleteByID(r.Context(), h.DB, athleteID)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "athlete not found")
 		return
@@ -123,7 +123,7 @@ func (h *Handlers) WODSubmit(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	provider, err := h.llmProvider()
+	provider, err := h.llmProvider(r.Context())
 	if err != nil {
 		log.Printf("api: llm provider not configured for WOD: %v", err)
 		WriteError(w, http.StatusInternalServerError, "AI Coach is not configured")
@@ -132,7 +132,7 @@ func (h *Handlers) WODSubmit(w http.ResponseWriter, r *http.Request) {
 
 	// Resolve the Sarge-circuit methodology by key — adults have no
 	// tier-default, so the WOD path binds it explicitly.
-	methodology, err := models.GetMethodologyByKey(h.DB, wodMethodologyKey)
+	methodology, err := models.GetMethodologyByKey(r.Context(), h.DB, wodMethodologyKey)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusInternalServerError, "sarge-circuit methodology is not seeded")
 		return
@@ -146,7 +146,7 @@ func (h *Handlers) WODSubmit(w http.ResponseWriter, r *http.Request) {
 
 	// Duplicate-submit guard, scoped to WOD kind so a WOD in flight does not
 	// contend with a normal program draft for the same athlete.
-	if existing, lookupErr := models.PendingOrRunningGenerationForAthlete(h.DB, athleteID, models.GenerationKindWOD); lookupErr != nil {
+	if existing, lookupErr := models.PendingOrRunningGenerationForAthlete(r.Context(), h.DB, athleteID, models.GenerationKindWOD); lookupErr != nil {
 		log.Printf("api: check in-flight WOD for athlete %d: %v", athleteID, lookupErr)
 		WriteError(w, http.StatusInternalServerError, "failed to check in-flight WODs")
 		return
@@ -177,7 +177,7 @@ func (h *Handlers) WODSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gen, err := models.CreateGenerationWithKind(h.DB, athleteID, user.ID, string(reqJSON), models.GenerationKindWOD)
+	gen, err := models.CreateGenerationWithKind(r.Context(), h.DB, athleteID, user.ID, string(reqJSON), models.GenerationKindWOD)
 	if err != nil {
 		if errors.Is(err, models.ErrGenerationInFlight) {
 			WriteError(w, http.StatusConflict, "a WOD is already in flight for this athlete")
@@ -270,7 +270,7 @@ func (h *Handlers) WODLog(w http.ResponseWriter, r *http.Request) {
 	// log requests cannot both commit the same WOD. The loser gets ErrNotFound
 	// → 409. On any downstream failure (collision or import error) we release
 	// the claim so the coach can retry / choose replace.
-	if err := models.MarkGenerationExecuted(h.DB, gen.ID); err != nil {
+	if err := models.MarkGenerationExecuted(r.Context(), h.DB, gen.ID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusConflict, "WOD has already been logged")
 			return
@@ -280,10 +280,10 @@ func (h *Handlers) WODLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := models.LogWODFromCatalog(h.DB, gen.AthleteID, date, parsed, req.Replace)
+	result, err := models.LogWODFromCatalog(r.Context(), h.DB, gen.AthleteID, date, parsed, req.Replace)
 	if errors.Is(err, models.ErrWODCollision) {
 		// Not actually logged — release the claim so a follow-up replace works.
-		if rbErr := models.UnmarkGenerationExecuted(h.DB, gen.ID); rbErr != nil {
+		if rbErr := models.UnmarkGenerationExecuted(r.Context(), h.DB, gen.ID); rbErr != nil {
 			log.Printf("api: roll back WOD log claim %d: %v", gen.ID, rbErr)
 		}
 		WriteJSON(w, http.StatusConflict, WODCollisionResponse{
@@ -293,7 +293,7 @@ func (h *Handlers) WODLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		if rbErr := models.UnmarkGenerationExecuted(h.DB, gen.ID); rbErr != nil {
+		if rbErr := models.UnmarkGenerationExecuted(r.Context(), h.DB, gen.ID); rbErr != nil {
 			log.Printf("api: roll back WOD log claim %d: %v", gen.ID, rbErr)
 		}
 		log.Printf("api: log WOD %d for athlete %d: %v", gen.ID, gen.AthleteID, err)

@@ -1,17 +1,18 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 )
 
 func TestCreateAccessoryPlan(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	ex, _ := CreateExercise(db, "Bicep Curls", "", "", "", 0, false)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	ex, _ := CreateExercise(context.Background(), db, "Bicep Curls", "", "", "", 0, false)
 
 	t.Run("basic create", func(t *testing.T) {
-		ap, err := CreateAccessoryPlan(db, a.ID, 1, ex.ID, 3, 10, 15, 25.0, "superset with pushdowns", 0)
+		ap, err := CreateAccessoryPlan(context.Background(), db, a.ID, 1, ex.ID, 3, 10, 15, 25.0, "superset with pushdowns", 0)
 		if err != nil {
 			t.Fatalf("create accessory plan: %v", err)
 		}
@@ -48,15 +49,15 @@ func TestCreateAccessoryPlan(t *testing.T) {
 	})
 
 	t.Run("duplicate athlete-day-exercise", func(t *testing.T) {
-		_, err := CreateAccessoryPlan(db, a.ID, 1, ex.ID, 4, 8, 12, 30.0, "", 0)
+		_, err := CreateAccessoryPlan(context.Background(), db, a.ID, 1, ex.ID, 4, 8, 12, 30.0, "", 0)
 		if err == nil {
 			t.Fatal("expected error for duplicate, got nil")
 		}
 	})
 
 	t.Run("nullable fields omitted", func(t *testing.T) {
-		ex2, _ := CreateExercise(db, "Tricep Pushdowns", "", "", "", 0, false)
-		ap, err := CreateAccessoryPlan(db, a.ID, 1, ex2.ID, 0, 0, 0, 0, "", 1)
+		ex2, _ := CreateExercise(context.Background(), db, "Tricep Pushdowns", "", "", "", 0, false)
+		ap, err := CreateAccessoryPlan(context.Background(), db, a.ID, 1, ex2.ID, 0, 0, 0, 0, "", 1)
 		if err != nil {
 			t.Fatalf("create accessory plan: %v", err)
 		}
@@ -74,15 +75,15 @@ func TestCreateAccessoryPlan(t *testing.T) {
 
 func TestListAccessoryPlansForDay(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	ex1, _ := CreateExercise(db, "Curls", "", "", "", 0, false)
-	ex2, _ := CreateExercise(db, "Lateral Raises", "", "", "", 0, false)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	ex1, _ := CreateExercise(context.Background(), db, "Curls", "", "", "", 0, false)
+	ex2, _ := CreateExercise(context.Background(), db, "Lateral Raises", "", "", "", 0, false)
 
-	CreateAccessoryPlan(db, a.ID, 1, ex1.ID, 3, 10, 15, 0, "", 1)
-	CreateAccessoryPlan(db, a.ID, 1, ex2.ID, 3, 12, 15, 0, "", 0)
-	CreateAccessoryPlan(db, a.ID, 2, ex1.ID, 4, 8, 12, 0, "", 0)
+	CreateAccessoryPlan(context.Background(), db, a.ID, 1, ex1.ID, 3, 10, 15, 0, "", 1)
+	CreateAccessoryPlan(context.Background(), db, a.ID, 1, ex2.ID, 3, 12, 15, 0, "", 0)
+	CreateAccessoryPlan(context.Background(), db, a.ID, 2, ex1.ID, 4, 8, 12, 0, "", 0)
 
-	plans, err := ListAccessoryPlansForDay(db, a.ID, 1)
+	plans, err := ListAccessoryPlansForDay(context.Background(), db, a.ID, 1)
 	if err != nil {
 		t.Fatalf("list accessory plans for day: %v", err)
 	}
@@ -95,7 +96,7 @@ func TestListAccessoryPlansForDay(t *testing.T) {
 	}
 
 	// Day 2 should have only 1.
-	plans2, err := ListAccessoryPlansForDay(db, a.ID, 2)
+	plans2, err := ListAccessoryPlansForDay(context.Background(), db, a.ID, 2)
 	if err != nil {
 		t.Fatalf("list accessory plans for day 2: %v", err)
 	}
@@ -104,7 +105,7 @@ func TestListAccessoryPlansForDay(t *testing.T) {
 	}
 
 	// Day 3 should have 0.
-	plans3, err := ListAccessoryPlansForDay(db, a.ID, 3)
+	plans3, err := ListAccessoryPlansForDay(context.Background(), db, a.ID, 3)
 	if err != nil {
 		t.Fatalf("list accessory plans for day 3: %v", err)
 	}
@@ -115,16 +116,16 @@ func TestListAccessoryPlansForDay(t *testing.T) {
 
 func TestUpdateAccessoryPlan(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	ex, _ := CreateExercise(db, "Curls", "", "", "", 0, false)
-	ap, _ := CreateAccessoryPlan(db, a.ID, 1, ex.ID, 3, 10, 15, 25.0, "original", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	ex, _ := CreateExercise(context.Background(), db, "Curls", "", "", "", 0, false)
+	ap, _ := CreateAccessoryPlan(context.Background(), db, a.ID, 1, ex.ID, 3, 10, 15, 25.0, "original", 0)
 
-	err := UpdateAccessoryPlan(db, ap.ID, a.ID, 4, 8, 12, 30.0, "updated", 1)
+	err := UpdateAccessoryPlan(context.Background(), db, ap.ID, a.ID, 4, 8, 12, 30.0, "updated", 1)
 	if err != nil {
 		t.Fatalf("update: %v", err)
 	}
 
-	got, err := GetAccessoryPlanByID(db, ap.ID)
+	got, err := GetAccessoryPlanByID(context.Background(), db, ap.ID)
 	if err != nil {
 		t.Fatalf("get after update: %v", err)
 	}
@@ -139,7 +140,7 @@ func TestUpdateAccessoryPlan(t *testing.T) {
 	}
 
 	t.Run("not found", func(t *testing.T) {
-		err := UpdateAccessoryPlan(db, 99999, a.ID, 0, 0, 0, 0, "", 0)
+		err := UpdateAccessoryPlan(context.Background(), db, 99999, a.ID, 0, 0, 0, 0, "", 0)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -148,16 +149,16 @@ func TestUpdateAccessoryPlan(t *testing.T) {
 
 func TestDeactivateAccessoryPlan(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	ex, _ := CreateExercise(db, "Curls", "", "", "", 0, false)
-	ap, _ := CreateAccessoryPlan(db, a.ID, 1, ex.ID, 3, 10, 15, 0, "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	ex, _ := CreateExercise(context.Background(), db, "Curls", "", "", "", 0, false)
+	ap, _ := CreateAccessoryPlan(context.Background(), db, a.ID, 1, ex.ID, 3, 10, 15, 0, "", 0)
 
-	err := DeactivateAccessoryPlan(db, ap.ID, a.ID)
+	err := DeactivateAccessoryPlan(context.Background(), db, ap.ID, a.ID)
 	if err != nil {
 		t.Fatalf("deactivate: %v", err)
 	}
 
-	got, err := GetAccessoryPlanByID(db, ap.ID)
+	got, err := GetAccessoryPlanByID(context.Background(), db, ap.ID)
 	if err != nil {
 		t.Fatalf("get after deactivate: %v", err)
 	}
@@ -166,7 +167,7 @@ func TestDeactivateAccessoryPlan(t *testing.T) {
 	}
 
 	// Deactivated plan should not appear in ListForDay.
-	plans, err := ListAccessoryPlansForDay(db, a.ID, 1)
+	plans, err := ListAccessoryPlansForDay(context.Background(), db, a.ID, 1)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -175,7 +176,7 @@ func TestDeactivateAccessoryPlan(t *testing.T) {
 	}
 
 	// But should appear in ListAll.
-	all, err := ListAllAccessoryPlans(db, a.ID)
+	all, err := ListAllAccessoryPlans(context.Background(), db, a.ID)
 	if err != nil {
 		t.Fatalf("list all: %v", err)
 	}
@@ -186,22 +187,22 @@ func TestDeactivateAccessoryPlan(t *testing.T) {
 
 func TestDeleteAccessoryPlan(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	ex, _ := CreateExercise(db, "Curls", "", "", "", 0, false)
-	ap, _ := CreateAccessoryPlan(db, a.ID, 1, ex.ID, 3, 10, 15, 0, "", 0)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	ex, _ := CreateExercise(context.Background(), db, "Curls", "", "", "", 0, false)
+	ap, _ := CreateAccessoryPlan(context.Background(), db, a.ID, 1, ex.ID, 3, 10, 15, 0, "", 0)
 
-	err := DeleteAccessoryPlan(db, ap.ID, a.ID)
+	err := DeleteAccessoryPlan(context.Background(), db, ap.ID, a.ID)
 	if err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 
-	_, err = GetAccessoryPlanByID(db, ap.ID)
+	_, err = GetAccessoryPlanByID(context.Background(), db, ap.ID)
 	if err != ErrNotFound {
 		t.Errorf("after delete, err = %v, want ErrNotFound", err)
 	}
 
 	t.Run("not found", func(t *testing.T) {
-		err := DeleteAccessoryPlan(db, 99999, a.ID)
+		err := DeleteAccessoryPlan(context.Background(), db, 99999, a.ID)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -210,10 +211,10 @@ func TestDeleteAccessoryPlan(t *testing.T) {
 
 func TestMaxAccessoryDay(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 
 	// No plans → 0.
-	maxDay, err := MaxAccessoryDay(db, a.ID)
+	maxDay, err := MaxAccessoryDay(context.Background(), db, a.ID)
 	if err != nil {
 		t.Fatalf("max day: %v", err)
 	}
@@ -221,10 +222,10 @@ func TestMaxAccessoryDay(t *testing.T) {
 		t.Errorf("max day = %d, want 0", maxDay)
 	}
 
-	ex, _ := CreateExercise(db, "Curls", "", "", "", 0, false)
-	CreateAccessoryPlan(db, a.ID, 3, ex.ID, 0, 0, 0, 0, "", 0)
+	ex, _ := CreateExercise(context.Background(), db, "Curls", "", "", "", 0, false)
+	CreateAccessoryPlan(context.Background(), db, a.ID, 3, ex.ID, 0, 0, 0, 0, "", 0)
 
-	maxDay, err = MaxAccessoryDay(db, a.ID)
+	maxDay, err = MaxAccessoryDay(context.Background(), db, a.ID)
 	if err != nil {
 		t.Fatalf("max day after create: %v", err)
 	}

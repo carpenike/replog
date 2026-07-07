@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
@@ -24,7 +25,7 @@ type DCRClient struct {
 // secret EXACTLY ONCE (only the hash is stored). redirectURIs must already be
 // allowlist-filtered by the caller; authMethod defaults to client_secret_post
 // when empty.
-func RegisterDCRClient(db *sql.DB, clientName string, redirectURIs []string, authMethod string) (client *DCRClient, plaintextSecret string, err error) {
+func RegisterDCRClient(ctx context.Context, db *sql.DB, clientName string, redirectURIs []string, authMethod string) (client *DCRClient, plaintextSecret string, err error) {
 	clientID, err := generateToken(16) // 128-bit public identifier
 	if err != nil {
 		return nil, "", err
@@ -47,7 +48,7 @@ func RegisterDCRClient(db *sql.DB, clientName string, redirectURIs []string, aut
 	hash := hashMCPSecret(plaintextSecret)
 	now := time.Now()
 
-	_, err = db.Exec(
+	_, err = db.ExecContext(ctx,
 		`INSERT INTO dcr_clients (client_id, client_secret_hash, client_name, redirect_uris, token_endpoint_auth_method, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?)`,
 		clientID, hash, clientName, string(urisJSON), authMethod, now,
@@ -68,12 +69,12 @@ func RegisterDCRClient(db *sql.DB, clientName string, redirectURIs []string, aut
 
 // GetDCRClient looks up a registered client by its public client_id. Returns
 // ErrNotFound when the client is unknown.
-func GetDCRClient(db *sql.DB, clientID string) (*DCRClient, error) {
+func GetDCRClient(ctx context.Context, db *sql.DB, clientID string) (*DCRClient, error) {
 	var (
 		c        DCRClient
 		urisJSON string
 	)
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT client_id, client_secret_hash, client_name, redirect_uris, token_endpoint_auth_method, created_at
 		 FROM dcr_clients WHERE client_id = ?`,
 		clientID,
@@ -93,8 +94,8 @@ func GetDCRClient(db *sql.DB, clientID string) (*DCRClient, error) {
 // ValidateDCRClientSecret returns the client when the presented secret matches
 // the stored hash, using a constant-time comparison to avoid leaking the
 // secret via timing. Returns ErrNotFound for an unknown client or a mismatch.
-func ValidateDCRClientSecret(db *sql.DB, clientID, secret string) (*DCRClient, error) {
-	c, err := GetDCRClient(db, clientID)
+func ValidateDCRClientSecret(ctx context.Context, db *sql.DB, clientID, secret string) (*DCRClient, error) {
+	c, err := GetDCRClient(ctx, db, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -111,8 +112,8 @@ func ValidateDCRClientSecret(db *sql.DB, clientID, secret string) (*DCRClient, e
 // token exchange) leaves a dangling client row forever otherwise. Clients that
 // own at least one (non-purged) token are always retained. Returns the number
 // of rows removed.
-func DeleteOrphanDCRClients(db *sql.DB, cutoff time.Time) (int64, error) {
-	res, err := db.Exec(
+func DeleteOrphanDCRClients(ctx context.Context, db *sql.DB, cutoff time.Time) (int64, error) {
+	res, err := db.ExecContext(ctx,
 		`DELETE FROM dcr_clients
 		 WHERE created_at < ?
 		   AND client_id NOT IN (

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"math"
@@ -15,7 +16,7 @@ import (
 //  2. Primary with schedule that includes today's weekday.
 //  3. Primary with no schedule (catch-all).
 //  4. nil — no assignment matches (ad-hoc workout day).
-func ResolveAssignment(db *sql.DB, athleteID int64, date time.Time, tz string) (*AthleteProgram, error) {
+func ResolveAssignment(ctx context.Context, db *sql.DB, athleteID int64, date time.Time, tz string) (*AthleteProgram, error) {
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
 		return nil, fmt.Errorf("models: resolve assignment: invalid timezone %q: %w", tz, err)
@@ -29,7 +30,7 @@ func ResolveAssignment(db *sql.DB, athleteID int64, date time.Time, tz string) (
 		isoWeekday = 7 // Sunday → 7
 	}
 
-	assignments, err := ListActiveProgramAssignments(db, athleteID)
+	assignments, err := ListActiveProgramAssignments(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +143,7 @@ type Prescription struct {
 // Position in the program is determined by counting completed workouts with the same assignment_id.
 // The cycle repeats automatically when all weeks×days are exhausted.
 // If program is nil, returns nil (no prescription).
-func GetPrescription(db *sql.DB, program *AthleteProgram, today time.Time) (*Prescription, error) {
+func GetPrescription(ctx context.Context, db *sql.DB, program *AthleteProgram, today time.Time) (*Prescription, error) {
 	if program == nil {
 		return nil, nil // No assignment resolved.
 	}
@@ -151,7 +152,7 @@ func GetPrescription(db *sql.DB, program *AthleteProgram, today time.Time) (*Pre
 
 	// Count workouts linked to this assignment (not including today).
 	var completedWorkouts int
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) < date(?)`,
 		program.ID, todayStr,
 	).Scan(&completedWorkouts)
@@ -161,7 +162,7 @@ func GetPrescription(db *sql.DB, program *AthleteProgram, today time.Time) (*Pre
 
 	// Check if there's a workout today for this assignment.
 	var todayCount int
-	err = db.QueryRow(
+	err = db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) = date(?)`,
 		program.ID, todayStr,
 	).Scan(&todayCount)
@@ -189,13 +190,13 @@ func GetPrescription(db *sql.DB, program *AthleteProgram, today time.Time) (*Pre
 	currentDay := (position % program.NumDays) + 1
 
 	// Get prescribed sets for this week/day.
-	sets, err := ListPrescribedSetsForDay(db, program.TemplateID, currentWeek, currentDay)
+	sets, err := ListPrescribedSetsForDay(ctx, db, program.TemplateID, currentWeek, currentDay)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get current training maxes for the athlete.
-	tms, err := ListCurrentTrainingMaxes(db, program.AthleteID)
+	tms, err := ListCurrentTrainingMaxes(ctx, db, program.AthleteID)
 	if err != nil {
 		return nil, err
 	}

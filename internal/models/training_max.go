@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -25,14 +26,14 @@ type TrainingMax struct {
 // record; the current TM is the one with the latest effective_date. If a record
 // already exists for the same athlete+exercise+date, its weight and notes are
 // updated in place (upsert).
-func SetTrainingMax(db *sql.DB, athleteID, exerciseID int64, weight float64, effectiveDate, notes string) (*TrainingMax, error) {
+func SetTrainingMax(ctx context.Context, db *sql.DB, athleteID, exerciseID int64, weight float64, effectiveDate, notes string) (*TrainingMax, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO training_maxes (athlete_id, exercise_id, weight, effective_date, notes)
 		 VALUES (?, ?, ?, ?, ?)
 		 ON CONFLICT (athlete_id, exercise_id, effective_date)
@@ -44,13 +45,13 @@ func SetTrainingMax(db *sql.DB, athleteID, exerciseID int64, weight float64, eff
 		return nil, fmt.Errorf("models: set training max: %w", err)
 	}
 
-	return GetTrainingMaxByID(db, id)
+	return GetTrainingMaxByID(ctx, db, id)
 }
 
 // GetTrainingMaxByID retrieves a training max by primary key.
-func GetTrainingMaxByID(db *sql.DB, id int64) (*TrainingMax, error) {
+func GetTrainingMaxByID(ctx context.Context, db *sql.DB, id int64) (*TrainingMax, error) {
 	tm := &TrainingMax{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT tm.id, tm.athlete_id, tm.exercise_id, tm.weight, tm.effective_date, tm.notes, tm.created_at,
 		        e.name
 		 FROM training_maxes tm
@@ -67,9 +68,9 @@ func GetTrainingMaxByID(db *sql.DB, id int64) (*TrainingMax, error) {
 }
 
 // CurrentTrainingMax returns the most recent training max for an athlete+exercise.
-func CurrentTrainingMax(db *sql.DB, athleteID, exerciseID int64) (*TrainingMax, error) {
+func CurrentTrainingMax(ctx context.Context, db *sql.DB, athleteID, exerciseID int64) (*TrainingMax, error) {
 	tm := &TrainingMax{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT tm.id, tm.athlete_id, tm.exercise_id, tm.weight, tm.effective_date, tm.notes, tm.created_at,
 		        e.name
 		 FROM training_maxes tm
@@ -88,8 +89,8 @@ func CurrentTrainingMax(db *sql.DB, athleteID, exerciseID int64) (*TrainingMax, 
 
 // ListTrainingMaxHistory returns all training max records for an athlete+exercise,
 // ordered by effective_date descending (most recent first).
-func ListTrainingMaxHistory(db *sql.DB, athleteID, exerciseID int64) ([]*TrainingMax, error) {
-	rows, err := db.Query(`
+func ListTrainingMaxHistory(ctx context.Context, db *sql.DB, athleteID, exerciseID int64) ([]*TrainingMax, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT tm.id, tm.athlete_id, tm.exercise_id, tm.weight, tm.effective_date, tm.notes, tm.created_at,
 		       e.name
 		FROM training_maxes tm
@@ -118,8 +119,8 @@ func ListTrainingMaxHistory(db *sql.DB, athleteID, exerciseID int64) ([]*Trainin
 
 // ListCurrentTrainingMaxes returns the current (latest) training max for each
 // exercise assigned to an athlete.
-func ListCurrentTrainingMaxes(db *sql.DB, athleteID int64) ([]*TrainingMax, error) {
-	rows, err := db.Query(`
+func ListCurrentTrainingMaxes(ctx context.Context, db *sql.DB, athleteID int64) ([]*TrainingMax, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT tm.id, tm.athlete_id, tm.exercise_id, tm.weight, tm.effective_date, tm.notes, tm.created_at,
 		       e.name
 		FROM training_maxes tm
@@ -162,8 +163,8 @@ type MissingProgramTM struct {
 // least one percentage-based prescribed set but the athlete has no current
 // training max for them. Only percentage-based sets need a TM; exercises
 // with only absolute_weight sets are excluded.
-func ListMissingProgramTMs(db *sql.DB, templateID, athleteID int64) ([]*MissingProgramTM, error) {
-	rows, err := db.Query(`
+func ListMissingProgramTMs(ctx context.Context, db *sql.DB, templateID, athleteID int64) ([]*MissingProgramTM, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT DISTINCT e.id, e.name
 		FROM prescribed_sets ps
 		JOIN exercises e ON e.id = ps.exercise_id

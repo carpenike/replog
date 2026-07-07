@@ -27,7 +27,7 @@ func (h *Handlers) ListNotifications(w http.ResponseWriter, r *http.Request) {
 	// every notification. parsePage caps it and rejects negatives.
 	limit, offset := parsePage(r, 50, 200)
 
-	notifications, err := models.ListNotifications(h.DB, user.ID, limit, offset)
+	notifications, err := models.ListNotifications(r.Context(), h.DB, user.ID, limit, offset)
 	if err != nil {
 		log.Printf("api: list notifications for user %d: %v", user.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list notifications")
@@ -51,7 +51,7 @@ func (h *Handlers) ListNotifications(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) UnreadNotificationCount(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
-	count, err := models.GetUnreadCount(h.DB, user.ID)
+	count, err := models.GetUnreadCount(r.Context(), h.DB, user.ID)
 	if err != nil {
 		log.Printf("api: unread count for user %d: %v", user.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to get count")
@@ -78,7 +78,7 @@ func (h *Handlers) MarkNotificationRead(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := models.MarkAsRead(h.DB, id, user.ID); err != nil {
+	if err := models.MarkAsRead(r.Context(), h.DB, id, user.ID); err != nil {
 		log.Printf("api: mark notification %d read: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to mark read")
 		return
@@ -97,7 +97,7 @@ func (h *Handlers) MarkNotificationRead(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
-	count, err := models.MarkAllAsRead(h.DB, user.ID)
+	count, err := models.MarkAllAsRead(r.Context(), h.DB, user.ID)
 	if err != nil {
 		log.Printf("api: mark all notifications read for user %d: %v", user.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to mark all read")
@@ -116,7 +116,7 @@ func (h *Handlers) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Reque
 //	@Router       /notifications/preferences [get]
 func (h *Handlers) ListNotificationPreferences(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	prefs := models.ListNotificationPreferences(h.DB, user.ID)
+	prefs := models.ListNotificationPreferences(r.Context(), h.DB, user.ID)
 
 	result := make([]map[string]any, len(prefs))
 	for i, p := range prefs {
@@ -148,7 +148,7 @@ func (h *Handlers) UpdateNotificationPreference(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := models.SetNotificationPreference(h.DB, user.ID, req.Type, req.InApp, req.External); err != nil {
+	if err := models.SetNotificationPreference(r.Context(), h.DB, user.ID, req.Type, req.InApp, req.External); err != nil {
 		log.Printf("api: update notification preference for user %d: %v", user.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update preference")
 		return

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -21,15 +22,15 @@ import (
 //
 // Errors are logged but never propagated. Notifications must never block the
 // triggering action.
-func (h *Handlers) notifyAthlete(athleteID int64, nType, title, message, link string) {
-	user, err := models.GetUserByAthleteID(h.DB, athleteID)
+func (h *Handlers) notifyAthlete(ctx context.Context, athleteID int64, nType, title, message, link string) {
+	user, err := models.GetUserByAthleteID(ctx, h.DB, athleteID)
 	if err != nil {
 		if !errors.Is(err, models.ErrNotFound) {
 			log.Printf("api: notify athlete %d: lookup user: %v", athleteID, err)
 		}
 		return
 	}
-	notify.Send(h.DB, notify.Request{
+	notify.Send(ctx, h.DB, notify.Request{
 		UserID:    user.ID,
 		Type:      nType,
 		Title:     title,
@@ -41,8 +42,8 @@ func (h *Handlers) notifyAthlete(athleteID int64, nType, title, message, link st
 
 // notifyCoach dispatches a notification to the coach who owns the given
 // athlete. No-op if the athlete has no coach assigned.
-func (h *Handlers) notifyCoach(athleteID int64, nType, title, message, link string) {
-	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+func (h *Handlers) notifyCoach(ctx context.Context, athleteID int64, nType, title, message, link string) {
+	athlete, err := models.GetAthleteByID(ctx, h.DB, athleteID)
 	if err != nil {
 		log.Printf("api: notify coach for athlete %d: load athlete: %v", athleteID, err)
 		return
@@ -50,7 +51,7 @@ func (h *Handlers) notifyCoach(athleteID int64, nType, title, message, link stri
 	if !athlete.CoachID.Valid {
 		return
 	}
-	notify.Send(h.DB, notify.Request{
+	notify.Send(ctx, h.DB, notify.Request{
 		UserID:    athlete.CoachID.Int64,
 		Type:      nType,
 		Title:     title,
@@ -63,8 +64,8 @@ func (h *Handlers) notifyCoach(athleteID int64, nType, title, message, link stri
 // athleteDisplayName returns the athlete's name for use in notification
 // titles. Falls back to "athlete" if the lookup fails — the notification
 // itself is more important than a perfect title.
-func (h *Handlers) athleteDisplayName(athleteID int64) string {
-	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+func (h *Handlers) athleteDisplayName(ctx context.Context, athleteID int64) string {
+	athlete, err := models.GetAthleteByID(ctx, h.DB, athleteID)
 	if err != nil {
 		return "athlete"
 	}

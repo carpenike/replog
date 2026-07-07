@@ -76,7 +76,7 @@ func (m *MCPTokenAuth) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := models.ValidateMCPToken(m.db, token)
+		user, err := models.ValidateMCPToken(r.Context(), m.db, token)
 		if errors.Is(err, models.ErrNotFound) {
 			writeBearerError(w, http.StatusUnauthorized, "invalid-token",
 				m.wwwAuthenticate("invalid_token"))
@@ -96,7 +96,7 @@ func (m *MCPTokenAuth) Middleware(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), UserContextKey, user)
 
 		// Same defaults-on-error semantics as RequireAuth.
-		prefs, err := models.GetUserPreferences(m.db, user.ID)
+		prefs, err := models.GetUserPreferences(r.Context(), m.db, user.ID)
 		if err != nil {
 			log.Printf("middleware: mcp token prefs lookup for user %d: %v", user.ID, err)
 			prefs = &models.UserPreferences{

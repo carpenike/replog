@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -57,10 +58,10 @@ type PitchSmartStatus struct {
 
 // GetPitchSmartLimitForAge returns the seeded Pitch Smart bracket covering the
 // given age, or ErrNoPitchSmartLimit if none applies.
-func GetPitchSmartLimitForAge(db *sql.DB, age int) (*PitchSmartLimit, error) {
+func GetPitchSmartLimitForAge(ctx context.Context, db *sql.DB, age int) (*PitchSmartLimit, error) {
 	l := &PitchSmartLimit{}
 	var thresholdsJSON string
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT age_min, age_max, daily_max, rest_thresholds
 		 FROM pitch_smart_limits WHERE ? BETWEEN age_min AND age_max
 		 ORDER BY age_min LIMIT 1`, age,
@@ -96,8 +97,8 @@ func ageFromDOB(dob string, asOf time.Time) (int, bool) {
 // Returns ErrNoPitchSmartLimit when the athlete's age can't be determined or
 // no bracket applies — callers treat that as "no advisory", never an error
 // that blocks logging.
-func ComputePitchSmartStatus(db *sql.DB, athleteID int64, asOf time.Time) (*PitchSmartStatus, error) {
-	a, err := GetAthleteByID(db, athleteID)
+func ComputePitchSmartStatus(ctx context.Context, db *sql.DB, athleteID int64, asOf time.Time) (*PitchSmartStatus, error) {
+	a, err := GetAthleteByID(ctx, db, athleteID)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func ComputePitchSmartStatus(db *sql.DB, athleteID int64, asOf time.Time) (*Pitc
 		return nil, ErrNoPitchSmartLimit
 	}
 
-	limit, err := GetPitchSmartLimitForAge(db, age)
+	limit, err := GetPitchSmartLimitForAge(ctx, db, age)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +129,7 @@ func ComputePitchSmartStatus(db *sql.DB, athleteID int64, asOf time.Time) (*Pitc
 	// session, which may be older than the athlete's latest throwing session.
 	var lastDate string
 	var lastCount sql.NullInt64
-	err = db.QueryRow(
+	err = db.QueryRowContext(ctx,
 		`SELECT w.date, ts.throw_count
 		 FROM throwing_sessions ts
 		 JOIN workouts w ON w.id = ts.workout_id

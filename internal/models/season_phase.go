@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -33,7 +34,7 @@ type SeasonPhaseInput struct {
 var validSeasonPhases = map[string]bool{"off": true, "pre": true, "in": true}
 
 // CreateSeasonPhase records a season phase for an athlete.
-func CreateSeasonPhase(db *sql.DB, athleteID int64, in SeasonPhaseInput) (*SeasonPhase, error) {
+func CreateSeasonPhase(ctx context.Context, db *sql.DB, athleteID int64, in SeasonPhaseInput) (*SeasonPhase, error) {
 	if !validSeasonPhases[in.Phase] {
 		return nil, fmt.Errorf("models: invalid phase %q: %w", in.Phase, ErrInvalidInput)
 	}
@@ -42,7 +43,7 @@ func CreateSeasonPhase(db *sql.DB, athleteID int64, in SeasonPhaseInput) (*Seaso
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO athlete_season_phases (athlete_id, sport, phase, start_date, end_date, notes)
 		 VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, nullableString(in.Sport), in.Phase, in.StartDate,
@@ -51,13 +52,13 @@ func CreateSeasonPhase(db *sql.DB, athleteID int64, in SeasonPhaseInput) (*Seaso
 	if err != nil {
 		return nil, fmt.Errorf("models: create season phase for athlete %d: %w", athleteID, err)
 	}
-	return GetSeasonPhaseByID(db, id)
+	return GetSeasonPhaseByID(ctx, db, id)
 }
 
 // GetSeasonPhaseByID retrieves a season phase by primary key.
-func GetSeasonPhaseByID(db *sql.DB, id int64) (*SeasonPhase, error) {
+func GetSeasonPhaseByID(ctx context.Context, db *sql.DB, id int64) (*SeasonPhase, error) {
 	sp := &SeasonPhase{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, athlete_id, sport, phase, start_date, end_date, notes, created_at, updated_at
 		 FROM athlete_season_phases WHERE id = ?`, id,
 	).Scan(&sp.ID, &sp.AthleteID, &sp.Sport, &sp.Phase, &sp.StartDate, &sp.EndDate, &sp.Notes, &sp.CreatedAt, &sp.UpdatedAt)
@@ -71,8 +72,8 @@ func GetSeasonPhaseByID(db *sql.DB, id int64) (*SeasonPhase, error) {
 }
 
 // ListSeasonPhases returns an athlete's season phases, newest start first.
-func ListSeasonPhases(db *sql.DB, athleteID int64) ([]*SeasonPhase, error) {
-	rows, err := db.Query(
+func ListSeasonPhases(ctx context.Context, db *sql.DB, athleteID int64) ([]*SeasonPhase, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, athlete_id, sport, phase, start_date, end_date, notes, created_at, updated_at
 		 FROM athlete_season_phases WHERE athlete_id = ?
 		 ORDER BY start_date DESC, id DESC`, athleteID)
@@ -93,8 +94,8 @@ func ListSeasonPhases(db *sql.DB, athleteID int64) ([]*SeasonPhase, error) {
 }
 
 // DeleteSeasonPhase removes a season phase by ID.
-func DeleteSeasonPhase(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM athlete_season_phases WHERE id = ?`, id)
+func DeleteSeasonPhase(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM athlete_season_phases WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete season phase %d: %w", id, err)
 	}

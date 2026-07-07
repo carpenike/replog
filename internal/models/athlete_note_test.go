@@ -1,17 +1,18 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 )
 
 func TestCreateAthleteNote(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	coach, _ := CreateUser(context.Background(), db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
 	t.Run("basic note", func(t *testing.T) {
-		note, err := CreateAthleteNote(db, a.ID, coach.ID, "", "Great session today", false, false)
+		note, err := CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "", "Great session today", false, false)
 		if err != nil {
 			t.Fatalf("create note: %v", err)
 		}
@@ -30,7 +31,7 @@ func TestCreateAthleteNote(t *testing.T) {
 	})
 
 	t.Run("private pinned note", func(t *testing.T) {
-		note, err := CreateAthleteNote(db, a.ID, coach.ID, "2026-03-15", "Watch for overtraining", true, true)
+		note, err := CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "2026-03-15", "Watch for overtraining", true, true)
 		if err != nil {
 			t.Fatalf("create note: %v", err)
 		}
@@ -43,7 +44,7 @@ func TestCreateAthleteNote(t *testing.T) {
 	})
 
 	t.Run("empty content rejected", func(t *testing.T) {
-		_, err := CreateAthleteNote(db, a.ID, coach.ID, "", "", false, false)
+		_, err := CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "", "", false, false)
 		if err == nil {
 			t.Fatal("expected error for empty content")
 		}
@@ -52,13 +53,13 @@ func TestCreateAthleteNote(t *testing.T) {
 
 func TestUpdateAthleteNote(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	coach, _ := CreateUser(context.Background(), db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
-	note, _ := CreateAthleteNote(db, a.ID, coach.ID, "", "Original note", false, false)
+	note, _ := CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "", "Original note", false, false)
 
 	t.Run("update content and visibility", func(t *testing.T) {
-		updated, err := UpdateAthleteNote(db, note.ID, a.ID, "Updated note", true, true)
+		updated, err := UpdateAthleteNote(context.Background(), db, note.ID, a.ID, "Updated note", true, true)
 		if err != nil {
 			t.Fatalf("update note: %v", err)
 		}
@@ -74,7 +75,7 @@ func TestUpdateAthleteNote(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		_, err := UpdateAthleteNote(db, 99999, a.ID, "anything", false, false)
+		_, err := UpdateAthleteNote(context.Background(), db, 99999, a.ID, "anything", false, false)
 		if err == nil {
 			t.Fatal("expected error for non-existent note")
 		}
@@ -83,17 +84,17 @@ func TestUpdateAthleteNote(t *testing.T) {
 
 func TestDeleteAthleteNote(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	coach, _ := CreateUser(context.Background(), db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
-	note, _ := CreateAthleteNote(db, a.ID, coach.ID, "", "Delete me", false, false)
+	note, _ := CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "", "Delete me", false, false)
 
-	if err := DeleteAthleteNote(db, note.ID, a.ID); err != nil {
+	if err := DeleteAthleteNote(context.Background(), db, note.ID, a.ID); err != nil {
 		t.Fatalf("delete note: %v", err)
 	}
 
 	// Should not exist anymore.
-	_, err := GetAthleteNoteByID(db, note.ID)
+	_, err := GetAthleteNoteByID(context.Background(), db, note.ID)
 	if err == nil {
 		t.Error("expected not found after delete")
 	}
@@ -101,15 +102,15 @@ func TestDeleteAthleteNote(t *testing.T) {
 
 func TestListAthleteNotes(t *testing.T) {
 	db := testDB(t)
-	a, _ := CreateAthlete(db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
-	coach, _ := CreateUser(db, "coach", "", "password123", "", true, false, sql.NullInt64{})
+	a, _ := CreateAthlete(context.Background(), db, "Test Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	coach, _ := CreateUser(context.Background(), db, "coach", "", "password123", "", true, false, sql.NullInt64{})
 
-	CreateAthleteNote(db, a.ID, coach.ID, "2026-01-01", "Public note", false, false)
-	CreateAthleteNote(db, a.ID, coach.ID, "2026-01-02", "Private note", true, false)
-	CreateAthleteNote(db, a.ID, coach.ID, "2026-01-03", "Pinned note", false, true)
+	CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "2026-01-01", "Public note", false, false)
+	CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "2026-01-02", "Private note", true, false)
+	CreateAthleteNote(context.Background(), db, a.ID, coach.ID, "2026-01-03", "Pinned note", false, true)
 
 	t.Run("include private", func(t *testing.T) {
-		notes, err := ListAthleteNotes(db, a.ID, true)
+		notes, err := ListAthleteNotes(context.Background(), db, a.ID, true)
 		if err != nil {
 			t.Fatalf("list notes: %v", err)
 		}
@@ -123,7 +124,7 @@ func TestListAthleteNotes(t *testing.T) {
 	})
 
 	t.Run("exclude private", func(t *testing.T) {
-		notes, err := ListAthleteNotes(db, a.ID, false)
+		notes, err := ListAthleteNotes(context.Background(), db, a.ID, false)
 		if err != nil {
 			t.Fatalf("list notes: %v", err)
 		}
@@ -138,11 +139,11 @@ func TestListAthleteNotes(t *testing.T) {
 	})
 
 	t.Run("cascades on athlete delete", func(t *testing.T) {
-		a2, _ := CreateAthlete(db, "Delete Me", "", "", "", "", "", "", sql.NullInt64{}, true)
-		CreateAthleteNote(db, a2.ID, coach.ID, "", "Temp note", false, false)
+		a2, _ := CreateAthlete(context.Background(), db, "Delete Me", "", "", "", "", "", "", sql.NullInt64{}, true)
+		CreateAthleteNote(context.Background(), db, a2.ID, coach.ID, "", "Temp note", false, false)
 		db.Exec("DELETE FROM athletes WHERE id = ?", a2.ID)
 
-		notes, err := ListAthleteNotes(db, a2.ID, true)
+		notes, err := ListAthleteNotes(context.Background(), db, a2.ID, true)
 		if err != nil {
 			t.Fatalf("list notes after delete: %v", err)
 		}

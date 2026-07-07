@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -92,11 +93,11 @@ func ValidateImportData(pf *importers.ParsedFile) []ValidationWarning {
 
 // ExecuteImport performs the import in a single transaction. It creates new
 // entities as specified by the mapping, then imports all data.
-func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingState) (*ImportResult, error) {
+func ExecuteImport(ctx context.Context, db *sql.DB, athleteID, coachID int64, ms *importers.MappingState) (*ImportResult, error) {
 	pf := ms.Parsed
 	result := &ImportResult{}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin import tx: %w", err)
 	}
@@ -115,7 +116,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 					break
 				}
 			}
-			id, err := insertEquipment(tx, m.ImportName, desc)
+			id, err := insertEquipment(ctx, tx, m.ImportName, desc)
 			if err != nil {
 				return nil, fmt.Errorf("models: import create equipment %q: %w", m.ImportName, err)
 			}
@@ -151,7 +152,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 				}
 				featured = pe.Featured
 			}
-			id, err := insertExercise(tx, m.ImportName, tier, formNotes, demoURL, restSeconds, featured)
+			id, err := insertExercise(ctx, tx, m.ImportName, tier, formNotes, demoURL, restSeconds, featured)
 			if err != nil {
 				return nil, fmt.Errorf("models: import create exercise %q: %w", m.ImportName, err)
 			}
@@ -163,7 +164,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 				for _, eq := range pe.Equipment {
 					eqID, ok := equipmentIDMap[strings.ToLower(eq.Name)]
 					if ok {
-						if err := insertExerciseEquipment(tx, id, eqID, eq.Optional); err != nil {
+						if err := insertExerciseEquipment(ctx, tx, id, eqID, eq.Optional); err != nil {
 							return nil, fmt.Errorf("models: import exercise equipment link: %w", err)
 						}
 					}
@@ -173,7 +174,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 					if pattern == "" {
 						continue
 					}
-					if err := insertExerciseMovementPattern(tx, id, pattern); err != nil {
+					if err := insertExerciseMovementPattern(ctx, tx, id, pattern); err != nil {
 						return nil, fmt.Errorf("models: import movement-pattern tag %q for %q: %w", pattern, m.ImportName, err)
 					}
 				}
@@ -185,7 +186,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 	for _, eqName := range pf.AthleteEquipment {
 		eqID, ok := equipmentIDMap[strings.ToLower(eqName)]
 		if ok {
-			if err := insertAthleteEquipment(tx, athleteID, eqID); err != nil {
+			if err := insertAthleteEquipment(ctx, tx, athleteID, eqID); err != nil {
 				log.Printf("models: insert athlete equipment (athlete=%d, eq=%d): %v", athleteID, eqID, err)
 			}
 		}
@@ -201,7 +202,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 		if a.TargetReps != nil {
 			targetReps = *a.TargetReps
 		}
-		if err := insertAssignment(tx, athleteID, exID, targetReps, a.Active); err != nil {
+		if err := insertAssignment(ctx, tx, athleteID, exID, targetReps, a.Active); err != nil {
 			// Skip duplicates silently.
 			if !isUniqueViolation(err) {
 				return nil, fmt.Errorf("models: import assignment for %q: %w", a.Exercise, err)
@@ -223,7 +224,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 		if tm.Notes != nil {
 			notes = *tm.Notes
 		}
-		if err := insertTrainingMax(tx, athleteID, exID, tm.Weight, date, notes); err != nil {
+		if err := insertTrainingMax(ctx, tx, athleteID, exID, tm.Weight, date, notes); err != nil {
 			// Skip duplicates.
 			if !isUniqueViolation(err) {
 				return nil, fmt.Errorf("models: import training max: %w", err)
@@ -241,7 +242,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 		if bw.Notes != nil {
 			notes = *bw.Notes
 		}
-		if err := insertBodyWeight(tx, athleteID, date, bw.Weight, notes); err != nil {
+		if err := insertBodyWeight(ctx, tx, athleteID, date, bw.Weight, notes); err != nil {
 			if !isUniqueViolation(err) {
 				return nil, fmt.Errorf("models: import body weight: %w", err)
 			}
@@ -256,7 +257,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 		date := normalizeDate(w.Date)
 
 		// Skip if workout already exists on this date.
-		_, err := getWorkoutByAthleteDateTx(tx, athleteID, date)
+		_, err := getWorkoutByAthleteDateTx(ctx, tx, athleteID, date)
 		if err == nil {
 			result.WorkoutsSkipped++
 			continue
@@ -267,7 +268,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			notes = *w.Notes
 		}
 
-		workoutID, err := insertWorkout(tx, athleteID, date, notes, 0)
+		workoutID, err := insertWorkout(ctx, tx, athleteID, date, notes, 0)
 		if err != nil {
 			if isUniqueViolation(err) {
 				result.WorkoutsSkipped++
@@ -299,7 +300,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			if repType == "" {
 				repType = "reps"
 			}
-			if err := insertSet(tx, workoutID, exID, s.SetNumber, s.Reps, weight, rpe, repType, s.Category, sNotes); err != nil {
+			if err := insertSet(ctx, tx, workoutID, exID, s.SetNumber, s.Reps, weight, rpe, repType, s.Category, sNotes); err != nil {
 				return nil, fmt.Errorf("models: import set: %w", err)
 			}
 			result.SetsCreated++
@@ -311,7 +312,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			if w.Review.Notes != nil {
 				rNotes = *w.Review.Notes
 			}
-			if err := insertReview(tx, workoutID, coachID, w.Review.Status, rNotes); err != nil {
+			if err := insertReview(ctx, tx, workoutID, coachID, w.Review.Status, rNotes); err != nil {
 				return nil, fmt.Errorf("models: import review: %w", err)
 			}
 			result.ReviewsCreated++
@@ -331,7 +332,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 					ok = true
 				} else if m.Create {
 					// Create the program template.
-					id, err := insertProgramTemplate(tx, prog.Template, nil)
+					id, err := insertProgramTemplate(ctx, tx, prog.Template, nil)
 					if err != nil {
 						return nil, fmt.Errorf("models: import program template %q: %w", prog.Template.Name, err)
 					}
@@ -344,7 +345,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 						if !exOK {
 							continue
 						}
-						if err := insertPrescribedSet(tx, templateID, exID, ps); err != nil {
+						if err := insertPrescribedSet(ctx, tx, templateID, exID, ps); err != nil {
 							return nil, fmt.Errorf("models: import prescribed set: %w", err)
 						}
 					}
@@ -355,7 +356,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 						if !exOK {
 							continue
 						}
-						if err := insertProgressionRule(tx, templateID, exID, pr.Increment); err != nil {
+						if err := insertProgressionRule(ctx, tx, templateID, exID, pr.Increment); err != nil {
 							return nil, fmt.Errorf("models: import progression rule: %w", err)
 						}
 					}
@@ -385,7 +386,7 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 			schedule = *prog.Schedule
 		}
 		startDate := normalizeDate(prog.StartDate)
-		if err := insertAthleteProgram(tx, athleteID, templateID, startDate, notes, goal, role, schedule, prog.Active); err != nil {
+		if err := insertAthleteProgram(ctx, tx, athleteID, templateID, startDate, notes, goal, role, schedule, prog.Active); err != nil {
 			if !isUniqueViolation(err) {
 				return nil, fmt.Errorf("models: import athlete program: %w", err)
 			}
@@ -404,20 +405,20 @@ func ExecuteImport(db *sql.DB, athleteID, coachID int64, ms *importers.MappingSt
 
 // --- Transaction-level insert helpers ---
 
-func insertEquipment(tx *sql.Tx, name, description string) (int64, error) {
+func insertEquipment(ctx context.Context, tx *sql.Tx, name, description string) (int64, error) {
 	var descVal sql.NullString
 	if description != "" {
 		descVal = sql.NullString{String: description, Valid: true}
 	}
 	var id int64
-	err := tx.QueryRow(`INSERT INTO equipment (name, description) VALUES (?, ?) RETURNING id`, name, descVal).Scan(&id)
+	err := tx.QueryRowContext(ctx, `INSERT INTO equipment (name, description) VALUES (?, ?) RETURNING id`, name, descVal).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
 	return id, nil
 }
 
-func insertExercise(tx *sql.Tx, name, tier, formNotes, demoURL string, restSeconds int, featured bool) (int64, error) {
+func insertExercise(ctx context.Context, tx *sql.Tx, name, tier, formNotes, demoURL string, restSeconds int, featured bool) (int64, error) {
 	var tierVal, notesVal, demoVal sql.NullString
 	var restVal sql.NullInt64
 	if tier != "" {
@@ -437,7 +438,7 @@ func insertExercise(tx *sql.Tx, name, tier, formNotes, demoURL string, restSecon
 		featuredInt = 1
 	}
 	var id int64
-	err := tx.QueryRow(
+	err := tx.QueryRowContext(ctx,
 		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds, featured) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
 		name, tierVal, notesVal, demoVal, restVal, featuredInt,
 	).Scan(&id)
@@ -447,8 +448,8 @@ func insertExercise(tx *sql.Tx, name, tier, formNotes, demoURL string, restSecon
 	return id, nil
 }
 
-func insertExerciseEquipment(tx *sql.Tx, exerciseID, equipmentID int64, optional bool) error {
-	_, err := tx.Exec(
+func insertExerciseEquipment(ctx context.Context, tx *sql.Tx, exerciseID, equipmentID int64, optional bool) error {
+	_, err := tx.ExecContext(ctx,
 		`INSERT OR IGNORE INTO exercise_equipment (exercise_id, equipment_id, optional) VALUES (?, ?, ?)`,
 		exerciseID, equipmentID, optional,
 	)
@@ -460,59 +461,59 @@ func insertExerciseEquipment(tx *sql.Tx, exerciseID, equipmentID int64, optional
 // to dedupe re-seeds. Invalid pattern strings are rejected by the migration's
 // CHECK constraint; the caller is expected to validate up-front but we surface
 // the error if validation slips.
-func insertExerciseMovementPattern(tx *sql.Tx, exerciseID int64, pattern string) error {
-	_, err := tx.Exec(
+func insertExerciseMovementPattern(ctx context.Context, tx *sql.Tx, exerciseID int64, pattern string) error {
+	_, err := tx.ExecContext(ctx,
 		`INSERT OR IGNORE INTO exercise_movement_patterns (exercise_id, pattern) VALUES (?, ?)`,
 		exerciseID, pattern,
 	)
 	return err
 }
 
-func insertAthleteEquipment(tx *sql.Tx, athleteID, equipmentID int64) error {
-	_, err := tx.Exec(
+func insertAthleteEquipment(ctx context.Context, tx *sql.Tx, athleteID, equipmentID int64) error {
+	_, err := tx.ExecContext(ctx,
 		`INSERT OR IGNORE INTO athlete_equipment (athlete_id, equipment_id) VALUES (?, ?)`,
 		athleteID, equipmentID,
 	)
 	return err
 }
 
-func insertAssignment(tx *sql.Tx, athleteID, exerciseID int64, targetReps int, active bool) error {
+func insertAssignment(ctx context.Context, tx *sql.Tx, athleteID, exerciseID int64, targetReps int, active bool) error {
 	var trVal sql.NullInt64
 	if targetReps > 0 {
 		trVal = sql.NullInt64{Int64: int64(targetReps), Valid: true}
 	}
-	_, err := tx.Exec(
+	_, err := tx.ExecContext(ctx,
 		`INSERT INTO athlete_exercises (athlete_id, exercise_id, target_reps, active) VALUES (?, ?, ?, ?)`,
 		athleteID, exerciseID, trVal, active,
 	)
 	return err
 }
 
-func insertTrainingMax(tx *sql.Tx, athleteID, exerciseID int64, weight float64, date, notes string) error {
+func insertTrainingMax(ctx context.Context, tx *sql.Tx, athleteID, exerciseID int64, weight float64, date, notes string) error {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
-	_, err := tx.Exec(
+	_, err := tx.ExecContext(ctx,
 		`INSERT INTO training_maxes (athlete_id, exercise_id, weight, effective_date, notes) VALUES (?, ?, ?, ?, ?)`,
 		athleteID, exerciseID, weight, date, notesVal,
 	)
 	return err
 }
 
-func insertBodyWeight(tx *sql.Tx, athleteID int64, date string, weight float64, notes string) error {
+func insertBodyWeight(ctx context.Context, tx *sql.Tx, athleteID int64, date string, weight float64, notes string) error {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
-	_, err := tx.Exec(
+	_, err := tx.ExecContext(ctx,
 		`INSERT INTO body_weights (athlete_id, date, weight, notes) VALUES (?, ?, ?, ?)`,
 		athleteID, date, weight, notesVal,
 	)
 	return err
 }
 
-func insertWorkout(tx *sql.Tx, athleteID int64, date, notes string, assignmentID int64) (int64, error) {
+func insertWorkout(ctx context.Context, tx *sql.Tx, athleteID int64, date, notes string, assignmentID int64) (int64, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
@@ -522,7 +523,7 @@ func insertWorkout(tx *sql.Tx, athleteID int64, date, notes string, assignmentID
 		assignVal = sql.NullInt64{Int64: assignmentID, Valid: true}
 	}
 	var id int64
-	err := tx.QueryRow(
+	err := tx.QueryRowContext(ctx,
 		`INSERT INTO workouts (athlete_id, date, assignment_id, notes) VALUES (?, ?, ?, ?) RETURNING id`,
 		athleteID, date, assignVal, notesVal,
 	).Scan(&id)
@@ -532,16 +533,16 @@ func insertWorkout(tx *sql.Tx, athleteID int64, date, notes string, assignmentID
 	return id, nil
 }
 
-func getWorkoutByAthleteDateTx(tx *sql.Tx, athleteID int64, date string) (int64, error) {
+func getWorkoutByAthleteDateTx(ctx context.Context, tx *sql.Tx, athleteID int64, date string) (int64, error) {
 	var id int64
-	err := tx.QueryRow(`SELECT id FROM workouts WHERE athlete_id = ? AND date = ?`, athleteID, date).Scan(&id)
+	err := tx.QueryRowContext(ctx, `SELECT id FROM workouts WHERE athlete_id = ? AND date = ?`, athleteID, date).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, ErrNotFound
 	}
 	return id, err
 }
 
-func insertSet(tx *sql.Tx, workoutID, exerciseID int64, setNumber, reps int, weight, rpe float64, repType, category, notes string) error {
+func insertSet(ctx context.Context, tx *sql.Tx, workoutID, exerciseID int64, setNumber, reps int, weight, rpe float64, repType, category, notes string) error {
 	var weightVal sql.NullFloat64
 	if weight > 0 {
 		weightVal = sql.NullFloat64{Float64: weight, Valid: true}
@@ -557,26 +558,26 @@ func insertSet(tx *sql.Tx, workoutID, exerciseID int64, setNumber, reps int, wei
 	if category == "" {
 		category = "main"
 	}
-	_, err := tx.Exec(
+	_, err := tx.ExecContext(ctx,
 		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		workoutID, exerciseID, setNumber, reps, weightVal, rpeVal, repType, category, notesVal,
 	)
 	return err
 }
 
-func insertReview(tx *sql.Tx, workoutID, coachID int64, status, notes string) error {
+func insertReview(ctx context.Context, tx *sql.Tx, workoutID, coachID int64, status, notes string) error {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
-	_, err := tx.Exec(
+	_, err := tx.ExecContext(ctx,
 		`INSERT INTO workout_reviews (workout_id, coach_id, status, notes) VALUES (?, ?, ?, ?)`,
 		workoutID, coachID, status, notesVal,
 	)
 	return err
 }
 
-func insertProgramTemplate(tx *sql.Tx, pt importers.ParsedProgramTemplate, athleteID *int64) (int64, error) {
+func insertProgramTemplate(ctx context.Context, tx *sql.Tx, pt importers.ParsedProgramTemplate, athleteID *int64) (int64, error) {
 	var descVal sql.NullString
 	if pt.Description != nil && *pt.Description != "" {
 		descVal = sql.NullString{String: *pt.Description, Valid: true}
@@ -590,7 +591,7 @@ func insertProgramTemplate(tx *sql.Tx, pt importers.ParsedProgramTemplate, athle
 		audVal = sql.NullString{String: *pt.Audience, Valid: true}
 	}
 	var id int64
-	err := tx.QueryRow(
+	err := tx.QueryRowContext(ctx,
 		`INSERT INTO program_templates (athlete_id, name, description, num_weeks, num_days, is_loop, audience) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		athleteID, pt.Name, descVal, pt.NumWeeks, pt.NumDays, isLoopInt, audVal,
 	).Scan(&id)
@@ -600,7 +601,7 @@ func insertProgramTemplate(tx *sql.Tx, pt importers.ParsedProgramTemplate, athle
 	return id, nil
 }
 
-func insertPrescribedSet(tx *sql.Tx, templateID, exerciseID int64, ps importers.ParsedPrescribedSet) error {
+func insertPrescribedSet(ctx context.Context, tx *sql.Tx, templateID, exerciseID int64, ps importers.ParsedPrescribedSet) error {
 	var repsVal sql.NullInt64
 	if ps.Reps != nil {
 		repsVal = sql.NullInt64{Int64: int64(*ps.Reps), Valid: true}
@@ -621,22 +622,22 @@ func insertPrescribedSet(tx *sql.Tx, templateID, exerciseID int64, ps importers.
 	if repType == "" {
 		repType = "reps"
 	}
-	_, err := tx.Exec(
+	_, err := tx.ExecContext(ctx,
 		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, sort_order, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		templateID, exerciseID, ps.Week, ps.Day, ps.SetNumber, repsVal, pctVal, absWeightVal, ps.SortOrder, repType, notesVal,
 	)
 	return err
 }
 
-func insertProgressionRule(tx *sql.Tx, templateID, exerciseID int64, increment float64) error {
-	_, err := tx.Exec(
+func insertProgressionRule(ctx context.Context, tx *sql.Tx, templateID, exerciseID int64, increment float64) error {
+	_, err := tx.ExecContext(ctx,
 		`INSERT OR REPLACE INTO progression_rules (template_id, exercise_id, increment) VALUES (?, ?, ?)`,
 		templateID, exerciseID, increment,
 	)
 	return err
 }
 
-func insertAthleteProgram(tx *sql.Tx, athleteID, templateID int64, startDate, notes, goal, role, schedule string, active bool) error {
+func insertAthleteProgram(ctx context.Context, tx *sql.Tx, athleteID, templateID int64, startDate, notes, goal, role, schedule string, active bool) error {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
@@ -652,7 +653,7 @@ func insertAthleteProgram(tx *sql.Tx, athleteID, templateID int64, startDate, no
 	if schedule != "" {
 		scheduleVal = sql.NullString{String: schedule, Valid: true}
 	}
-	_, err := tx.Exec(
+	_, err := tx.ExecContext(ctx,
 		`INSERT INTO athlete_programs (athlete_id, template_id, start_date, role, schedule, active, notes, goal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		athleteID, templateID, startDate, role, scheduleVal, active, notesVal, goalVal,
 	)
@@ -672,14 +673,14 @@ func findParsedExercise(exercises []importers.ParsedExercise, name string) *impo
 
 // CatalogImportResult summarizes what was imported.
 type CatalogImportResult struct {
-	ExercisesCreated    int
-	EquipmentCreated    int
-	ProgramsCreated     int
-	ProgramsAssigned    int
-	PrescribedSets      int
-	ProgressionRules    int
-	ExerciseEquipLinks  int
-	CreatedTemplateIDs  []int64 // template IDs created, for post-import exercise auto-assignment
+	ExercisesCreated   int
+	EquipmentCreated   int
+	ProgramsCreated    int
+	ProgramsAssigned   int
+	PrescribedSets     int
+	ProgressionRules   int
+	ExerciseEquipLinks int
+	CreatedTemplateIDs []int64 // template IDs created, for post-import exercise auto-assignment
 }
 
 // ExecuteCatalogImport creates equipment, exercises, and program templates
@@ -696,7 +697,7 @@ type CatalogImportResult struct {
 // — the "approve-as-draft" path the AI Coach uses so the coach can edit
 // before explicitly assigning via POST /athletes/{id}/programs (ADR 007,
 // HOF-001 #13). The flag is a no-op when athleteID is nil.
-func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int64, autoAssign bool) (*CatalogImportResult, error) {
+func ExecuteCatalogImport(ctx context.Context, db *sql.DB, ms *importers.MappingState, athleteID *int64, autoAssign bool) (*CatalogImportResult, error) {
 	if ms == nil {
 		return nil, fmt.Errorf("models: catalog import called with nil MappingState")
 	}
@@ -706,7 +707,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 	pf := ms.Parsed
 	result := &CatalogImportResult{}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin catalog import tx: %w", err)
 	}
@@ -731,7 +732,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 				break
 			}
 		}
-		id, err := insertEquipment(tx, m.ImportName, desc)
+		id, err := insertEquipment(ctx, tx, m.ImportName, desc)
 		if err != nil {
 			if isUniqueViolation(err) {
 				continue
@@ -775,7 +776,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 			restSeconds = *pe.RestSeconds
 		}
 
-		id, err := insertExercise(tx, pe.Name, tier, formNotes, demoURL, restSeconds, pe.Featured)
+		id, err := insertExercise(ctx, tx, pe.Name, tier, formNotes, demoURL, restSeconds, pe.Featured)
 		if err != nil {
 			if isUniqueViolation(err) {
 				continue
@@ -791,7 +792,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 			if !ok {
 				continue
 			}
-			if err := insertExerciseEquipment(tx, id, eqID, eq.Optional); err != nil {
+			if err := insertExerciseEquipment(ctx, tx, id, eqID, eq.Optional); err != nil {
 				return nil, fmt.Errorf("models: catalog import exercise-equipment link: %w", err)
 			}
 			result.ExerciseEquipLinks++
@@ -804,7 +805,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 			if pattern == "" {
 				continue
 			}
-			if err := insertExerciseMovementPattern(tx, id, pattern); err != nil {
+			if err := insertExerciseMovementPattern(ctx, tx, id, pattern); err != nil {
 				return nil, fmt.Errorf("models: catalog import movement-pattern tag %q for %q: %w", pattern, pe.Name, err)
 			}
 		}
@@ -816,7 +817,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 	// files) routinely list exercises only inside prescribed_sets /
 	// progression_rules; without this fallback every such row is silently
 	// skipped and the program imports empty.
-	exRows, err := tx.Query(`SELECT id, name FROM exercises`)
+	exRows, err := tx.QueryContext(ctx, `SELECT id, name FROM exercises`)
 	if err != nil {
 		return nil, fmt.Errorf("models: catalog import load existing exercises: %w", err)
 	}
@@ -856,7 +857,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 			continue
 		}
 
-		templateID, err := insertProgramTemplate(tx, *pt, athleteID)
+		templateID, err := insertProgramTemplate(ctx, tx, *pt, athleteID)
 		if err != nil {
 			if isUniqueViolation(err) {
 				continue
@@ -872,10 +873,10 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 		// explicitly (ADR 007, HOF-001 #13).
 		if athleteID != nil && autoAssign {
 			// Deactivate any currently active primary program first (unique index enforces one active primary).
-			_, _ = tx.Exec(`UPDATE athlete_programs SET active = 0 WHERE athlete_id = ? AND active = 1 AND role = 'primary'`, *athleteID)
+			_, _ = tx.ExecContext(ctx, `UPDATE athlete_programs SET active = 0 WHERE athlete_id = ? AND active = 1 AND role = 'primary'`, *athleteID)
 
 			startDate := time.Now().Format("2006-01-02")
-			if err := insertAthleteProgram(tx, *athleteID, templateID, startDate, "", "", "primary", "", true); err != nil {
+			if err := insertAthleteProgram(ctx, tx, *athleteID, templateID, startDate, "", "", "primary", "", true); err != nil {
 				return nil, fmt.Errorf("models: catalog import assign program %q to athlete %d: %w", pt.Name, *athleteID, err)
 			}
 			result.ProgramsAssigned++
@@ -888,7 +889,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 				log.Printf("models: catalog import skipped prescribed set for unknown exercise %q in template %q", ps.Exercise, pt.Name)
 				continue
 			}
-			if err := insertPrescribedSet(tx, templateID, exID, ps); err != nil {
+			if err := insertPrescribedSet(ctx, tx, templateID, exID, ps); err != nil {
 				return nil, fmt.Errorf("models: catalog import prescribed set: %w", err)
 			}
 			result.PrescribedSets++
@@ -901,7 +902,7 @@ func ExecuteCatalogImport(db *sql.DB, ms *importers.MappingState, athleteID *int
 				log.Printf("models: catalog import skipped progression rule for unknown exercise %q in template %q", pr.Exercise, pt.Name)
 				continue
 			}
-			if err := insertProgressionRule(tx, templateID, exID, pr.Increment); err != nil {
+			if err := insertProgressionRule(ctx, tx, templateID, exID, pr.Increment); err != nil {
 				return nil, fmt.Errorf("models: catalog import progression rule: %w", err)
 			}
 			result.ProgressionRules++

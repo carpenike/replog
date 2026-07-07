@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -12,7 +13,7 @@ import (
 // existing programs (assignment, list, get, etc.).
 func (e *testEnv) createProgramTemplate(t *testing.T, name string, weeks, days int) *models.ProgramTemplate {
 	t.Helper()
-	p, err := models.CreateProgramTemplate(e.DB, nil, name, "", weeks, days, false, "")
+	p, err := models.CreateProgramTemplate(context.Background(), e.DB, nil, name, "", weeks, days, false, "")
 	if err != nil {
 		t.Fatalf("create program template %q: %v", name, err)
 	}

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -29,7 +30,7 @@ func conditioningDiscipline(t *testing.T, s *LoadSummary) *DisciplineLoad {
 // suppress the ratio (nil) and flag "insufficient_history".
 func TestLoadSummary_WeekOfDataSuppressesACWR(t *testing.T) {
 	db := testDB(t)
-	a, err := CreateAthlete(db, "Week Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, err := CreateAthlete(context.Background(), db, "Week Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -37,7 +38,7 @@ func TestLoadSummary_WeekOfDataSuppressesACWR(t *testing.T) {
 	// Log conditioning on three days, all inside the last 7 days.
 	for _, n := range []int{0, 2, 5} {
 		dur := int64(1800)
-		_, err := CreateConditioningSession(db, a.ID, ConditioningSessionInput{
+		_, err := CreateConditioningSession(context.Background(), db, a.ID, ConditioningSessionInput{
 			Date:            daysAgo(n),
 			Modality:        "run",
 			SessionType:     "steady",
@@ -48,7 +49,7 @@ func TestLoadSummary_WeekOfDataSuppressesACWR(t *testing.T) {
 		}
 	}
 
-	summary, err := GetLoadSummary(db, a.ID)
+	summary, err := GetLoadSummary(context.Background(), db, a.ID)
 	if err != nil {
 		t.Fatalf("get load summary: %v", err)
 	}
@@ -71,7 +72,7 @@ func TestLoadSummary_WeekOfDataSuppressesACWR(t *testing.T) {
 // is computed instead of suppressed.
 func TestLoadSummary_FullChronicWindowComputesACWR(t *testing.T) {
 	db := testDB(t)
-	a, err := CreateAthlete(db, "Month Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	a, err := CreateAthlete(context.Background(), db, "Month Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -80,7 +81,7 @@ func TestLoadSummary_FullChronicWindowComputesACWR(t *testing.T) {
 	// far edge plus recent sessions inside the acute window.
 	for _, n := range []int{27, 20, 12, 4, 1} {
 		dur := int64(1800)
-		_, err := CreateConditioningSession(db, a.ID, ConditioningSessionInput{
+		_, err := CreateConditioningSession(context.Background(), db, a.ID, ConditioningSessionInput{
 			Date:            daysAgo(n),
 			Modality:        "run",
 			SessionType:     "steady",
@@ -91,7 +92,7 @@ func TestLoadSummary_FullChronicWindowComputesACWR(t *testing.T) {
 		}
 	}
 
-	summary, err := GetLoadSummary(db, a.ID)
+	summary, err := GetLoadSummary(context.Background(), db, a.ID)
 	if err != nil {
 		t.Fatalf("get load summary: %v", err)
 	}

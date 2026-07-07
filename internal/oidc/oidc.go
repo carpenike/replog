@@ -228,7 +228,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := models.UpsertUserFromOIDC(h.db, idToken.Subject, claims.Email, claims.Name, claims.EmailVerified)
+	user, err := models.UpsertUserFromOIDC(ctx, h.db, idToken.Subject, claims.Email, claims.Name, claims.EmailVerified)
 	if err != nil {
 		log.Printf("oidc: callback: user upsert failed: %v", err)
 		h.fail(w, r, "user_resolve_failed")
@@ -244,7 +244,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 	h.sessions.Put(ctx, "userID", user.ID)
 
-	if err := models.EnsureUserPreferences(h.db, user.ID); err != nil {
+	if err := models.EnsureUserPreferences(ctx, h.db, user.ID); err != nil {
 		log.Printf("oidc: callback: ensure preferences for user %d: %v", user.ID, err)
 	}
 

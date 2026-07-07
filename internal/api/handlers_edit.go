@@ -48,7 +48,7 @@ func (h *Handlers) UpdateEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	equip, err := models.UpdateEquipment(h.DB, id, req.Name, req.Description)
+	equip, err := models.UpdateEquipment(r.Context(), h.DB, id, req.Name, req.Description)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "equipment not found")
 		return
@@ -86,7 +86,7 @@ func (h *Handlers) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	target, err := models.GetUserByID(h.DB, id)
+	target, err := models.GetUserByID(r.Context(), h.DB, id)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "user not found")
 		return
@@ -142,7 +142,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		athleteID = sql.NullInt64{Int64: *req.AthleteID, Valid: true}
 	}
 
-	updated, err := models.UpdateUser(h.DB, id, req.Username, req.Name, req.Email, athleteID, req.IsCoach, req.IsAdmin)
+	updated, err := models.UpdateUser(r.Context(), h.DB, id, req.Username, req.Name, req.Email, athleteID, req.IsCoach, req.IsAdmin)
 	if errors.Is(err, models.ErrDuplicateUsername) {
 		WriteError(w, http.StatusConflict, "username already exists")
 		return
@@ -155,7 +155,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Update password if provided.
 	if req.Password != "" {
-		if err := models.UpdatePassword(h.DB, id, req.Password); err != nil {
+		if err := models.UpdatePassword(r.Context(), h.DB, id, req.Password); err != nil {
 			log.Printf("api: set password for user %d: %v", id, err)
 			WriteError(w, http.StatusInternalServerError, "user updated but password change failed")
 			return
@@ -203,7 +203,7 @@ func (h *Handlers) SetUserMCPAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.SetUserMCPEnabled(h.DB, id, req.Enabled); err != nil {
+	if err := models.SetUserMCPEnabled(r.Context(), h.DB, id, req.Enabled); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "user not found")
 			return
@@ -215,7 +215,7 @@ func (h *Handlers) SetUserMCPAccess(w http.ResponseWriter, r *http.Request) {
 
 	// Return the freshly-read user so the UI updates its toggle from the
 	// authoritative row, not the request body.
-	updated, err := models.GetUserByID(h.DB, id)
+	updated, err := models.GetUserByID(r.Context(), h.DB, id)
 	if err != nil {
 		log.Printf("api: get user %d after mcp toggle: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to load user")

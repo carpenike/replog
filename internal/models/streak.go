@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -43,7 +44,7 @@ func (ws *WeeklyStreak) Label() string {
 //   - Assigned: exercises that were actively assigned at any point during the week
 //     (simplification: uses current active assignments for all weeks)
 //   - Completed: distinct assigned exercises with at least one logged set that week
-func WeeklyStreaks(db *sql.DB, athleteID int64, weeks int) ([]*WeeklyStreak, error) {
+func WeeklyStreaks(ctx context.Context, db *sql.DB, athleteID int64, weeks int) ([]*WeeklyStreak, error) {
 	if weeks <= 0 {
 		weeks = 8
 	}
@@ -58,7 +59,7 @@ func WeeklyStreaks(db *sql.DB, athleteID int64, weeks int) ([]*WeeklyStreak, err
 	monday = time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, time.UTC)
 
 	// Get current active assignment exercise IDs.
-	assignedRows, err := db.Query(
+	assignedRows, err := db.QueryContext(ctx,
 		`SELECT DISTINCT exercise_id FROM athlete_exercises
 		 WHERE athlete_id = ? AND active = 1`,
 		athleteID,
@@ -106,7 +107,7 @@ func WeeklyStreaks(db *sql.DB, athleteID int64, weeks int) ([]*WeeklyStreak, err
 	rangeStart := startMonday.Format("2006-01-02")
 	rangeEnd := monday.AddDate(0, 0, 6).Format("2006-01-02")
 
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT date(w.date), ws.exercise_id
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id

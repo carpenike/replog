@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 // Pitch Smart age-bracket resolution.
 func (e *testEnv) createAthleteWithDOB(t *testing.T, name, dob string, coachID int64) *models.Athlete {
 	t.Helper()
-	athlete, err := models.CreateAthlete(e.DB, name, "", "", "", dob, "", "",
+	athlete, err := models.CreateAthlete(context.Background(), e.DB, name, "", "", "", dob, "", "",
 		sql.NullInt64{Int64: coachID, Valid: coachID != 0}, false)
 	if err != nil {
 		t.Fatalf("create athlete %q: %v", name, err)
@@ -78,7 +79,7 @@ func TestMultiModal_JournalRendersBoth(t *testing.T) {
 		fmt.Sprintf(`{"date":%q,"throw_type":"long_toss","throw_count":40,"velocity":68}`, date), cookies)
 	requireStatus(t, rr, http.StatusCreated)
 
-	entries, err := models.ListJournalEntries(env.DB, athlete.ID, true, 100)
+	entries, err := models.ListJournalEntries(context.Background(), env.DB, athlete.ID, true, 100)
 	if err != nil {
 		t.Fatalf("list journal: %v", err)
 	}

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -59,7 +60,7 @@ const DefaultTokenLifetime = 7 * 24 * time.Hour // 7 days
 // CreateLoginToken generates a new login token for the given user.
 // Label is optional (e.g. "iPad", "iPhone"). ExpiresAt is optional — nil
 // defaults to DefaultTokenLifetime from now.
-func CreateLoginToken(db *sql.DB, userID int64, label string, expiresAt *time.Time) (*LoginToken, error) {
+func CreateLoginToken(ctx context.Context, db *sql.DB, userID int64, label string, expiresAt *time.Time) (*LoginToken, error) {
 	token, err := generateToken(32) // 256-bit token
 	if err != nil {
 		return nil, err
@@ -79,7 +80,7 @@ func CreateLoginToken(db *sql.DB, userID int64, label string, expiresAt *time.Ti
 	}
 
 	var id int64
-	err = db.QueryRow(
+	err = db.QueryRowContext(ctx,
 		`INSERT INTO login_tokens (user_id, token, label, expires_at) VALUES (?, ?, ?, ?) RETURNING id`,
 		userID, hashLoginToken(token), labelVal, expiresVal,
 	).Scan(&id)
@@ -106,15 +107,15 @@ func CreateLoginToken(db *sql.DB, userID int64, label string, expiresAt *time.Ti
 // Tokens are single-use: a successful lookup deletes the row in the same
 // transaction so the same magic link cannot be replayed (e.g., from access
 // logs or browser history). Expired tokens are also deleted on lookup.
-func ValidateLoginToken(db *sql.DB, token string) (*User, error) {
-	tx, err := db.Begin()
+func ValidateLoginToken(ctx context.Context, db *sql.DB, token string) (*User, error) {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: validate login token begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	lt := &LoginToken{}
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`SELECT id, user_id, token, label, expires_at, created_at
 		 FROM login_tokens WHERE token = ?`, hashLoginToken(token),
 	).Scan(&lt.ID, &lt.UserID, &lt.Token, &lt.Label, &lt.ExpiresAt, &lt.CreatedAt)
@@ -126,7 +127,7 @@ func ValidateLoginToken(db *sql.DB, token string) (*User, error) {
 	}
 
 	// Consume the token regardless of whether it's expired — single-use.
-	if _, err := tx.Exec(`DELETE FROM login_tokens WHERE id = ?`, lt.ID); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM login_tokens WHERE id = ?`, lt.ID); err != nil {
 		return nil, fmt.Errorf("models: validate login token consume: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -137,7 +138,7 @@ func ValidateLoginToken(db *sql.DB, token string) (*User, error) {
 		return nil, ErrNotFound
 	}
 
-	user, err := GetUserByID(db, lt.UserID)
+	user, err := GetUserByID(ctx, db, lt.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("models: validate login token get user: %w", err)
 	}
@@ -146,8 +147,8 @@ func ValidateLoginToken(db *sql.DB, token string) (*User, error) {
 }
 
 // ListLoginTokensByUser returns all login tokens for a given user, ordered by creation date.
-func ListLoginTokensByUser(db *sql.DB, userID int64) ([]*LoginToken, error) {
-	rows, err := db.Query(
+func ListLoginTokensByUser(ctx context.Context, db *sql.DB, userID int64) ([]*LoginToken, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, user_id, token, label, expires_at, created_at
 		 FROM login_tokens WHERE user_id = ? ORDER BY created_at DESC`, userID,
 	)
@@ -173,8 +174,8 @@ func ListLoginTokensByUser(db *sql.DB, userID int64) ([]*LoginToken, error) {
 // DeleteLoginToken removes a login token by ID, scoped to the specified user
 // to prevent cross-user deletion. Returns ErrNotFound if the token does not
 // exist or does not belong to the user.
-func DeleteLoginToken(db *sql.DB, id, userID int64) error {
-	result, err := db.Exec(`DELETE FROM login_tokens WHERE id = ? AND user_id = ?`, id, userID)
+func DeleteLoginToken(ctx context.Context, db *sql.DB, id, userID int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM login_tokens WHERE id = ? AND user_id = ?`, id, userID)
 	if err != nil {
 		return fmt.Errorf("models: delete login token %d: %w", id, err)
 	}
@@ -186,8 +187,8 @@ func DeleteLoginToken(db *sql.DB, id, userID int64) error {
 }
 
 // DeleteLoginTokensByUser removes all login tokens for a user.
-func DeleteLoginTokensByUser(db *sql.DB, userID int64) error {
-	_, err := db.Exec(`DELETE FROM login_tokens WHERE user_id = ?`, userID)
+func DeleteLoginTokensByUser(ctx context.Context, db *sql.DB, userID int64) error {
+	_, err := db.ExecContext(ctx, `DELETE FROM login_tokens WHERE user_id = ?`, userID)
 	if err != nil {
 		return fmt.Errorf("models: delete login tokens for user %d: %w", userID, err)
 	}
@@ -196,8 +197,8 @@ func DeleteLoginTokensByUser(db *sql.DB, userID int64) error {
 
 // DeleteExpiredLoginTokens removes all login tokens whose expiry date has passed.
 // Returns the number of tokens deleted.
-func DeleteExpiredLoginTokens(db *sql.DB) (int64, error) {
-	result, err := db.Exec(
+func DeleteExpiredLoginTokens(ctx context.Context, db *sql.DB) (int64, error) {
+	result, err := db.ExecContext(ctx,
 		`DELETE FROM login_tokens WHERE expires_at IS NOT NULL AND expires_at < ?`,
 		time.Now(),
 	)

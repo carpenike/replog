@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -86,7 +87,7 @@ var validDistanceUnits = map[string]bool{
 // CreateConditioningSession logs a conditioning session for an athlete. It
 // creates the parent workout (discipline='conditioning'), the conditioning
 // detail row, and any interval rows in a single transaction.
-func CreateConditioningSession(db *sql.DB, athleteID int64, in ConditioningSessionInput) (*ConditioningSession, error) {
+func CreateConditioningSession(ctx context.Context, db *sql.DB, athleteID int64, in ConditioningSessionInput) (*ConditioningSession, error) {
 	if !validConditioningModalities[in.Modality] {
 		return nil, fmt.Errorf("models: invalid modality %q: %w", in.Modality, ErrInvalidInput)
 	}
@@ -97,14 +98,14 @@ func CreateConditioningSession(db *sql.DB, athleteID int64, in ConditioningSessi
 		return nil, fmt.Errorf("models: invalid distance_unit %q: %w", in.DistanceUnit, ErrInvalidInput)
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("models: begin conditioning session tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	var workoutID int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO workouts (athlete_id, date, discipline) VALUES (?, ?, 'conditioning') RETURNING id`,
 		athleteID, in.Date,
 	).Scan(&workoutID)
@@ -116,7 +117,7 @@ func CreateConditioningSession(db *sql.DB, athleteID int64, in ConditioningSessi
 	}
 
 	var id int64
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO conditioning_sessions
 		    (workout_id, modality, session_type, total_distance, distance_unit, duration_seconds, avg_hr, rpe, notes)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
@@ -130,7 +131,7 @@ func CreateConditioningSession(db *sql.DB, athleteID int64, in ConditioningSessi
 	}
 
 	for _, iv := range in.Intervals {
-		_, err = tx.Exec(
+		_, err = tx.ExecContext(ctx,
 			`INSERT INTO conditioning_intervals
 			    (conditioning_session_id, interval_number, work_seconds, work_distance, rest_seconds, notes)
 			 VALUES (?, ?, ?, ?, ?, ?)`,
@@ -150,14 +151,14 @@ func CreateConditioningSession(db *sql.DB, athleteID int64, in ConditioningSessi
 		return nil, fmt.Errorf("models: commit conditioning session: %w", err)
 	}
 
-	return GetConditioningSessionByID(db, id)
+	return GetConditioningSessionByID(ctx, db, id)
 }
 
 // GetConditioningSessionByID retrieves a conditioning session (with parent date
 // and ordered intervals) by ID.
-func GetConditioningSessionByID(db *sql.DB, id int64) (*ConditioningSession, error) {
+func GetConditioningSessionByID(ctx context.Context, db *sql.DB, id int64) (*ConditioningSession, error) {
 	cs := &ConditioningSession{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT cs.id, cs.workout_id, cs.modality, cs.session_type, cs.total_distance,
 		        cs.distance_unit, cs.duration_seconds, cs.avg_hr, cs.rpe, cs.notes,
 		        cs.created_at, cs.updated_at, w.athlete_id, w.date
@@ -174,7 +175,7 @@ func GetConditioningSessionByID(db *sql.DB, id int64) (*ConditioningSession, err
 		return nil, fmt.Errorf("models: get conditioning session %d: %w", id, err)
 	}
 
-	intervals, err := listConditioningIntervals(db, id)
+	intervals, err := listConditioningIntervals(ctx, db, id)
 	if err != nil {
 		return nil, err
 	}
@@ -183,8 +184,8 @@ func GetConditioningSessionByID(db *sql.DB, id int64) (*ConditioningSession, err
 }
 
 // listConditioningIntervals returns a session's intervals, ordered.
-func listConditioningIntervals(db *sql.DB, sessionID int64) ([]*ConditioningInterval, error) {
-	rows, err := db.Query(
+func listConditioningIntervals(ctx context.Context, db *sql.DB, sessionID int64) ([]*ConditioningInterval, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, conditioning_session_id, interval_number, work_seconds, work_distance, rest_seconds, notes
 		 FROM conditioning_intervals WHERE conditioning_session_id = ?
 		 ORDER BY interval_number ASC`, sessionID)
@@ -207,11 +208,11 @@ func listConditioningIntervals(db *sql.DB, sessionID int64) ([]*ConditioningInte
 
 // ListConditioningSessions returns an athlete's conditioning sessions, newest
 // first. Intervals are populated for each.
-func ListConditioningSessions(db *sql.DB, athleteID int64, limit int) ([]*ConditioningSession, error) {
+func ListConditioningSessions(ctx context.Context, db *sql.DB, athleteID int64, limit int) ([]*ConditioningSession, error) {
 	if limit <= 0 {
 		limit = 100
 	}
-	rows, err := db.Query(
+	rows, err := db.QueryContext(ctx,
 		`SELECT cs.id, cs.workout_id, cs.modality, cs.session_type, cs.total_distance,
 		        cs.distance_unit, cs.duration_seconds, cs.avg_hr, cs.rpe, cs.notes,
 		        cs.created_at, cs.updated_at, w.athlete_id, w.date
@@ -240,7 +241,7 @@ func ListConditioningSessions(db *sql.DB, athleteID int64, limit int) ([]*Condit
 	}
 
 	for _, cs := range sessions {
-		intervals, err := listConditioningIntervals(db, cs.ID)
+		intervals, err := listConditioningIntervals(ctx, db, cs.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -251,12 +252,12 @@ func ListConditioningSessions(db *sql.DB, athleteID int64, limit int) ([]*Condit
 
 // DeleteConditioningSession removes a conditioning session and its parent
 // workout (cascading to the detail row and intervals).
-func DeleteConditioningSession(db *sql.DB, id int64) error {
-	cs, err := GetConditioningSessionByID(db, id)
+func DeleteConditioningSession(ctx context.Context, db *sql.DB, id int64) error {
+	cs, err := GetConditioningSessionByID(ctx, db, id)
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(`DELETE FROM workouts WHERE id = ?`, cs.WorkoutID)
+	result, err := db.ExecContext(ctx, `DELETE FROM workouts WHERE id = ?`, cs.WorkoutID)
 	if err != nil {
 		return fmt.Errorf("models: delete conditioning session %d: %w", id, err)
 	}

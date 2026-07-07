@@ -52,16 +52,16 @@ type Request struct {
 // It checks the user's per-type preferences and dispatches accordingly.
 // Errors are logged but do not propagate — notifications must never block
 // the triggering action.
-func Send(db *sql.DB, req Request) {
+func Send(ctx context.Context, db *sql.DB, req Request) {
 	if req.UserID == 0 || req.Type == "" || req.Title == "" {
 		return
 	}
 
-	pref := models.GetNotificationPreference(db, req.UserID, req.Type)
+	pref := models.GetNotificationPreference(ctx, db, req.UserID, req.Type)
 
 	// In-app channel: insert into notifications table.
 	if pref.InApp {
-		_, err := models.CreateNotification(db, req.UserID, req.Type, req.Title, req.Message, req.Link, req.AthleteID)
+		_, err := models.CreateNotification(ctx, db, req.UserID, req.Type, req.Title, req.Message, req.Link, req.AthleteID)
 		if err != nil {
 			log.Printf("notify: in-app notification failed for user %d type %q: %v", req.UserID, req.Type, err)
 		}
@@ -72,40 +72,40 @@ func Send(db *sql.DB, req Request) {
 		// HTML email to the target user.
 		link := req.Link
 		if link != "" && !strings.HasPrefix(link, "http") {
-			if baseURL := models.GetSetting(db, "app.base_url"); baseURL != "" {
+			if baseURL := models.GetSetting(ctx, db, "app.base_url"); baseURL != "" {
 				link = strings.TrimRight(baseURL, "/") + "/" + strings.TrimLeft(link, "/")
 			}
 		}
 		htmlBody := renderEmail("notification.html", EmailData{
-			AppName: models.GetAppName(db),
-			BaseURL: models.GetSetting(db, "app.base_url"),
+			AppName: models.GetAppName(ctx, db),
+			BaseURL: models.GetSetting(ctx, db, "app.base_url"),
 			Title:   req.Title,
 			Message: req.Message,
 			Link:    link,
 		})
 		if htmlBody != "" {
-			sendHTMLToUser(db, req.UserID, req.Title, htmlBody)
+			sendHTMLToUser(ctx, db, req.UserID, req.Title, htmlBody)
 		} else {
 			// Fallback to plain text if template rendering fails.
-			sendToUser(db, req.UserID, req.Title, buildBody(req))
+			sendToUser(ctx, db, req.UserID, req.Title, buildBody(req))
 		}
 
 		// Plain text to broadcast channels (ntfy, Discord, etc.).
-		sendBroadcast(db, buildBody(req))
+		sendBroadcast(ctx, db, buildBody(req))
 	}
 }
 
 // SendToUser sends an HTML email to a specific user's email address.
 // Used for targeted delivery like magic links where only the recipient should
 // see the message. Does not check preferences or create in-app notifications.
-func SendToUser(db *sql.DB, userID int64, subject, htmlBody string) {
-	sendHTMLToUser(db, userID, subject, htmlBody)
+func SendToUser(ctx context.Context, db *sql.DB, userID int64, subject, htmlBody string) {
+	sendHTMLToUser(ctx, db, userID, subject, htmlBody)
 }
 
 // sendHTMLToUser sends an HTML email to the target user using app-level SMTP settings.
 // Silently returns if SMTP is not configured or the user has no email.
-func sendHTMLToUser(db *sql.DB, userID int64, subject, htmlBody string) {
-	smtpURL := buildSMTPURL(db, userID, subject, true)
+func sendHTMLToUser(ctx context.Context, db *sql.DB, userID int64, subject, htmlBody string) {
+	smtpURL := buildSMTPURL(ctx, db, userID, subject, true)
 	if smtpURL == "" {
 		return
 	}
@@ -113,9 +113,9 @@ func sendHTMLToUser(db *sql.DB, userID int64, subject, htmlBody string) {
 	sendWG.Add(1)
 	go func() {
 		defer sendWG.Done()
-		ctx, cancel := context.WithTimeout(context.Background(), sendTimeout)
+		sendCtx, cancel := context.WithTimeout(context.Background(), sendTimeout)
 		defer cancel()
-		if err := sendWithContext(ctx, smtpURL, htmlBody, fmt.Sprintf("HTML email user %d", userID)); err != nil {
+		if err := sendWithContext(sendCtx, smtpURL, htmlBody, fmt.Sprintf("HTML email user %d", userID)); err != nil {
 			log.Printf("notify: HTML email send failed for user %d: %v", userID, err)
 		}
 	}()
@@ -123,8 +123,8 @@ func sendHTMLToUser(db *sql.DB, userID int64, subject, htmlBody string) {
 
 // sendToUser sends a plain text email to the target user using app-level SMTP settings.
 // Silently returns if SMTP is not configured or the user has no email.
-func sendToUser(db *sql.DB, userID int64, subject, body string) {
-	smtpURL := buildSMTPURL(db, userID, subject, false)
+func sendToUser(ctx context.Context, db *sql.DB, userID int64, subject, body string) {
+	smtpURL := buildSMTPURL(ctx, db, userID, subject, false)
 	if smtpURL == "" {
 		return
 	}
@@ -132,9 +132,9 @@ func sendToUser(db *sql.DB, userID int64, subject, body string) {
 	sendWG.Add(1)
 	go func() {
 		defer sendWG.Done()
-		ctx, cancel := context.WithTimeout(context.Background(), sendTimeout)
+		sendCtx, cancel := context.WithTimeout(context.Background(), sendTimeout)
 		defer cancel()
-		if err := sendWithContext(ctx, smtpURL, body, fmt.Sprintf("email user %d", userID)); err != nil {
+		if err := sendWithContext(sendCtx, smtpURL, body, fmt.Sprintf("email user %d", userID)); err != nil {
 			log.Printf("notify: email send failed for user %d: %v", userID, err)
 		}
 	}()
@@ -142,8 +142,8 @@ func sendToUser(db *sql.DB, userID int64, subject, body string) {
 
 // sendBroadcast sends a message to all globally configured Shoutrrr URLs
 // (ntfy, Discord, etc.). These are admin/broadcast channels, not per-user.
-func sendBroadcast(db *sql.DB, body string) {
-	urlsStr := models.GetSetting(db, "notify.urls")
+func sendBroadcast(ctx context.Context, db *sql.DB, body string) {
+	urlsStr := models.GetSetting(ctx, db, "notify.urls")
 	if urlsStr == "" {
 		return
 	}
@@ -156,8 +156,8 @@ func sendBroadcast(db *sql.DB, body string) {
 	go func() {
 		defer sendWG.Done()
 		for _, u := range urls {
-			ctx, cancel := context.WithTimeout(context.Background(), sendTimeout)
-			if err := sendWithContext(ctx, u, body, "broadcast "+maskURL(u)); err != nil {
+			sendCtx, cancel := context.WithTimeout(context.Background(), sendTimeout)
+			if err := sendWithContext(sendCtx, u, body, "broadcast "+maskURL(u)); err != nil {
 				log.Printf("notify: broadcast send failed for url %q: %v", maskURL(u), err)
 			}
 			cancel()
@@ -167,8 +167,8 @@ func sendBroadcast(db *sql.DB, body string) {
 
 // SendBroadcast sends a message to all globally configured broadcast URLs
 // without targeting a specific user. Used for system-wide announcements.
-func SendBroadcast(db *sql.DB, body string) {
-	sendBroadcast(db, body)
+func SendBroadcast(ctx context.Context, db *sql.DB, body string) {
+	sendBroadcast(ctx, db, body)
 }
 
 // sendFn is the package's reference to shoutrrr.Send, swapped by tests to
@@ -251,13 +251,13 @@ func TestConnection(ctx context.Context, db *sql.DB) error {
 	var errs []string
 
 	// Test SMTP if configured.
-	if smtpHost := models.GetSetting(db, "smtp.host"); smtpHost != "" {
-		fromAddr := models.GetSetting(db, "smtp.from")
+	if smtpHost := models.GetSetting(ctx, db, "smtp.host"); smtpHost != "" {
+		fromAddr := models.GetSetting(ctx, db, "smtp.from")
 		if fromAddr == "" {
 			errs = append(errs, "SMTP: from address not configured")
 		} else {
 			// Send test to the from address itself.
-			testURL := buildSMTPURLDirect(db, fromAddr, "RepLog SMTP Test", false)
+			testURL := buildSMTPURLDirect(ctx, db, fromAddr, "RepLog SMTP Test", false)
 			if testURL != "" {
 				if err := sendWithContext(ctx, testURL, "If you see this, RepLog SMTP is working!", "SMTP test"); err != nil {
 					if errors.Is(err, context.DeadlineExceeded) {
@@ -271,7 +271,7 @@ func TestConnection(ctx context.Context, db *sql.DB) error {
 	}
 
 	// Test broadcast URLs.
-	urlsStr := models.GetSetting(db, "notify.urls")
+	urlsStr := models.GetSetting(ctx, db, "notify.urls")
 	if urlsStr != "" {
 		for _, u := range parseURLs(urlsStr) {
 			if err := sendWithContext(ctx, u, "RepLog test — if you see this, notifications are working!", "broadcast "+maskURL(u)); err != nil {
@@ -289,7 +289,7 @@ func TestConnection(ctx context.Context, db *sql.DB) error {
 	}
 
 	// Check that at least one channel is configured.
-	if models.GetSetting(db, "smtp.host") == "" && urlsStr == "" {
+	if models.GetSetting(ctx, db, "smtp.host") == "" && urlsStr == "" {
 		return fmt.Errorf("no notification channels configured (set SMTP or broadcast URLs)")
 	}
 
@@ -301,29 +301,29 @@ func TestConnection(ctx context.Context, db *sql.DB) error {
 // buildSMTPURL constructs a Shoutrrr SMTP URL for a specific user.
 // Returns empty string if SMTP is not configured or the user has no email.
 // When html is true, sets usehtml=Yes so Shoutrrr sends Content-Type: text/html.
-func buildSMTPURL(db *sql.DB, userID int64, subject string, html bool) string {
-	user, err := models.GetUserByID(db, userID)
+func buildSMTPURL(ctx context.Context, db *sql.DB, userID int64, subject string, html bool) string {
+	user, err := models.GetUserByID(ctx, db, userID)
 	if err != nil || !user.Email.Valid || user.Email.String == "" {
 		return ""
 	}
-	return buildSMTPURLDirect(db, user.Email.String, subject, html)
+	return buildSMTPURLDirect(ctx, db, user.Email.String, subject, html)
 }
 
 // buildSMTPURLDirect constructs a Shoutrrr SMTP URL for a given email address.
 // Returns empty string if SMTP is not configured.
 // When html is true, sets usehtml=Yes so Shoutrrr sends Content-Type: text/html.
-func buildSMTPURLDirect(db *sql.DB, toEmail, subject string, html bool) string {
-	host := models.GetSetting(db, "smtp.host")
+func buildSMTPURLDirect(ctx context.Context, db *sql.DB, toEmail, subject string, html bool) string {
+	host := models.GetSetting(ctx, db, "smtp.host")
 	if host == "" {
 		return ""
 	}
-	port := models.GetSetting(db, "smtp.port")
+	port := models.GetSetting(ctx, db, "smtp.port")
 	if port == "" {
 		port = "587"
 	}
-	username := models.GetSetting(db, "smtp.username")
-	password := models.GetSetting(db, "smtp.password")
-	fromAddr := models.GetSetting(db, "smtp.from")
+	username := models.GetSetting(ctx, db, "smtp.username")
+	password := models.GetSetting(ctx, db, "smtp.password")
+	fromAddr := models.GetSetting(ctx, db, "smtp.from")
 	if fromAddr == "" {
 		return ""
 	}

@@ -128,7 +128,7 @@ func (h *Handlers) AvatarUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := models.UpdateAvatarPath(h.DB, user.ID, sql.NullString{String: filename, Valid: true}); err != nil {
+	if err := models.UpdateAvatarPath(r.Context(), h.DB, user.ID, sql.NullString{String: filename, Valid: true}); err != nil {
 		log.Printf("api: update avatar path for user %d: %v", user.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update avatar")
 		return
@@ -153,7 +153,7 @@ func (h *Handlers) AvatarDelete(w http.ResponseWriter, r *http.Request) {
 		os.Remove(fullPath)
 	}
 
-	if err := models.UpdateAvatarPath(h.DB, user.ID, sql.NullString{}); err != nil {
+	if err := models.UpdateAvatarPath(r.Context(), h.DB, user.ID, sql.NullString{}); err != nil {
 		log.Printf("api: delete avatar for user %d: %v", user.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete avatar")
 		return

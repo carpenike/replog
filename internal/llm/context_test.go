@@ -2,6 +2,7 @@ package llm
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -32,7 +33,7 @@ func testDB(t testing.TB) *sql.DB {
 // if your test also needs program / equipment / exercise rows.
 func seedMethodologies(t testing.TB, db *sql.DB) {
 	t.Helper()
-	if _, err := models.ApplyMethodologySeedFromBytes(db, database.SeedMethodologies()); err != nil {
+	if _, err := models.ApplyMethodologySeedFromBytes(context.Background(), db, database.SeedMethodologies()); err != nil {
 		t.Fatalf("seed methodologies: %v", err)
 	}
 }
@@ -52,7 +53,7 @@ func seedCatalogForTest(t testing.TB, db *sql.DB) {
 		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
 		Parsed:    parsed,
 	}
-	if _, err := models.ExecuteCatalogImport(db, ms, nil, false); err != nil {
+	if _, err := models.ExecuteCatalogImport(context.Background(), db, ms, nil, false); err != nil {
 		t.Fatalf("apply catalog: %v", err)
 	}
 }
@@ -66,11 +67,11 @@ func loadSeededMethodology(t testing.TB, key string) *models.MethodologyWithLink
 	db := testDB(t)
 	seedCatalogForTest(t, db)
 	seedMethodologies(t, db)
-	m, err := models.GetMethodologyByKey(db, key)
+	m, err := models.GetMethodologyByKey(context.Background(), db, key)
 	if err != nil {
 		t.Fatalf("get methodology %q: %v", key, err)
 	}
-	full, err := models.LoadMethodologyWithLinks(db, m.ID)
+	full, err := models.LoadMethodologyWithLinks(context.Background(), db, m.ID)
 	if err != nil {
 		t.Fatalf("load methodology %q with links: %v", key, err)
 	}
@@ -79,7 +80,7 @@ func loadSeededMethodology(t testing.TB, key string) *models.MethodologyWithLink
 
 func seedAthlete(t testing.TB, db *sql.DB, name, tier, goal string) int64 {
 	t.Helper()
-	a, err := models.CreateAthlete(db, name, tier, "", goal, "", "", "", sql.NullInt64{}, true)
+	a, err := models.CreateAthlete(context.Background(), db, name, tier, "", goal, "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("seed athlete: %v", err)
 	}
@@ -88,7 +89,7 @@ func seedAthlete(t testing.TB, db *sql.DB, name, tier, goal string) int64 {
 
 func seedExercise(t testing.TB, db *sql.DB, name, tier string) int64 {
 	t.Helper()
-	ex, err := models.CreateExercise(db, name, tier, "", "", 0)
+	ex, err := models.CreateExercise(context.Background(), db, name, tier, "", "", 0)
 	if err != nil {
 		t.Fatalf("seed exercise: %v", err)
 	}
@@ -97,7 +98,7 @@ func seedExercise(t testing.TB, db *sql.DB, name, tier string) int64 {
 
 func seedWorkout(t testing.TB, db *sql.DB, athleteID int64, date string) int64 {
 	t.Helper()
-	w, err := models.CreateWorkout(db, athleteID, date, "", 0)
+	w, err := models.CreateWorkout(context.Background(), db, athleteID, date, "", 0)
 	if err != nil {
 		t.Fatalf("seed workout: %v", err)
 	}
@@ -108,7 +109,7 @@ func TestBuildAthleteContext_Empty(t *testing.T) {
 	db := testDB(t)
 	athleteID := seedAthlete(t, db, "TestAthlete", "foundational", "get strong")
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -141,20 +142,20 @@ func TestBuildAthleteContext_WithWorkouts(t *testing.T) {
 	exID := seedExercise(t, db, "Squat", "sport_performance")
 
 	w1ID := seedWorkout(t, db, athleteID, "2026-01-10")
-	if _, err := models.AddSet(db, w1ID, exID, 5, 135.0, 7.0, "reps", "", ""); err != nil {
+	if _, err := models.AddSet(context.Background(), db, w1ID, exID, 5, 135.0, 7.0, "reps", "", ""); err != nil {
 		t.Fatalf("add set: %v", err)
 	}
-	if _, err := models.AddSet(db, w1ID, exID, 5, 135.0, 7.5, "reps", "", ""); err != nil {
+	if _, err := models.AddSet(context.Background(), db, w1ID, exID, 5, 135.0, 7.5, "reps", "", ""); err != nil {
 		t.Fatalf("add set: %v", err)
 	}
 
 	w2ID := seedWorkout(t, db, athleteID, "2026-01-12")
-	if _, err := models.AddSet(db, w2ID, exID, 5, 140.0, 8.0, "reps", "", ""); err != nil {
+	if _, err := models.AddSet(context.Background(), db, w2ID, exID, 5, 140.0, 8.0, "reps", "", ""); err != nil {
 		t.Fatalf("add set: %v", err)
 	}
 
 	now := time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC)
-	ctx, err := BuildAthleteContext(db, athleteID, now, BuildContextOptions{})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, now, BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -177,14 +178,14 @@ func TestBuildAthleteContext_WithTrainingMaxes(t *testing.T) {
 	athleteID := seedAthlete(t, db, "Bob", "intermediate", "")
 	exID := seedExercise(t, db, "Bench Press", "intermediate")
 
-	if _, err := models.AssignExercise(db, athleteID, exID, 5); err != nil {
+	if _, err := models.AssignExercise(context.Background(), db, athleteID, exID, 5); err != nil {
 		t.Fatalf("assign exercise: %v", err)
 	}
-	if _, err := models.SetTrainingMax(db, athleteID, exID, 185.0, "2026-01-01", ""); err != nil {
+	if _, err := models.SetTrainingMax(context.Background(), db, athleteID, exID, 185.0, "2026-01-01", ""); err != nil {
 		t.Fatalf("set training max: %v", err)
 	}
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -204,14 +205,14 @@ func TestBuildAthleteContext_WithBodyWeights(t *testing.T) {
 	db := testDB(t)
 	athleteID := seedAthlete(t, db, "Carol", "", "")
 
-	if _, err := models.CreateBodyWeight(db, athleteID, "2026-01-10", 150.0, ""); err != nil {
+	if _, err := models.CreateBodyWeight(context.Background(), db, athleteID, "2026-01-10", 150.0, ""); err != nil {
 		t.Fatalf("create body weight: %v", err)
 	}
-	if _, err := models.CreateBodyWeight(db, athleteID, "2026-01-17", 151.5, ""); err != nil {
+	if _, err := models.CreateBodyWeight(context.Background(), db, athleteID, "2026-01-17", 151.5, ""); err != nil {
 		t.Fatalf("create body weight: %v", err)
 	}
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -232,7 +233,7 @@ func TestBuildAthleteContext_ExerciseCatalog(t *testing.T) {
 	seedExercise(t, db, "Push-Up", "foundational")
 	seedExercise(t, db, "Pull-Up", "foundational")
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -256,16 +257,16 @@ func TestBuildAthleteContext_ExerciseCatalog_EquipmentFiltering(t *testing.T) {
 	bbExID := seedExercise(t, db, "Barbell Squat", "sport_performance")
 
 	// Create equipment and link it as required for the barbell exercise.
-	barbell, err := models.CreateEquipment(db, "Barbell", "Standard barbell")
+	barbell, err := models.CreateEquipment(context.Background(), db, "Barbell", "Standard barbell")
 	if err != nil {
 		t.Fatalf("create equipment: %v", err)
 	}
-	if err := models.AddExerciseEquipment(db, bbExID, barbell.ID, false); err != nil {
+	if err := models.AddExerciseEquipment(context.Background(), db, bbExID, barbell.ID, false); err != nil {
 		t.Fatalf("add exercise equipment: %v", err)
 	}
 
 	// Athlete has NO equipment configured.
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -288,10 +289,10 @@ func TestBuildAthleteContext_PriorTemplates(t *testing.T) {
 	db := testDB(t)
 
 	// Create global templates with audience tags.
-	if _, err := models.CreateProgramTemplate(db, nil, "Foundations 1×20", "Youth foundations", 1, 2, true, "youth"); err != nil {
+	if _, err := models.CreateProgramTemplate(context.Background(), db, nil, "Foundations 1×20", "Youth foundations", 1, 2, true, "youth"); err != nil {
 		t.Fatalf("create youth template: %v", err)
 	}
-	if _, err := models.CreateProgramTemplate(db, nil, "5/3/1 BBB", "Adult program", 4, 4, true, "adult"); err != nil {
+	if _, err := models.CreateProgramTemplate(context.Background(), db, nil, "5/3/1 BBB", "Adult program", 4, 4, true, "adult"); err != nil {
 		t.Fatalf("create adult template: %v", err)
 	}
 
@@ -299,12 +300,12 @@ func TestBuildAthleteContext_PriorTemplates(t *testing.T) {
 	youthID := seedAthlete(t, db, "Eve", "foundational", "general fitness")
 
 	// Create an athlete-scoped template for the youth athlete.
-	if _, err := models.CreateProgramTemplate(db, &youthID, "Eve Custom", "", 3, 3, false, ""); err != nil {
+	if _, err := models.CreateProgramTemplate(context.Background(), db, &youthID, "Eve Custom", "", 3, 3, false, ""); err != nil {
 		t.Fatalf("create athlete-scoped template: %v", err)
 	}
 
 	t.Run("youth athlete sees youth reference programs", func(t *testing.T) {
-		ctx, err := BuildAthleteContext(db, youthID, time.Now(), BuildContextOptions{})
+		ctx, err := BuildAthleteContext(context.Background(), db, youthID, time.Now(), BuildContextOptions{})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -328,7 +329,7 @@ func TestBuildAthleteContext_PriorTemplates(t *testing.T) {
 	adultID := seedAthlete(t, db, "Frank", "", "strength")
 
 	t.Run("adult athlete sees adult reference programs", func(t *testing.T) {
-		ctx, err := BuildAthleteContext(db, adultID, time.Now(), BuildContextOptions{})
+		ctx, err := BuildAthleteContext(context.Background(), db, adultID, time.Now(), BuildContextOptions{})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -349,18 +350,18 @@ func TestBuildAthleteContext_ReferencePrograms_WithSets(t *testing.T) {
 	db := testDB(t)
 
 	// Create a global youth template with prescribed sets.
-	tmpl, err := models.CreateProgramTemplate(db, nil, "Youth Test Program", "A youth reference", 1, 2, true, "youth")
+	tmpl, err := models.CreateProgramTemplate(context.Background(), db, nil, "Youth Test Program", "A youth reference", 1, 2, true, "youth")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
 	exID := seedExercise(t, db, "Push-up", "foundational")
 	reps := 20
-	if _, err := models.CreatePrescribedSet(db, tmpl.ID, exID, 1, 1, 1, &reps, nil, nil, 1, "reps", "Form: full ROM"); err != nil {
+	if _, err := models.CreatePrescribedSet(context.Background(), db, tmpl.ID, exID, 1, 1, 1, &reps, nil, nil, 1, "reps", "Form: full ROM"); err != nil {
 		t.Fatalf("create prescribed set: %v", err)
 	}
 
 	athleteID := seedAthlete(t, db, "Grace", "foundational", "")
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -386,7 +387,7 @@ func TestBuildAthleteContext_ReferencePrograms_WithSets(t *testing.T) {
 
 func TestBuildAthleteContext_NotFound(t *testing.T) {
 	db := testDB(t)
-	_, err := BuildAthleteContext(db, 99999, time.Now(), BuildContextOptions{})
+	_, err := BuildAthleteContext(context.Background(), db, 99999, time.Now(), BuildContextOptions{})
 	if err == nil {
 		t.Fatal("expected error for nonexistent athlete")
 	}
@@ -401,13 +402,13 @@ func TestBuildAthleteContext_OnTierExemplarReorder(t *testing.T) {
 
 	// Seed the three canonical youth programs (names match the real seed).
 	for _, name := range []string{"Foundations 1×20", "Foundations 1×15", "Sport Performance — Month 1"} {
-		if _, err := models.CreateProgramTemplate(db, nil, name, "", 1, 2, true, "youth"); err != nil {
+		if _, err := models.CreateProgramTemplate(context.Background(), db, nil, name, "", 1, 2, true, "youth"); err != nil {
 			t.Fatalf("create template %q: %v", name, err)
 		}
 	}
 
 	athleteID := seedAthlete(t, db, "Bridge", "intermediate", "")
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -447,15 +448,15 @@ func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 	db := testDB(t)
 
 	// Create two youth templates and one adult template.
-	youthA, err := models.CreateProgramTemplate(db, nil, "Youth A", "first", 1, 2, true, "youth")
+	youthA, err := models.CreateProgramTemplate(context.Background(), db, nil, "Youth A", "first", 1, 2, true, "youth")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
-	_, err = models.CreateProgramTemplate(db, nil, "Youth B", "second", 1, 3, true, "youth")
+	_, err = models.CreateProgramTemplate(context.Background(), db, nil, "Youth B", "second", 1, 3, true, "youth")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
-	adultC, err := models.CreateProgramTemplate(db, nil, "Adult C", "adult ref", 4, 4, false, "adult")
+	adultC, err := models.CreateProgramTemplate(context.Background(), db, nil, "Adult C", "adult ref", 4, 4, false, "adult")
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
@@ -463,7 +464,7 @@ func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 	// Add a prescribed set to youthA so we can verify it loads.
 	exID := seedExercise(t, db, "Squat", "foundational")
 	reps := 20
-	if _, err := models.CreatePrescribedSet(db, youthA.ID, exID, 1, 1, 1, &reps, nil, nil, 1, "reps", ""); err != nil {
+	if _, err := models.CreatePrescribedSet(context.Background(), db, youthA.ID, exID, 1, 1, 1, &reps, nil, nil, 1, "reps", ""); err != nil {
 		t.Fatalf("create prescribed set: %v", err)
 	}
 
@@ -472,7 +473,7 @@ func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 
 	t.Run("explicit IDs override audience filter", func(t *testing.T) {
 		// Request only youthA — should get just that one, not youthB.
-		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{ReferenceTemplateIDs: []int64{youthA.ID}})
+		ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{ReferenceTemplateIDs: []int64{youthA.ID}})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -489,7 +490,7 @@ func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 
 	t.Run("can select cross-audience template", func(t *testing.T) {
 		// Youth athlete can still get the adult template if coach explicitly picks it.
-		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{ReferenceTemplateIDs: []int64{adultC.ID}})
+		ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{ReferenceTemplateIDs: []int64{adultC.ID}})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -502,7 +503,7 @@ func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 	})
 
 	t.Run("empty IDs falls back to audience", func(t *testing.T) {
-		ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
+		ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{})
 		if err != nil {
 			t.Fatalf("BuildAthleteContext: %v", err)
 		}
@@ -523,21 +524,21 @@ func TestBuildAthleteContext_ExplicitReferenceTemplateIDs(t *testing.T) {
 func TestListProgramTemplatesByIDs(t *testing.T) {
 	db := testDB(t)
 
-	a, err := models.CreateProgramTemplate(db, nil, "Prog A", "desc a", 4, 3, false, "adult")
+	a, err := models.CreateProgramTemplate(context.Background(), db, nil, "Prog A", "desc a", 4, 3, false, "adult")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := models.CreateProgramTemplate(db, nil, "Prog B", "desc b", 1, 4, true, "youth")
+	b, err := models.CreateProgramTemplate(context.Background(), db, nil, "Prog B", "desc b", 1, 4, true, "youth")
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = models.CreateProgramTemplate(db, nil, "Prog C", "", 2, 2, false, "")
+	_, err = models.CreateProgramTemplate(context.Background(), db, nil, "Prog C", "", 2, 2, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Run("returns matching templates", func(t *testing.T) {
-		results, err := models.ListProgramTemplatesByIDs(db, []int64{a.ID, b.ID})
+		results, err := models.ListProgramTemplatesByIDs(context.Background(), db, []int64{a.ID, b.ID})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -547,7 +548,7 @@ func TestListProgramTemplatesByIDs(t *testing.T) {
 	})
 
 	t.Run("empty IDs returns nil", func(t *testing.T) {
-		results, err := models.ListProgramTemplatesByIDs(db, nil)
+		results, err := models.ListProgramTemplatesByIDs(context.Background(), db, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -557,7 +558,7 @@ func TestListProgramTemplatesByIDs(t *testing.T) {
 	})
 
 	t.Run("nonexistent IDs return empty", func(t *testing.T) {
-		results, err := models.ListProgramTemplatesByIDs(db, []int64{99999})
+		results, err := models.ListProgramTemplatesByIDs(context.Background(), db, []int64{99999})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -572,31 +573,31 @@ func TestBuildAthleteContext_ProgramHistory(t *testing.T) {
 	athleteID := seedAthlete(t, db, "Max", "sport_performance", "")
 
 	// Create two templates and assign them sequentially.
-	pt1, err := models.CreateProgramTemplate(db, nil, "Month 1", "first cycle", 4, 3, false, "youth")
+	pt1, err := models.CreateProgramTemplate(context.Background(), db, nil, "Month 1", "first cycle", 4, 3, false, "youth")
 	if err != nil {
 		t.Fatal(err)
 	}
-	pt2, err := models.CreateProgramTemplate(db, nil, "Month 2", "second cycle", 4, 4, false, "youth")
+	pt2, err := models.CreateProgramTemplate(context.Background(), db, nil, "Month 2", "second cycle", 4, 4, false, "youth")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Assign first program, then deactivate it.
-	ap1, err := models.AssignProgram(db, athleteID, pt1.ID, "2026-01-01", "starting out", "build base", "primary", "")
+	ap1, err := models.AssignProgram(context.Background(), db, athleteID, pt1.ID, "2026-01-01", "starting out", "build base", "primary", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := models.DeactivateProgram(db, ap1.ID); err != nil {
+	if err := models.DeactivateProgram(context.Background(), db, ap1.ID); err != nil {
 		t.Fatal(err)
 	}
 
 	// Assign second (now active).
-	_, err = models.AssignProgram(db, athleteID, pt2.ID, "2026-02-01", "", "increase volume", "primary", "")
+	_, err = models.AssignProgram(context.Background(), db, athleteID, pt2.ID, "2026-02-01", "", "increase volume", "primary", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx, err := BuildAthleteContext(db, athleteID, time.Now(), BuildContextOptions{})
+	ctx, err := BuildAthleteContext(context.Background(), db, athleteID, time.Now(), BuildContextOptions{})
 	if err != nil {
 		t.Fatalf("BuildAthleteContext: %v", err)
 	}
@@ -635,7 +636,7 @@ func TestListAthletePrograms(t *testing.T) {
 	athleteID := seedAthlete(t, db, "Ella", "foundational", "")
 
 	t.Run("empty for new athlete", func(t *testing.T) {
-		programs, err := models.ListAthletePrograms(db, athleteID)
+		programs, err := models.ListAthletePrograms(context.Background(), db, athleteID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -644,18 +645,18 @@ func TestListAthletePrograms(t *testing.T) {
 		}
 	})
 
-	pt, err := models.CreateProgramTemplate(db, nil, "Test Prog", "", 4, 3, false, "")
+	pt, err := models.CreateProgramTemplate(context.Background(), db, nil, "Test Prog", "", 4, 3, false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ap, err := models.AssignProgram(db, athleteID, pt.ID, "2026-01-15", "notes here", "get strong", "primary", "")
+	ap, err := models.AssignProgram(context.Background(), db, athleteID, pt.ID, "2026-01-15", "notes here", "get strong", "primary", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Run("returns assignments with joined fields", func(t *testing.T) {
-		programs, err := models.ListAthletePrograms(db, athleteID)
+		programs, err := models.ListAthletePrograms(context.Background(), db, athleteID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -678,19 +679,19 @@ func TestListAthletePrograms(t *testing.T) {
 	})
 
 	// Deactivate and add another.
-	if err := models.DeactivateProgram(db, ap.ID); err != nil {
+	if err := models.DeactivateProgram(context.Background(), db, ap.ID); err != nil {
 		t.Fatal(err)
 	}
-	pt2, err := models.CreateProgramTemplate(db, nil, "Test Prog 2", "", 1, 4, true, "")
+	pt2, err := models.CreateProgramTemplate(context.Background(), db, nil, "Test Prog 2", "", 1, 4, true, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := models.AssignProgram(db, athleteID, pt2.ID, "2026-02-15", "", "", "primary", ""); err != nil {
+	if _, err := models.AssignProgram(context.Background(), db, athleteID, pt2.ID, "2026-02-15", "", "", "primary", ""); err != nil {
 		t.Fatal(err)
 	}
 
 	t.Run("returns all ordered by start_date desc", func(t *testing.T) {
-		programs, err := models.ListAthletePrograms(db, athleteID)
+		programs, err := models.ListAthletePrograms(context.Background(), db, athleteID)
 		if err != nil {
 			t.Fatal(err)
 		}

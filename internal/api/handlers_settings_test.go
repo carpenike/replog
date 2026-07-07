@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"testing"
@@ -72,7 +73,7 @@ func TestListSettings_SensitiveValuesMasked(t *testing.T) {
 	cookies := env.loginAs(t, admin)
 
 	// Persist a sensitive value via the model layer to skip the round-trip.
-	if err := models.SetSetting(env.DB, "llm.api_key", "sk-super-secret-12345"); err != nil {
+	if err := models.SetSetting(context.Background(), env.DB, "llm.api_key", "sk-super-secret-12345"); err != nil {
 		t.Fatalf("set sensitive setting: %v", err)
 	}
 
@@ -97,7 +98,7 @@ func TestUpdateSetting_Admin(t *testing.T) {
 	requireStatus(t, rr, http.StatusOK)
 
 	// Confirm the model now returns the new value.
-	if got := models.GetSetting(env.DB, "app.name"); got != "My Custom Gym" {
+	if got := models.GetSetting(context.Background(), env.DB, "app.name"); got != "My Custom Gym" {
 		t.Errorf("got app.name=%q, want %q", got, "My Custom Gym")
 	}
 }
@@ -146,7 +147,7 @@ func TestUpdateSetting_SensitiveValueRoundTrip(t *testing.T) {
 		`{"key":"llm.api_key","value":"sk-roundtrip-test"}`, cookies)
 	requireStatus(t, rr, http.StatusOK)
 
-	if got := models.GetSetting(env.DB, "llm.api_key"); got != "sk-roundtrip-test" {
+	if got := models.GetSetting(context.Background(), env.DB, "llm.api_key"); got != "sk-roundtrip-test" {
 		t.Errorf("got llm.api_key=%q, want %q", got, "sk-roundtrip-test")
 	}
 
@@ -229,7 +230,7 @@ func TestTestLLMConnection_TimesOutWhenProviderHangs(t *testing.T) {
 	t.Cleanup(func() { testLLMPingTimeout = orig })
 
 	env := setupTest(t)
-	if err := models.SetSetting(env.DB, "llm.provider", "anthropic"); err != nil {
+	if err := models.SetSetting(context.Background(), env.DB, "llm.provider", "anthropic"); err != nil {
 		t.Fatalf("set llm.provider: %v", err)
 	}
 	// Mock provider that respects context cancellation — simulates a hung
@@ -285,7 +286,7 @@ func TestTestNotifyConnection_TimesOutWhenChannelHangs(t *testing.T) {
 		"smtp.port": "587",
 		"smtp.from": "noreply@example.invalid",
 	} {
-		if err := models.SetSetting(env.DB, k, v); err != nil {
+		if err := models.SetSetting(context.Background(), env.DB, k, v); err != nil {
 			t.Fatalf("set %q: %v", k, err)
 		}
 	}

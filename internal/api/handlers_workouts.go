@@ -37,7 +37,7 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workout, err := models.GetWorkoutByID(h.DB, workoutID)
+	workout, err := models.GetWorkoutByID(r.Context(), h.DB, workoutID)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "workout not found")
 		return
@@ -55,7 +55,7 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups, err := models.ListSetsByWorkout(h.DB, workoutID)
+	groups, err := models.ListSetsByWorkout(r.Context(), h.DB, workoutID)
 	if err != nil {
 		log.Printf("api: list sets for workout %d: %v", workoutID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list sets")
@@ -124,7 +124,7 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		if prefs := middleware.PrefsFromContext(r.Context()); prefs != nil {
 			tz = prefs.Timezone
 		}
-		program, perr := models.ResolveAssignment(h.DB, athleteID, time.Now(), tz)
+		program, perr := models.ResolveAssignment(r.Context(), h.DB, athleteID, time.Now(), tz)
 		if perr != nil {
 			log.Printf("api: resolve assignment for athlete %d: %v", athleteID, perr)
 			WriteError(w, http.StatusInternalServerError, "failed to resolve program")
@@ -136,7 +136,7 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	workout, err := models.CreateWorkout(h.DB, athleteID, req.Date, req.Notes, assignmentID)
+	workout, err := models.CreateWorkout(r.Context(), h.DB, athleteID, req.Date, req.Notes, assignmentID)
 	if err != nil {
 		if errors.Is(err, models.ErrWorkoutExists) {
 			WriteError(w, http.StatusConflict, "a resistance workout already exists for this date")
@@ -149,10 +149,10 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 
 	// Seed the prescribed sets, if requested and a program resolved.
 	if seedProgram != nil {
-		prescription, perr := models.GetPrescription(h.DB, seedProgram, time.Now())
+		prescription, perr := models.GetPrescription(r.Context(), h.DB, seedProgram, time.Now())
 		if perr != nil {
 			log.Printf("api: get prescription for seeding workout %d: %v", workout.ID, perr)
-		} else if _, serr := models.SeedSetsFromPrescription(h.DB, workout.ID, prescription); serr != nil {
+		} else if _, serr := models.SeedSetsFromPrescription(r.Context(), h.DB, workout.ID, prescription); serr != nil {
 			log.Printf("api: seed prescribed sets for workout %d: %v", workout.ID, serr)
 		}
 	}
@@ -160,10 +160,10 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 	// Notify the athlete's coach that a workout was logged (ADR 008).
 	// Skip when the coach is also the one calling the endpoint — they
 	// already know they just made the workout (no point pinging them).
-	if athlete, aerr := models.GetAthleteByID(h.DB, athleteID); aerr == nil &&
+	if athlete, aerr := models.GetAthleteByID(r.Context(), h.DB, athleteID); aerr == nil &&
 		athlete.CoachID.Valid && athlete.CoachID.Int64 != user.ID {
-		h.notifyCoach(athleteID, models.NotifyWorkoutLogged,
-			fmt.Sprintf("%s logged a workout", h.athleteDisplayName(athleteID)),
+		h.notifyCoach(r.Context(), athleteID, models.NotifyWorkoutLogged,
+			fmt.Sprintf("%s logged a workout", h.athleteDisplayName(r.Context(), athleteID)),
 			req.Date,
 			fmt.Sprintf("/athletes/%d/workouts/%d", athleteID, workout.ID))
 	}
@@ -194,7 +194,7 @@ func (h *Handlers) DeleteWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteWorkout(h.DB, workoutID, athleteID); err != nil {
+	if err := models.DeleteWorkout(r.Context(), h.DB, workoutID, athleteID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "workout not found")
 			return
@@ -236,7 +236,7 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 
 	// Verify the workout belongs to the path athlete before mutating it — the
 	// workout ID is global and CanAccessAthlete only authorized {id}.
-	workout, err := models.GetWorkoutByID(h.DB, workoutID)
+	workout, err := models.GetWorkoutByID(r.Context(), h.DB, workoutID)
 	if errors.Is(err, models.ErrNotFound) || (err == nil && workout.AthleteID != athleteID) {
 		WriteError(w, http.StatusNotFound, "workout not found")
 		return
@@ -277,7 +277,7 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	set, err := models.AddSet(h.DB, workoutID, req.ExerciseID, req.Reps, req.Weight, req.RPE, req.RepType, req.Category, req.Notes)
+	set, err := models.AddSet(r.Context(), h.DB, workoutID, req.ExerciseID, req.Reps, req.Weight, req.RPE, req.RepType, req.Category, req.Notes)
 	if err != nil {
 		log.Printf("api: add set to workout %d: %v", workoutID, err)
 		WriteDBError(w, err, "failed to add set")
@@ -287,7 +287,7 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 	// Auto-approve workout if athlete is logging their own sets.
 	// Best-effort: a failure here doesn't change the API contract for
 	// the caller (the set was successfully added).
-	if err := models.AutoApproveWorkout(h.DB, workoutID, user.ID); err != nil {
+	if err := models.AutoApproveWorkout(r.Context(), h.DB, workoutID, user.ID); err != nil {
 		log.Printf("api: auto-approve workout %d: %v", workoutID, err)
 	}
 
@@ -334,7 +334,7 @@ func (h *Handlers) UpdateWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	set, err := models.UpdateSet(h.DB, setID, athleteID, req.Reps, req.Weight, req.RPE, req.Notes)
+	set, err := models.UpdateSet(r.Context(), h.DB, setID, athleteID, req.Reps, req.Weight, req.RPE, req.Notes)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "set not found")
 		return
@@ -372,7 +372,7 @@ func (h *Handlers) DeleteWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteSet(h.DB, setID, athleteID); err != nil {
+	if err := models.DeleteSet(r.Context(), h.DB, setID, athleteID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "set not found")
 			return

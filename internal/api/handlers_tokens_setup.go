@@ -49,7 +49,7 @@ func (h *Handlers) ListMissingTMs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	missing, err := models.ListMissingProgramTMs(h.DB, templateID, athleteID)
+	missing, err := models.ListMissingProgramTMs(r.Context(), h.DB, templateID, athleteID)
 	if err != nil {
 		log.Printf("api: list missing TMs for athlete %d template %d: %v", athleteID, templateID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list missing TMs")
@@ -103,7 +103,7 @@ func (h *Handlers) BatchSetTMs(w http.ResponseWriter, r *http.Request) {
 	date := time.Now().Format("2006-01-02")
 	for _, m := range req.Maxes {
 		if m.Weight > 0 {
-			if _, err := models.SetTrainingMax(h.DB, athleteID, m.ExerciseID, m.Weight, date, "Batch TM setup"); err != nil {
+			if _, err := models.SetTrainingMax(r.Context(), h.DB, athleteID, m.ExerciseID, m.Weight, date, "Batch TM setup"); err != nil {
 				log.Printf("api: batch set TM athlete %d exercise %d: %v", athleteID, m.ExerciseID, err)
 			} else {
 				set++
@@ -139,7 +139,7 @@ func (h *Handlers) ListLoginTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, err := models.ListLoginTokensByUser(h.DB, userID)
+	tokens, err := models.ListLoginTokensByUser(r.Context(), h.DB, userID)
 	if err != nil {
 		log.Printf("api: list login tokens for user %d: %v", userID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list tokens")
@@ -190,7 +190,7 @@ func (h *Handlers) CreateLoginToken(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-	token, err := models.CreateLoginToken(h.DB, userID, req.Label, nil)
+	token, err := models.CreateLoginToken(r.Context(), h.DB, userID, req.Label, nil)
 	if err != nil {
 		log.Printf("api: create login token for user %d: %v", userID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to create token")
@@ -203,7 +203,7 @@ func (h *Handlers) CreateLoginToken(w http.ResponseWriter, r *http.Request) {
 	// artifact and a token in it would be a replayable credential at rest.
 	// The admin shares the one-time URL (returned below) out-of-band; the
 	// notification only informs the user that a link exists.
-	notify.Send(h.DB, notify.Request{
+	notify.Send(r.Context(), h.DB, notify.Request{
 		UserID:  userID,
 		Type:    models.NotifyMagicLinkSent,
 		Title:   "Login link issued",
@@ -248,7 +248,7 @@ func (h *Handlers) DeleteLoginToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteLoginToken(h.DB, tokenID, userID); err != nil {
+	if err := models.DeleteLoginToken(r.Context(), h.DB, tokenID, userID); err != nil {
 		log.Printf("api: delete login token %d: %v", tokenID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete token")
 		return

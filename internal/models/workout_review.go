@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -47,14 +48,14 @@ type ReviewStats struct {
 
 // CreateWorkoutReview inserts a new review for a workout. Returns ErrWorkoutExists
 // semantically if a review already exists (unique constraint on workout_id).
-func CreateWorkoutReview(db *sql.DB, workoutID, coachID int64, status, notes string) (*WorkoutReview, error) {
+func CreateWorkoutReview(ctx context.Context, db *sql.DB, workoutID, coachID int64, status, notes string) (*WorkoutReview, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO workout_reviews (workout_id, coach_id, status, notes)
 		 VALUES (?, ?, ?, ?) RETURNING id`,
 		workoutID, coachID, status, notesVal,
@@ -67,17 +68,17 @@ func CreateWorkoutReview(db *sql.DB, workoutID, coachID int64, status, notes str
 		return nil, fmt.Errorf("models: create workout review for workout %d: %w", workoutID, err)
 	}
 
-	return GetWorkoutReviewByID(db, id)
+	return GetWorkoutReviewByID(ctx, db, id)
 }
 
 // UpdateWorkoutReview updates an existing review's status, notes, and coach.
-func UpdateWorkoutReview(db *sql.DB, id, coachID int64, status, notes string) (*WorkoutReview, error) {
+func UpdateWorkoutReview(ctx context.Context, db *sql.DB, id, coachID int64, status, notes string) (*WorkoutReview, error) {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
-	result, err := db.Exec(
+	result, err := db.ExecContext(ctx,
 		`UPDATE workout_reviews SET coach_id = ?, status = ?, notes = ?
 		 WHERE id = ?`,
 		coachID, status, notesVal, id,
@@ -90,13 +91,13 @@ func UpdateWorkoutReview(db *sql.DB, id, coachID int64, status, notes string) (*
 		return nil, ErrNotFound
 	}
 
-	return GetWorkoutReviewByID(db, id)
+	return GetWorkoutReviewByID(ctx, db, id)
 }
 
 // GetWorkoutReviewByID retrieves a review by primary key.
-func GetWorkoutReviewByID(db *sql.DB, id int64) (*WorkoutReview, error) {
+func GetWorkoutReviewByID(ctx context.Context, db *sql.DB, id int64) (*WorkoutReview, error) {
 	rev := &WorkoutReview{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT wr.id, wr.workout_id, wr.coach_id, wr.status, wr.notes,
 		        wr.created_at, wr.updated_at, u.username
 		 FROM workout_reviews wr
@@ -115,9 +116,9 @@ func GetWorkoutReviewByID(db *sql.DB, id int64) (*WorkoutReview, error) {
 
 // GetWorkoutReviewByWorkoutID retrieves the review for a specific workout.
 // Returns ErrNotFound if no review exists.
-func GetWorkoutReviewByWorkoutID(db *sql.DB, workoutID int64) (*WorkoutReview, error) {
+func GetWorkoutReviewByWorkoutID(ctx context.Context, db *sql.DB, workoutID int64) (*WorkoutReview, error) {
 	rev := &WorkoutReview{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT wr.id, wr.workout_id, wr.coach_id, wr.status, wr.notes,
 		        wr.created_at, wr.updated_at, u.username
 		 FROM workout_reviews wr
@@ -135,8 +136,8 @@ func GetWorkoutReviewByWorkoutID(db *sql.DB, workoutID int64) (*WorkoutReview, e
 }
 
 // DeleteWorkoutReview removes a review by primary key.
-func DeleteWorkoutReview(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM workout_reviews WHERE id = ?`, id)
+func DeleteWorkoutReview(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM workout_reviews WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete workout review %d: %w", id, err)
 	}
@@ -149,8 +150,8 @@ func DeleteWorkoutReview(db *sql.DB, id int64) error {
 
 // ListUnreviewedWorkouts returns all workouts that have not been reviewed,
 // ordered by date descending. Useful for the coach review dashboard.
-func ListUnreviewedWorkouts(db *sql.DB) ([]*UnreviewedWorkout, error) {
-	rows, err := db.Query(`
+func ListUnreviewedWorkouts(ctx context.Context, db *sql.DB) ([]*UnreviewedWorkout, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT w.id, w.athlete_id, a.name, w.date, w.notes,
 		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
 		FROM workouts w
@@ -180,11 +181,11 @@ func ListUnreviewedWorkouts(db *sql.DB) ([]*UnreviewedWorkout, error) {
 }
 
 // GetReviewStats returns aggregate counts of review statuses for the coach dashboard.
-func GetReviewStats(db *sql.DB) (*ReviewStats, error) {
+func GetReviewStats(ctx context.Context, db *sql.DB) (*ReviewStats, error) {
 	stats := &ReviewStats{}
 
 	// Count pending (unreviewed) workouts.
-	err := db.QueryRow(`
+	err := db.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM workouts w
 		LEFT JOIN workout_reviews wr ON wr.workout_id = w.id
@@ -194,7 +195,7 @@ func GetReviewStats(db *sql.DB) (*ReviewStats, error) {
 	}
 
 	// Count approved and needs_work.
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(ctx, `
 		SELECT status, COUNT(*)
 		FROM workout_reviews
 		GROUP BY status`)
@@ -225,24 +226,24 @@ func GetReviewStats(db *sql.DB) (*ReviewStats, error) {
 
 // CreateOrUpdateWorkoutReview creates a review if none exists, or updates the
 // existing one. This is the primary entry point for the review handler.
-func CreateOrUpdateWorkoutReview(db *sql.DB, workoutID, coachID int64, status, notes string) (*WorkoutReview, error) {
-	existing, err := GetWorkoutReviewByWorkoutID(db, workoutID)
+func CreateOrUpdateWorkoutReview(ctx context.Context, db *sql.DB, workoutID, coachID int64, status, notes string) (*WorkoutReview, error) {
+	existing, err := GetWorkoutReviewByWorkoutID(ctx, db, workoutID)
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return nil, fmt.Errorf("models: check existing review for workout %d: %w", workoutID, err)
 	}
 
 	if existing != nil {
-		return UpdateWorkoutReview(db, existing.ID, coachID, status, notes)
+		return UpdateWorkoutReview(ctx, db, existing.ID, coachID, status, notes)
 	}
-	return CreateWorkoutReview(db, workoutID, coachID, status, notes)
+	return CreateWorkoutReview(ctx, db, workoutID, coachID, status, notes)
 }
 
 // AutoApproveWorkout creates an "approved" review for the given workout if no
 // review exists yet. This is called when a coach or admin enters workout data
 // on behalf of an athlete — the act of coaching implies approval. Returns nil
 // without error if a review already exists.
-func AutoApproveWorkout(db *sql.DB, workoutID, coachUserID int64) error {
-	_, err := GetWorkoutReviewByWorkoutID(db, workoutID)
+func AutoApproveWorkout(ctx context.Context, db *sql.DB, workoutID, coachUserID int64) error {
+	_, err := GetWorkoutReviewByWorkoutID(ctx, db, workoutID)
 	if err == nil {
 		// Review already exists — nothing to do.
 		return nil
@@ -251,7 +252,7 @@ func AutoApproveWorkout(db *sql.DB, workoutID, coachUserID int64) error {
 		return fmt.Errorf("models: check review for auto-approve workout %d: %w", workoutID, err)
 	}
 
-	_, err = CreateWorkoutReview(db, workoutID, coachUserID, ReviewStatusApproved, "")
+	_, err = CreateWorkoutReview(ctx, db, workoutID, coachUserID, ReviewStatusApproved, "")
 	if err != nil {
 		return fmt.Errorf("models: auto-approve workout %d: %w", workoutID, err)
 	}

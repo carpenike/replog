@@ -30,7 +30,7 @@ func (h *Handlers) ListThrowingSessions(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	sessions, err := models.ListThrowingSessions(h.DB, athleteID, 100)
+	sessions, err := models.ListThrowingSessions(r.Context(), h.DB, athleteID, 100)
 	if err != nil {
 		log.Printf("api: list throwing sessions for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list throwing sessions")
@@ -79,7 +79,7 @@ func (h *Handlers) CreateThrowingSession(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	session, err := models.CreateThrowingSession(h.DB, athleteID, models.ThrowingSessionInput{
+	session, err := models.CreateThrowingSession(r.Context(), h.DB, athleteID, models.ThrowingSessionInput{
 		Date:       req.Date,
 		ThrowType:  req.ThrowType,
 		ThrowCount: req.ThrowCount,
@@ -130,13 +130,13 @@ func (h *Handlers) DeleteThrowingSession(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Confirm the session belongs to this athlete before deleting.
-	ts, err := models.GetThrowingSessionByID(h.DB, sessionID)
+	ts, err := models.GetThrowingSessionByID(r.Context(), h.DB, sessionID)
 	if err != nil || ts.AthleteID != athleteID {
 		WriteError(w, http.StatusNotFound, "throwing session not found")
 		return
 	}
 
-	if err := models.DeleteThrowingSession(h.DB, sessionID); err != nil {
+	if err := models.DeleteThrowingSession(r.Context(), h.DB, sessionID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "throwing session not found")
 			return
@@ -166,7 +166,7 @@ func (h *Handlers) ListSeasonPhases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	phases, err := models.ListSeasonPhases(h.DB, athleteID)
+	phases, err := models.ListSeasonPhases(r.Context(), h.DB, athleteID)
 	if err != nil {
 		log.Printf("api: list season phases for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list season phases")
@@ -213,7 +213,7 @@ func (h *Handlers) CreateSeasonPhase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	phase, err := models.CreateSeasonPhase(h.DB, athleteID, models.SeasonPhaseInput{
+	phase, err := models.CreateSeasonPhase(r.Context(), h.DB, athleteID, models.SeasonPhaseInput{
 		Sport:     req.Sport,
 		Phase:     req.Phase,
 		StartDate: req.StartDate,
@@ -260,13 +260,13 @@ func (h *Handlers) DeleteSeasonPhase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := models.GetSeasonPhaseByID(h.DB, phaseID)
+	sp, err := models.GetSeasonPhaseByID(r.Context(), h.DB, phaseID)
 	if err != nil || sp.AthleteID != athleteID {
 		WriteError(w, http.StatusNotFound, "season phase not found")
 		return
 	}
 
-	if err := models.DeleteSeasonPhase(h.DB, phaseID); err != nil {
+	if err := models.DeleteSeasonPhase(r.Context(), h.DB, phaseID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "season phase not found")
 			return
@@ -297,7 +297,7 @@ func (h *Handlers) ListBioSamples(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	samples, err := models.ListBioSamples(h.DB, athleteID, r.URL.Query().Get("metric"), 100)
+	samples, err := models.ListBioSamples(r.Context(), h.DB, athleteID, r.URL.Query().Get("metric"), 100)
 	if err != nil {
 		log.Printf("api: list bio samples for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list bio samples")
@@ -339,7 +339,7 @@ func (h *Handlers) CreateBioSample(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sample, err := models.CreateBioSample(h.DB, athleteID, models.BioSampleInput{
+	sample, err := models.CreateBioSample(r.Context(), h.DB, athleteID, models.BioSampleInput{
 		RecordedAt: req.RecordedAt,
 		Metric:     req.Metric,
 		Value:      req.Value,
@@ -380,7 +380,7 @@ func (h *Handlers) GetPitchSmartStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := models.ComputePitchSmartStatus(h.DB, athleteID, time.Now())
+	status, err := models.ComputePitchSmartStatus(r.Context(), h.DB, athleteID, time.Now())
 	if err != nil {
 		if errors.Is(err, models.ErrNoPitchSmartLimit) {
 			WriteError(w, http.StatusNotFound, "no pitch smart guidance for this athlete (age unknown or outside reference range)")
@@ -412,7 +412,7 @@ func (h *Handlers) ListConditioningSessions(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	sessions, err := models.ListConditioningSessions(h.DB, athleteID, 100)
+	sessions, err := models.ListConditioningSessions(r.Context(), h.DB, athleteID, 100)
 	if err != nil {
 		log.Printf("api: list conditioning sessions for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list conditioning sessions")
@@ -476,7 +476,7 @@ func (h *Handlers) CreateConditioningSession(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	session, err := models.CreateConditioningSession(h.DB, athleteID, models.ConditioningSessionInput{
+	session, err := models.CreateConditioningSession(r.Context(), h.DB, athleteID, models.ConditioningSessionInput{
 		Date:            req.Date,
 		Modality:        req.Modality,
 		SessionType:     req.SessionType,
@@ -526,13 +526,13 @@ func (h *Handlers) DeleteConditioningSession(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	cs, err := models.GetConditioningSessionByID(h.DB, sessionID)
+	cs, err := models.GetConditioningSessionByID(r.Context(), h.DB, sessionID)
 	if err != nil || cs.AthleteID != athleteID {
 		WriteError(w, http.StatusNotFound, "conditioning session not found")
 		return
 	}
 
-	if err := models.DeleteConditioningSession(h.DB, sessionID); err != nil {
+	if err := models.DeleteConditioningSession(r.Context(), h.DB, sessionID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "conditioning session not found")
 			return
@@ -562,7 +562,7 @@ func (h *Handlers) ListSkillSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessions, err := models.ListSkillSessions(h.DB, athleteID, 100)
+	sessions, err := models.ListSkillSessions(r.Context(), h.DB, athleteID, 100)
 	if err != nil {
 		log.Printf("api: list skill sessions for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list skill sessions")
@@ -611,7 +611,7 @@ func (h *Handlers) CreateSkillSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := models.CreateSkillSession(h.DB, athleteID, models.SkillSessionInput{
+	session, err := models.CreateSkillSession(r.Context(), h.DB, athleteID, models.SkillSessionInput{
 		Date:            req.Date,
 		SkillType:       req.SkillType,
 		RepCount:        req.RepCount,
@@ -658,13 +658,13 @@ func (h *Handlers) DeleteSkillSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ss, err := models.GetSkillSessionByID(h.DB, sessionID)
+	ss, err := models.GetSkillSessionByID(r.Context(), h.DB, sessionID)
 	if err != nil || ss.AthleteID != athleteID {
 		WriteError(w, http.StatusNotFound, "skill session not found")
 		return
 	}
 
-	if err := models.DeleteSkillSession(h.DB, sessionID); err != nil {
+	if err := models.DeleteSkillSession(r.Context(), h.DB, sessionID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "skill session not found")
 			return
@@ -694,7 +694,7 @@ func (h *Handlers) ListRecoveryCheckins(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	checkins, err := models.ListRecoveryCheckins(h.DB, athleteID, 100)
+	checkins, err := models.ListRecoveryCheckins(r.Context(), h.DB, athleteID, 100)
 	if err != nil {
 		log.Printf("api: list recovery checkins for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list recovery check-ins")
@@ -739,7 +739,7 @@ func (h *Handlers) CreateRecoveryCheckin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	checkin, err := models.CreateRecoveryCheckin(h.DB, athleteID, models.RecoveryCheckinInput{
+	checkin, err := models.CreateRecoveryCheckin(r.Context(), h.DB, athleteID, models.RecoveryCheckinInput{
 		Date:       req.Date,
 		SleepHours: req.SleepHours,
 		Soreness:   req.Soreness,
@@ -784,13 +784,13 @@ func (h *Handlers) DeleteRecoveryCheckin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	rc, err := models.GetRecoveryCheckinByID(h.DB, checkinID)
+	rc, err := models.GetRecoveryCheckinByID(r.Context(), h.DB, checkinID)
 	if err != nil || rc.AthleteID != athleteID {
 		WriteError(w, http.StatusNotFound, "recovery check-in not found")
 		return
 	}
 
-	if err := models.DeleteRecoveryCheckin(h.DB, checkinID); err != nil {
+	if err := models.DeleteRecoveryCheckin(r.Context(), h.DB, checkinID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "recovery check-in not found")
 			return
@@ -822,7 +822,7 @@ func (h *Handlers) GetLoadSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary, err := models.GetLoadSummary(h.DB, athleteID)
+	summary, err := models.GetLoadSummary(r.Context(), h.DB, athleteID)
 	if err != nil {
 		log.Printf("api: get load summary for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to compute load summary")
@@ -841,7 +841,7 @@ func (h *Handlers) athleteAccess(w http.ResponseWriter, r *http.Request) (int64,
 		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
 		return 0, false
 	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+	if !middleware.CanAccessAthlete(r.Context(), h.DB, user, athleteID) {
 		WriteError(w, http.StatusForbidden, "access denied")
 		return 0, false
 	}

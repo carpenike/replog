@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -84,14 +85,14 @@ func (g *Generation) IsTerminal() bool {
 
 // CreateGeneration inserts a pending program-kind generation row and
 // returns it. requestJSON is the marshalled GenerationRequest snapshot.
-func CreateGeneration(db *sql.DB, athleteID, requestedBy int64, requestJSON string) (*Generation, error) {
-	return CreateGenerationWithKind(db, athleteID, requestedBy, requestJSON, GenerationKindProgram)
+func CreateGeneration(ctx context.Context, db *sql.DB, athleteID, requestedBy int64, requestJSON string) (*Generation, error) {
+	return CreateGenerationWithKind(ctx, db, athleteID, requestedBy, requestJSON, GenerationKindProgram)
 }
 
 // CreateGenerationWithKind inserts a pending generation row of the given
 // kind ('program' | 'wod', HOF-015) and returns it.
-func CreateGenerationWithKind(db *sql.DB, athleteID, requestedBy int64, requestJSON, kind string) (*Generation, error) {
-	row := db.QueryRow(
+func CreateGenerationWithKind(ctx context.Context, db *sql.DB, athleteID, requestedBy int64, requestJSON, kind string) (*Generation, error) {
+	row := db.QueryRowContext(ctx,
 		`INSERT INTO generations (athlete_id, requested_by, status, kind, request_json)
 		 VALUES (?, ?, ?, ?, ?)
 		 RETURNING id, created_at`,
@@ -119,8 +120,8 @@ func CreateGenerationWithKind(db *sql.DB, athleteID, requestedBy int64, requestJ
 // stamps started_at. Returns ErrNotFound if the row is missing and a
 // descriptive error if the row is not currently pending (e.g. cancelled
 // between the insert and the goroutine pickup).
-func MarkGenerationRunning(db *sql.DB, id int64) error {
-	res, err := db.Exec(
+func MarkGenerationRunning(ctx context.Context, db *sql.DB, id int64) error {
+	res, err := db.ExecContext(ctx,
 		`UPDATE generations
 		    SET status = ?, started_at = CURRENT_TIMESTAMP
 		  WHERE id = ? AND status = ?`,
@@ -144,7 +145,7 @@ func MarkGenerationRunning(db *sql.DB, id int64) error {
 // parse. contextJSON / prompt may be empty/zero when called from a path
 // that doesn't have them (none today, but we'd rather have the per-arg
 // zero-value than a panic).
-func CompleteGeneration(db *sql.DB, id int64, catalogJSON, reasoning, model, stopReason string, tokensUsed, durationMS int, contextJSON, prompt, warnings, promptVersion string) error {
+func CompleteGeneration(ctx context.Context, db *sql.DB, id int64, catalogJSON, reasoning, model, stopReason string, tokensUsed, durationMS int, contextJSON, prompt, warnings, promptVersion string) error {
 	var ctxVal sql.NullString
 	if contextJSON != "" {
 		ctxVal = sql.NullString{String: contextJSON, Valid: true}
@@ -161,7 +162,7 @@ func CompleteGeneration(db *sql.DB, id int64, catalogJSON, reasoning, model, sto
 	if promptVersion != "" {
 		versionVal = sql.NullString{String: promptVersion, Valid: true}
 	}
-	res, err := db.Exec(
+	res, err := db.ExecContext(ctx,
 		`UPDATE generations
 		    SET status         = ?,
 		        catalog_json   = ?,
@@ -192,8 +193,8 @@ func CompleteGeneration(db *sql.DB, id int64, catalogJSON, reasoning, model, sto
 // FailGeneration marks a running generation as failed with a user-friendly
 // error message. Safe to call after cancellation — the WHERE clause filters
 // to running rows so a cancelled row is left untouched.
-func FailGeneration(db *sql.DB, id int64, userErr string, durationMS int) error {
-	res, err := db.Exec(
+func FailGeneration(ctx context.Context, db *sql.DB, id int64, userErr string, durationMS int) error {
+	res, err := db.ExecContext(ctx,
 		`UPDATE generations
 		    SET status       = ?,
 		        error        = ?,
@@ -216,8 +217,8 @@ func FailGeneration(db *sql.DB, id int64, userErr string, durationMS int) error 
 // Callers use this to honor a coach's "stop" button. If the LLM call has
 // already produced a response, the goroutine's CompleteGeneration will
 // no-op (status no longer 'running') and the cancelled row stands.
-func CancelGeneration(db *sql.DB, id int64) error {
-	res, err := db.Exec(
+func CancelGeneration(ctx context.Context, db *sql.DB, id int64) error {
+	res, err := db.ExecContext(ctx,
 		`UPDATE generations
 		    SET status       = ?,
 		        completed_at = CURRENT_TIMESTAMP
@@ -240,8 +241,8 @@ func CancelGeneration(db *sql.DB, id int64) error {
 // running the import so two concurrent execute requests cannot both commit the
 // same draft (which would create duplicate programs); on import failure the
 // claim is released with UnmarkGenerationExecuted so the coach can retry.
-func MarkGenerationExecuted(db *sql.DB, id int64) error {
-	res, err := db.Exec(
+func MarkGenerationExecuted(ctx context.Context, db *sql.DB, id int64) error {
+	res, err := db.ExecContext(ctx,
 		`UPDATE generations SET executed_at = CURRENT_TIMESTAMP
 		  WHERE id = ? AND executed_at IS NULL`,
 		id,
@@ -260,8 +261,8 @@ func MarkGenerationExecuted(db *sql.DB, id int64) error {
 // clearing executed_at. Used to roll back the claim when the import that
 // followed a successful MarkGenerationExecuted fails, so the draft is not
 // permanently stuck in an "executed" state it never completed.
-func UnmarkGenerationExecuted(db *sql.DB, id int64) error {
-	if _, err := db.Exec(`UPDATE generations SET executed_at = NULL WHERE id = ?`, id); err != nil {
+func UnmarkGenerationExecuted(ctx context.Context, db *sql.DB, id int64) error {
+	if _, err := db.ExecContext(ctx, `UPDATE generations SET executed_at = NULL WHERE id = ?`, id); err != nil {
 		return fmt.Errorf("models: unmark generation %d executed: %w", id, err)
 	}
 	return nil
@@ -269,8 +270,8 @@ func UnmarkGenerationExecuted(db *sql.DB, id int64) error {
 
 // GetGeneration loads a single generation by ID. Returns ErrNotFound if
 // the row does not exist.
-func GetGeneration(db *sql.DB, id int64) (*Generation, error) {
-	row := db.QueryRow(
+func GetGeneration(ctx context.Context, db *sql.DB, id int64) (*Generation, error) {
+	row := db.QueryRowContext(ctx,
 		`SELECT id, athlete_id, requested_by, status, kind, request_json,
 		        catalog_json, reasoning, model, tokens_used, duration_ms,
 		        stop_reason, error, context_json, prompt, warnings, prompt_version,
@@ -299,8 +300,8 @@ func GetGeneration(db *sql.DB, id int64) (*Generation, error) {
 // by the form-data endpoint so the SPA can resume a still-running draft
 // after page reload. Scoped by kind (HOF-015) so a WOD draft never surfaces
 // in the program GeneratePage resume path, and vice versa.
-func LatestGenerationForAthlete(db *sql.DB, athleteID int64, kind string) (*Generation, error) {
-	row := db.QueryRow(
+func LatestGenerationForAthlete(ctx context.Context, db *sql.DB, athleteID int64, kind string) (*Generation, error) {
+	row := db.QueryRowContext(ctx,
 		`SELECT id, athlete_id, requested_by, status, kind, request_json,
 		        catalog_json, reasoning, model, tokens_used, duration_ms,
 		        stop_reason, error, context_json, prompt, warnings, prompt_version,
@@ -332,8 +333,8 @@ func LatestGenerationForAthlete(db *sql.DB, athleteID int64, kind string) (*Gene
 // (nil, nil) when no draft is in flight. Scoped by kind (HOF-015) so a WOD
 // in flight does not block a normal program draft for the same athlete (and
 // vice versa). Uses the (athlete_id, kind, status) index from migration 0011.
-func PendingOrRunningGenerationForAthlete(db *sql.DB, athleteID int64, kind string) (*Generation, error) {
-	row := db.QueryRow(
+func PendingOrRunningGenerationForAthlete(ctx context.Context, db *sql.DB, athleteID int64, kind string) (*Generation, error) {
+	row := db.QueryRowContext(ctx,
 		`SELECT id, status FROM generations
 		  WHERE athlete_id = ? AND kind = ? AND status IN (?, ?)
 		  ORDER BY created_at DESC LIMIT 1`,
@@ -362,8 +363,8 @@ type StaleRunningGeneration struct {
 // accepting requests so we can notify each requester after the sweep
 // resets the row. Race-free: the prior process's goroutines are dead and
 // the current process isn't yet enqueueing new work.
-func ListStaleRunningGenerations(db *sql.DB) ([]StaleRunningGeneration, error) {
-	rows, err := db.Query(
+func ListStaleRunningGenerations(ctx context.Context, db *sql.DB) ([]StaleRunningGeneration, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT id, athlete_id, requested_by
 		   FROM generations
 		  WHERE status IN (?, ?)`,
@@ -396,8 +397,8 @@ func ListStaleRunningGenerations(db *sql.DB) ([]StaleRunningGeneration, error) {
 // Returns the number of rows reset, for the startup log line. Callers that
 // want to notify each requester should call ListStaleRunningGenerations
 // FIRST so they have the per-row identifiers — this UPDATE clears them.
-func ResetStaleRunningGenerations(db *sql.DB) (int64, error) {
-	res, err := db.Exec(
+func ResetStaleRunningGenerations(ctx context.Context, db *sql.DB) (int64, error) {
+	res, err := db.ExecContext(ctx,
 		`UPDATE generations
 		    SET status       = ?,
 		        error        = 'Server restarted during generation. Please try again.',

@@ -26,7 +26,7 @@ func (h *Handlers) TokenLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := models.ValidateLoginToken(h.DB, token)
+	user, err := models.ValidateLoginToken(r.Context(), h.DB, token)
 	if err != nil {
 		log.Printf("api: token login failed: %v", err)
 		WriteError(w, http.StatusUnauthorized, "invalid or expired login link")
@@ -42,7 +42,7 @@ func (h *Handlers) TokenLogin(w http.ResponseWriter, r *http.Request) {
 
 	h.Sessions.Put(r.Context(), "userID", user.ID)
 
-	if err := models.EnsureUserPreferences(h.DB, user.ID); err != nil {
+	if err := models.EnsureUserPreferences(r.Context(), h.DB, user.ID); err != nil {
 		log.Printf("api: ensure preferences for user %d: %v", user.ID, err)
 	}
 

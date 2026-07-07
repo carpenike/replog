@@ -20,6 +20,7 @@ import (
 //   - Coaches can only impersonate users linked to their athletes
 //   - Cannot impersonate yourself
 //   - Cannot impersonate while already impersonating
+//
 // StartImpersonation lets an admin/coach view the app as another user.
 //
 //	@Summary      Start impersonation
@@ -62,7 +63,7 @@ func (h *Handlers) StartImpersonation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	target, err := models.GetUserByID(h.DB, targetID)
+	target, err := models.GetUserByID(r.Context(), h.DB, targetID)
 	if err != nil {
 		WriteError(w, http.StatusNotFound, "user not found")
 		return
@@ -86,7 +87,7 @@ func (h *Handlers) StartImpersonation(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusForbidden, "user is not linked to an athlete")
 			return
 		}
-		athlete, err := models.GetAthleteByID(h.DB, target.AthleteID.Int64)
+		athlete, err := models.GetAthleteByID(r.Context(), h.DB, target.AthleteID.Int64)
 		if err != nil || !athlete.CoachID.Valid || athlete.CoachID.Int64 != realUser.ID {
 			WriteError(w, http.StatusForbidden, "can only impersonate your own athletes")
 			return
@@ -110,7 +111,7 @@ func (h *Handlers) StartImpersonation(w http.ResponseWriter, r *http.Request) {
 
 	// Persist a durable audit record. Best-effort: an audit-write failure
 	// must not fail the impersonation request.
-	if err := models.WriteAuditLog(h.DB, realUser.ID, sql.NullInt64{Int64: target.ID, Valid: true},
+	if err := models.WriteAuditLog(r.Context(), h.DB, realUser.ID, sql.NullInt64{Int64: target.ID, Valid: true},
 		"impersonate_start",
 		fmt.Sprintf("%s (id=%d) -> %s (id=%d)", realUser.Username, realUser.ID, target.Username, target.ID),
 	); err != nil {
@@ -165,7 +166,7 @@ func (h *Handlers) StopImpersonation(w http.ResponseWriter, r *http.Request) {
 	if impersonatedID != 0 {
 		target = sql.NullInt64{Int64: impersonatedID, Valid: true}
 	}
-	if err := models.WriteAuditLog(h.DB, realUserID, target,
+	if err := models.WriteAuditLog(r.Context(), h.DB, realUserID, target,
 		"impersonate_stop",
 		fmt.Sprintf("real_user_id=%d impersonated_id=%d", realUserID, impersonatedID),
 	); err != nil {

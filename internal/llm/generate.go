@@ -26,7 +26,7 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 	// Step 1: Assemble athlete context. RequireMethodology=true means a
 	// youth athlete without a resolved methodology fails fast rather than
 	// silently generating a rules-less kid program (ADR 016 D2).
-	athleteCtx, err := BuildAthleteContext(db, req.AthleteID, now, BuildContextOptions{
+	athleteCtx, err := BuildAthleteContext(ctx, db, req.AthleteID, now, BuildContextOptions{
 		ReferenceTemplateIDs: req.ReferenceTemplateIDs,
 		MethodologyID:        req.MethodologyID,
 		RequireMethodology:   true,
@@ -43,7 +43,7 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 	// youth NSCA safety block or the CatalogJSON schema out of a minor's
 	// generation (ADR 007/015). See buildSystemPrompt for the load-bearing
 	// sections the override cannot remove.
-	systemPrompt := composeSystemPrompt(buildSystemPrompt(athleteCtx), SystemPromptOverrideFromSettings(db))
+	systemPrompt := composeSystemPrompt(buildSystemPrompt(athleteCtx), SystemPromptOverrideFromSettings(ctx, db))
 	userPrompt, err := buildUserPrompt(athleteCtx, req)
 	if err != nil {
 		return nil, fmt.Errorf("llm: build prompt: %w", err)
@@ -51,8 +51,8 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 
 	// Step 3: Call the LLM.
 	opts := Options{
-		Temperature: TemperatureFromSettings(db),
-		MaxTokens:   MaxTokensFromSettings(db),
+		Temperature: TemperatureFromSettings(ctx, db),
+		MaxTokens:   MaxTokensFromSettings(ctx, db),
 	}
 	resp, err := provider.Generate(ctx, systemPrompt, userPrompt, opts)
 	if err != nil {

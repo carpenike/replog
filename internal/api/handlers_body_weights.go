@@ -31,7 +31,7 @@ func (h *Handlers) ListBodyWeights(w http.ResponseWriter, r *http.Request) {
 
 	_, offset := parsePage(r, 1, 1)
 
-	page, err := models.ListBodyWeights(h.DB, athleteID, offset)
+	page, err := models.ListBodyWeights(r.Context(), h.DB, athleteID, offset)
 	if err != nil {
 		log.Printf("api: list body weights for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to list body weights")
@@ -69,7 +69,7 @@ func (h *Handlers) CreateBodyWeight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bw, err := models.CreateBodyWeight(h.DB, athleteID, req.Date, req.Weight, req.Notes)
+	bw, err := models.CreateBodyWeight(r.Context(), h.DB, athleteID, req.Date, req.Weight, req.Notes)
 	if err != nil {
 		log.Printf("api: create body weight for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to create body weight")
@@ -102,7 +102,7 @@ func (h *Handlers) DeleteBodyWeight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteBodyWeight(h.DB, bwID, athleteID); err != nil {
+	if err := models.DeleteBodyWeight(r.Context(), h.DB, bwID, athleteID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "body weight entry not found")
 			return

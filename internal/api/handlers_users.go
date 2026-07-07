@@ -30,7 +30,7 @@ func (h *Handlers) ListUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := models.ListUsers(h.DB)
+	users, err := models.ListUsers(r.Context(), h.DB)
 	if err != nil {
 		log.Printf("api: list users: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to list users")
@@ -83,7 +83,7 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 		athleteID = sql.NullInt64{Int64: *req.AthleteID, Valid: true}
 	}
 
-	newUser, err := models.CreateUser(h.DB, req.Username, req.Name, req.Password, req.Email, req.IsCoach, req.IsAdmin, athleteID)
+	newUser, err := models.CreateUser(r.Context(), h.DB, req.Username, req.Name, req.Password, req.Email, req.IsCoach, req.IsAdmin, athleteID)
 	if errors.Is(err, models.ErrDuplicateUsername) {
 		WriteError(w, http.StatusConflict, "username already exists")
 		return
@@ -126,7 +126,7 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteUser(h.DB, id); err != nil {
+	if err := models.DeleteUser(r.Context(), h.DB, id); err != nil {
 		log.Printf("api: delete user %d: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete user")
 		return

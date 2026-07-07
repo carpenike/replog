@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -137,7 +138,7 @@ func TestBodyWeightChartData(t *testing.T) {
 	db := testDB(t)
 
 	// Create athlete and seed body weight entries.
-	athlete, err := CreateAthlete(db, "Chart Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, err := CreateAthlete(context.Background(), db, "Chart Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
@@ -145,13 +146,13 @@ func TestBodyWeightChartData(t *testing.T) {
 	dates := []string{"2025-01-01", "2025-01-02", "2025-01-03", "2025-01-04", "2025-01-05"}
 	weights := []float64{185.0, 184.5, 184.0, 183.5, 183.0}
 	for i := range dates {
-		_, err := CreateBodyWeight(db, athlete.ID, dates[i], weights[i], "")
+		_, err := CreateBodyWeight(context.Background(), db, athlete.ID, dates[i], weights[i], "")
 		if err != nil {
 			t.Fatalf("create body weight: %v", err)
 		}
 	}
 
-	chart, err := BodyWeightChartData(db, athlete.ID, 30, "lbs")
+	chart, err := BodyWeightChartData(context.Background(), db, athlete.ID, 30, "lbs")
 	if err != nil {
 		t.Fatalf("BodyWeightChartData: %v", err)
 	}
@@ -171,7 +172,7 @@ func TestBodyWeightChartData(t *testing.T) {
 func TestBodyWeightChartData_Empty(t *testing.T) {
 	db := testDB(t)
 
-	chart, err := BodyWeightChartData(db, 999, 30, "lbs")
+	chart, err := BodyWeightChartData(context.Background(), db, 999, 30, "lbs")
 	if err != nil {
 		t.Fatalf("BodyWeightChartData: %v", err)
 	}
@@ -183,12 +184,12 @@ func TestBodyWeightChartData_Empty(t *testing.T) {
 func TestTrainingMaxChartData(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "TM Chart Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, err := CreateAthlete(context.Background(), db, "TM Chart Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
 
-	exercise, err := CreateExercise(db, "Squat", "foundational", "", "", 0)
+	exercise, err := CreateExercise(context.Background(), db, "Squat", "foundational", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
@@ -202,13 +203,13 @@ func TestTrainingMaxChartData(t *testing.T) {
 		{"2025-03-01", 295.0},
 	}
 	for _, tm := range tms {
-		_, err := SetTrainingMax(db, athlete.ID, exercise.ID, tm.weight, tm.date, "")
+		_, err := SetTrainingMax(context.Background(), db, athlete.ID, exercise.ID, tm.weight, tm.date, "")
 		if err != nil {
 			t.Fatalf("set training max: %v", err)
 		}
 	}
 
-	chart, err := TrainingMaxChartData(db, athlete.ID, exercise.ID, "lbs")
+	chart, err := TrainingMaxChartData(context.Background(), db, athlete.ID, exercise.ID, "lbs")
 	if err != nil {
 		t.Fatalf("TrainingMaxChartData: %v", err)
 	}
@@ -223,12 +224,12 @@ func TestTrainingMaxChartData(t *testing.T) {
 func TestExerciseVolumeChart(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Vol Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, err := CreateAthlete(context.Background(), db, "Vol Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
 
-	exercise, err := CreateExercise(db, "Bench Press", "", "", "", 0)
+	exercise, err := CreateExercise(context.Background(), db, "Bench Press", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
@@ -236,17 +237,17 @@ func TestExerciseVolumeChart(t *testing.T) {
 	// Create workouts with sets.
 	dates := []string{"2025-01-01", "2025-01-03"}
 	for _, date := range dates {
-		w, err := CreateWorkout(db, athlete.ID, date, "", 0)
+		w, err := CreateWorkout(context.Background(), db, athlete.ID, date, "", 0)
 		if err != nil {
 			t.Fatalf("create workout: %v", err)
 		}
-		_, err = AddSet(db, w.ID, exercise.ID, 5, 100.0, 0, "", "", "")
+		_, err = AddSet(context.Background(), db, w.ID, exercise.ID, 5, 100.0, 0, "", "", "")
 		if err != nil {
 			t.Fatalf("add set: %v", err)
 		}
 	}
 
-	chart, err := ExerciseVolumeChart(db, athlete.ID, exercise.ID, 20)
+	chart, err := ExerciseVolumeChart(context.Background(), db, athlete.ID, exercise.ID, 20)
 	if err != nil {
 		t.Fatalf("ExerciseVolumeChart: %v", err)
 	}
@@ -267,7 +268,7 @@ func TestExerciseVolumeChart(t *testing.T) {
 func TestExerciseVolumeChart_Empty(t *testing.T) {
 	db := testDB(t)
 
-	chart, err := ExerciseVolumeChart(db, 999, 999, 20)
+	chart, err := ExerciseVolumeChart(context.Background(), db, 999, 999, 20)
 	if err != nil {
 		t.Fatalf("ExerciseVolumeChart: %v", err)
 	}
@@ -279,26 +280,26 @@ func TestExerciseVolumeChart_Empty(t *testing.T) {
 func TestWorkoutHeatmap(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Heatmap Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, err := CreateAthlete(context.Background(), db, "Heatmap Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
 
 	// Create a workout today so heatmap has data.
-	exercise, err := CreateExercise(db, "Deadlift", "", "", "", 0)
+	exercise, err := CreateExercise(context.Background(), db, "Deadlift", "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
-	w, err := CreateWorkout(db, athlete.ID, time.Now().Format("2006-01-02"), "", 0)
+	w, err := CreateWorkout(context.Background(), db, athlete.ID, time.Now().Format("2006-01-02"), "", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
-	_, err = AddSet(db, w.ID, exercise.ID, 3, 200.0, 0, "", "", "")
+	_, err = AddSet(context.Background(), db, w.ID, exercise.ID, 3, 200.0, 0, "", "", "")
 	if err != nil {
 		t.Fatalf("add set: %v", err)
 	}
 
-	heatmap, err := WorkoutHeatmap(db, athlete.ID)
+	heatmap, err := WorkoutHeatmap(context.Background(), db, athlete.ID)
 	if err != nil {
 		t.Fatalf("WorkoutHeatmap: %v", err)
 	}
@@ -316,12 +317,12 @@ func TestWorkoutHeatmap(t *testing.T) {
 func TestWorkoutHeatmap_Empty(t *testing.T) {
 	db := testDB(t)
 
-	athlete, err := CreateAthlete(db, "Empty Heatmap", "", "", "", "", "", "", sql.NullInt64{}, true)
+	athlete, err := CreateAthlete(context.Background(), db, "Empty Heatmap", "", "", "", "", "", "", sql.NullInt64{}, true)
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
 
-	heatmap, err := WorkoutHeatmap(db, athlete.ID)
+	heatmap, err := WorkoutHeatmap(context.Background(), db, athlete.ID)
 	if err != nil {
 		t.Fatalf("WorkoutHeatmap: %v", err)
 	}
@@ -337,7 +338,7 @@ func TestWorkoutHeatmap_Empty(t *testing.T) {
 func TestGetDashboardStats(t *testing.T) {
 	db := testDB(t)
 
-	stats, err := GetDashboardStats(db)
+	stats, err := GetDashboardStats(context.Background(), db)
 	if err != nil {
 		t.Fatalf("GetDashboardStats: %v", err)
 	}

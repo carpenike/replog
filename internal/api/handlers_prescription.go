@@ -11,9 +11,9 @@ import (
 
 // PrescriptionLineResponse is a single exercise's prescription for today.
 type PrescriptionLineResponse struct {
-	ExerciseName string                  `json:"exercise_name"`
-	ExerciseID   int64                   `json:"exercise_id"`
-	TrainingMax  *float64                `json:"training_max,omitempty"`
+	ExerciseName string                    `json:"exercise_name"`
+	ExerciseID   int64                     `json:"exercise_id"`
+	TrainingMax  *float64                  `json:"training_max,omitempty"`
 	Sets         []PrescriptionSetResponse `json:"sets"`
 }
 
@@ -62,7 +62,7 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 		tz = prefs.Timezone
 	}
 
-	program, err := models.ResolveAssignment(h.DB, athleteID, time.Now(), tz)
+	program, err := models.ResolveAssignment(r.Context(), h.DB, athleteID, time.Now(), tz)
 	if err != nil {
 		log.Printf("api: resolve assignment for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to resolve program")
@@ -73,7 +73,7 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prescription, err := models.GetPrescription(h.DB, program, time.Now())
+	prescription, err := models.GetPrescription(r.Context(), h.DB, program, time.Now())
 	if err != nil {
 		log.Printf("api: get prescription for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to get prescription")

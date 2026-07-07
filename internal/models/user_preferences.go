@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -44,9 +45,9 @@ func (p *UserPreferences) WeightLabel() string {
 }
 
 // GetUserPreferences retrieves preferences for a user. If none exist, returns defaults.
-func GetUserPreferences(db *sql.DB, userID int64) (*UserPreferences, error) {
+func GetUserPreferences(ctx context.Context, db *sql.DB, userID int64) (*UserPreferences, error) {
 	p := &UserPreferences{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, user_id, weight_unit, timezone, date_format, created_at, updated_at
 		 FROM user_preferences WHERE user_id = ?`, userID,
 	).Scan(&p.ID, &p.UserID, &p.WeightUnit, &p.Timezone, &p.DateFormat, &p.CreatedAt, &p.UpdatedAt)
@@ -54,9 +55,9 @@ func GetUserPreferences(db *sql.DB, userID int64) (*UserPreferences, error) {
 		// Return defaults from app settings (or hardcoded fallback).
 		return &UserPreferences{
 			UserID:     userID,
-			WeightUnit: GetDefaultWeightUnit(db),
-			Timezone:   GetDefaultTimezone(db),
-			DateFormat: GetDefaultDateFormat(db),
+			WeightUnit: GetDefaultWeightUnit(ctx, db),
+			Timezone:   GetDefaultTimezone(ctx, db),
+			DateFormat: GetDefaultDateFormat(ctx, db),
 		}, nil
 	}
 	if err != nil {
@@ -66,7 +67,7 @@ func GetUserPreferences(db *sql.DB, userID int64) (*UserPreferences, error) {
 }
 
 // UpsertUserPreferences creates or updates a user's preferences.
-func UpsertUserPreferences(db *sql.DB, userID int64, weightUnit, timezone, dateFormat string) (*UserPreferences, error) {
+func UpsertUserPreferences(ctx context.Context, db *sql.DB, userID int64, weightUnit, timezone, dateFormat string) (*UserPreferences, error) {
 	if !isValidWeightUnit(weightUnit) {
 		return nil, fmt.Errorf("models: invalid weight unit %q: %w", weightUnit, ErrInvalidInput)
 	}
@@ -77,7 +78,7 @@ func UpsertUserPreferences(db *sql.DB, userID int64, weightUnit, timezone, dateF
 		return nil, fmt.Errorf("models: invalid date format %q: %w", dateFormat, ErrInvalidInput)
 	}
 
-	_, err := db.Exec(
+	_, err := db.ExecContext(ctx,
 		`INSERT INTO user_preferences (user_id, weight_unit, timezone, date_format)
 		 VALUES (?, ?, ?, ?)
 		 ON CONFLICT(user_id) DO UPDATE SET
@@ -89,12 +90,12 @@ func UpsertUserPreferences(db *sql.DB, userID int64, weightUnit, timezone, dateF
 	if err != nil {
 		return nil, fmt.Errorf("models: upsert preferences for user %d: %w", userID, err)
 	}
-	return GetUserPreferences(db, userID)
+	return GetUserPreferences(ctx, db, userID)
 }
 
 // EnsureUserPreferences creates default preferences for a user if they don't exist.
-func EnsureUserPreferences(db *sql.DB, userID int64) error {
-	_, err := db.Exec(
+func EnsureUserPreferences(ctx context.Context, db *sql.DB, userID int64) error {
+	_, err := db.ExecContext(ctx,
 		`INSERT OR IGNORE INTO user_preferences (user_id) VALUES (?)`,
 		userID,
 	)

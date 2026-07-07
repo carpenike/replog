@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -12,7 +13,7 @@ import (
 // test files need it.
 func (e *testEnv) createExercise(t *testing.T, name string) *models.Exercise {
 	t.Helper()
-	ex, err := models.CreateExercise(e.DB, name, "", "", "", 0)
+	ex, err := models.CreateExercise(context.Background(), e.DB, name, "", "", "", 0)
 	if err != nil {
 		t.Fatalf("create exercise %q: %v", name, err)
 	}
@@ -23,7 +24,7 @@ func (e *testEnv) createExercise(t *testing.T, name string) *models.Exercise {
 // layer (skipping HTTP) so tests can focus on the endpoint they're exercising.
 func (e *testEnv) createWorkout(t *testing.T, athleteID int64, date string) *models.Workout {
 	t.Helper()
-	w, err := models.CreateWorkout(e.DB, athleteID, date, "", 0)
+	w, err := models.CreateWorkout(context.Background(), e.DB, athleteID, date, "", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}

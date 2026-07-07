@@ -33,7 +33,7 @@ func (h *Handlers) ExportAthleteJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	export, err := models.BuildAthleteExportJSON(h.DB, athleteID)
+	export, err := models.BuildAthleteExportJSON(r.Context(), h.DB, athleteID)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "athlete not found")
 		return
@@ -76,7 +76,7 @@ func (h *Handlers) ExportAthleteCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	export, err := models.BuildAthleteExportJSON(h.DB, athleteID)
+	export, err := models.BuildAthleteExportJSON(r.Context(), h.DB, athleteID)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "athlete not found")
 		return

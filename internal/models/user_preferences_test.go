@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 )
@@ -8,12 +9,12 @@ import (
 func TestGetUserPreferences_defaults(t *testing.T) {
 	db := testDB(t)
 
-	u, err := CreateUser(db, "prefuser", "", "password123", "", false, false, sql.NullInt64{})
+	u, err := CreateUser(context.Background(), db, "prefuser", "", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
 
-	prefs, err := GetUserPreferences(db, u.ID)
+	prefs, err := GetUserPreferences(context.Background(), db, u.ID)
 	if err != nil {
 		t.Fatalf("get preferences: %v", err)
 	}
@@ -32,23 +33,23 @@ func TestGetUserPreferences_settingsOverrideDefaults(t *testing.T) {
 	db := testDB(t)
 
 	// Configure non-default values via app_settings.
-	if err := SetSetting(db, "defaults.weight_unit", "kg"); err != nil {
+	if err := SetSetting(context.Background(), db, "defaults.weight_unit", "kg"); err != nil {
 		t.Fatalf("set weight_unit: %v", err)
 	}
-	if err := SetSetting(db, "defaults.timezone", "Europe/Berlin"); err != nil {
+	if err := SetSetting(context.Background(), db, "defaults.timezone", "Europe/Berlin"); err != nil {
 		t.Fatalf("set timezone: %v", err)
 	}
-	if err := SetSetting(db, "defaults.date_format", "2006-01-02"); err != nil {
+	if err := SetSetting(context.Background(), db, "defaults.date_format", "2006-01-02"); err != nil {
 		t.Fatalf("set date_format: %v", err)
 	}
 
-	u, err := CreateUser(db, "euuser", "", "password123", "", false, false, sql.NullInt64{})
+	u, err := CreateUser(context.Background(), db, "euuser", "", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
 
 	// User with no preferences row should get settings-based defaults.
-	prefs, err := GetUserPreferences(db, u.ID)
+	prefs, err := GetUserPreferences(context.Background(), db, u.ID)
 	if err != nil {
 		t.Fatalf("get preferences: %v", err)
 	}
@@ -66,13 +67,13 @@ func TestGetUserPreferences_settingsOverrideDefaults(t *testing.T) {
 func TestUpsertUserPreferences(t *testing.T) {
 	db := testDB(t)
 
-	u, err := CreateUser(db, "prefuser", "", "password123", "", false, false, sql.NullInt64{})
+	u, err := CreateUser(context.Background(), db, "prefuser", "", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
 
 	t.Run("insert new preferences", func(t *testing.T) {
-		prefs, err := UpsertUserPreferences(db, u.ID, "kg", "Europe/London", "2006-01-02")
+		prefs, err := UpsertUserPreferences(context.Background(), db, u.ID, "kg", "Europe/London", "2006-01-02")
 		if err != nil {
 			t.Fatalf("upsert preferences: %v", err)
 		}
@@ -88,7 +89,7 @@ func TestUpsertUserPreferences(t *testing.T) {
 	})
 
 	t.Run("update existing preferences", func(t *testing.T) {
-		prefs, err := UpsertUserPreferences(db, u.ID, "lbs", "America/Chicago", "01/02/2006")
+		prefs, err := UpsertUserPreferences(context.Background(), db, u.ID, "lbs", "America/Chicago", "01/02/2006")
 		if err != nil {
 			t.Fatalf("upsert preferences: %v", err)
 		}
@@ -104,21 +105,21 @@ func TestUpsertUserPreferences(t *testing.T) {
 	})
 
 	t.Run("invalid weight unit", func(t *testing.T) {
-		_, err := UpsertUserPreferences(db, u.ID, "stones", "America/New_York", "Jan 2, 2006")
+		_, err := UpsertUserPreferences(context.Background(), db, u.ID, "stones", "America/New_York", "Jan 2, 2006")
 		if err == nil {
 			t.Error("expected error for invalid weight unit")
 		}
 	})
 
 	t.Run("invalid timezone", func(t *testing.T) {
-		_, err := UpsertUserPreferences(db, u.ID, "lbs", "Not/ATimezone", "Jan 2, 2006")
+		_, err := UpsertUserPreferences(context.Background(), db, u.ID, "lbs", "Not/ATimezone", "Jan 2, 2006")
 		if err == nil {
 			t.Error("expected error for invalid timezone")
 		}
 	})
 
 	t.Run("invalid date format", func(t *testing.T) {
-		_, err := UpsertUserPreferences(db, u.ID, "lbs", "America/New_York", "YYYY-MM-DD")
+		_, err := UpsertUserPreferences(context.Background(), db, u.ID, "lbs", "America/New_York", "YYYY-MM-DD")
 		if err == nil {
 			t.Error("expected error for invalid date format")
 		}
@@ -128,17 +129,17 @@ func TestUpsertUserPreferences(t *testing.T) {
 func TestEnsureUserPreferences(t *testing.T) {
 	db := testDB(t)
 
-	u, err := CreateUser(db, "ensureuser", "", "password123", "", false, false, sql.NullInt64{})
+	u, err := CreateUser(context.Background(), db, "ensureuser", "", "password123", "", false, false, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
 
 	// First call should create defaults.
-	if err := EnsureUserPreferences(db, u.ID); err != nil {
+	if err := EnsureUserPreferences(context.Background(), db, u.ID); err != nil {
 		t.Fatalf("ensure preferences: %v", err)
 	}
 
-	prefs, err := GetUserPreferences(db, u.ID)
+	prefs, err := GetUserPreferences(context.Background(), db, u.ID)
 	if err != nil {
 		t.Fatalf("get preferences: %v", err)
 	}
@@ -150,7 +151,7 @@ func TestEnsureUserPreferences(t *testing.T) {
 	}
 
 	// Second call should be a no-op.
-	if err := EnsureUserPreferences(db, u.ID); err != nil {
+	if err := EnsureUserPreferences(context.Background(), db, u.ID); err != nil {
 		t.Fatalf("ensure preferences (second call): %v", err)
 	}
 }

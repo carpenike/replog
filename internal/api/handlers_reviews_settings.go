@@ -30,7 +30,7 @@ func (h *Handlers) ListPendingReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workouts, err := models.ListUnreviewedWorkouts(h.DB)
+	workouts, err := models.ListUnreviewedWorkouts(r.Context(), h.DB)
 	if err != nil {
 		log.Printf("api: list unreviewed workouts: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to list pending reviews")
@@ -87,7 +87,7 @@ func (h *Handlers) ListSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categories := models.ListSettingsByCategory(h.DB)
+	categories := models.ListSettingsByCategory(r.Context(), h.DB)
 	result := make([]SettingCategoryResponse, 0, len(categories))
 
 	for _, catName := range models.CategoryOrder {
@@ -151,7 +151,7 @@ func (h *Handlers) UpdateSetting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.SetSetting(h.DB, req.Key, req.Value); err != nil {
+	if err := models.SetSetting(r.Context(), h.DB, req.Key, req.Value); err != nil {
 		log.Printf("api: set setting %s: %v", req.Key, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update setting")
 		return
@@ -169,6 +169,7 @@ func (h *Handlers) UpdateSetting(w http.ResponseWriter, r *http.Request) {
 //	@Success      200  {object}  map[string]interface{}
 //	@Failure      403  {object}  api.APIError
 //	@Router       /admin/settings/test-llm [post]
+//
 // testLLMPingTimeout caps Ping's wall-clock budget. The provider HTTP
 // clients allow 5 minutes by default, which exceeds the HTTP server's
 // WriteTimeout (60s in main.go) — a hung provider would otherwise leave
@@ -184,7 +185,7 @@ func (h *Handlers) TestLLMConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	provider, err := h.llmProvider()
+	provider, err := h.llmProvider(r.Context())
 	if err != nil {
 		WriteJSON(w, http.StatusOK, map[string]any{"success": false, "error": err.Error()})
 		return

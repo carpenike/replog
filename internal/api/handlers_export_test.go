@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -52,21 +53,21 @@ func TestExportAthleteJSON_OwnedAthlete(t *testing.T) {
 	athlete := env.createAthlete(t, "Caydan", coach.ID)
 
 	// Seed a workout with one set so the export has real content.
-	ex, err := models.CreateExercise(env.DB, "Bench Press", "foundational", "", "", 120)
+	ex, err := models.CreateExercise(context.Background(), env.DB, "Bench Press", "foundational", "", "", 120)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
-	workout, err := models.CreateWorkout(env.DB, athlete.ID, "2026-02-15", "felt strong", 0)
+	workout, err := models.CreateWorkout(context.Background(), env.DB, athlete.ID, "2026-02-15", "felt strong", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
-	if _, err := models.AddSet(env.DB, workout.ID, ex.ID, 5, 115.0, 7.5, "reps", "main", ""); err != nil {
+	if _, err := models.AddSet(context.Background(), env.DB, workout.ID, ex.ID, 5, 115.0, 7.5, "reps", "main", ""); err != nil {
 		t.Fatalf("add set: %v", err)
 	}
-	if _, err := models.SetTrainingMax(env.DB, athlete.ID, ex.ID, 135.0, "2026-01-15", "initial"); err != nil {
+	if _, err := models.SetTrainingMax(context.Background(), env.DB, athlete.ID, ex.ID, 135.0, "2026-01-15", "initial"); err != nil {
 		t.Fatalf("set training max: %v", err)
 	}
-	if _, err := models.CreateBodyWeight(env.DB, athlete.ID, "2026-02-01", 155.5, ""); err != nil {
+	if _, err := models.CreateBodyWeight(context.Background(), env.DB, athlete.ID, "2026-02-01", 155.5, ""); err != nil {
 		t.Fatalf("create body weight: %v", err)
 	}
 
@@ -129,15 +130,15 @@ func TestExportAthleteCSV_OwnedAthlete(t *testing.T) {
 	coach := env.createUser(t, "coach", true, false)
 	athlete := env.createAthlete(t, "Caydan", coach.ID)
 
-	ex, err := models.CreateExercise(env.DB, "Squat", "foundational", "", "", 120)
+	ex, err := models.CreateExercise(context.Background(), env.DB, "Squat", "foundational", "", "", 120)
 	if err != nil {
 		t.Fatalf("create exercise: %v", err)
 	}
-	workout, err := models.CreateWorkout(env.DB, athlete.ID, "2026-02-15", "", 0)
+	workout, err := models.CreateWorkout(context.Background(), env.DB, athlete.ID, "2026-02-15", "", 0)
 	if err != nil {
 		t.Fatalf("create workout: %v", err)
 	}
-	if _, err := models.AddSet(env.DB, workout.ID, ex.ID, 5, 225.0, 8.0, "reps", "main", "deep"); err != nil {
+	if _, err := models.AddSet(context.Background(), env.DB, workout.ID, ex.ID, 5, 225.0, 8.0, "reps", "main", "deep"); err != nil {
 		t.Fatalf("add set: %v", err)
 	}
 

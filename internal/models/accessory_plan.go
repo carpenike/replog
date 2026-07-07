@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -54,7 +55,7 @@ func (ap *AccessoryPlan) RepRangeLabel() string {
 }
 
 // CreateAccessoryPlan inserts a new accessory plan entry.
-func CreateAccessoryPlan(db *sql.DB, athleteID int64, day int, exerciseID int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int) (*AccessoryPlan, error) {
+func CreateAccessoryPlan(ctx context.Context, db *sql.DB, athleteID int64, day int, exerciseID int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int) (*AccessoryPlan, error) {
 	var tsVal sql.NullInt64
 	if targetSets > 0 {
 		tsVal = sql.NullInt64{Int64: int64(targetSets), Valid: true}
@@ -77,7 +78,7 @@ func CreateAccessoryPlan(db *sql.DB, athleteID int64, day int, exerciseID int64,
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO accessory_plans (athlete_id, day, exercise_id, target_sets, target_rep_min, target_rep_max, target_weight, notes, sort_order)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 RETURNING id`,
@@ -89,13 +90,13 @@ func CreateAccessoryPlan(db *sql.DB, athleteID int64, day int, exerciseID int64,
 		}
 		return nil, fmt.Errorf("models: create accessory plan: %w", err)
 	}
-	return GetAccessoryPlanByID(db, id)
+	return GetAccessoryPlanByID(ctx, db, id)
 }
 
 // GetAccessoryPlanByID retrieves an accessory plan by primary key.
-func GetAccessoryPlanByID(db *sql.DB, id int64) (*AccessoryPlan, error) {
+func GetAccessoryPlanByID(ctx context.Context, db *sql.DB, id int64) (*AccessoryPlan, error) {
 	ap := &AccessoryPlan{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT ap.id, ap.athlete_id, ap.day, ap.exercise_id, ap.target_sets, ap.target_rep_min, ap.target_rep_max,
 		        ap.target_weight, ap.notes, ap.sort_order, ap.active, ap.created_at, ap.updated_at,
 		        e.name
@@ -116,8 +117,8 @@ func GetAccessoryPlanByID(db *sql.DB, id int64) (*AccessoryPlan, error) {
 
 // ListAccessoryPlansForDay returns active accessory plans for an athlete+day,
 // ordered by sort_order then exercise name.
-func ListAccessoryPlansForDay(db *sql.DB, athleteID int64, day int) ([]*AccessoryPlan, error) {
-	rows, err := db.Query(`
+func ListAccessoryPlansForDay(ctx context.Context, db *sql.DB, athleteID int64, day int) ([]*AccessoryPlan, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT ap.id, ap.athlete_id, ap.day, ap.exercise_id, ap.target_sets, ap.target_rep_min, ap.target_rep_max,
 		       ap.target_weight, ap.notes, ap.sort_order, ap.active, ap.created_at, ap.updated_at,
 		       e.name
@@ -145,8 +146,8 @@ func ListAccessoryPlansForDay(db *sql.DB, athleteID int64, day int) ([]*Accessor
 
 // ListAllAccessoryPlans returns all accessory plans for an athlete (active and
 // inactive), grouped by day. Ordered by day, sort_order, exercise name.
-func ListAllAccessoryPlans(db *sql.DB, athleteID int64) ([]*AccessoryPlan, error) {
-	rows, err := db.Query(`
+func ListAllAccessoryPlans(ctx context.Context, db *sql.DB, athleteID int64) ([]*AccessoryPlan, error) {
+	rows, err := db.QueryContext(ctx, `
 		SELECT ap.id, ap.athlete_id, ap.day, ap.exercise_id, ap.target_sets, ap.target_rep_min, ap.target_rep_max,
 		       ap.target_weight, ap.notes, ap.sort_order, ap.active, ap.created_at, ap.updated_at,
 		       e.name
@@ -174,7 +175,7 @@ func ListAllAccessoryPlans(db *sql.DB, athleteID int64) ([]*AccessoryPlan, error
 
 // UpdateAccessoryPlan updates a plan, scoped to athleteID so a coach cannot
 // mutate a plan belonging to an athlete they do not manage by guessing its ID.
-func UpdateAccessoryPlan(db *sql.DB, id, athleteID int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int) error {
+func UpdateAccessoryPlan(ctx context.Context, db *sql.DB, id, athleteID int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int) error {
 	var tsVal sql.NullInt64
 	if targetSets > 0 {
 		tsVal = sql.NullInt64{Int64: int64(targetSets), Valid: true}
@@ -196,7 +197,7 @@ func UpdateAccessoryPlan(db *sql.DB, id, athleteID int64, targetSets, targetRepM
 		nVal = sql.NullString{String: notes, Valid: true}
 	}
 
-	result, err := db.Exec(
+	result, err := db.ExecContext(ctx,
 		`UPDATE accessory_plans SET target_sets = ?, target_rep_min = ?, target_rep_max = ?, target_weight = ?, notes = ?, sort_order = ? WHERE id = ? AND athlete_id = ?`,
 		tsVal, minVal, maxVal, wVal, nVal, sortOrder, id, athleteID,
 	)
@@ -212,8 +213,8 @@ func UpdateAccessoryPlan(db *sql.DB, id, athleteID int64, targetSets, targetRepM
 
 // DeactivateAccessoryPlan sets active = 0 on an accessory plan, scoped to the
 // owning athlete (ErrNotFound on cross-athlete mismatch).
-func DeactivateAccessoryPlan(db *sql.DB, id, athleteID int64) error {
-	result, err := db.Exec(`UPDATE accessory_plans SET active = 0 WHERE id = ? AND athlete_id = ?`, id, athleteID)
+func DeactivateAccessoryPlan(ctx context.Context, db *sql.DB, id, athleteID int64) error {
+	result, err := db.ExecContext(ctx, `UPDATE accessory_plans SET active = 0 WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: deactivate accessory plan %d: %w", id, err)
 	}
@@ -226,8 +227,8 @@ func DeactivateAccessoryPlan(db *sql.DB, id, athleteID int64) error {
 
 // DeleteAccessoryPlan permanently removes an accessory plan entry, scoped to
 // the owning athlete (ErrNotFound on cross-athlete mismatch).
-func DeleteAccessoryPlan(db *sql.DB, id, athleteID int64) error {
-	result, err := db.Exec(`DELETE FROM accessory_plans WHERE id = ? AND athlete_id = ?`, id, athleteID)
+func DeleteAccessoryPlan(ctx context.Context, db *sql.DB, id, athleteID int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM accessory_plans WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: delete accessory plan %d: %w", id, err)
 	}
@@ -240,9 +241,9 @@ func DeleteAccessoryPlan(db *sql.DB, id, athleteID int64) error {
 
 // MaxAccessoryDay returns the highest day number in use for an athlete's
 // accessory plans. Returns 0 if no plans exist.
-func MaxAccessoryDay(db *sql.DB, athleteID int64) (int, error) {
+func MaxAccessoryDay(ctx context.Context, db *sql.DB, athleteID int64) (int, error) {
 	var maxDay int
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT COALESCE(MAX(day), 0) FROM accessory_plans WHERE athlete_id = ?`,
 		athleteID,
 	).Scan(&maxDay)

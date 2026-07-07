@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 )
@@ -46,7 +47,7 @@ func (ps *PrescribedSet) RepsLabel() string {
 }
 
 // CreatePrescribedSet inserts a new prescribed set into a program template.
-func CreatePrescribedSet(db *sql.DB, templateID, exerciseID int64, week, day, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, sortOrder int, repType, notes string) (*PrescribedSet, error) {
+func CreatePrescribedSet(ctx context.Context, db *sql.DB, templateID, exerciseID int64, week, day, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, sortOrder int, repType, notes string) (*PrescribedSet, error) {
 	var repsVal sql.NullInt64
 	if reps != nil {
 		repsVal = sql.NullInt64{Int64: int64(*reps), Valid: true}
@@ -68,7 +69,7 @@ func CreatePrescribedSet(db *sql.DB, templateID, exerciseID int64, week, day, se
 	}
 
 	var id int64
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, sort_order, rep_type, notes)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
 		templateID, exerciseID, week, day, setNumber, repsVal, pctVal, absWeightVal, sortOrder, repType, notesVal,
@@ -80,13 +81,13 @@ func CreatePrescribedSet(db *sql.DB, templateID, exerciseID int64, week, day, se
 		return nil, fmt.Errorf("models: create prescribed set: %w", err)
 	}
 
-	return GetPrescribedSetByID(db, id)
+	return GetPrescribedSetByID(ctx, db, id)
 }
 
 // GetPrescribedSetByID retrieves a prescribed set by primary key.
-func GetPrescribedSetByID(db *sql.DB, id int64) (*PrescribedSet, error) {
+func GetPrescribedSetByID(ctx context.Context, db *sql.DB, id int64) (*PrescribedSet, error) {
 	ps := &PrescribedSet{}
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT ps.id, ps.template_id, ps.exercise_id, ps.week, ps.day, ps.set_number,
 		        ps.reps, ps.percentage, ps.absolute_weight, ps.sort_order, ps.rep_type, ps.notes, e.name
 		 FROM prescribed_sets ps
@@ -102,8 +103,8 @@ func GetPrescribedSetByID(db *sql.DB, id int64) (*PrescribedSet, error) {
 }
 
 // ListPrescribedSets returns all prescribed sets for a template, ordered by week, day, sort_order, set_number.
-func ListPrescribedSets(db *sql.DB, templateID int64) ([]*PrescribedSet, error) {
-	rows, err := db.Query(
+func ListPrescribedSets(ctx context.Context, db *sql.DB, templateID int64) ([]*PrescribedSet, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT ps.id, ps.template_id, ps.exercise_id, ps.week, ps.day, ps.set_number,
 		        ps.reps, ps.percentage, ps.absolute_weight, ps.sort_order, ps.rep_type, ps.notes, e.name
 		 FROM prescribed_sets ps
@@ -133,8 +134,8 @@ func ListPrescribedSets(db *sql.DB, templateID int64) ([]*PrescribedSet, error) 
 }
 
 // ListPrescribedSetsForDay returns prescribed sets for a specific week/day.
-func ListPrescribedSetsForDay(db *sql.DB, templateID int64, week, day int) ([]*PrescribedSet, error) {
-	rows, err := db.Query(
+func ListPrescribedSetsForDay(ctx context.Context, db *sql.DB, templateID int64, week, day int) ([]*PrescribedSet, error) {
+	rows, err := db.QueryContext(ctx,
 		`SELECT ps.id, ps.template_id, ps.exercise_id, ps.week, ps.day, ps.set_number,
 		        ps.reps, ps.percentage, ps.absolute_weight, ps.sort_order, ps.rep_type, ps.notes, e.name
 		 FROM prescribed_sets ps
@@ -164,8 +165,8 @@ func ListPrescribedSetsForDay(db *sql.DB, templateID int64, week, day int) ([]*P
 }
 
 // DeletePrescribedSet removes a prescribed set.
-func DeletePrescribedSet(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM prescribed_sets WHERE id = ?`, id)
+func DeletePrescribedSet(ctx context.Context, db *sql.DB, id int64) error {
+	result, err := db.ExecContext(ctx, `DELETE FROM prescribed_sets WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete prescribed set %d: %w", id, err)
 	}
@@ -177,7 +178,7 @@ func DeletePrescribedSet(db *sql.DB, id int64) error {
 }
 
 // UpdatePrescribedSet updates an existing prescribed set's fields.
-func UpdatePrescribedSet(db *sql.DB, id int64, exerciseID int64, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, sortOrder int, repType, notes string) (*PrescribedSet, error) {
+func UpdatePrescribedSet(ctx context.Context, db *sql.DB, id int64, exerciseID int64, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, sortOrder int, repType, notes string) (*PrescribedSet, error) {
 	var repsVal sql.NullInt64
 	if reps != nil {
 		repsVal = sql.NullInt64{Int64: int64(*reps), Valid: true}
@@ -198,7 +199,7 @@ func UpdatePrescribedSet(db *sql.DB, id int64, exerciseID int64, setNumber int, 
 		repType = "reps"
 	}
 
-	_, err := db.Exec(
+	_, err := db.ExecContext(ctx,
 		`UPDATE prescribed_sets
 		 SET exercise_id = ?, set_number = ?, reps = ?, percentage = ?, absolute_weight = ?, sort_order = ?, rep_type = ?, notes = ?
 		 WHERE id = ?`,
@@ -211,21 +212,21 @@ func UpdatePrescribedSet(db *sql.DB, id int64, exerciseID int64, setNumber int, 
 		return nil, fmt.Errorf("models: update prescribed set %d: %w", id, err)
 	}
 
-	return GetPrescribedSetByID(db, id)
+	return GetPrescribedSetByID(ctx, db, id)
 }
 
 // CopyWeek replaces all prescribed sets in targetWeek with copies from
 // sourceWeek within the same program template. Any existing sets in the
 // target week are deleted first. Returns the number of sets inserted.
-func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, error) {
-	tx, err := db.Begin()
+func CopyWeek(ctx context.Context, db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, error) {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("models: copy week begin tx: %w", err)
 	}
 	defer tx.Rollback()
 
 	// Delete existing sets in target week.
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`DELETE FROM prescribed_sets WHERE template_id = ? AND week = ?`,
 		templateID, targetWeek,
 	)
@@ -233,7 +234,7 @@ func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, er
 		return 0, fmt.Errorf("models: copy week delete target: %w", err)
 	}
 
-	rows, err := tx.Query(
+	rows, err := tx.QueryContext(ctx,
 		`SELECT day, exercise_id, set_number, reps, percentage,
 		        absolute_weight, sort_order, rep_type, notes
 		   FROM prescribed_sets
@@ -273,7 +274,7 @@ func CopyWeek(db *sql.DB, templateID int64, sourceWeek, targetWeek int) (int, er
 
 	inserted := 0
 	for _, s := range sets {
-		_, err := tx.Exec(
+		_, err := tx.ExecContext(ctx,
 			`INSERT INTO prescribed_sets
 			   (template_id, week, day, exercise_id, set_number,
 			    reps, percentage, absolute_weight, sort_order, rep_type, notes)

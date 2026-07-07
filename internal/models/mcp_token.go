@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -45,7 +46,7 @@ func hashMCPSecret(secret string) string {
 // CreateMCPToken mints a new opaque bearer token for a user and returns the
 // plaintext secret EXACTLY ONCE — it is not recoverable afterward (only the
 // hash is stored). oauthClientID/label are optional audit metadata.
-func CreateMCPToken(db *sql.DB, userID int64, oauthClientID, label string) (plaintext string, token *MCPToken, err error) {
+func CreateMCPToken(ctx context.Context, db *sql.DB, userID int64, oauthClientID, label string) (plaintext string, token *MCPToken, err error) {
 	random, err := generateToken(32) // 256-bit secret
 	if err != nil {
 		return "", nil, err
@@ -64,7 +65,7 @@ func CreateMCPToken(db *sql.DB, userID int64, oauthClientID, label string) (plai
 		labelVal = sql.NullString{String: label, Valid: true}
 	}
 
-	res, err := db.Exec(
+	res, err := db.ExecContext(ctx,
 		`INSERT INTO mcp_tokens (token_hash, user_id, oauth_client_id, label, expires_at, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?)`,
 		hash, userID, clientVal, labelVal, expires, now,
@@ -92,7 +93,7 @@ func CreateMCPToken(db *sql.DB, userID int64, oauthClientID, label string) (plai
 // The presented string must already carry the MCPTokenPrefix; the middleware
 // gates on the prefix before calling this, but we re-check defensively so a
 // direct model caller cannot bypass it.
-func ValidateMCPToken(db *sql.DB, presented string) (*User, error) {
+func ValidateMCPToken(ctx context.Context, db *sql.DB, presented string) (*User, error) {
 	if !strings.HasPrefix(presented, MCPTokenPrefix) {
 		return nil, ErrNotFound
 	}
@@ -104,7 +105,7 @@ func ValidateMCPToken(db *sql.DB, presented string) (*User, error) {
 		expiresAt time.Time
 		revokedAt sql.NullTime
 	)
-	err := db.QueryRow(
+	err := db.QueryRowContext(ctx,
 		`SELECT id, user_id, expires_at, revoked_at FROM mcp_tokens WHERE token_hash = ?`,
 		hash,
 	).Scan(&id, &userID, &expiresAt, &revokedAt)
@@ -121,13 +122,13 @@ func ValidateMCPToken(db *sql.DB, presented string) (*User, error) {
 		return nil, ErrNotFound
 	}
 
-	user, err := GetUserByID(db, userID)
+	user, err := GetUserByID(ctx, db, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Best-effort usage stamp; a failure here must not fail the request.
-	_, _ = db.Exec(`UPDATE mcp_tokens SET last_used_at = ? WHERE id = ?`, time.Now(), id)
+	_, _ = db.ExecContext(ctx, `UPDATE mcp_tokens SET last_used_at = ? WHERE id = ?`, time.Now(), id)
 
 	return user, nil
 }
@@ -136,8 +137,8 @@ func ValidateMCPToken(db *sql.DB, presented string) (*User, error) {
 // before the given cutoff. The scheduler passes a cutoff in the past (a grace
 // window, e.g. 30 days ago) so a recently-expired token lingers briefly for
 // audit/debugging before it is swept. Returns the number of rows removed.
-func DeleteExpiredMCPTokens(db *sql.DB, cutoff time.Time) (int64, error) {
-	res, err := db.Exec(
+func DeleteExpiredMCPTokens(ctx context.Context, db *sql.DB, cutoff time.Time) (int64, error) {
+	res, err := db.ExecContext(ctx,
 		`DELETE FROM mcp_tokens
 		 WHERE expires_at < ? OR (revoked_at IS NOT NULL AND revoked_at < ?)`,
 		cutoff, cutoff,
@@ -150,8 +151,8 @@ func DeleteExpiredMCPTokens(db *sql.DB, cutoff time.Time) (int64, error) {
 }
 
 // RevokeMCPToken soft-deletes a token by id (sets revoked_at). Idempotent.
-func RevokeMCPToken(db *sql.DB, id int64) error {
-	_, err := db.Exec(`UPDATE mcp_tokens SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`, time.Now(), id)
+func RevokeMCPToken(ctx context.Context, db *sql.DB, id int64) error {
+	_, err := db.ExecContext(ctx, `UPDATE mcp_tokens SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`, time.Now(), id)
 	if err != nil {
 		return errors.New("models: revoke mcp token: " + err.Error())
 	}

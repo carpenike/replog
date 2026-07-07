@@ -222,21 +222,21 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if LLM is configured.
-	provider := models.GetSetting(h.DB, "llm.provider")
+	provider := models.GetSetting(r.Context(), h.DB, "llm.provider")
 	if provider == "" {
 		WriteJSON(w, http.StatusOK, GenerateFormResponse{Configured: false})
 		return
 	}
 
 	// Build athlete context for the form preview.
-	athleteCtx, err := llm.BuildAthleteContext(h.DB, athleteID, time.Now(), llm.BuildContextOptions{})
+	athleteCtx, err := llm.BuildAthleteContext(r.Context(), h.DB, athleteID, time.Now(), llm.BuildContextOptions{})
 	if err != nil {
 		log.Printf("api: build athlete context %d: %v", athleteID, err)
 	}
 
 	// Get defaults from active program.
 	defaultDays, defaultWeeks := 3, 4
-	if prog, err := models.GetActiveProgram(h.DB, athleteID); err == nil && prog != nil {
+	if prog, err := models.GetActiveProgram(r.Context(), h.DB, athleteID); err == nil && prog != nil {
 		defaultDays = prog.NumDays
 		defaultWeeks = prog.NumWeeks
 	}
@@ -247,7 +247,7 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 	// by methodology audience here; the methodology already drives default
 	// references on the backend, and narrowing this list would silently
 	// reduce the override pool.
-	refs, _ := models.ListProgramTemplates(h.DB)
+	refs, _ := models.ListProgramTemplates(r.Context(), h.DB)
 	apiRefs := make([]ProgramTemplate, len(refs))
 	for i, r := range refs {
 		apiRefs[i] = *ProgramTemplateFromModel(r)
@@ -255,20 +255,20 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 
 	// Latest generation for resume-after-reload.
 	var latest *GenerationResponse
-	if g, err := models.LatestGenerationForAthlete(h.DB, athleteID, models.GenerationKindProgram); err == nil {
+	if g, err := models.LatestGenerationForAthlete(r.Context(), h.DB, athleteID, models.GenerationKindProgram); err == nil {
 		latest = generationToResponse(g)
 	}
 
 	// Available methodologies + default selection (ADR 016 Phase 3).
 	// Audience filter is driven by the athlete's tier — youth athletes
 	// see youth methodologies; adults see adult.
-	availableMethodologies, defaultMethodologyID := h.buildMethodologyOptions(athleteID)
+	availableMethodologies, defaultMethodologyID := h.buildMethodologyOptions(r.Context(), athleteID)
 
 	// Suggested program name (ADR 016 HOF-007). "{Athlete} — Block N"
 	// where N = 1 + count of athlete-scoped program templates. SPA
 	// pre-fills the Program Name input from this if the field is empty
 	// and the coach hasn't typed.
-	suggestedName := h.buildSuggestedProgramName(athleteID)
+	suggestedName := h.buildSuggestedProgramName(r.Context(), athleteID)
 
 	WriteJSON(w, http.StatusOK, GenerateFormResponse{
 		Configured:             true,
@@ -294,8 +294,8 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 //	foundational      → yessis-1x20
 //	intermediate      → yessis-1x15
 //	sport_performance → yessis-sport-performance
-func (h *Handlers) buildMethodologyOptions(athleteID int64) ([]MethodologyOption, *int64) {
-	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+func (h *Handlers) buildMethodologyOptions(ctx context.Context, athleteID int64) ([]MethodologyOption, *int64) {
+	athlete, err := models.GetAthleteByID(ctx, h.DB, athleteID)
 	if err != nil {
 		return nil, nil
 	}
@@ -305,7 +305,7 @@ func (h *Handlers) buildMethodologyOptions(athleteID int64) ([]MethodologyOption
 		audience = models.MethodologyAudienceYouth
 	}
 
-	methods, err := models.ListMethodologies(h.DB, audience)
+	methods, err := models.ListMethodologies(ctx, h.DB, audience)
 	if err != nil || len(methods) == 0 {
 		return nil, nil
 	}
@@ -379,15 +379,15 @@ func tierDefaultMethodologyKey(tier string) string {
 // the same day would otherwise collide on import. We probe existing
 // athlete-scoped names and append " (2)", " (3)", … so the suggested
 // default stays unique on its face.
-func (h *Handlers) buildSuggestedProgramName(athleteID int64) string {
-	athlete, err := models.GetAthleteByID(h.DB, athleteID)
+func (h *Handlers) buildSuggestedProgramName(ctx context.Context, athleteID int64) string {
+	athlete, err := models.GetAthleteByID(ctx, h.DB, athleteID)
 	if err != nil {
 		return ""
 	}
 	base := fmt.Sprintf("%s — %s", athlete.Name, time.Now().Format("Jan 2, 2006"))
 	name := base
 	for i := 2; ; i++ {
-		exists, err := models.AthleteTemplateNameExists(h.DB, athleteID, name)
+		exists, err := models.AthleteTemplateNameExists(ctx, h.DB, athleteID, name)
 		if err != nil || !exists {
 			// On error, fall through with the current candidate rather
 			// than refusing to suggest a name — the coach can edit it.
@@ -454,7 +454,7 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	// Resolve the LLM provider up front so misconfiguration fails fast at
 	// the HTTP boundary (instead of producing a 'failed' generation row).
-	provider, err := h.llmProvider()
+	provider, err := h.llmProvider(r.Context())
 	if err != nil {
 		log.Printf("api: llm provider not configured: %v", err)
 		WriteError(w, http.StatusInternalServerError, "AI Coach is not configured")
@@ -465,7 +465,7 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	// in flight. The unique-per-athlete pending/running invariant keeps
 	// the SPA's resume-on-reload logic deterministic and prevents two
 	// goroutines burning tokens for the same athlete in parallel.
-	if existing, lookupErr := models.PendingOrRunningGenerationForAthlete(h.DB, athleteID, models.GenerationKindProgram); lookupErr != nil {
+	if existing, lookupErr := models.PendingOrRunningGenerationForAthlete(r.Context(), h.DB, athleteID, models.GenerationKindProgram); lookupErr != nil {
 		log.Printf("api: check in-flight generation for athlete %d: %v", athleteID, lookupErr)
 		WriteError(w, http.StatusInternalServerError, "failed to check in-flight generations")
 		return
@@ -481,7 +481,7 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gen, err := models.CreateGeneration(h.DB, athleteID, user.ID, string(reqJSON))
+	gen, err := models.CreateGeneration(r.Context(), h.DB, athleteID, user.ID, string(reqJSON))
 	if err != nil {
 		if errors.Is(err, models.ErrGenerationInFlight) {
 			WriteError(w, http.StatusConflict, "a draft is already in flight for this athlete")
@@ -531,7 +531,7 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 	// Move the row to 'running'. If this fails with ErrNotFound the row
 	// was cancelled (or vanished) — log and bail without burning tokens
 	// or notifying (the coach saw the cancel they themselves clicked).
-	if err := models.MarkGenerationRunning(h.DB, genID); err != nil {
+	if err := models.MarkGenerationRunning(ctx, h.DB, genID); err != nil {
 		if !errors.Is(err, models.ErrNotFound) {
 			log.Printf("api: mark generation %d running: %v", genID, err)
 		}
@@ -548,7 +548,7 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 		if errors.As(err, &apiErr) {
 			msg = apiErr.UserMessage()
 		}
-		h.failAndNotify(genID, msg, durationMS)
+		h.failAndNotify(ctx, genID, msg, durationMS)
 		return
 	}
 
@@ -557,7 +557,7 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 		if result.StopReason == "max_tokens" || result.StopReason == "length" {
 			msg = "Output was truncated — increase max_tokens in AI Coach settings and try again. (No CatalogJSON found in the response.)"
 		}
-		h.failAndNotify(genID, msg, durationMS)
+		h.failAndNotify(ctx, genID, msg, durationMS)
 		return
 	}
 
@@ -572,11 +572,11 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 		if result.StopReason == "max_tokens" || result.StopReason == "length" {
 			msg = "Output was truncated — increase max_tokens in AI Coach settings and try again. (Parse error: " + parseErr.Error() + ")"
 		}
-		h.failAndNotify(genID, msg, durationMS)
+		h.failAndNotify(ctx, genID, msg, durationMS)
 		return
 	}
 
-	if err := models.CompleteGeneration(h.DB, genID,
+	if err := models.CompleteGeneration(ctx, h.DB, genID,
 		string(result.CatalogJSON), result.Reasoning, result.Model, result.StopReason,
 		result.TokensUsed, durationMS,
 		string(result.ContextJSON), result.Prompt,
@@ -588,14 +588,14 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 	}
 
 	// Notify the coach the draft is ready for review.
-	gen, err := models.GetGeneration(h.DB, genID)
+	gen, err := models.GetGeneration(ctx, h.DB, genID)
 	if err != nil {
 		log.Printf("api: post-complete reload generation %d: %v", genID, err)
 		return
 	}
-	athleteName := h.athleteDisplayName(gen.AthleteID)
+	athleteName := h.athleteDisplayName(ctx, gen.AthleteID)
 	if gen.Kind == models.GenerationKindWOD {
-		notify.Send(h.DB, notify.Request{
+		notify.Send(ctx, h.DB, notify.Request{
 			UserID:    gen.RequestedBy,
 			Type:      models.NotifyGenerationComplete,
 			Title:     fmt.Sprintf("WOD ready for %s", athleteName),
@@ -605,7 +605,7 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 		})
 		return
 	}
-	notify.Send(h.DB, notify.Request{
+	notify.Send(ctx, h.DB, notify.Request{
 		UserID:    gen.RequestedBy,
 		Type:      models.NotifyGenerationComplete,
 		Title:     fmt.Sprintf("AI Coach draft ready for %s", athleteName),
@@ -619,8 +619,8 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 // Safe to call on a row that vanished between MarkGenerationRunning and
 // here (cancelled) — FailGeneration is no-op on non-running rows and we
 // suppress the notification in that case.
-func (h *Handlers) failAndNotify(genID int64, msg string, durationMS int) {
-	if err := models.FailGeneration(h.DB, genID, msg, durationMS); err != nil {
+func (h *Handlers) failAndNotify(ctx context.Context, genID int64, msg string, durationMS int) {
+	if err := models.FailGeneration(ctx, h.DB, genID, msg, durationMS); err != nil {
 		if !errors.Is(err, models.ErrNotFound) {
 			log.Printf("api: persist failure for generation %d: %v", genID, err)
 		}
@@ -628,14 +628,14 @@ func (h *Handlers) failAndNotify(genID int64, msg string, durationMS int) {
 		// cancelled doesn't need to hear about it as a failure).
 		return
 	}
-	gen, err := models.GetGeneration(h.DB, genID)
+	gen, err := models.GetGeneration(ctx, h.DB, genID)
 	if err != nil {
 		log.Printf("api: post-failure reload generation %d: %v", genID, err)
 		return
 	}
-	athleteName := h.athleteDisplayName(gen.AthleteID)
+	athleteName := h.athleteDisplayName(ctx, gen.AthleteID)
 	if gen.Kind == models.GenerationKindWOD {
-		notify.Send(h.DB, notify.Request{
+		notify.Send(ctx, h.DB, notify.Request{
 			UserID:    gen.RequestedBy,
 			Type:      models.NotifyGenerationFailed,
 			Title:     fmt.Sprintf("WOD failed for %s", athleteName),
@@ -645,7 +645,7 @@ func (h *Handlers) failAndNotify(genID int64, msg string, durationMS int) {
 		})
 		return
 	}
-	notify.Send(h.DB, notify.Request{
+	notify.Send(ctx, h.DB, notify.Request{
 		UserID:    gen.RequestedBy,
 		Type:      models.NotifyGenerationFailed,
 		Title:     fmt.Sprintf("AI Coach draft failed for %s", athleteName),
@@ -698,12 +698,12 @@ func (h *Handlers) GenerationCancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !gen.IsTerminal() {
-		if err := models.CancelGeneration(h.DB, gen.ID); err != nil && !errors.Is(err, models.ErrNotFound) {
+		if err := models.CancelGeneration(r.Context(), h.DB, gen.ID); err != nil && !errors.Is(err, models.ErrNotFound) {
 			log.Printf("api: cancel generation %d: %v", gen.ID, err)
 			WriteError(w, http.StatusInternalServerError, "failed to cancel")
 			return
 		}
-		gen, _ = models.GetGeneration(h.DB, gen.ID)
+		gen, _ = models.GetGeneration(r.Context(), h.DB, gen.ID)
 	}
 	WriteJSON(w, http.StatusOK, generationToResponse(gen))
 }
@@ -751,7 +751,7 @@ func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
 	// Build mappings against the *current* exercise/equipment catalog so
 	// any catalog changes made between generation and approval are picked
 	// up by the importer's de-dup logic.
-	existing, _ := models.ListExercises(h.DB, "")
+	existing, _ := models.ListExercises(r.Context(), h.DB, "")
 	entities := exercisesToEntities(existing)
 	ms := &importers.MappingState{
 		Format:    importers.FormatCatalogJSON,
@@ -759,7 +759,7 @@ func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
 		Parsed:    parsed,
 	}
 	if parsed.Equipment != nil {
-		equip, _ := models.ListEquipment(h.DB)
+		equip, _ := models.ListEquipment(r.Context(), h.DB)
 		eqEntities := make([]importers.ExistingEntity, len(equip))
 		for i, e := range equip {
 			eqEntities[i] = importers.ExistingEntity{ID: e.ID, Name: e.Name}
@@ -775,7 +775,7 @@ func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
 	// pass the gen.ExecutedAt.Valid check above, but only one can win this
 	// claiming UPDATE. The loser gets ErrNotFound → 409, so we never run the
 	// import twice and create duplicate programs.
-	if err := models.MarkGenerationExecuted(h.DB, gen.ID); err != nil {
+	if err := models.MarkGenerationExecuted(r.Context(), h.DB, gen.ID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusConflict, "generation has already been executed")
 			return
@@ -785,10 +785,10 @@ func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := models.ExecuteCatalogImport(h.DB, ms, &gen.AthleteID, false)
+	result, err := models.ExecuteCatalogImport(r.Context(), h.DB, ms, &gen.AthleteID, false)
 	if err != nil {
 		// Release the claim so the coach can retry after a transient failure.
-		if rbErr := models.UnmarkGenerationExecuted(h.DB, gen.ID); rbErr != nil {
+		if rbErr := models.UnmarkGenerationExecuted(r.Context(), h.DB, gen.ID); rbErr != nil {
 			log.Printf("api: roll back execute claim for generation %d: %v", gen.ID, rbErr)
 		}
 		log.Printf("api: execute generation %d for athlete %d: %v", gen.ID, gen.AthleteID, err)
@@ -834,7 +834,7 @@ func (h *Handlers) loadOwnedGeneration(w http.ResponseWriter, r *http.Request) (
 		return nil, false
 	}
 
-	gen, err := models.GetGeneration(h.DB, genID)
+	gen, err := models.GetGeneration(r.Context(), h.DB, genID)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "generation not found")
 		return nil, false

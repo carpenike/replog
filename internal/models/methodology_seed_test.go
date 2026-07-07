@@ -2,6 +2,7 @@ package models
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/carpenike/replog/internal/database"
@@ -23,12 +24,12 @@ func TestMethodologySeed_FullSeedFile(t *testing.T) {
 		Programs:  importers.BuildProgramMappings(parsedCat.Programs, nil),
 		Parsed:    parsedCat,
 	}
-	if _, err := ExecuteCatalogImport(db, ms, nil, false); err != nil {
+	if _, err := ExecuteCatalogImport(context.Background(), db, ms, nil, false); err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
 
 	// Now apply the methodology seed.
-	result, err := ApplyMethodologySeedFromBytes(db, database.SeedMethodologies())
+	result, err := ApplyMethodologySeedFromBytes(context.Background(), db, database.SeedMethodologies())
 	if err != nil {
 		t.Fatalf("ApplyMethodologySeed: %v", err)
 	}
@@ -72,12 +73,12 @@ func TestMethodologySeed_FullSeedFile(t *testing.T) {
 		{"sarge-circuit", 3, 5, 8},
 	}
 	for _, tc := range cases {
-		m, err := GetMethodologyByKey(db, tc.key)
+		m, err := GetMethodologyByKey(context.Background(), db, tc.key)
 		if err != nil {
 			t.Errorf("get %q: %v", tc.key, err)
 			continue
 		}
-		links, err := LoadMethodologyWithLinks(db, m.ID)
+		links, err := LoadMethodologyWithLinks(context.Background(), db, m.ID)
 		if err != nil {
 			t.Errorf("load with links %q: %v", tc.key, err)
 			continue
@@ -98,7 +99,7 @@ func TestMethodologySeed_FullSeedFile(t *testing.T) {
 
 	// The youth Yessis methodologies should be tagged audience=youth.
 	for _, k := range []string{"yessis-1x20", "yessis-1x15", "yessis-sport-performance", "int-youth-gpp"} {
-		m, _ := GetMethodologyByKey(db, k)
+		m, _ := GetMethodologyByKey(context.Background(), db, k)
 		if !m.Audience.Valid || m.Audience.String != MethodologyAudienceYouth {
 			t.Errorf("%s: Audience = %v, want youth", k, m.Audience)
 		}
@@ -106,7 +107,7 @@ func TestMethodologySeed_FullSeedFile(t *testing.T) {
 
 	// And the adult ones audience=adult.
 	for _, k := range []string{"531", "531-bbb", "greyskull-lp", "gzclp", "5x5", "sarge-circuit"} {
-		m, _ := GetMethodologyByKey(db, k)
+		m, _ := GetMethodologyByKey(context.Background(), db, k)
 		if !m.Audience.Valid || m.Audience.String != MethodologyAudienceAdult {
 			t.Errorf("%s: Audience = %v, want adult", k, m.Audience)
 		}
@@ -124,11 +125,11 @@ func TestMethodologySeed_Idempotent(t *testing.T) {
 		Programs:  importers.BuildProgramMappings(parsedCat.Programs, nil),
 		Parsed:    parsedCat,
 	}
-	if _, err := ExecuteCatalogImport(db, ms, nil, false); err != nil {
+	if _, err := ExecuteCatalogImport(context.Background(), db, ms, nil, false); err != nil {
 		t.Fatalf("ExecuteCatalogImport: %v", err)
 	}
 
-	first, err := ApplyMethodologySeedFromBytes(db, database.SeedMethodologies())
+	first, err := ApplyMethodologySeedFromBytes(context.Background(), db, database.SeedMethodologies())
 	if err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
@@ -136,7 +137,7 @@ func TestMethodologySeed_Idempotent(t *testing.T) {
 		t.Fatal("first apply created 0 methodologies")
 	}
 
-	second, err := ApplyMethodologySeedFromBytes(db, database.SeedMethodologies())
+	second, err := ApplyMethodologySeedFromBytes(context.Background(), db, database.SeedMethodologies())
 	if err != nil {
 		t.Fatalf("second apply: %v", err)
 	}
@@ -162,7 +163,7 @@ func TestMethodologySeed_RejectsInvalidPattern(t *testing.T) {
 			}
 		]
 	}`)
-	if _, err := ApplyMethodologySeedFromBytes(db, bad); err == nil {
+	if _, err := ApplyMethodologySeedFromBytes(context.Background(), db, bad); err == nil {
 		t.Fatal("expected error for invalid pattern")
 	}
 	// And that no row was inserted (transaction rolled back).
@@ -176,7 +177,7 @@ func TestMethodologySeed_RejectsInvalidPattern(t *testing.T) {
 func TestMethodologySeed_RejectsBadType(t *testing.T) {
 	db := testDB(t)
 	bad := []byte(`{"version":"1.0","type":"catalog","methodologies":[]}`)
-	if _, err := ApplyMethodologySeedFromBytes(db, bad); err == nil {
+	if _, err := ApplyMethodologySeedFromBytes(context.Background(), db, bad); err == nil {
 		t.Fatal("expected error for wrong top-level type")
 	}
 }
@@ -191,12 +192,12 @@ func TestBackfillExerciseMovementPatterns(t *testing.T) {
 	// Seed exercises directly (bypassing the catalog importer that would
 	// have written the tags inline). Simulates an older install.
 	for _, name := range []string{"Squat", "Bench Press", "Plank", "Track Sprint"} {
-		if _, err := CreateExercise(db, name, "", "", "", 0); err != nil {
+		if _, err := CreateExercise(context.Background(), db, name, "", "", "", 0); err != nil {
 			t.Fatalf("create %q: %v", name, err)
 		}
 	}
 
-	result, err := BackfillExerciseMovementPatterns(db, database.SeedCatalog())
+	result, err := BackfillExerciseMovementPatterns(context.Background(), db, database.SeedCatalog())
 	if err != nil {
 		t.Fatalf("backfill: %v", err)
 	}
@@ -212,15 +213,15 @@ func TestBackfillExerciseMovementPatterns(t *testing.T) {
 		name string
 		want string
 	}{{"Squat", "squat"}, {"Bench Press", "push"}, {"Plank", "ground"}} {
-		ex, _ := getExerciseByName(db, tc.name)
-		got, _ := ListExerciseMovementPatterns(db, ex.ID)
+		ex, _ := getExerciseByName(context.Background(), db, tc.name)
+		got, _ := ListExerciseMovementPatterns(context.Background(), db, ex.ID)
 		if len(got) == 0 || got[0] != tc.want {
 			t.Errorf("%s tags = %v, want %q first", tc.name, got, tc.want)
 		}
 	}
 
 	// Second run is a no-op (already-tagged short-circuit).
-	result2, err := BackfillExerciseMovementPatterns(db, database.SeedCatalog())
+	result2, err := BackfillExerciseMovementPatterns(context.Background(), db, database.SeedCatalog())
 	if err != nil {
 		t.Fatalf("second backfill: %v", err)
 	}
@@ -232,14 +233,14 @@ func TestBackfillExerciseMovementPatterns(t *testing.T) {
 	}
 
 	// Manual edits are preserved: tag an exercise differently, re-run, no change.
-	plank, _ := getExerciseByName(db, "Plank")
-	if err := SetExerciseMovementPatterns(db, plank.ID, []string{"carry"}); err != nil {
+	plank, _ := getExerciseByName(context.Background(), db, "Plank")
+	if err := SetExerciseMovementPatterns(context.Background(), db, plank.ID, []string{"carry"}); err != nil {
 		t.Fatalf("override: %v", err)
 	}
-	if _, err := BackfillExerciseMovementPatterns(db, database.SeedCatalog()); err != nil {
+	if _, err := BackfillExerciseMovementPatterns(context.Background(), db, database.SeedCatalog()); err != nil {
 		t.Fatalf("third backfill: %v", err)
 	}
-	got, _ := ListExerciseMovementPatterns(db, plank.ID)
+	got, _ := ListExerciseMovementPatterns(context.Background(), db, plank.ID)
 	if len(got) != 1 || got[0] != "carry" {
 		t.Errorf("manual edit lost: Plank tags = %v, want [carry]", got)
 	}

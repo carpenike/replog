@@ -19,6 +19,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"io"
@@ -298,11 +299,11 @@ func setupTest(t *testing.T) *testEnv {
 // createUser inserts a user with a known password and ensures default preferences.
 func (e *testEnv) createUser(t *testing.T, username string, isCoach, isAdmin bool) *models.User {
 	t.Helper()
-	user, err := models.CreateUser(e.DB, username, username, "password123", username+"@example.com", isCoach, isAdmin, sql.NullInt64{})
+	user, err := models.CreateUser(context.Background(), e.DB, username, username, "password123", username+"@example.com", isCoach, isAdmin, sql.NullInt64{})
 	if err != nil {
 		t.Fatalf("create user %q: %v", username, err)
 	}
-	if err := models.EnsureUserPreferences(e.DB, user.ID); err != nil {
+	if err := models.EnsureUserPreferences(context.Background(), e.DB, user.ID); err != nil {
 		t.Fatalf("ensure prefs for %d: %v", user.ID, err)
 	}
 	return user
@@ -311,7 +312,7 @@ func (e *testEnv) createUser(t *testing.T, username string, isCoach, isAdmin boo
 // createAthlete inserts an athlete with the given coach.
 func (e *testEnv) createAthlete(t *testing.T, name string, coachID int64) *models.Athlete {
 	t.Helper()
-	athlete, err := models.CreateAthlete(e.DB, name, "", "", "", "", "", "",
+	athlete, err := models.CreateAthlete(context.Background(), e.DB, name, "", "", "", "", "", "",
 		sql.NullInt64{Int64: coachID, Valid: coachID != 0}, false)
 	if err != nil {
 		t.Fatalf("create athlete %q: %v", name, err)
@@ -322,7 +323,7 @@ func (e *testEnv) createAthlete(t *testing.T, name string, coachID int64) *model
 // createAthleteWithTier is like createAthlete but binds a youth tier.
 func (e *testEnv) createAthleteWithTier(t *testing.T, name, tier string, coachID int64) *models.Athlete {
 	t.Helper()
-	athlete, err := models.CreateAthlete(e.DB, name, tier, "", "", "", "", "",
+	athlete, err := models.CreateAthlete(context.Background(), e.DB, name, tier, "", "", "", "", "",
 		sql.NullInt64{Int64: coachID, Valid: coachID != 0}, false)
 	if err != nil {
 		t.Fatalf("create athlete %q: %v", name, err)

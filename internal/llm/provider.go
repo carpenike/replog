@@ -196,15 +196,15 @@ type GenerationResult struct {
 
 // NewProviderFromSettings creates a Provider using the current app_settings
 // configuration (with env var overrides).
-func NewProviderFromSettings(db *sql.DB) (Provider, error) {
-	provider := models.GetSetting(db, "llm.provider")
+func NewProviderFromSettings(ctx context.Context, db *sql.DB) (Provider, error) {
+	provider := models.GetSetting(ctx, db, "llm.provider")
 	if provider == "" {
 		return nil, ErrNotConfigured
 	}
 
-	model := models.GetSetting(db, "llm.model")
-	apiKey := models.GetSetting(db, "llm.api_key")
-	baseURL := models.GetSetting(db, "llm.base_url")
+	model := models.GetSetting(ctx, db, "llm.model")
+	apiKey := models.GetSetting(ctx, db, "llm.api_key")
+	baseURL := models.GetSetting(ctx, db, "llm.base_url")
 
 	switch provider {
 	case "openai":
@@ -219,8 +219,8 @@ func NewProviderFromSettings(db *sql.DB) (Provider, error) {
 }
 
 // TemperatureFromSettings reads the temperature setting.
-func TemperatureFromSettings(db *sql.DB) float64 {
-	v := models.GetSetting(db, "llm.temperature")
+func TemperatureFromSettings(ctx context.Context, db *sql.DB) float64 {
+	v := models.GetSetting(ctx, db, "llm.temperature")
 	var temp float64
 	if _, err := fmt.Sscanf(v, "%f", &temp); err != nil {
 		return 0.7 // fallback default
@@ -229,8 +229,8 @@ func TemperatureFromSettings(db *sql.DB) float64 {
 }
 
 // MaxTokensFromSettings reads the max_tokens setting.
-func MaxTokensFromSettings(db *sql.DB) int {
-	v := models.GetSetting(db, "llm.max_tokens")
+func MaxTokensFromSettings(ctx context.Context, db *sql.DB) int {
+	v := models.GetSetting(ctx, db, "llm.max_tokens")
 	var tokens int
 	if _, err := fmt.Sscanf(v, "%d", &tokens); err != nil || tokens <= 0 {
 		return 32768 // fallback default
@@ -240,6 +240,6 @@ func MaxTokensFromSettings(db *sql.DB) int {
 
 // SystemPromptOverrideFromSettings reads the system_prompt_override setting.
 // Returns empty string if not set, in which case the default prompt is used.
-func SystemPromptOverrideFromSettings(db *sql.DB) string {
-	return models.GetSetting(db, "llm.system_prompt_override")
+func SystemPromptOverrideFromSettings(ctx context.Context, db *sql.DB) string {
+	return models.GetSetting(ctx, db, "llm.system_prompt_override")
 }
