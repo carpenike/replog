@@ -149,10 +149,14 @@ export function WorkoutDetail() {
 
   const updateSetMutation = useMutation({
     mutationFn: (setId: number) => api.updateSet(athleteId, wId, setId, {
+      // Send explicit values (not undefined) so an intentionally-cleared field
+      // is cleared. The API now treats an OMITTED field as "leave unchanged"
+      // (pointer/omitempty), so the SPA — which always edits the full set — must
+      // send 0 / "" to clear weight/rpe/notes rather than dropping the key.
       reps: parseInt(editReps),
-      weight: editWeight ? parseFloat(editWeight) : undefined,
-      rpe: editRpe ? parseFloat(editRpe) : undefined,
-      notes: editSetNotes || undefined,
+      weight: editWeight ? parseFloat(editWeight) : 0,
+      rpe: editRpe ? parseFloat(editRpe) : 0,
+      notes: editSetNotes,
     }),
     onMutate: async (setId: number) => {
       await queryClient.cancelQueries({ queryKey })

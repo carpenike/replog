@@ -192,6 +192,51 @@ func TestAddWorkoutSet_ValidatesRequired(t *testing.T) {
 	}
 }
 
+// --- UpdateWorkoutSet ---
+
+// TestUpdateWorkoutSet_PartialPreservesFields is the HTTP-level regression for
+// the partial-update data-loss bug: a PUT that carries only notes must leave
+// weight and RPE intact (an MCP agent updating one field must not wipe the
+// load/ACWR history).
+func TestUpdateWorkoutSet_PartialPreservesFields(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	exercise := env.createExercise(t, "Deadlift")
+	workout := env.createWorkout(t, athlete.ID, "2026-05-12")
+	cookies := env.loginAs(t, coach)
+
+	// Seed a set with weight + RPE via the API.
+	createBody := fmt.Sprintf(`{"exercise_id":%d,"reps":5,"weight":315,"rpe":8}`, exercise.ID)
+	rr := env.do(t, "POST",
+		fmt.Sprintf("/api/athletes/%d/workouts/%d/sets", athlete.ID, workout.ID),
+		createBody, cookies)
+	requireStatus(t, rr, http.StatusCreated)
+	var created WorkoutSet
+	decodeJSON(t, rr, &created)
+
+	// Update ONLY notes.
+	rr = env.do(t, "PUT",
+		fmt.Sprintf("/api/athletes/%d/workouts/%d/sets/%d", athlete.ID, workout.ID, created.ID),
+		`{"notes":"belt on"}`, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var got WorkoutSet
+	decodeJSON(t, rr, &got)
+	if got.Reps != 5 {
+		t.Errorf("reps = %d, want 5 (preserved)", got.Reps)
+	}
+	if got.Weight == nil || *got.Weight != 315 {
+		t.Errorf("weight = %v, want 315 (preserved, not wiped)", got.Weight)
+	}
+	if got.RPE == nil || *got.RPE != 8 {
+		t.Errorf("rpe = %v, want 8 (preserved, not wiped)", got.RPE)
+	}
+	if got.Notes == nil || *got.Notes != "belt on" {
+		t.Errorf("notes = %v, want belt on", got.Notes)
+	}
+}
+
 // --- ListWorkouts ---
 
 func TestListWorkouts_ReturnsCreated(t *testing.T) {

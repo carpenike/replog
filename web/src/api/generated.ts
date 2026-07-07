@@ -1967,6 +1967,147 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/export/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export athlete workout sets as CSV
+         * @description One row per logged resistance set: date, exercise, set number,
+         *     reps, weight, rpe, rep_type, category, notes.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description CSV file */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": string;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/export/json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export athlete data as RepLog JSON
+         * @description Full-fidelity per-athlete export: profile, equipment, exercises,
+         *     assignments, training maxes, body weights, notes, workouts (with
+         *     sets and reviews), programs, and multimodal sessions.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["models.AthleteExportJSON"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/generate": {
         parameters: {
             query?: never;
@@ -4473,6 +4614,15 @@ export interface paths {
                 };
                 /** @description Forbidden */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description a resistance workout already exists for this date */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7718,7 +7868,7 @@ export interface components {
         "api.AthleteRequest": {
             /** @example 2014-05-12 */
             date_of_birth?: string;
-            /** @example M */
+            /** @example male */
             gender?: string;
             goal?: string;
             /** @example 6th */
@@ -8041,6 +8191,12 @@ export interface components {
             status?: string;
             tokens_used?: number;
             truncated?: boolean;
+            /**
+             * @description Warnings are advisories from the deterministic post-generation lint
+             *     (e.g. an exercise name the LLM invented). The coach sees these on the
+             *     preview step; they do not block approval.
+             */
+            warnings?: string[];
         };
         "api.GoalRequest": {
             goal?: string;
@@ -8630,6 +8786,170 @@ export interface components {
             rpe?: number;
             /** @example 135 */
             weight?: number;
+        };
+        "models.AthleteExportJSON": {
+            assignments?: components["schemas"]["models.ExportAssignment"][];
+            athlete?: components["schemas"]["models.ExportAthleteProfile"];
+            body_weights?: components["schemas"]["models.ExportBodyWeight"][];
+            equipment?: string[];
+            exercises?: components["schemas"]["models.ExportExercise"][];
+            exported_at?: string;
+            notes?: components["schemas"]["models.ExportNote"][];
+            programs?: components["schemas"]["models.ExportProgramAssignment"][];
+            sessions?: components["schemas"]["models.ExportSessions"];
+            training_maxes?: components["schemas"]["models.ExportTrainingMax"][];
+            /** @description "athlete" */
+            type?: string;
+            version?: string;
+            weight_unit?: string;
+            workouts?: components["schemas"]["models.ExportWorkout"][];
+        };
+        "models.ExportAssignment": {
+            active?: boolean;
+            assigned_at?: string;
+            deactivated_at?: string;
+            exercise?: string;
+            target_reps?: number;
+        };
+        "models.ExportAthleteProfile": {
+            date_of_birth?: string;
+            gender?: string;
+            goal?: string;
+            grade?: string;
+            name?: string;
+            notes?: string;
+            tier?: string;
+            track_body_weight?: boolean;
+        };
+        "models.ExportBodyWeight": {
+            date?: string;
+            notes?: string;
+            weight?: number;
+        };
+        "models.ExportConditioningSession": {
+            avg_hr?: number;
+            date?: string;
+            distance_unit?: string;
+            duration_seconds?: number;
+            modality?: string;
+            notes?: string;
+            rpe?: number;
+            session_type?: string;
+            total_distance?: number;
+        };
+        "models.ExportExercise": {
+            demo_url?: string;
+            equipment?: components["schemas"]["models.ExportExerciseEquipment"][];
+            featured?: boolean;
+            form_notes?: string;
+            name?: string;
+            rest_seconds?: number;
+            tier?: string;
+        };
+        "models.ExportExerciseEquipment": {
+            name?: string;
+            optional?: boolean;
+        };
+        "models.ExportNote": {
+            author?: string;
+            content?: string;
+            date?: string;
+            is_private?: boolean;
+            pinned?: boolean;
+        };
+        "models.ExportPrescribedSet": {
+            absolute_weight?: number;
+            day?: number;
+            exercise?: string;
+            notes?: string;
+            percentage?: number;
+            rep_type?: string;
+            reps?: number;
+            set_number?: number;
+            sort_order?: number;
+            week?: number;
+        };
+        "models.ExportProgramAssignment": {
+            active?: boolean;
+            goal?: string;
+            notes?: string;
+            role?: string;
+            start_date?: string;
+            template?: components["schemas"]["models.ExportProgramTemplate"];
+        };
+        "models.ExportProgramTemplate": {
+            description?: string;
+            is_loop?: boolean;
+            name?: string;
+            num_days?: number;
+            num_weeks?: number;
+            prescribed_sets?: components["schemas"]["models.ExportPrescribedSet"][];
+            progression_rules?: components["schemas"]["models.ExportProgressionRule"][];
+        };
+        "models.ExportProgressionRule": {
+            exercise?: string;
+            increment?: number;
+        };
+        "models.ExportRecoveryCheckin": {
+            date?: string;
+            energy?: number;
+            notes?: string;
+            sleep_hours?: number;
+            soreness?: number;
+        };
+        "models.ExportReview": {
+            notes?: string;
+            status?: string;
+        };
+        "models.ExportSessions": {
+            conditioning?: components["schemas"]["models.ExportConditioningSession"][];
+            recovery?: components["schemas"]["models.ExportRecoveryCheckin"][];
+            skill?: components["schemas"]["models.ExportSkillSession"][];
+            throwing?: components["schemas"]["models.ExportThrowingSession"][];
+        };
+        "models.ExportSet": {
+            category?: string;
+            exercise?: string;
+            notes?: string;
+            rep_type?: string;
+            reps?: number;
+            rpe?: number;
+            set_number?: number;
+            weight?: number;
+        };
+        "models.ExportSkillSession": {
+            date?: string;
+            duration_seconds?: number;
+            load_kg?: number;
+            notes?: string;
+            rep_count?: number;
+            skill_type?: string;
+            velocity?: number;
+        };
+        "models.ExportThrowingSession": {
+            date?: string;
+            fatigue?: boolean;
+            max_intent?: number;
+            notes?: string;
+            pain?: boolean;
+            source?: string;
+            team?: string;
+            throw_count?: number;
+            throw_type?: string;
+            velocity?: number;
+        };
+        "models.ExportTrainingMax": {
+            effective_date?: string;
+            exercise?: string;
+            notes?: string;
+            weight?: number;
+        };
+        "models.ExportWorkout": {
+            date?: string;
+            discipline?: string;
+            notes?: string;
+            review?: components["schemas"]["models.ExportReview"];
+            sets?: components["schemas"]["models.ExportSet"][];
         };
     };
     responses: never;

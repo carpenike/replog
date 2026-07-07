@@ -42,8 +42,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	gooidc "github.com/coreos/go-oidc/v3/oidc"
+	"github.com/go-chi/chi/v5"
 	"golang.org/x/oauth2"
 
 	"github.com/carpenike/replog/internal/models"
@@ -143,18 +143,19 @@ func (s *Server) RegisterRoutes(r chi.Router) {
 
 func (s *Server) handleASMetadata(w http.ResponseWriter, r *http.Request) {
 	writeCachedJSON(w, http.StatusOK, map[string]any{
-		"issuer":                                s.origin,
-		"authorization_endpoint":                s.origin + "/oauth/authorize",
-		"token_endpoint":                        s.origin + "/oauth/token",
-		"registration_endpoint":                 s.origin + "/oauth/register",
-		"response_types_supported":              []string{"code"},
-		"grant_types_supported":                 []string{"authorization_code"},
-		"code_challenge_methods_supported":      []string{"S256"},
-		// Includes "none" for public/PKCE-only clients per the production-proven
-		// reference shape (W.W.W./marginalia oauth-metadata.ts). Advertising the
-		// spec-baseline alternatives costs nothing and avoids brittleness if a
-		// client ever drops the confidential-client secret.
-		"token_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post", "none"},
+		"issuer":                           s.origin,
+		"authorization_endpoint":           s.origin + "/oauth/authorize",
+		"token_endpoint":                   s.origin + "/oauth/token",
+		"registration_endpoint":            s.origin + "/oauth/register",
+		"response_types_supported":         []string{"code"},
+		"grant_types_supported":            []string{"authorization_code"},
+		"code_challenge_methods_supported": []string{"S256"},
+		// Only the confidential-client methods are advertised. The token endpoint
+		// hard-requires a client secret, and DCR always issues one, so "none"
+		// (public/PKCE-only) is NOT actually supported — advertising it would
+		// invite a client to register as public and then fail every token
+		// exchange. It is therefore omitted here and rejected at registration.
+		"token_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post"},
 		"scopes_supported":                      []string{"openid", "profile", "email"},
 	})
 }
@@ -217,6 +218,14 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	authMethod := req.TokenEndpointAuthMethod
 	if authMethod == "" {
 		authMethod = "client_secret_post"
+	}
+	// "none" (public/PKCE-only) is not supported: the token endpoint requires a
+	// client secret. Reject rather than silently issue a secret the client is
+	// told it doesn't need, which would fail every subsequent token exchange.
+	if authMethod != "client_secret_post" && authMethod != "client_secret_basic" {
+		oauthError(w, http.StatusBadRequest, "invalid_client_metadata",
+			"unsupported token_endpoint_auth_method; use client_secret_post or client_secret_basic")
+		return
 	}
 
 	client, secret, err := models.RegisterDCRClient(s.db, req.ClientName, filtered, authMethod)
@@ -383,6 +392,16 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("mcpoauth: callback: user upsert failed: %v", err)
 		redirectError(w, r, st.claudeRedirectURI, st.claudeState, "access_denied", "could not resolve user")
+		return
+	}
+
+	// Gate on the MCP-access flag HERE, at authorization time, rather than
+	// minting a token whose every /api/mcp use would 403. A user who has
+	// authenticated but is not MCP-enabled gets a clear access_denied instead of
+	// a token that silently never works (HOF-004).
+	if !user.MCPEnabled {
+		log.Printf("mcpoauth: callback: user %q (id=%d) is not MCP-enabled", user.Username, user.ID)
+		redirectError(w, r, st.claudeRedirectURI, st.claudeState, "access_denied", "MCP access not enabled for this account")
 		return
 	}
 

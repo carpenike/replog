@@ -46,7 +46,7 @@ jobs:
         run: go vet ./...
 
       - name: Test
-        run: go test -count=1 -race ./...
+        run: go test -count=1 -race -coverprofile=coverage.out ./...
 
   lint:
     name: Lint
@@ -102,6 +102,32 @@ jobs:
             exit 1
           fi
 
+  frontend:
+    name: web/dist is up to date
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Rebuild frontend bundle
+        run: cd web && npm ci && npm run build
+
+      - name: Verify web/dist is committed
+        run: |
+          if ! git diff --exit-code -- web/dist; then
+            echo ""
+            echo "::error::web/dist is stale. web/dist is embedded into the release binary, so a stale bundle ships an outdated SPA. Run 'just build' (or 'cd web && npm run build') locally and commit web/dist."
+            exit 1
+          fi
+
   vulncheck:
     name: Vulnerability scan
     runs-on: ubuntu-latest
@@ -127,7 +153,8 @@ jobs:
       # bumps in go.mod will be enforced here too.
       - name: govulncheck (Go)
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          # renovate: datasource=go depName=golang.org/x/vuln
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
           govulncheck ./...
 
       # npm audit covers the frontend dev/build dependencies. The

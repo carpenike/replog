@@ -83,17 +83,34 @@ func TestASMetadata_OmitsJWKS(t *testing.T) {
 	if got := body["code_challenge_methods_supported"].([]any); got[0] != "S256" {
 		t.Errorf("code_challenge_methods_supported = %v, want [S256]", got)
 	}
-	// "none" must be advertised for public/PKCE-only clients (production-proven
-	// reference shape — W.W.W./marginalia oauth-metadata.ts).
+	// "none" must NOT be advertised: the token endpoint hard-requires a client
+	// secret and DCR always issues one, so a public/PKCE-only client would fail
+	// every token exchange. Only the confidential-client methods are supported.
 	authMethods, _ := body["token_endpoint_auth_methods_supported"].([]any)
-	var hasNone bool
 	for _, m := range authMethods {
 		if m == "none" {
-			hasNone = true
+			t.Errorf("token_endpoint_auth_methods_supported = %v, must NOT include \"none\" (token endpoint requires a secret)", authMethods)
 		}
 	}
-	if !hasNone {
-		t.Errorf("token_endpoint_auth_methods_supported = %v, want it to include \"none\"", authMethods)
+	if len(authMethods) == 0 {
+		t.Error("token_endpoint_auth_methods_supported should advertise the confidential-client methods")
+	}
+}
+
+// TestRegister_RejectsNoneAuthMethod is the registration half of the "none"
+// fix: a client that asks for token_endpoint_auth_method=none is rejected
+// rather than being issued a secret it is told it doesn't need.
+func TestRegister_RejectsNoneAuthMethod(t *testing.T) {
+	s, _ := newTestServer(t)
+	r := newTestRouter(s)
+
+	rr, body := doJSON(t, r, http.MethodPost, "/oauth/register",
+		`{"client_name":"public","redirect_uris":["https://claude.ai/callback"],"token_endpoint_auth_method":"none"}`)
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400 (body=%s)", rr.Code, rr.Body.String())
+	}
+	if body["error"] != "invalid_client_metadata" {
+		t.Errorf("error = %v, want invalid_client_metadata", body["error"])
 	}
 }
 

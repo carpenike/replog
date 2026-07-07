@@ -105,6 +105,28 @@ func ValidateDCRClientSecret(db *sql.DB, clientID, secret string) (*DCRClient, e
 	return c, nil
 }
 
+// DeleteOrphanDCRClients hard-deletes DCR clients that were registered before
+// the given cutoff AND have never produced a surviving mcp_token. A Dynamic
+// Client Registration where the user abandoned the flow (never completed the
+// token exchange) leaves a dangling client row forever otherwise. Clients that
+// own at least one (non-purged) token are always retained. Returns the number
+// of rows removed.
+func DeleteOrphanDCRClients(db *sql.DB, cutoff time.Time) (int64, error) {
+	res, err := db.Exec(
+		`DELETE FROM dcr_clients
+		 WHERE created_at < ?
+		   AND client_id NOT IN (
+		       SELECT oauth_client_id FROM mcp_tokens WHERE oauth_client_id IS NOT NULL
+		   )`,
+		cutoff,
+	)
+	if err != nil {
+		return 0, errors.New("models: delete orphan dcr clients: " + err.Error())
+	}
+	n, _ := res.RowsAffected()
+	return n, nil
+}
+
 // HasRedirectURI reports whether the exact redirect URI is registered to the
 // client (exact-match per the OAuth spec — no prefix/substring matching).
 func (c *DCRClient) HasRedirectURI(uri string) bool {

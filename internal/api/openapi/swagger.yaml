@@ -258,7 +258,7 @@ definitions:
         example: "2014-05-12"
         type: string
       gender:
-        example: M
+        example: male
         type: string
       goal:
         type: string
@@ -838,6 +838,14 @@ definitions:
         type: integer
       truncated:
         type: boolean
+      warnings:
+        description: |-
+          Warnings are advisories from the deterministic post-generation lint
+          (e.g. an exercise name the LLM invented). The coach sees these on the
+          preview step; they do not block approval.
+        items:
+          type: string
+        type: array
     type: object
   api.GoalRequest:
     properties:
@@ -1890,6 +1898,345 @@ definitions:
       weight:
         example: 135
         type: number
+    type: object
+  models.AthleteExportJSON:
+    properties:
+      assignments:
+        items:
+          $ref: '#/definitions/models.ExportAssignment'
+        type: array
+      athlete:
+        $ref: '#/definitions/models.ExportAthleteProfile'
+      body_weights:
+        items:
+          $ref: '#/definitions/models.ExportBodyWeight'
+        type: array
+      equipment:
+        items:
+          type: string
+        type: array
+      exercises:
+        items:
+          $ref: '#/definitions/models.ExportExercise'
+        type: array
+      exported_at:
+        type: string
+      notes:
+        items:
+          $ref: '#/definitions/models.ExportNote'
+        type: array
+      programs:
+        items:
+          $ref: '#/definitions/models.ExportProgramAssignment'
+        type: array
+      sessions:
+        $ref: '#/definitions/models.ExportSessions'
+      training_maxes:
+        items:
+          $ref: '#/definitions/models.ExportTrainingMax'
+        type: array
+      type:
+        description: '"athlete"'
+        type: string
+      version:
+        type: string
+      weight_unit:
+        type: string
+      workouts:
+        items:
+          $ref: '#/definitions/models.ExportWorkout'
+        type: array
+    type: object
+  models.ExportAssignment:
+    properties:
+      active:
+        type: boolean
+      assigned_at:
+        type: string
+      deactivated_at:
+        type: string
+      exercise:
+        type: string
+      target_reps:
+        type: integer
+    type: object
+  models.ExportAthleteProfile:
+    properties:
+      date_of_birth:
+        type: string
+      gender:
+        type: string
+      goal:
+        type: string
+      grade:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      tier:
+        type: string
+      track_body_weight:
+        type: boolean
+    type: object
+  models.ExportBodyWeight:
+    properties:
+      date:
+        type: string
+      notes:
+        type: string
+      weight:
+        type: number
+    type: object
+  models.ExportConditioningSession:
+    properties:
+      avg_hr:
+        type: integer
+      date:
+        type: string
+      distance_unit:
+        type: string
+      duration_seconds:
+        type: integer
+      modality:
+        type: string
+      notes:
+        type: string
+      rpe:
+        type: number
+      session_type:
+        type: string
+      total_distance:
+        type: number
+    type: object
+  models.ExportExercise:
+    properties:
+      demo_url:
+        type: string
+      equipment:
+        items:
+          $ref: '#/definitions/models.ExportExerciseEquipment'
+        type: array
+      featured:
+        type: boolean
+      form_notes:
+        type: string
+      name:
+        type: string
+      rest_seconds:
+        type: integer
+      tier:
+        type: string
+    type: object
+  models.ExportExerciseEquipment:
+    properties:
+      name:
+        type: string
+      optional:
+        type: boolean
+    type: object
+  models.ExportNote:
+    properties:
+      author:
+        type: string
+      content:
+        type: string
+      date:
+        type: string
+      is_private:
+        type: boolean
+      pinned:
+        type: boolean
+    type: object
+  models.ExportPrescribedSet:
+    properties:
+      absolute_weight:
+        type: number
+      day:
+        type: integer
+      exercise:
+        type: string
+      notes:
+        type: string
+      percentage:
+        type: number
+      rep_type:
+        type: string
+      reps:
+        type: integer
+      set_number:
+        type: integer
+      sort_order:
+        type: integer
+      week:
+        type: integer
+    type: object
+  models.ExportProgramAssignment:
+    properties:
+      active:
+        type: boolean
+      goal:
+        type: string
+      notes:
+        type: string
+      role:
+        type: string
+      start_date:
+        type: string
+      template:
+        $ref: '#/definitions/models.ExportProgramTemplate'
+    type: object
+  models.ExportProgramTemplate:
+    properties:
+      description:
+        type: string
+      is_loop:
+        type: boolean
+      name:
+        type: string
+      num_days:
+        type: integer
+      num_weeks:
+        type: integer
+      prescribed_sets:
+        items:
+          $ref: '#/definitions/models.ExportPrescribedSet'
+        type: array
+      progression_rules:
+        items:
+          $ref: '#/definitions/models.ExportProgressionRule'
+        type: array
+    type: object
+  models.ExportProgressionRule:
+    properties:
+      exercise:
+        type: string
+      increment:
+        type: number
+    type: object
+  models.ExportRecoveryCheckin:
+    properties:
+      date:
+        type: string
+      energy:
+        type: integer
+      notes:
+        type: string
+      sleep_hours:
+        type: number
+      soreness:
+        type: integer
+    type: object
+  models.ExportReview:
+    properties:
+      notes:
+        type: string
+      status:
+        type: string
+    type: object
+  models.ExportSessions:
+    properties:
+      conditioning:
+        items:
+          $ref: '#/definitions/models.ExportConditioningSession'
+        type: array
+      recovery:
+        items:
+          $ref: '#/definitions/models.ExportRecoveryCheckin'
+        type: array
+      skill:
+        items:
+          $ref: '#/definitions/models.ExportSkillSession'
+        type: array
+      throwing:
+        items:
+          $ref: '#/definitions/models.ExportThrowingSession'
+        type: array
+    type: object
+  models.ExportSet:
+    properties:
+      category:
+        type: string
+      exercise:
+        type: string
+      notes:
+        type: string
+      rep_type:
+        type: string
+      reps:
+        type: integer
+      rpe:
+        type: number
+      set_number:
+        type: integer
+      weight:
+        type: number
+    type: object
+  models.ExportSkillSession:
+    properties:
+      date:
+        type: string
+      duration_seconds:
+        type: integer
+      load_kg:
+        type: number
+      notes:
+        type: string
+      rep_count:
+        type: integer
+      skill_type:
+        type: string
+      velocity:
+        type: number
+    type: object
+  models.ExportThrowingSession:
+    properties:
+      date:
+        type: string
+      fatigue:
+        type: boolean
+      max_intent:
+        type: integer
+      notes:
+        type: string
+      pain:
+        type: boolean
+      source:
+        type: string
+      team:
+        type: string
+      throw_count:
+        type: integer
+      throw_type:
+        type: string
+      velocity:
+        type: number
+    type: object
+  models.ExportTrainingMax:
+    properties:
+      effective_date:
+        type: string
+      exercise:
+        type: string
+      notes:
+        type: string
+      weight:
+        type: number
+    type: object
+  models.ExportWorkout:
+    properties:
+      date:
+        type: string
+      discipline:
+        type: string
+      notes:
+        type: string
+      review:
+        $ref: '#/definitions/models.ExportReview'
+      sets:
+        items:
+          $ref: '#/definitions/models.ExportSet'
+        type: array
     type: object
 info:
   contact: {}
@@ -2995,6 +3342,73 @@ paths:
       summary: Get training max history
       tags:
       - TrainingMaxes
+  /athletes/{id}/export/csv:
+    get:
+      description: |-
+        One row per logged resistance set: date, exercise, set number,
+        reps, weight, rpe, rep_type, category, notes.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Export athlete workout sets as CSV
+      tags:
+      - Export
+  /athletes/{id}/export/json:
+    get:
+      description: |-
+        Full-fidelity per-athlete export: profile, equipment, exercises,
+        assignments, training maxes, body weights, notes, workouts (with
+        sets and reviews), programs, and multimodal sessions.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AthleteExportJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Export athlete data as RepLog JSON
+      tags:
+      - Export
   /athletes/{id}/generate:
     get:
       description: 'Returns the inputs the SPA needs to render the generation form:
@@ -4371,6 +4785,10 @@ paths:
             $ref: '#/definitions/api.APIError'
         "403":
           description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: a resistance workout already exists for this date
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Create workout

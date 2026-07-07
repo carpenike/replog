@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-Bh1tDfsg.js";import{c as t}from"./vendor-query-MooC-Z-K.js";var n=e(t(),1),r=`RepLog`;function i(e){(0,n.useEffect)(()=>(document.title=e?`${e} · ${r}`:r,()=>{document.title=r}),[e])}export{i as t};

@@ -19,7 +19,7 @@
 #       enable = true;
 #       package = inputs.replog.packages.${pkgs.system}.default;
 #
-#       baseUrl = "https://replog.holthome.net";   # auto-derives WebAuthn
+#       baseUrl = "https://replog.holthome.net";   # sets REPLOG_BASE_URL
 #       port    = 5008;
 #
 #       # Secrets — root-readable EnvironmentFile (sops-nix / agenix).
@@ -45,11 +45,10 @@
 #   (`REPLOG_SECRET_KEY`) auto-generates on first boot and persists into
 #   the SQLite DB itself, so a minimal "run it on a NixOS VM" smoke test
 #   doesn't need any sops/agenix plumbing at all.
-# * `baseUrl` is a convenience option that auto-derives
-#   `REPLOG_WEBAUTHN_RPID` + `REPLOG_WEBAUTHN_ORIGINS`. Three coupled
-#   env vars behind one option — passkeys silently break at the browser
-#   layer if these three drift apart, and there's no useful log line
-#   when it happens.
+# * `baseUrl` is a convenience option that sets `REPLOG_BASE_URL`, used
+#   for absolute-URL generation (login-token magic links, OIDC redirect
+#   default) and to auto-derive whether the session cookie is flagged
+#   `Secure`.
 # * No `logLevel` option — replog uses stdlib `log.Printf`, no levels.
 # * No maintenance-script template unit — daily token cleanup +
 #   notification pruning runs in-process via the embedded scheduler.
@@ -61,11 +60,11 @@
 let
   cfg = config.services.replog;
 
-  # baseUrl → WebAuthn env derivation. Extracted to nix/lib so it can
-  # be unit-tested without standing up the full NixOS module system.
+  # baseUrl → REPLOG_BASE_URL env derivation. Extracted to nix/lib so it
+  # can be unit-tested without standing up the full NixOS module system.
   # See nix/tests/module-baseurl.nix for the regression suite that
   # gates `nix flake check`.
-  baseUrlAttrs = import ./lib/derive-webauthn.nix lib cfg.baseUrl cfg.settings;
+  baseUrlAttrs = import ./lib/derive-baseurl.nix lib cfg.baseUrl;
 
   # Final environment merged into the systemd unit. Order matters:
   # bake-in defaults < baseUrl-derived < user-supplied settings.
@@ -125,19 +124,17 @@ in
       example = "https://replog.holthome.net";
       description = ''
         The external URL the SPA is served from. Convenience option
-        that:
+        that sets `REPLOG_BASE_URL`, which the binary uses to:
 
-          * sets `REPLOG_BASE_URL` (used to generate absolute URLs for
-            login-token magic links and to auto-derive whether the
-            session cookie should be flagged `Secure`)
-          * auto-derives `REPLOG_WEBAUTHN_RPID` (bare hostname) and
-            `REPLOG_WEBAUTHN_ORIGINS` (scheme + host) so passkeys
-            actually work without the operator manually keeping three
-            env vars in sync. Set either of those in `settings`
-            explicitly to override the derivation.
+          * generate absolute URLs for login-token magic links
+          * default the OIDC redirect URL to
+            `<baseUrl>/auth/oidc/callback` when
+            `REPLOG_OIDC_REDIRECT_URL` is unset
+          * auto-derive whether the session cookie should be flagged
+            `Secure` (any `https://` value flips it on)
 
         Leave null if the deployment is reached at multiple hostnames
-        or if you want to pin all three values yourself in `settings`.
+        or if you want to set `REPLOG_BASE_URL` yourself in `settings`.
       '';
     };
 
@@ -150,10 +147,10 @@ in
           # for rate-limit accounting).
           REPLOG_TRUSTED_PROXIES = "127.0.0.1,10.0.0.0/8";
 
-          # Override the auto-derived WebAuthn settings if the
-          # deployment is reachable at more than one origin (e.g. LAN
-          # + tunnel):
-          # REPLOG_WEBAUTHN_ORIGINS = "https://replog.example.com,https://replog.lan";
+          # PocketID OIDC login (ADR 019). Issuer + client id are not
+          # secret; put REPLOG_OIDC_CLIENT_SECRET in `environmentFile`.
+          REPLOG_OIDC_ISSUER = "https://id.example.com";
+          REPLOG_OIDC_CLIENT_ID = "replog";
         }
       '';
       description = ''

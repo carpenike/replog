@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -41,6 +43,21 @@ var (
 )
 
 func main() {
+	// `replog healthcheck` is a self-probe subcommand (used by the Dockerfile
+	// HEALTHCHECK, which runs on distroless with no shell): it GETs the local
+	// /healthz and exits 0/1. It must run before any DB/server setup.
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		os.Exit(runHealthcheck())
+	}
+
+	// Configure structured logging. REPLOG_LOG_FORMAT=json switches the default
+	// slog logger to a JSON handler; anything else keeps human-readable text.
+	// The request-logging middleware and the startup/shutdown lines below go
+	// through slog. NOTE (follow-up): the remaining package-level log.Printf
+	// calls across the codebase are intentionally NOT swept here to avoid a
+	// broad, conflict-prone change; migrating them is tracked separately.
+	setupLogger()
+
 	// Determine database path — default to ./replog.db, override with REPLOG_DB_PATH.
 	dbPath := os.Getenv("REPLOG_DB_PATH")
 	if dbPath == "" {
@@ -267,12 +284,26 @@ func main() {
 		log.Printf("MCP OAuth AS disabled: set REPLOG_OIDC_ISSUER, REPLOG_OIDC_CLIENT_ID, REPLOG_OIDC_CLIENT_SECRET, and REPLOG_BASE_URL to enable")
 	}
 	// Distinct limiter so a flood on /api/mcp cannot starve webui login attempts.
-	mcpLimiter := middleware.NewRateLimiter(10, time.Minute, trustedProxies...)
+	// 120/min: a single normal agent turn is create_workout + several
+	// add_workout_set calls (plus reads), which 10/min throttled mid-turn. This
+	// is keyed per-IP like the auth limiter; per-token keying would be strictly
+	// better (an agent behind a shared egress IP still shares a bucket) but is a
+	// larger change — raising the ceiling is the required fix here.
+	mcpLimiter := middleware.NewRateLimiter(120, time.Minute, trustedProxies...)
 
 	// --- Health checks (public) ---
 	r.Get("/health", handleHealthz)
 	r.Get("/healthz", handleHealthz)
 	r.Get("/readyz", handleReadyz(db))
+
+	// --- Metrics (gated) ---
+	// Prometheus text exposition of request counters + Go runtime gauges.
+	// Off by default (it reveals request volume and process internals); enable
+	// with REPLOG_METRICS_ENABLED=true and restrict it at the reverse proxy.
+	if os.Getenv("REPLOG_METRICS_ENABLED") == "true" {
+		r.Get("/metrics", middleware.MetricsHandler())
+		log.Printf("Metrics endpoint enabled at /metrics")
+	}
 
 	// --- Avatars (public — image responses, no auth required) ---
 	r.Get("/avatars/{filename}", func(w http.ResponseWriter, r *http.Request) {
@@ -631,7 +662,7 @@ func main() {
 	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("RepLog %s (%s, %s) listening on %s", version, commit, date, addr)
+		slog.Info("server listening", "version", version, "commit", commit, "date", date, "addr", addr)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server failed: %v", err)
 		}
@@ -639,7 +670,7 @@ func main() {
 
 	// Block until we receive a shutdown signal.
 	sig := <-shutdownCh
-	log.Printf("Received %s, shutting down gracefully...", sig)
+	slog.Info("shutting down gracefully", "signal", sig.String())
 
 	// Stop background goroutines.
 	authLimiter.Stop()
@@ -689,7 +720,48 @@ func main() {
 		log.Printf("Warning: PRAGMA optimize failed: %v", err)
 	}
 
-	log.Println("Server stopped")
+	slog.Info("server stopped")
+}
+
+// setupLogger configures the process-wide slog default logger. JSON output is
+// selected with REPLOG_LOG_FORMAT=json (for log shippers); otherwise a
+// human-readable text handler is used.
+func setupLogger() {
+	var handler slog.Handler
+	if strings.EqualFold(os.Getenv("REPLOG_LOG_FORMAT"), "json") {
+		handler = slog.NewJSONHandler(os.Stderr, nil)
+	} else {
+		handler = slog.NewTextHandler(os.Stderr, nil)
+	}
+	slog.SetDefault(slog.New(handler))
+}
+
+// runHealthcheck GETs the local /healthz endpoint and returns a process exit
+// code (0 healthy, 1 unhealthy). It targets 127.0.0.1 on the configured listen
+// port so it works from inside the container regardless of the bind address.
+func runHealthcheck() int {
+	addr := os.Getenv("REPLOG_ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil || port == "" {
+		port = "8080"
+	}
+	url := "http://127.0.0.1:" + port + "/healthz"
+
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "healthcheck: request failed: %v\n", err)
+		return 1
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		fmt.Fprintf(os.Stderr, "healthcheck: unexpected status %d\n", resp.StatusCode)
+		return 1
+	}
+	return 0
 }
 
 // bootstrapAdmin creates the initial admin user from environment variables

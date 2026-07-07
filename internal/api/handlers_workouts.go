@@ -355,7 +355,9 @@ func (h *Handlers) UpdateWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.RPE != 0 && (req.RPE < 1 || req.RPE > 10) {
+	// Pointer fields: nil = leave unchanged. Only validate a supplied, non-zero
+	// RPE (a supplied 0 explicitly clears it).
+	if req.RPE != nil && *req.RPE != 0 && (*req.RPE < 1 || *req.RPE > 10) {
 		WriteValidationError(w, "rpe", "must be between 1 and 10")
 		return
 	}
