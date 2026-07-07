@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -53,7 +54,11 @@ func (h *Handlers) UpdateAthleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	note, err := models.UpdateAthleteNote(h.DB, noteID, req.Content, req.IsPrivate, req.Pinned)
+	note, err := models.UpdateAthleteNote(h.DB, noteID, athleteID, req.Content, req.IsPrivate, req.Pinned)
+	if errors.Is(err, models.ErrNotFound) {
+		WriteError(w, http.StatusNotFound, "note not found")
+		return
+	}
 	if err != nil {
 		log.Printf("api: update note %d: %v", noteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update note")
@@ -98,7 +103,11 @@ func (h *Handlers) DeleteAthleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteAthleteNote(h.DB, noteID); err != nil {
+	if err := models.DeleteAthleteNote(h.DB, noteID, athleteID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "note not found")
+			return
+		}
 		log.Printf("api: delete note %d: %v", noteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete note")
 		return

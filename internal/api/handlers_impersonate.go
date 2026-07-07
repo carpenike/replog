@@ -1,7 +1,9 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -106,6 +108,15 @@ func (h *Handlers) StartImpersonation(w http.ResponseWriter, r *http.Request) {
 	log.Printf("api: user %q (id=%d) started impersonating user %q (id=%d)",
 		realUser.Username, realUser.ID, target.Username, target.ID)
 
+	// Persist a durable audit record. Best-effort: an audit-write failure
+	// must not fail the impersonation request.
+	if err := models.WriteAuditLog(h.DB, realUser.ID, sql.NullInt64{Int64: target.ID, Valid: true},
+		"impersonate_start",
+		fmt.Sprintf("%s (id=%d) -> %s (id=%d)", realUser.Username, realUser.ID, target.Username, target.ID),
+	); err != nil {
+		log.Printf("api: audit write on impersonate start: %v", err)
+	}
+
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"status":  "ok",
 		"user_id": targetID,
@@ -130,6 +141,10 @@ func (h *Handlers) StopImpersonation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Capture the impersonated (target) user id BEFORE we restore the
+	// session below — after the restore, "userID" is the real user again.
+	impersonatedID := h.Sessions.GetInt64(r.Context(), "userID")
+
 	// Renew the session token on identity change.
 	if err := h.Sessions.RenewToken(r.Context()); err != nil {
 		log.Printf("api: session renew on stop-impersonate: %v", err)
@@ -142,6 +157,20 @@ func (h *Handlers) StopImpersonation(w http.ResponseWriter, r *http.Request) {
 	h.Sessions.Remove(r.Context(), "impersonating_real_user_id")
 
 	log.Printf("api: user id=%d stopped impersonating", realUserID)
+
+	// Persist a durable audit record. Best-effort: an audit-write failure
+	// must not fail the stop-impersonation request. The target is the user
+	// that was being impersonated (captured before the session restore).
+	var target sql.NullInt64
+	if impersonatedID != 0 {
+		target = sql.NullInt64{Int64: impersonatedID, Valid: true}
+	}
+	if err := models.WriteAuditLog(h.DB, realUserID, target,
+		"impersonate_stop",
+		fmt.Sprintf("real_user_id=%d impersonated_id=%d", realUserID, impersonatedID),
+	); err != nil {
+		log.Printf("api: audit write on impersonate stop: %v", err)
+	}
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

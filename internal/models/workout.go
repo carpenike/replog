@@ -103,14 +103,17 @@ func GetWorkoutByAthleteDate(db *sql.DB, athleteID int64, date string) (*Workout
 	return w, nil
 }
 
-// UpdateWorkoutNotes updates the notes on an existing workout.
-func UpdateWorkoutNotes(db *sql.DB, id int64, notes string) error {
+// UpdateWorkoutNotes updates the notes on an existing workout. The update is
+// scoped to athleteID so a caller authorized for one athlete cannot mutate
+// another athlete's workout by guessing its ID (returns ErrNotFound on
+// athlete mismatch — mapped to 404 by the handler).
+func UpdateWorkoutNotes(db *sql.DB, id, athleteID int64, notes string) error {
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
 	}
 
-	result, err := db.Exec(`UPDATE workouts SET notes = ? WHERE id = ?`, notesVal, id)
+	result, err := db.Exec(`UPDATE workouts SET notes = ? WHERE id = ? AND athlete_id = ?`, notesVal, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: update workout %d notes: %w", id, err)
 	}
@@ -121,9 +124,11 @@ func UpdateWorkoutNotes(db *sql.DB, id int64, notes string) error {
 	return nil
 }
 
-// DeleteWorkout removes a workout and all its sets (CASCADE).
-func DeleteWorkout(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM workouts WHERE id = ?`, id)
+// DeleteWorkout removes a workout and all its sets (CASCADE). Scoped to
+// athleteID: deleting a workout that belongs to a different athlete returns
+// ErrNotFound so cross-athlete IDs cannot be tampered with.
+func DeleteWorkout(db *sql.DB, id, athleteID int64) error {
+	result, err := db.Exec(`DELETE FROM workouts WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: delete workout %d: %w", id, err)
 	}
@@ -186,7 +191,7 @@ func ListWorkouts(db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error)
 }
 
 // WorkoutStats returns the total workout count and earliest workout date for
-// an athlete in a single query. Returns count=0Source and earliest="" if no workouts exist.
+// an athlete in a single query. Returns count=0 and earliest="" if no workouts exist.
 func WorkoutStats(db *sql.DB, athleteID int64) (count int, earliest string, err error) {
 	var earliestVal sql.NullString
 	err = db.QueryRow(

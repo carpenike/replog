@@ -303,6 +303,10 @@ func main() {
 			})
 		})
 
+		// Cap ordinary JSON request bodies. Multipart uploads and bulk import
+		// routes set their own larger caps and are exempted by the middleware.
+		r.Use(middleware.MaxJSONBody(middleware.DefaultMaxJSONBody))
+
 		// Public API endpoints (login) — rate limited.
 		r.Group(func(r chi.Router) {
 			r.Use(authLimiter.Limit)
@@ -523,6 +527,11 @@ func main() {
 			r.Post("/athletes/{id}/import/upload", apiHandlers.ImportUpload)
 			r.Post("/athletes/{id}/import/execute", apiHandlers.ImportExecute)
 
+			// Per-athlete data export (ADR 006). CanAccessAthlete enforced
+			// inside the handler. Backs web/src/pages/ExportPage.tsx.
+			r.Get("/athletes/{id}/export/json", apiHandlers.ExportAthleteJSON)
+			r.Get("/athletes/{id}/export/csv", apiHandlers.ExportAthleteCSV)
+
 			// AI Coach Generation (coach only — handler checks internally).
 			r.Get("/athletes/{id}/generate", apiHandlers.GenerateFormData)
 			r.Post("/athletes/{id}/generate", apiHandlers.GenerateSubmit)
@@ -658,6 +667,20 @@ func main() {
 	case <-genDone:
 	case <-time.After(10 * time.Second):
 		log.Printf("Warning: AI Coach generations still running at shutdown; will reset on next start")
+	}
+
+	// Drain in-flight notification sends (each is a tracked goroutine bounded
+	// by notify's per-send timeout) so we don't drop a webhook/SMTP send that
+	// was mid-flight when the signal arrived.
+	notifyDone := make(chan struct{})
+	go func() {
+		notify.WaitForSends()
+		close(notifyDone)
+	}()
+	select {
+	case <-notifyDone:
+	case <-time.After(10 * time.Second):
+		log.Printf("Warning: notification sends still in flight at shutdown")
 	}
 
 	// Run SQLite optimize on shutdown — updates query planner statistics

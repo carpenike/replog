@@ -291,6 +291,16 @@ func (h *Handlers) UpdateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "access denied")
+		return
+	}
+
 	planID, err := strconv.ParseInt(r.PathValue("planID"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid plan ID")
@@ -303,7 +313,11 @@ func (h *Handlers) UpdateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.UpdateAccessoryPlan(h.DB, planID, req.TargetSets, req.TargetRepMin, req.TargetRepMax, req.TargetWeight, req.Notes, req.SortOrder); err != nil {
+	if err := models.UpdateAccessoryPlan(h.DB, planID, athleteID, req.TargetSets, req.TargetRepMin, req.TargetRepMax, req.TargetWeight, req.Notes, req.SortOrder); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "accessory plan not found")
+			return
+		}
 		log.Printf("api: update accessory plan %d: %v", planID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update plan")
 		return
@@ -331,13 +345,27 @@ func (h *Handlers) DeactivateAccessoryPlan(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "access denied")
+		return
+	}
+
 	planID, err := strconv.ParseInt(r.PathValue("planID"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid plan ID")
 		return
 	}
 
-	if err := models.DeactivateAccessoryPlan(h.DB, planID); err != nil {
+	if err := models.DeactivateAccessoryPlan(h.DB, planID, athleteID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "accessory plan not found")
+			return
+		}
 		log.Printf("api: deactivate accessory plan %d: %v", planID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to deactivate plan")
 		return

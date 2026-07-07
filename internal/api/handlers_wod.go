@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/carpenike/replog/internal/importers"
 	"github.com/carpenike/replog/internal/llm"
@@ -132,7 +131,8 @@ func (h *Handlers) WODSubmit(w http.ResponseWriter, r *http.Request) {
 
 	provider, err := h.llmProvider()
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, "AI Coach not configured: "+err.Error())
+		log.Printf("api: llm provider not configured for WOD: %v", err)
+		WriteError(w, http.StatusInternalServerError, "AI Coach is not configured")
 		return
 	}
 
@@ -185,6 +185,10 @@ func (h *Handlers) WODSubmit(w http.ResponseWriter, r *http.Request) {
 
 	gen, err := models.CreateGenerationWithKind(h.DB, athleteID, user.ID, string(reqJSON), models.GenerationKindWOD)
 	if err != nil {
+		if errors.Is(err, models.ErrGenerationInFlight) {
+			WriteError(w, http.StatusConflict, "a WOD is already in flight for this athlete")
+			return
+		}
 		log.Printf("api: create WOD generation for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to enqueue WOD")
 		return
@@ -255,7 +259,10 @@ func (h *Handlers) WODLog(w http.ResponseWriter, r *http.Request) {
 	}
 	date := strings.TrimSpace(req.Date)
 	if date == "" {
-		date = time.Now().Format("2006-01-02")
+		date = todayInUserTZ(r)
+	} else if !validDate(date) {
+		WriteValidationError(w, "date", "must be a valid date in YYYY-MM-DD format")
+		return
 	}
 
 	parsed, err := importers.ParseCatalogJSON(bytes.NewReader([]byte(gen.CatalogJSON.String)))
@@ -265,8 +272,26 @@ func (h *Handlers) WODLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Claim the one-time log slot BEFORE writing the workout so two concurrent
+	// log requests cannot both commit the same WOD. The loser gets ErrNotFound
+	// → 409. On any downstream failure (collision or import error) we release
+	// the claim so the coach can retry / choose replace.
+	if err := models.MarkGenerationExecuted(h.DB, gen.ID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusConflict, "WOD has already been logged")
+			return
+		}
+		log.Printf("api: claim WOD %d for log: %v", gen.ID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to log WOD")
+		return
+	}
+
 	result, err := models.LogWODFromCatalog(h.DB, gen.AthleteID, date, parsed, req.Replace)
 	if errors.Is(err, models.ErrWODCollision) {
+		// Not actually logged — release the claim so a follow-up replace works.
+		if rbErr := models.UnmarkGenerationExecuted(h.DB, gen.ID); rbErr != nil {
+			log.Printf("api: roll back WOD log claim %d: %v", gen.ID, rbErr)
+		}
 		WriteJSON(w, http.StatusConflict, WODCollisionResponse{
 			Error:     "a resistance workout already exists for this date — replace it or cancel",
 			Collision: true,
@@ -274,13 +299,12 @@ func (h *Handlers) WODLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		if rbErr := models.UnmarkGenerationExecuted(h.DB, gen.ID); rbErr != nil {
+			log.Printf("api: roll back WOD log claim %d: %v", gen.ID, rbErr)
+		}
 		log.Printf("api: log WOD %d for athlete %d: %v", gen.ID, gen.AthleteID, err)
-		WriteError(w, http.StatusInternalServerError, "failed to log WOD: "+err.Error())
+		WriteError(w, http.StatusInternalServerError, "failed to log WOD")
 		return
-	}
-
-	if err := models.MarkGenerationExecuted(h.DB, gen.ID); err != nil && !errors.Is(err, models.ErrNotFound) {
-		log.Printf("api: mark WOD %d logged: %v", gen.ID, err)
 	}
 
 	WriteJSON(w, http.StatusCreated, WODLogResponse{

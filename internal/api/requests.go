@@ -24,7 +24,7 @@ type AthleteRequest struct {
 	Goal            string `json:"goal,omitempty"`
 	DateOfBirth     string `json:"date_of_birth,omitempty" example:"2014-05-12"`
 	Grade           string `json:"grade,omitempty" example:"6th"`
-	Gender          string `json:"gender,omitempty" example:"M"`
+	Gender          string `json:"gender,omitempty" example:"male"`
 	TrackBodyWeight bool   `json:"track_body_weight,omitempty"`
 }
 

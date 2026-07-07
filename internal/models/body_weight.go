@@ -58,9 +58,11 @@ func GetBodyWeightByID(db *sql.DB, id int64) (*BodyWeight, error) {
 	return bw, nil
 }
 
-// DeleteBodyWeight removes a body weight entry by ID.
-func DeleteBodyWeight(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM body_weights WHERE id = ?`, id)
+// DeleteBodyWeight removes a body weight entry by ID, scoped to the owning
+// athlete so a caller cannot delete another athlete's entry by guessing its ID
+// (returns ErrNotFound on mismatch).
+func DeleteBodyWeight(db *sql.DB, id, athleteID int64) error {
+	result, err := db.Exec(`DELETE FROM body_weights WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: delete body weight %d: %w", id, err)
 	}

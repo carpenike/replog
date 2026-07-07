@@ -70,6 +70,30 @@ func TestCreateLoginToken(t *testing.T) {
 	})
 }
 
+// TestLoginTokenHashedAtRest guards the security fix: the plaintext token must
+// never be persisted — the column must hold its SHA-256 hash so a DB leak does
+// not yield usable magic links.
+func TestLoginTokenHashedAtRest(t *testing.T) {
+	db := testDB(t)
+	user, _ := CreateUser(db, "hashkid", "", "password123", "", false, false, sql.NullInt64{})
+
+	lt, err := CreateLoginToken(db, user.ID, "device", nil)
+	if err != nil {
+		t.Fatalf("create login token: %v", err)
+	}
+
+	var stored string
+	if err := db.QueryRow(`SELECT token FROM login_tokens WHERE id = ?`, lt.ID).Scan(&stored); err != nil {
+		t.Fatalf("read stored token: %v", err)
+	}
+	if stored == lt.Token {
+		t.Fatal("plaintext token was persisted verbatim — must be hashed at rest")
+	}
+	if stored != hashLoginToken(lt.Token) {
+		t.Errorf("stored token = %q, want sha256(plaintext)", stored)
+	}
+}
+
 func TestValidateLoginToken(t *testing.T) {
 	db := testDB(t)
 	user, _ := CreateUser(db, "kid2", "", "password123", "", false, false, sql.NullInt64{})

@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
@@ -49,7 +48,7 @@ func (h *Handlers) CreateAthleteNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	date := time.Now().Format("2006-01-02")
+	date := todayInUserTZ(r)
 	note, err := models.CreateAthleteNote(h.DB, athleteID, user.ID, date, req.Content, req.IsPrivate, req.Pinned)
 	if err != nil {
 		log.Printf("api: create athlete note for %d: %v", athleteID, err)

@@ -52,7 +52,7 @@ func TestUpdateSet(t *testing.T) {
 	w, _ := CreateWorkout(db, a.ID, "2026-06-01", "", 0)
 	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "", "", "")
 
-	updated, err := UpdateSet(db, s.ID, 8, 110, 0, "form felt better")
+	updated, err := UpdateSet(db, s.ID, a.ID, 8, 110, 0, "form felt better")
 	if err != nil {
 		t.Fatalf("update set: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestDeleteSet(t *testing.T) {
 	w, _ := CreateWorkout(db, a.ID, "2026-07-01", "", 0)
 	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "", "", "")
 
-	if err := DeleteSet(db, s.ID); err != nil {
+	if err := DeleteSet(db, s.ID, a.ID); err != nil {
 		t.Fatalf("delete set: %v", err)
 	}
 	_, err := GetSetByID(db, s.ID)
@@ -117,7 +117,7 @@ func TestDeleteSet_Renumbers(t *testing.T) {
 	s3, _ := AddSet(db, w.ID, e.ID, 5, 120, 0, "", "", "")
 
 	// Delete the middle set.
-	if err := DeleteSet(db, s2.ID); err != nil {
+	if err := DeleteSet(db, s2.ID, a.ID); err != nil {
 		t.Fatalf("delete middle set: %v", err)
 	}
 
@@ -136,8 +136,36 @@ func TestDeleteSet_Renumbers(t *testing.T) {
 func TestDeleteSet_NotFound(t *testing.T) {
 	db := testDB(t)
 
-	if err := DeleteSet(db, 99999); err != ErrNotFound {
+	if err := DeleteSet(db, 99999, 1); err != ErrNotFound {
 		t.Errorf("err = %v, want ErrNotFound", err)
+	}
+}
+
+// TestSetOps_ScopedToAthlete guards against the cross-athlete IDOR: a set that
+// belongs to athlete A must be invisible to (unmodifiable by) a call scoped to
+// athlete B, even though the set ID is globally valid.
+func TestSetOps_ScopedToAthlete(t *testing.T) {
+	db := testDB(t)
+
+	a, _ := CreateAthlete(db, "Owner", "", "", "", "", "", "", sql.NullInt64{}, true)
+	b, _ := CreateAthlete(db, "Other", "", "", "", "", "", "", sql.NullInt64{}, true)
+	e, _ := CreateExercise(db, "Scoped Lift", "", "", "", 0)
+	w, _ := CreateWorkout(db, a.ID, "2026-10-01", "", 0)
+	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "", "", "")
+
+	if _, err := UpdateSet(db, s.ID, b.ID, 9, 999, 0, "hax"); err != ErrNotFound {
+		t.Errorf("cross-athlete UpdateSet err = %v, want ErrNotFound", err)
+	}
+	if err := DeleteSet(db, s.ID, b.ID); err != ErrNotFound {
+		t.Errorf("cross-athlete DeleteSet err = %v, want ErrNotFound", err)
+	}
+	// The set must still exist and be untouched.
+	got, err := GetSetByID(db, s.ID)
+	if err != nil {
+		t.Fatalf("set should survive cross-athlete tamper: %v", err)
+	}
+	if got.Reps != 5 {
+		t.Errorf("reps mutated cross-athlete: got %d, want 5", got.Reps)
 	}
 }
 

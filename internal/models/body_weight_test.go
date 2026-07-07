@@ -84,7 +84,7 @@ func TestDeleteBodyWeight(t *testing.T) {
 
 	t.Run("delete existing", func(t *testing.T) {
 		bw, _ := CreateBodyWeight(db, a.ID, "2026-02-01", 185.0, "")
-		if err := DeleteBodyWeight(db, bw.ID); err != nil {
+		if err := DeleteBodyWeight(db, bw.ID, a.ID); err != nil {
 			t.Fatalf("delete body weight: %v", err)
 		}
 		_, err := GetBodyWeightByID(db, bw.ID)
@@ -94,7 +94,7 @@ func TestDeleteBodyWeight(t *testing.T) {
 	})
 
 	t.Run("delete nonexistent", func(t *testing.T) {
-		err := DeleteBodyWeight(db, 9999)
+		err := DeleteBodyWeight(db, 9999, a.ID)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}

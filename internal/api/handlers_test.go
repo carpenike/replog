@@ -272,6 +272,10 @@ func setupTest(t *testing.T) *testEnv {
 			r.Post("/athletes/{id}/import/upload", h.ImportUpload)
 			r.Post("/athletes/{id}/import/execute", h.ImportExecute)
 
+			// Per-athlete data export (ADR 006).
+			r.Get("/athletes/{id}/export/json", h.ExportAthleteJSON)
+			r.Get("/athletes/{id}/export/csv", h.ExportAthleteCSV)
+
 			// AI Coach generation (per athlete).
 			r.Get("/athletes/{id}/generate", h.GenerateFormData)
 			r.Post("/athletes/{id}/generate", h.GenerateSubmit)

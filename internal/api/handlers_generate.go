@@ -460,7 +460,8 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	// the HTTP boundary (instead of producing a 'failed' generation row).
 	provider, err := h.llmProvider()
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, "AI Coach not configured: "+err.Error())
+		log.Printf("api: llm provider not configured: %v", err)
+		WriteError(w, http.StatusInternalServerError, "AI Coach is not configured")
 		return
 	}
 
@@ -486,6 +487,10 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	gen, err := models.CreateGeneration(h.DB, athleteID, user.ID, string(reqJSON))
 	if err != nil {
+		if errors.Is(err, models.ErrGenerationInFlight) {
+			WriteError(w, http.StatusConflict, "a draft is already in flight for this athlete")
+			return
+		}
 		log.Printf("api: create generation for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to enqueue generation")
 		return
@@ -768,10 +773,29 @@ func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
 		ms.Programs = importers.BuildProgramMappings(parsed.Programs, nil)
 	}
 
+	// Claim the one-time execute slot BEFORE importing. This is the atomic
+	// guard against a check-then-act race: two concurrent execute requests both
+	// pass the gen.ExecutedAt.Valid check above, but only one can win this
+	// claiming UPDATE. The loser gets ErrNotFound → 409, so we never run the
+	// import twice and create duplicate programs.
+	if err := models.MarkGenerationExecuted(h.DB, gen.ID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusConflict, "generation has already been executed")
+			return
+		}
+		log.Printf("api: claim generation %d for execute: %v", gen.ID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to execute generation")
+		return
+	}
+
 	result, err := models.ExecuteCatalogImport(h.DB, ms, &gen.AthleteID, false)
 	if err != nil {
+		// Release the claim so the coach can retry after a transient failure.
+		if rbErr := models.UnmarkGenerationExecuted(h.DB, gen.ID); rbErr != nil {
+			log.Printf("api: roll back execute claim for generation %d: %v", gen.ID, rbErr)
+		}
 		log.Printf("api: execute generation %d for athlete %d: %v", gen.ID, gen.AthleteID, err)
-		WriteError(w, http.StatusInternalServerError, "Failed to save program: "+err.Error())
+		WriteError(w, http.StatusInternalServerError, "failed to save program")
 		return
 	}
 
@@ -779,10 +803,6 @@ func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
 	// Approving the draft creates an athlete-scoped but UNASSIGNED template;
 	// the coach edits via PUT /programs/{id} + sets/rules and then explicitly
 	// assigns via POST /athletes/{id}/programs (HOF-001 #13, ADR 007).
-
-	if err := models.MarkGenerationExecuted(h.DB, gen.ID); err != nil && !errors.Is(err, models.ErrNotFound) {
-		log.Printf("api: mark generation %d executed: %v", gen.ID, err)
-	}
 
 	WriteJSON(w, http.StatusOK, GenerateExecuteResponse{
 		ProgramsCreated:    result.ProgramsCreated,

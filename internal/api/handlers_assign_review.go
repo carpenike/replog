@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -46,6 +47,20 @@ func (h *Handlers) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	workoutID, err := strconv.ParseInt(r.PathValue("workoutID"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid workout ID")
+		return
+	}
+
+	// The workout ID is global; confirm it belongs to the path athlete so a
+	// coach cannot attach a review to a workout of an athlete they can access
+	// in the path but which actually belongs to someone else.
+	workout, err := models.GetWorkoutByID(h.DB, workoutID)
+	if errors.Is(err, models.ErrNotFound) || (err == nil && workout.AthleteID != athleteID) {
+		WriteError(w, http.StatusNotFound, "workout not found")
+		return
+	}
+	if err != nil {
+		log.Printf("api: get workout %d for review: %v", workoutID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to submit review")
 		return
 	}
 
@@ -195,6 +210,17 @@ func (h *Handlers) DeactivateAthleteProgram(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// The program assignment ID is global; verify it belongs to the path
+	// athlete so it cannot be deactivated cross-athlete.
+	if prog, perr := models.GetAthleteProgramByID(h.DB, programID); errors.Is(perr, models.ErrNotFound) || (perr == nil && prog.AthleteID != athleteID) {
+		WriteError(w, http.StatusNotFound, "program assignment not found")
+		return
+	} else if perr != nil {
+		log.Printf("api: get program %d for deactivate: %v", programID, perr)
+		WriteError(w, http.StatusInternalServerError, "failed to deactivate program")
+		return
+	}
+
 	if err := models.DeactivateProgram(h.DB, programID); err != nil {
 		log.Printf("api: deactivate program %d: %v", programID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to deactivate program")
@@ -241,9 +267,10 @@ func (h *Handlers) ReactivateAthleteProgram(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Get the program to check its role and auto-deactivate conflicts.
+	// Get the program to check its role and auto-deactivate conflicts. Also
+	// enforce that it belongs to the path athlete (cross-athlete guard).
 	program, err := models.GetAthleteProgramByID(h.DB, programID)
-	if err != nil {
+	if err != nil || program.AthleteID != athleteID {
 		WriteError(w, http.StatusNotFound, "program assignment not found")
 		return
 	}
@@ -297,6 +324,16 @@ func (h *Handlers) DeleteAthleteProgram(w http.ResponseWriter, r *http.Request) 
 	programID, err := strconv.ParseInt(r.PathValue("programID"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid program ID")
+		return
+	}
+
+	// Verify the assignment belongs to the path athlete (cross-athlete guard).
+	if prog, perr := models.GetAthleteProgramByID(h.DB, programID); errors.Is(perr, models.ErrNotFound) || (perr == nil && prog.AthleteID != athleteID) {
+		WriteError(w, http.StatusNotFound, "program assignment not found")
+		return
+	} else if perr != nil {
+		log.Printf("api: get program %d for delete: %v", programID, perr)
+		WriteError(w, http.StatusInternalServerError, "failed to delete program assignment")
 		return
 	}
 
@@ -437,13 +474,27 @@ func (h *Handlers) DeleteAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "access denied")
+		return
+	}
+
 	planID, err := strconv.ParseInt(r.PathValue("planID"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid plan ID")
 		return
 	}
 
-	if err := models.DeleteAccessoryPlan(h.DB, planID); err != nil {
+	if err := models.DeleteAccessoryPlan(h.DB, planID, athleteID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "accessory plan not found")
+			return
+		}
 		log.Printf("api: delete accessory plan %d: %v", planID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete accessory plan")
 		return

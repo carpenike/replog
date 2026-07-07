@@ -10,6 +10,13 @@ import (
 )
 
 // LoginToken represents a passwordless login token for device-based access.
+//
+// The plaintext secret is NEVER persisted — only its SHA-256 hash is stored in
+// the token column (same posture as MCP tokens), so a database leak does not
+// yield usable magic links. The Token field carries the plaintext ONLY on the
+// value returned by CreateLoginToken (so the caller can build the one-time
+// link); when a LoginToken is read back from the database, Token holds the hash
+// and is not a usable credential.
 type LoginToken struct {
 	ID        int64
 	UserID    int64
@@ -17,6 +24,12 @@ type LoginToken struct {
 	Label     sql.NullString
 	ExpiresAt sql.NullTime
 	CreatedAt time.Time
+}
+
+// hashLoginToken returns the lowercase-hex SHA-256 of a login token, matching
+// the MCP token storage scheme (hashMCPSecret).
+func hashLoginToken(token string) string {
+	return hashMCPSecret(token)
 }
 
 // LoginTokenWithUser extends LoginToken with the associated username.
@@ -68,12 +81,15 @@ func CreateLoginToken(db *sql.DB, userID int64, label string, expiresAt *time.Ti
 	var id int64
 	err = db.QueryRow(
 		`INSERT INTO login_tokens (user_id, token, label, expires_at) VALUES (?, ?, ?, ?) RETURNING id`,
-		userID, token, labelVal, expiresVal,
+		userID, hashLoginToken(token), labelVal, expiresVal,
 	).Scan(&id)
 	if err != nil {
 		return nil, fmt.Errorf("models: create login token for user %d: %w", userID, err)
 	}
 
+	// Return the PLAINTEXT token to the caller exactly once — it is only
+	// recoverable here; the DB stores its hash. The caller builds the magic
+	// link from this and must not persist it verbatim.
 	return &LoginToken{
 		ID:        id,
 		UserID:    userID,
@@ -100,7 +116,7 @@ func ValidateLoginToken(db *sql.DB, token string) (*User, error) {
 	lt := &LoginToken{}
 	err = tx.QueryRow(
 		`SELECT id, user_id, token, label, expires_at, created_at
-		 FROM login_tokens WHERE token = ?`, token,
+		 FROM login_tokens WHERE token = ?`, hashLoginToken(token),
 	).Scan(&lt.ID, &lt.UserID, &lt.Token, &lt.Label, &lt.ExpiresAt, &lt.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound

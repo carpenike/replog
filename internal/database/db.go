@@ -22,6 +22,11 @@ func Open(dbPath string) (*sql.DB, error) {
 	// Set required PRAGMAs on the connection.
 	pragmas := []string{
 		"PRAGMA journal_mode = WAL",
+		// NORMAL is the standard pairing with WAL: fsync only at checkpoint
+		// (not every commit), a large write-latency win. The WAL still gives
+		// durability up to the last checkpoint; a crash can lose only the
+		// final in-flight transaction, which is acceptable for this workload.
+		"PRAGMA synchronous = NORMAL",
 		"PRAGMA busy_timeout = 5000",
 		"PRAGMA foreign_keys = ON",
 	}

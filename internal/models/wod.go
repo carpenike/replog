@@ -60,7 +60,7 @@ func LogWODFromCatalog(db *sql.DB, athleteID int64, date string, parsed *importe
 		if !replace {
 			return nil, ErrWODCollision
 		}
-		if derr := DeleteWorkout(db, existing.ID); derr != nil {
+		if derr := DeleteWorkout(db, existing.ID, athleteID); derr != nil {
 			return nil, fmt.Errorf("models: replace existing workout %d for WOD: %w", existing.ID, derr)
 		}
 		replaced = true

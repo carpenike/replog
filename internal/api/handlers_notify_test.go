@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/carpenike/replog/internal/models"
@@ -248,8 +249,12 @@ func TestNotify_MagicLinkSent(t *testing.T) {
 	if n.Type != models.NotifyMagicLinkSent {
 		t.Errorf("type = %q, want %q", n.Type, models.NotifyMagicLinkSent)
 	}
-	if !n.Link.Valid || n.Link.String == "" {
-		t.Errorf("link should be set to the auth/token URL, got %v", n.Link)
+	// Security fix: the persisted notification must NOT embed the usable
+	// magic-link token — a stored notification row is a durable artifact and a
+	// token in it would be a replayable credential at rest. The admin shares
+	// the one-time URL from the create response out-of-band instead.
+	if strings.Contains(n.Link.String, "/auth/token/") {
+		t.Errorf("notification link must not embed the magic-link token, got %q", n.Link.String)
 	}
 }
 

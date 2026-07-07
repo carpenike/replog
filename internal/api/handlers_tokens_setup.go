@@ -208,16 +208,17 @@ func (h *Handlers) CreateLoginToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Notify the user that a magic-link login token was issued for them
-	// (ADR 008). The link points to the token-login URL the admin shares
-	// with the recipient. The notification itself is in-app + (optional)
-	// external; it does not contain the token bytes (those live in the
-	// link only).
+	// (ADR 008). We deliberately do NOT embed the usable token in the
+	// persisted notification Link — a stored notification row is a durable
+	// artifact and a token in it would be a replayable credential at rest.
+	// The admin shares the one-time URL (returned below) out-of-band; the
+	// notification only informs the user that a link exists.
 	notify.Send(h.DB, notify.Request{
 		UserID:  userID,
 		Type:    models.NotifyMagicLinkSent,
 		Title:   "Login link issued",
 		Message: "An admin generated a single-use login link for your account.",
-		Link:    "/auth/token/" + token.Token,
+		Link:    "",
 	})
 
 	WriteJSON(w, http.StatusCreated, map[string]any{

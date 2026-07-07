@@ -25,6 +25,14 @@ const (
 	GenerationKindWOD     = "wod"
 )
 
+// ErrGenerationInFlight is returned when creating a generation would violate
+// the unique-per-(athlete, kind) invariant enforced by the partial index
+// idx_generations_inflight (migration 0012): an athlete may not have two
+// pending/running generations of the same kind at once. The handler maps this
+// to 409. This closes the check-then-act race the app-level pre-check alone
+// left open under concurrent submits.
+var ErrGenerationInFlight = errors.New("a generation is already in flight for this athlete")
+
 // Generation is one AI Coach program-draft request.
 //
 // The lifecycle is: pending → running → (succeeded | failed | cancelled).
@@ -91,6 +99,11 @@ func CreateGenerationWithKind(db *sql.DB, athleteID, requestedBy int64, requestJ
 		RequestJSON: requestJSON,
 	}
 	if err := row.Scan(&g.ID, &g.CreatedAt); err != nil {
+		if isUniqueViolation(err) {
+			// The partial unique index rejected a concurrent duplicate — an
+			// in-flight generation of this kind already exists for the athlete.
+			return nil, ErrGenerationInFlight
+		}
 		return nil, fmt.Errorf("models: create generation: %w", err)
 	}
 	return g, nil
@@ -205,8 +218,12 @@ func CancelGeneration(db *sql.DB, id int64) error {
 	return nil
 }
 
-// MarkGenerationExecuted stamps executed_at so the SPA can render "imported"
-// and the execute handler can reject a second commit of the same draft.
+// MarkGenerationExecuted atomically claims the one-time execute slot: it stamps
+// executed_at only if it is still NULL and reports ErrNotFound when the row is
+// missing OR already executed (rows-affected == 0). Callers MUST claim BEFORE
+// running the import so two concurrent execute requests cannot both commit the
+// same draft (which would create duplicate programs); on import failure the
+// claim is released with UnmarkGenerationExecuted so the coach can retry.
 func MarkGenerationExecuted(db *sql.DB, id int64) error {
 	res, err := db.Exec(
 		`UPDATE generations SET executed_at = CURRENT_TIMESTAMP
@@ -219,6 +236,17 @@ func MarkGenerationExecuted(db *sql.DB, id int64) error {
 	n, _ := res.RowsAffected()
 	if n == 0 {
 		return ErrNotFound
+	}
+	return nil
+}
+
+// UnmarkGenerationExecuted releases a previously-claimed execute slot by
+// clearing executed_at. Used to roll back the claim when the import that
+// followed a successful MarkGenerationExecuted fails, so the draft is not
+// permanently stuck in an "executed" state it never completed.
+func UnmarkGenerationExecuted(db *sql.DB, id int64) error {
+	if _, err := db.Exec(`UPDATE generations SET executed_at = NULL WHERE id = ?`, id); err != nil {
+		return fmt.Errorf("models: unmark generation %d executed: %w", id, err)
 	}
 	return nil
 }

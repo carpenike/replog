@@ -244,8 +244,11 @@ func GetSetByID(db *sql.DB, id int64) (*WorkoutSet, error) {
 	return s, nil
 }
 
-// UpdateSet updates a set's reps, weight, RPE, and notes.
-func UpdateSet(db *sql.DB, id int64, reps int, weight float64, rpe float64, notes string) (*WorkoutSet, error) {
+// UpdateSet updates a set's reps, weight, RPE, and notes. The update is scoped
+// to athleteID by joining through the parent workout so a caller authorized for
+// one athlete cannot mutate another athlete's set by guessing its ID (returns
+// ErrNotFound on mismatch — mapped to 404 by the handler).
+func UpdateSet(db *sql.DB, id, athleteID int64, reps int, weight float64, rpe float64, notes string) (*WorkoutSet, error) {
 	var weightVal sql.NullFloat64
 	if weight > 0 {
 		weightVal = sql.NullFloat64{Float64: weight, Valid: true}
@@ -260,8 +263,9 @@ func UpdateSet(db *sql.DB, id int64, reps int, weight float64, rpe float64, note
 	}
 
 	result, err := db.Exec(
-		`UPDATE workout_sets SET reps = ?, weight = ?, rpe = ?, notes = ? WHERE id = ?`,
-		reps, weightVal, rpeVal, notesVal, id,
+		`UPDATE workout_sets SET reps = ?, weight = ?, rpe = ?, notes = ?
+		 WHERE id = ? AND workout_id IN (SELECT id FROM workouts WHERE athlete_id = ?)`,
+		reps, weightVal, rpeVal, notesVal, id, athleteID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: update set %d: %w", id, err)
@@ -274,17 +278,25 @@ func UpdateSet(db *sql.DB, id int64, reps int, weight float64, rpe float64, note
 }
 
 // DeleteSet removes a set from a workout and renumbers the remaining sets
-// for the same workout+exercise to maintain a contiguous sequence.
-func DeleteSet(db *sql.DB, id int64) error {
+// for the same workout+exercise to maintain a contiguous sequence. The initial
+// lookup is scoped to athleteID (joined through the parent workout) so a set
+// belonging to another athlete returns ErrNotFound rather than being deleted.
+func DeleteSet(db *sql.DB, id, athleteID int64) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("models: begin tx for delete set: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Look up the set's workout and exercise before deleting.
+	// Look up the set's workout and exercise before deleting, scoped to the
+	// owning athlete so cross-athlete IDs cannot be tampered with.
 	var workoutID, exerciseID int64
-	err = tx.QueryRow(`SELECT workout_id, exercise_id FROM workout_sets WHERE id = ?`, id).Scan(&workoutID, &exerciseID)
+	err = tx.QueryRow(
+		`SELECT ws.workout_id, ws.exercise_id
+		 FROM workout_sets ws
+		 JOIN workouts w ON w.id = ws.workout_id
+		 WHERE ws.id = ? AND w.athlete_id = ?`, id, athleteID,
+	).Scan(&workoutID, &exerciseID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
