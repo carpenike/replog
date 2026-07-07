@@ -226,14 +226,8 @@ func (h *Handlers) RemoveExerciseEquipment(w http.ResponseWriter, r *http.Reques
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/equipment [get]
 func (h *Handlers) ListAthleteEquipment(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -260,14 +254,8 @@ func (h *Handlers) ListAthleteEquipment(w http.ResponseWriter, r *http.Request) 
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/equipment [post]
 func (h *Handlers) AddAthleteEquipment(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -298,14 +286,8 @@ func (h *Handlers) AddAthleteEquipment(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/equipment/{equipmentID} [delete]
 func (h *Handlers) RemoveAthleteEquipment(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -361,13 +343,8 @@ func (h *Handlers) GetCycleReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -434,13 +411,8 @@ func (h *Handlers) ApplyTMBumps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 

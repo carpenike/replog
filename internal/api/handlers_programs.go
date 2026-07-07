@@ -447,3 +447,182 @@ func (h *Handlers) PromoteAthlete(w http.ResponseWriter, r *http.Request) {
 
 	WriteJSON(w, http.StatusOK, AthleteFromModel(promoted))
 }
+
+// ListProgramTemplates returns program templates. With no query params it
+// returns every template. When an athlete_id query param is supplied it
+// returns the templates assignable to that athlete: global templates plus
+// templates scoped to that athlete (athlete-specific sorted first).
+//
+//	@Summary      List program templates
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        athlete_id  query  int  false  "Limit to templates assignable to this athlete (global + athlete-scoped)"
+//	@Success      200  {array}   api.ProgramTemplate
+//	@Router       /programs [get]
+func (h *Handlers) ListProgramTemplates(w http.ResponseWriter, r *http.Request) {
+	var (
+		programs []*models.ProgramTemplate
+		err      error
+	)
+	if raw := r.URL.Query().Get("athlete_id"); raw != "" {
+		athleteID, perr := strconv.ParseInt(raw, 10, 64)
+		if perr != nil {
+			WriteError(w, http.StatusBadRequest, "invalid athlete_id")
+			return
+		}
+		// Athlete-scoped templates can embed that athlete's context (e.g.
+		// AI-generated programs), so gate on access before returning them.
+		user := middleware.UserFromContext(r.Context())
+		if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+			WriteError(w, http.StatusForbidden, "access denied")
+			return
+		}
+		programs, err = models.ListProgramTemplatesForAthlete(h.DB, athleteID)
+	} else {
+		programs, err = models.ListProgramTemplates(h.DB)
+	}
+	if err != nil {
+		log.Printf("api: list program templates: %v", err)
+		WriteError(w, http.StatusInternalServerError, "failed to list programs")
+		return
+	}
+
+	result := make([]*ProgramTemplate, len(programs))
+	for i, p := range programs {
+		result[i] = ProgramTemplateFromModel(p)
+	}
+	WriteJSON(w, http.StatusOK, result)
+}
+
+// GetProgramTemplate returns a single program template.
+//
+//	@Summary      Get program template
+//	@Description  Returns the template metadata plus its prescribed sets.
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id   path      int  true  "Program ID"
+//	@Success      200  {object}  map[string]interface{}
+//	@Failure      400  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /programs/{id} [get]
+func (h *Handlers) GetProgramTemplate(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid program ID")
+		return
+	}
+
+	program, err := models.GetProgramTemplateByID(h.DB, id)
+	if errors.Is(err, models.ErrNotFound) {
+		WriteError(w, http.StatusNotFound, "program not found")
+		return
+	}
+	if err != nil {
+		log.Printf("api: get program template %d: %v", id, err)
+		WriteError(w, http.StatusInternalServerError, "failed to get program")
+		return
+	}
+	// Athlete-scoped templates embed that athlete's context; a global template
+	// (AthleteID == nil) is readable by any authenticated user, but a scoped one
+	// requires access to its athlete. Treat a denied scoped template as 404 so
+	// its existence is not disclosed.
+	if program.AthleteID != nil {
+		user := middleware.UserFromContext(r.Context())
+		if !middleware.CanAccessAthlete(h.DB, user, *program.AthleteID) {
+			WriteError(w, http.StatusNotFound, "program not found")
+			return
+		}
+	}
+
+	sets, err := models.ListPrescribedSets(h.DB, id)
+	if err != nil {
+		log.Printf("api: list prescribed sets for program %d: %v", id, err)
+		WriteError(w, http.StatusInternalServerError, "failed to get program sets")
+		return
+	}
+
+	apiSets := make([]*PrescribedSet, len(sets))
+	for i, s := range sets {
+		apiSets[i] = PrescribedSetFromModel(s)
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]any{
+		"program": ProgramTemplateFromModel(program),
+		"sets":    apiSets,
+	})
+}
+
+// ListAthletePrograms returns programs assigned to an athlete.//
+//	@Summary      List athlete's program assignments
+//	@Tags         Programs
+//	@Produce      json
+//	@Param        id   path      int  true  "Athlete ID"
+//	@Success      200  {array}   api.AthleteProgram
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/programs [get]
+func (h *Handlers) ListAthletePrograms(w http.ResponseWriter, r *http.Request) {
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	programs, err := models.ListAthletePrograms(h.DB, athleteID)
+	if err != nil {
+		log.Printf("api: list athlete programs for %d: %v", athleteID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to list programs")
+		return
+	}
+
+	result := make([]*AthleteProgram, len(programs))
+	for i, p := range programs {
+		result[i] = AthleteProgramFromModel(p)
+	}
+	WriteJSON(w, http.StatusOK, result)
+}
+
+// CopyWeek copies prescribed sets from one week to another.
+// CopyWeek copies all prescribed sets from one week to another within a template.
+//
+//	@Summary      Copy week of prescribed sets
+//	@Tags         Programs
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                  true  "Program ID"
+//	@Param        body  body      api.CopyWeekRequest  true  "Source/target weeks"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /programs/{id}/copy-week [post]
+func (h *Handlers) CopyWeek(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	templateID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid program ID")
+		return
+	}
+
+	var req CopyWeekRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.SourceWeek < 1 || req.TargetWeek < 1 {
+		WriteError(w, http.StatusBadRequest, "source_week and target_week must be positive")
+		return
+	}
+
+	inserted, err := models.CopyWeek(h.DB, templateID, req.SourceWeek, req.TargetWeek)
+	if err != nil {
+		log.Printf("api: copy week for template %d: %v", templateID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to copy week")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]int{"sets_copied": int(inserted)})
+}

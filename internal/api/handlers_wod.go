@@ -7,7 +7,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/carpenike/replog/internal/importers"
@@ -95,13 +94,8 @@ func (h *Handlers) WODSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "not your athlete")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 

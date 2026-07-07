@@ -263,15 +263,8 @@ func (h *Handlers) ListAthletes(w http.ResponseWriter, r *http.Request) {
 //	@Failure      404  {object}  api.APIError
 //	@Router       /athletes/{id} [get]
 func (h *Handlers) GetAthlete(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-
-	if !middleware.CanAccessAthlete(h.DB, user, id) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	id, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -374,15 +367,8 @@ func (h *Handlers) GetExercise(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/workouts [get]
 func (h *Handlers) ListWorkouts(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-
-	if !middleware.CanAccessAthlete(h.DB, user, id) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	id, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 

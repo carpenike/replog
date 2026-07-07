@@ -34,13 +34,8 @@ func (h *Handlers) SubmitReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -116,13 +111,8 @@ func (h *Handlers) AssignProgramToAthlete(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -194,13 +184,8 @@ func (h *Handlers) DeactivateAthleteProgram(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -251,13 +236,8 @@ func (h *Handlers) ReactivateAthleteProgram(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -311,13 +291,8 @@ func (h *Handlers) DeleteAthleteProgram(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -380,14 +355,8 @@ func AccessoryPlanFromModel(m *models.AccessoryPlan) *AccessoryPlan {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/accessories [get]
 func (h *Handlers) ListAccessoryPlans(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -425,13 +394,8 @@ func (h *Handlers) CreateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -474,13 +438,8 @@ func (h *Handlers) DeleteAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -497,6 +456,159 @@ func (h *Handlers) DeleteAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("api: delete accessory plan %d: %v", planID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete accessory plan")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// UpdateAccessoryPlan updates an accessory plan.
+// UpdateAccessoryPlan updates an accessory plan.
+//
+//	@Summary      Update accessory plan
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id      path      int                              true  "Athlete ID"
+//	@Param        planID  path      int                              true  "Plan ID"
+//	@Param        body    body      api.AccessoryPlanUpdateRequest   true  "Plan"
+//	@Success      200  {object}  api.AccessoryPlan
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/accessories/{planID} [put]
+func (h *Handlers) UpdateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	planID, err := strconv.ParseInt(r.PathValue("planID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid plan ID")
+		return
+	}
+
+	var req AccessoryPlanUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if err := models.UpdateAccessoryPlan(h.DB, planID, athleteID, req.TargetSets, req.TargetRepMin, req.TargetRepMax, req.TargetWeight, req.Notes, req.SortOrder); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "accessory plan not found")
+			return
+		}
+		log.Printf("api: update accessory plan %d: %v", planID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to update plan")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// DeactivateAccessoryPlan deactivates an accessory plan.
+// DeactivateAccessoryPlan marks an accessory plan as inactive.
+//
+//	@Summary      Deactivate accessory plan
+//	@Tags         Athletes
+//	@Produce      json
+//	@Param        id      path      int  true  "Athlete ID"
+//	@Param        planID  path      int  true  "Plan ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/accessories/{planID}/deactivate [post]
+func (h *Handlers) DeactivateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	planID, err := strconv.ParseInt(r.PathValue("planID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid plan ID")
+		return
+	}
+
+	if err := models.DeactivateAccessoryPlan(h.DB, planID, athleteID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "accessory plan not found")
+			return
+		}
+		log.Printf("api: deactivate accessory plan %d: %v", planID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to deactivate plan")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// DeleteReview deletes a workout review.
+//
+//	@Summary      Delete workout review
+//	@Tags         Reviews
+//	@Produce      json
+//	@Param        id         path      int  true  "Athlete ID"
+//	@Param        workoutID  path      int  true  "Workout ID"
+//	@Success      200  {object}  api.StatusResponse
+//	@Failure      403  {object}  api.APIError
+//	@Failure      404  {object}  api.APIError
+//	@Router       /athletes/{id}/workouts/{workoutID}/review [delete]
+func (h *Handlers) DeleteReview(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	workoutID, err := strconv.ParseInt(r.PathValue("workoutID"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid workout ID")
+		return
+	}
+
+	// Ensure the workout (and thus its review) belongs to the path athlete —
+	// the workout ID is global and must not be reachable cross-athlete.
+	workout, err := models.GetWorkoutByID(h.DB, workoutID)
+	if errors.Is(err, models.ErrNotFound) || (err == nil && workout.AthleteID != athleteID) {
+		WriteError(w, http.StatusNotFound, "review not found")
+		return
+	}
+	if err != nil {
+		log.Printf("api: get workout %d for delete review: %v", workoutID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to delete review")
+		return
+	}
+
+	review, err := models.GetWorkoutReviewByWorkoutID(h.DB, workoutID)
+	if err != nil {
+		log.Printf("api: get review for workout %d: %v", workoutID, err)
+		WriteError(w, http.StatusNotFound, "review not found")
+		return
+	}
+
+	if err := models.DeleteWorkoutReview(h.DB, review.ID); err != nil {
+		log.Printf("api: delete review %d: %v", review.ID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to delete review")
 		return
 	}
 

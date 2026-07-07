@@ -28,14 +28,8 @@ import (
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/assignments [get]
 func (h *Handlers) ListAssignments(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -83,13 +77,8 @@ func (h *Handlers) AssignExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "not your athlete")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -177,14 +166,8 @@ type ExerciseCompatibilityResponse struct {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/program-compatibility [get]
 func (h *Handlers) CheckProgramCompatibility(w http.ResponseWriter, r *http.Request) {
-	user := middleware.UserFromContext(r.Context())
-	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
-		return
-	}
-	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
-		WriteError(w, http.StatusForbidden, "access denied")
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -218,4 +201,49 @@ func (h *Handlers) CheckProgramCompatibility(w http.ResponseWriter, r *http.Requ
 		TotalCount:   compat.TotalCount,
 		Exercises:    exercises,
 	})
+}
+
+// ReactivateAssignment reactivates a deactivated exercise assignment.
+//
+//	@Summary      Reactivate exercise assignment
+//	@Description  Creates a fresh active row for the athlete+exercise pair (the previous one stays as history).
+//	@Tags         Athletes
+//	@Accept       json
+//	@Produce      json
+//	@Param        id    path      int                        true  "Athlete ID"
+//	@Param        body  body      api.AssignExerciseRequest  true  "Assignment"
+//	@Success      200  {object}  api.AthleteExercise
+//	@Failure      400  {object}  api.APIError
+//	@Failure      403  {object}  api.APIError
+//	@Router       /athletes/{id}/assignments/reactivate [post]
+func (h *Handlers) ReactivateAssignment(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if !user.IsCoach && !user.IsAdmin {
+		WriteError(w, http.StatusForbidden, "coach access required")
+		return
+	}
+
+	athleteID, ok := h.athleteAccess(w, r)
+	if !ok {
+		return
+	}
+
+	var req AssignExerciseRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.ExerciseID == 0 {
+		WriteError(w, http.StatusBadRequest, "exercise_id is required")
+		return
+	}
+
+	assignment, err := models.ReactivateAssignment(h.DB, athleteID, req.ExerciseID, req.TargetReps)
+	if err != nil {
+		log.Printf("api: reactivate assignment athlete %d exercise %d: %v", athleteID, req.ExerciseID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to reactivate assignment")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, AthleteExerciseFromModel(assignment))
 }
