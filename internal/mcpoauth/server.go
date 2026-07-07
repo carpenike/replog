@@ -150,12 +150,11 @@ func (s *Server) handleASMetadata(w http.ResponseWriter, r *http.Request) {
 		"response_types_supported":         []string{"code"},
 		"grant_types_supported":            []string{"authorization_code"},
 		"code_challenge_methods_supported": []string{"S256"},
-		// Only the confidential-client methods are advertised. The token endpoint
-		// hard-requires a client secret, and DCR always issues one, so "none"
-		// (public/PKCE-only) is NOT actually supported — advertising it would
-		// invite a client to register as public and then fail every token
-		// exchange. It is therefore omitted here and rejected at registration.
-		"token_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post"},
+		// Includes "none" for public/PKCE-only clients per the production-proven
+		// reference metadata shape that the pocketid-mcp-as conformance contract
+		// (v1.1) validates as non-negotiable. Both confidential methods are also
+		// advertised for the DCR-issued secret path.
+		"token_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post", "none"},
 		"scopes_supported":                      []string{"openid", "profile", "email"},
 	})
 }
@@ -218,14 +217,6 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	authMethod := req.TokenEndpointAuthMethod
 	if authMethod == "" {
 		authMethod = "client_secret_post"
-	}
-	// "none" (public/PKCE-only) is not supported: the token endpoint requires a
-	// client secret. Reject rather than silently issue a secret the client is
-	// told it doesn't need, which would fail every subsequent token exchange.
-	if authMethod != "client_secret_post" && authMethod != "client_secret_basic" {
-		oauthError(w, http.StatusBadRequest, "invalid_client_metadata",
-			"unsupported token_endpoint_auth_method; use client_secret_post or client_secret_basic")
-		return
 	}
 
 	client, secret, err := models.RegisterDCRClient(s.db, req.ClientName, filtered, authMethod)

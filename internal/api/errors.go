@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -67,12 +66,6 @@ func isCheckConstraintErr(err error) bool {
 func isUniqueConstraintErr(err error) bool {
 	return err != nil && (strings.Contains(err.Error(), "UNIQUE constraint failed") ||
 		strings.Contains(err.Error(), "constraint failed: UNIQUE"))
-}
-
-// logAndWriteDBError logs the full error then classifies it for the client.
-func logAndWriteDBError(w http.ResponseWriter, context string, err error, fallbackMsg string) {
-	log.Printf("%s: %v", context, err)
-	WriteDBError(w, err, fallbackMsg)
 }
 
 // --- CHECK-constrained enum validators (schema: 0001_initial_schema.sql) ---
