@@ -78,8 +78,10 @@ func GetAthleteNoteByID(db *sql.DB, id int64) (*AthleteNote, error) {
 	return n, nil
 }
 
-// UpdateAthleteNote updates the content, visibility, and pinned status of a note.
-func UpdateAthleteNote(db *sql.DB, id int64, content string, isPrivate, pinned bool) (*AthleteNote, error) {
+// UpdateAthleteNote updates the content, visibility, and pinned status of a
+// note. Scoped to athleteID so a caller cannot edit a coach's private note
+// about a different athlete by guessing its ID (ErrNotFound on mismatch).
+func UpdateAthleteNote(db *sql.DB, id, athleteID int64, content string, isPrivate, pinned bool) (*AthleteNote, error) {
 	if content == "" {
 		return nil, fmt.Errorf("models: update athlete note: %w: content is required", ErrInvalidInput)
 	}
@@ -94,8 +96,8 @@ func UpdateAthleteNote(db *sql.DB, id int64, content string, isPrivate, pinned b
 	}
 
 	result, err := db.Exec(
-		`UPDATE athlete_notes SET content = ?, is_private = ?, pinned = ? WHERE id = ?`,
-		content, privInt, pinnedInt, id,
+		`UPDATE athlete_notes SET content = ?, is_private = ?, pinned = ? WHERE id = ? AND athlete_id = ?`,
+		content, privInt, pinnedInt, id, athleteID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: update athlete note %d: %w", id, err)
@@ -108,9 +110,10 @@ func UpdateAthleteNote(db *sql.DB, id int64, content string, isPrivate, pinned b
 	return GetAthleteNoteByID(db, id)
 }
 
-// DeleteAthleteNote removes a note by ID.
-func DeleteAthleteNote(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM athlete_notes WHERE id = ?`, id)
+// DeleteAthleteNote removes a note by ID, scoped to the owning athlete so a
+// caller cannot delete another athlete's note by guessing its ID.
+func DeleteAthleteNote(db *sql.DB, id, athleteID int64) error {
+	result, err := db.Exec(`DELETE FROM athlete_notes WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: delete athlete note %d: %w", id, err)
 	}

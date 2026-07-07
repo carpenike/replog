@@ -24,7 +24,7 @@ type AthleteRequest struct {
 	Goal            string `json:"goal,omitempty"`
 	DateOfBirth     string `json:"date_of_birth,omitempty" example:"2014-05-12"`
 	Grade           string `json:"grade,omitempty" example:"6th"`
-	Gender          string `json:"gender,omitempty" example:"M"`
+	Gender          string `json:"gender,omitempty" example:"male"`
 	TrackBodyWeight bool   `json:"track_body_weight,omitempty"`
 }
 
@@ -40,31 +40,37 @@ type ExerciseRequest struct {
 
 // WorkoutRequest is the body for POST /api/athletes/{id}/workouts.
 type WorkoutRequest struct {
-	Date  string `json:"date,omitempty" example:"2026-05-12"`
-	Notes string `json:"notes,omitempty"`
+	Date  string `json:"date,omitempty" example:"2026-05-12" jsonschema:"Workout date, YYYY-MM-DD. Defaults to today in the user's timezone. One resistance workout per athlete per day."`
+	Notes string `json:"notes,omitempty" jsonschema:"Optional free-text note for the workout."`
 	// FromPrescription, when true, seeds the new workout with today's prescribed
 	// sets (reps + target weights prefilled) so the athlete confirms or adjusts
 	// the actuals while logging. Has no effect if no program is assigned today.
-	FromPrescription bool `json:"from_prescription,omitempty"`
+	FromPrescription bool `json:"from_prescription,omitempty" jsonschema:"When true, prefill the workout with today's prescribed sets. No effect if no program is assigned today."`
 }
 
 // WorkoutSetRequest is the body for POST /api/athletes/{id}/workouts/{workoutID}/sets.
 type WorkoutSetRequest struct {
-	ExerciseID int64   `json:"exercise_id" example:"42"`
-	Reps       int     `json:"reps" example:"5"`
-	Weight     float64 `json:"weight,omitempty" example:"135"`
-	RPE        float64 `json:"rpe,omitempty" example:"7"`
-	RepType    string  `json:"rep_type,omitempty" example:"reps"`
-	Category   string  `json:"category,omitempty" example:"main"`
-	Notes      string  `json:"notes,omitempty"`
+	ExerciseID int64   `json:"exercise_id" example:"42" jsonschema:"Exercise catalog id (resolve a name to an id with list_exercises)."`
+	Reps       int     `json:"reps" example:"5" jsonschema:"Repetitions performed. For rep_type=seconds this is the hold in seconds; for distance it is the distance in yards."`
+	Weight     float64 `json:"weight,omitempty" example:"135" jsonschema:"Load in the user's configured weight unit (lbs by default, kg if configured). Omit or 0 for bodyweight."`
+	RPE        float64 `json:"rpe,omitempty" example:"7" jsonschema:"Rate of Perceived Exertion, 0-10 (0 = not recorded). Omit if not measured."`
+	RepType    string  `json:"rep_type,omitempty" example:"reps" jsonschema:"One of: reps, each_side, seconds, distance. Defaults to reps."`
+	Category   string  `json:"category,omitempty" example:"main" jsonschema:"One of: main, supplemental, accessory. Defaults to main."`
+	Notes      string  `json:"notes,omitempty" jsonschema:"Optional free-text note for this set."`
 }
 
 // WorkoutSetUpdateRequest is the body for PUT /api/athletes/{id}/workouts/{workoutID}/sets/{setID}.
+//
+// Fields are pointers so that omitting one leaves the stored column UNCHANGED
+// (nil = "leave as-is"). A full-row overwrite would let a partial update — e.g.
+// changing only notes — silently wipe weight/RPE and corrupt the load/ACWR
+// history. A non-nil weight/rpe of 0 explicitly clears that column; a non-nil
+// empty notes clears the note.
 type WorkoutSetUpdateRequest struct {
-	Reps   int     `json:"reps" example:"5"`
-	Weight float64 `json:"weight,omitempty" example:"135"`
-	RPE    float64 `json:"rpe,omitempty" example:"7"`
-	Notes  string  `json:"notes,omitempty"`
+	Reps   *int     `json:"reps,omitempty" example:"5" jsonschema:"New repetition count. Omit to leave unchanged."`
+	Weight *float64 `json:"weight,omitempty" example:"135" jsonschema:"New load in the user's configured weight unit (lbs by default). Omit to leave unchanged; send 0 to clear."`
+	RPE    *float64 `json:"rpe,omitempty" example:"7" jsonschema:"New RPE, 0-10. Omit to leave unchanged; send 0 to clear."`
+	Notes  *string  `json:"notes,omitempty" jsonschema:"New note text. Omit to leave unchanged; send an empty string to clear."`
 }
 
 // WorkoutNotesRequest is the body for PUT /api/athletes/{id}/workouts/{workoutID}/notes.
@@ -74,9 +80,9 @@ type WorkoutNotesRequest struct {
 
 // BodyWeightRequest is the body for POST /api/athletes/{id}/body-weights.
 type BodyWeightRequest struct {
-	Date   string  `json:"date,omitempty" example:"2026-05-12"`
-	Weight float64 `json:"weight" example:"185.5"`
-	Notes  string  `json:"notes,omitempty"`
+	Date   string  `json:"date,omitempty" example:"2026-05-12" jsonschema:"Measurement date, YYYY-MM-DD. Defaults to today in the user's timezone."`
+	Weight float64 `json:"weight" example:"185.5" jsonschema:"Body weight in the user's configured unit (lbs by default, kg if configured)."`
+	Notes  string  `json:"notes,omitempty" jsonschema:"Optional free-text note."`
 }
 
 // TrainingMaxRequest is the body for POST /api/athletes/{id}/training-maxes.
@@ -89,16 +95,16 @@ type TrainingMaxRequest struct {
 
 // ThrowingSessionRequest is the body for POST /api/athletes/{id}/throwing-sessions.
 type ThrowingSessionRequest struct {
-	Date       string   `json:"date,omitempty" example:"2026-05-12"`
-	ThrowType  string   `json:"throw_type" example:"bullpen"`
-	ThrowCount *int64   `json:"throw_count,omitempty" example:"45"`
-	MaxIntent  *int64   `json:"max_intent,omitempty" example:"90"`
-	Velocity   *float64 `json:"velocity,omitempty" example:"72.5"`
-	Fatigue    bool     `json:"fatigue,omitempty"`
-	Pain       bool     `json:"pain,omitempty"`
-	Source     string   `json:"source,omitempty" example:"program"`
-	Team       string   `json:"team,omitempty"`
-	Notes      string   `json:"notes,omitempty"`
+	Date       string   `json:"date,omitempty" example:"2026-05-12" jsonschema:"Session date, YYYY-MM-DD. Defaults to today in the user's timezone."`
+	ThrowType  string   `json:"throw_type" example:"bullpen" jsonschema:"One of: bullpen, long_toss, plyo, game, flat_ground, pen, recovery, other."`
+	ThrowCount *int64   `json:"throw_count,omitempty" example:"45" jsonschema:"Number of throws."`
+	MaxIntent  *int64   `json:"max_intent,omitempty" example:"90" jsonschema:"Peak intent as a percent (0-100)."`
+	Velocity   *float64 `json:"velocity,omitempty" example:"72.5" jsonschema:"Peak velocity in mph."`
+	Fatigue    bool     `json:"fatigue,omitempty" jsonschema:"True if the athlete reported fatigue."`
+	Pain       bool     `json:"pain,omitempty" jsonschema:"True if the athlete reported pain (Pitch Smart flag)."`
+	Source     string   `json:"source,omitempty" example:"program" jsonschema:"Origin of the log, e.g. program or manual."`
+	Team       string   `json:"team,omitempty" jsonschema:"Team the session was thrown for, if any."`
+	Notes      string   `json:"notes,omitempty" jsonschema:"Optional free-text note."`
 }
 
 // SeasonPhaseRequest is the body for POST /api/athletes/{id}/season-phases.
@@ -112,12 +118,12 @@ type SeasonPhaseRequest struct {
 
 // BioSampleRequest is the body for POST /api/athletes/{id}/bio-samples.
 type BioSampleRequest struct {
-	RecordedAt string  `json:"recorded_at" example:"2026-05-12T07:30:00Z"`
-	Metric     string  `json:"metric" example:"resting_hr"`
-	Value      float64 `json:"value" example:"52"`
-	Unit       string  `json:"unit,omitempty" example:"bpm"`
-	Source     string  `json:"source,omitempty" example:"manual"`
-	Notes      string  `json:"notes,omitempty"`
+	RecordedAt string  `json:"recorded_at" example:"2026-05-12T07:30:00Z" jsonschema:"Timestamp the sample was taken, RFC3339 (e.g. 2026-05-12T07:30:00Z)."`
+	Metric     string  `json:"metric" example:"resting_hr" jsonschema:"Metric key, e.g. resting_hr, hrv, weight, sleep_score."`
+	Value      float64 `json:"value" example:"52" jsonschema:"Measured value, in the given unit."`
+	Unit       string  `json:"unit,omitempty" example:"bpm" jsonschema:"Unit for value, e.g. bpm, ms, kg."`
+	Source     string  `json:"source,omitempty" example:"manual" jsonschema:"Origin of the sample, e.g. manual, whoop, garmin."`
+	Notes      string  `json:"notes,omitempty" jsonschema:"Optional free-text note."`
 }
 
 // ConditioningIntervalRequest is one work/rest effort within a conditioning session.
@@ -131,36 +137,36 @@ type ConditioningIntervalRequest struct {
 
 // ConditioningSessionRequest is the body for POST /api/athletes/{id}/conditioning-sessions.
 type ConditioningSessionRequest struct {
-	Date            string                        `json:"date,omitempty" example:"2026-05-12"`
-	Modality        string                        `json:"modality" example:"run"`
-	SessionType     string                        `json:"session_type" example:"interval"`
-	TotalDistance   *float64                      `json:"total_distance,omitempty" example:"5000"`
-	DistanceUnit    string                        `json:"distance_unit,omitempty" example:"m"`
-	DurationSeconds *int64                        `json:"duration_seconds,omitempty" example:"1500"`
-	AvgHR           *int64                        `json:"avg_hr,omitempty" example:"155"`
-	RPE             *float64                      `json:"rpe,omitempty" example:"7"`
-	Notes           string                        `json:"notes,omitempty"`
-	Intervals       []ConditioningIntervalRequest `json:"intervals,omitempty"`
+	Date            string                        `json:"date,omitempty" example:"2026-05-12" jsonschema:"Session date, YYYY-MM-DD. Defaults to today in the user's timezone."`
+	Modality        string                        `json:"modality" example:"run" jsonschema:"One of: run, bike, row, swim, ruck, other."`
+	SessionType     string                        `json:"session_type" example:"interval" jsonschema:"One of: steady, interval, tempo, recovery, other."`
+	TotalDistance   *float64                      `json:"total_distance,omitempty" example:"5000" jsonschema:"Total distance covered, in distance_unit."`
+	DistanceUnit    string                        `json:"distance_unit,omitempty" example:"m" jsonschema:"Unit for total_distance, e.g. m, km, mi."`
+	DurationSeconds *int64                        `json:"duration_seconds,omitempty" example:"1500" jsonschema:"Total duration in seconds."`
+	AvgHR           *int64                        `json:"avg_hr,omitempty" example:"155" jsonschema:"Average heart rate in bpm."`
+	RPE             *float64                      `json:"rpe,omitempty" example:"7" jsonschema:"Rate of Perceived Exertion, 0-10."`
+	Notes           string                        `json:"notes,omitempty" jsonschema:"Optional free-text note."`
+	Intervals       []ConditioningIntervalRequest `json:"intervals,omitempty" jsonschema:"Optional per-interval work/rest breakdown."`
 }
 
 // SkillSessionRequest is the body for POST /api/athletes/{id}/skill-sessions.
 type SkillSessionRequest struct {
-	Date            string   `json:"date,omitempty" example:"2026-05-12"`
-	SkillType       string   `json:"skill_type" example:"batting"`
-	RepCount        *int64   `json:"rep_count,omitempty" example:"50"`
-	LoadKg          *float64 `json:"load_kg,omitempty" example:"2"`
-	Velocity        *float64 `json:"velocity,omitempty" example:"68.5"`
-	DurationSeconds *int64   `json:"duration_seconds,omitempty" example:"1800"`
-	Notes           string   `json:"notes,omitempty"`
+	Date            string   `json:"date,omitempty" example:"2026-05-12" jsonschema:"Session date, YYYY-MM-DD. Defaults to today in the user's timezone."`
+	SkillType       string   `json:"skill_type" example:"batting" jsonschema:"One of: batting, fielding, pitching, agility, other."`
+	RepCount        *int64   `json:"rep_count,omitempty" example:"50" jsonschema:"Number of repetitions performed."`
+	LoadKg          *float64 `json:"load_kg,omitempty" example:"2" jsonschema:"Implement load in kilograms (this field is always kg, independent of the user's weight-unit preference)."`
+	Velocity        *float64 `json:"velocity,omitempty" example:"68.5" jsonschema:"Peak velocity in mph."`
+	DurationSeconds *int64   `json:"duration_seconds,omitempty" example:"1800" jsonschema:"Total duration in seconds."`
+	Notes           string   `json:"notes,omitempty" jsonschema:"Optional free-text note."`
 }
 
 // RecoveryCheckinRequest is the body for POST /api/athletes/{id}/recovery-checkins.
 type RecoveryCheckinRequest struct {
-	Date       string   `json:"date,omitempty" example:"2026-05-12"`
-	SleepHours *float64 `json:"sleep_hours,omitempty" example:"8.5"`
-	Soreness   *int64   `json:"soreness,omitempty" example:"3"`
-	Energy     *int64   `json:"energy,omitempty" example:"7"`
-	Notes      string   `json:"notes,omitempty"`
+	Date       string   `json:"date,omitempty" example:"2026-05-12" jsonschema:"Check-in date, YYYY-MM-DD. Defaults to today in the user's timezone."`
+	SleepHours *float64 `json:"sleep_hours,omitempty" example:"8.5" jsonschema:"Hours of sleep the prior night."`
+	Soreness   *int64   `json:"soreness,omitempty" example:"3" jsonschema:"Muscle soreness on a 1-10 scale (1 = none, 10 = severe)."`
+	Energy     *int64   `json:"energy,omitempty" example:"7" jsonschema:"Energy level on a 1-10 scale (1 = exhausted, 10 = fully energized)."`
+	Notes      string   `json:"notes,omitempty" jsonschema:"Optional free-text note."`
 }
 
 // PreferencesRequest is the body for PUT /api/preferences.
@@ -287,9 +293,9 @@ type AccessoryPlanUpdateRequest struct {
 // AthleteNoteRequest is the body for POST /api/athletes/{id}/notes
 // and PUT /api/athletes/{id}/notes/{noteID}.
 type AthleteNoteRequest struct {
-	Content   string `json:"content"`
-	IsPrivate bool   `json:"is_private,omitempty"`
-	Pinned    bool   `json:"pinned,omitempty"`
+	Content   string `json:"content" jsonschema:"Note body text."`
+	IsPrivate bool   `json:"is_private,omitempty" jsonschema:"When true, the note is visible only to coaches and admins, not the athlete."`
+	Pinned    bool   `json:"pinned,omitempty" jsonschema:"When true, pin the note to the top of the journal."`
 }
 
 // GoalRequest is the body for PUT /api/athletes/{id}/goal.

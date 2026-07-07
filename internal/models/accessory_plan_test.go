@@ -119,7 +119,7 @@ func TestUpdateAccessoryPlan(t *testing.T) {
 	ex, _ := CreateExercise(db, "Curls", "", "", "", 0, false)
 	ap, _ := CreateAccessoryPlan(db, a.ID, 1, ex.ID, 3, 10, 15, 25.0, "original", 0)
 
-	err := UpdateAccessoryPlan(db, ap.ID, 4, 8, 12, 30.0, "updated", 1)
+	err := UpdateAccessoryPlan(db, ap.ID, a.ID, 4, 8, 12, 30.0, "updated", 1)
 	if err != nil {
 		t.Fatalf("update: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestUpdateAccessoryPlan(t *testing.T) {
 	}
 
 	t.Run("not found", func(t *testing.T) {
-		err := UpdateAccessoryPlan(db, 99999, 0, 0, 0, 0, "", 0)
+		err := UpdateAccessoryPlan(db, 99999, a.ID, 0, 0, 0, 0, "", 0)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}
@@ -152,7 +152,7 @@ func TestDeactivateAccessoryPlan(t *testing.T) {
 	ex, _ := CreateExercise(db, "Curls", "", "", "", 0, false)
 	ap, _ := CreateAccessoryPlan(db, a.ID, 1, ex.ID, 3, 10, 15, 0, "", 0)
 
-	err := DeactivateAccessoryPlan(db, ap.ID)
+	err := DeactivateAccessoryPlan(db, ap.ID, a.ID)
 	if err != nil {
 		t.Fatalf("deactivate: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestDeleteAccessoryPlan(t *testing.T) {
 	ex, _ := CreateExercise(db, "Curls", "", "", "", 0, false)
 	ap, _ := CreateAccessoryPlan(db, a.ID, 1, ex.ID, 3, 10, 15, 0, "", 0)
 
-	err := DeleteAccessoryPlan(db, ap.ID)
+	err := DeleteAccessoryPlan(db, ap.ID, a.ID)
 	if err != nil {
 		t.Fatalf("delete: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestDeleteAccessoryPlan(t *testing.T) {
 	}
 
 	t.Run("not found", func(t *testing.T) {
-		err := DeleteAccessoryPlan(db, 99999)
+		err := DeleteAccessoryPlan(db, 99999, a.ID)
 		if err != ErrNotFound {
 			t.Errorf("err = %v, want ErrNotFound", err)
 		}

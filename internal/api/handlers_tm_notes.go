@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -103,7 +104,11 @@ func (h *Handlers) UpdateWorkoutNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.UpdateWorkoutNotes(h.DB, workoutID, req.Notes); err != nil {
+	if err := models.UpdateWorkoutNotes(h.DB, workoutID, athleteID, req.Notes); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "workout not found")
+			return
+		}
 		log.Printf("api: update workout %d notes: %v", workoutID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to update notes")
 		return

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -49,9 +49,11 @@ func scrubPath(path string) string {
 	return path
 }
 
-// RequestLogger logs each HTTP request with method, path, status code, and duration.
-// Paths matching redactedPaths have their secret-bearing tail replaced with
-// "<redacted>" so login tokens and similar secrets never end up in logs.
+// RequestLogger logs each HTTP request with method, path, status code, and
+// duration via log/slog (the default logger, which main.go configures as JSON
+// when REPLOG_LOG_FORMAT=json). Paths matching redactedPaths have their
+// secret-bearing tail replaced with "<redacted>" so login tokens and similar
+// secrets never end up in logs. It also feeds the /metrics request counters.
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -59,6 +61,13 @@ func RequestLogger(next http.Handler) http.Handler {
 
 		next.ServeHTTP(sw, r)
 
-		log.Printf("%s %s %d %s", r.Method, scrubPath(r.URL.Path), sw.status, time.Since(start).Round(time.Microsecond))
+		recordRequest(sw.status)
+
+		slog.Info("http request",
+			"method", r.Method,
+			"path", scrubPath(r.URL.Path),
+			"status", sw.status,
+			"duration", time.Since(start).Round(time.Microsecond).String(),
+		)
 	})
 }

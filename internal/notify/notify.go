@@ -17,10 +17,26 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/carpenike/replog/internal/models"
 	"github.com/containrrr/shoutrrr"
 )
+
+// sendTimeout bounds each async notification send. shoutrrr does not honor a
+// context, so this is enforced via sendWithContext (race + bounded leak).
+const sendTimeout = 30 * time.Second
+
+// sendWG tracks all in-flight async sends spawned by this package so that
+// main.go can drain them at shutdown via WaitForSends.
+var sendWG sync.WaitGroup
+
+// WaitForSends blocks until all in-flight async notification sends have
+// completed. Call it during graceful shutdown (alongside WaitForGenerations)
+// to avoid dropping notifications that are still being delivered.
+func WaitForSends() {
+	sendWG.Wait()
+}
 
 // Request describes a notification to send.
 type Request struct {
@@ -94,8 +110,12 @@ func sendHTMLToUser(db *sql.DB, userID int64, subject, htmlBody string) {
 		return
 	}
 
+	sendWG.Add(1)
 	go func() {
-		if err := shoutrrr.Send(smtpURL, htmlBody); err != nil {
+		defer sendWG.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), sendTimeout)
+		defer cancel()
+		if err := sendWithContext(ctx, smtpURL, htmlBody, fmt.Sprintf("HTML email user %d", userID)); err != nil {
 			log.Printf("notify: HTML email send failed for user %d: %v", userID, err)
 		}
 	}()
@@ -109,8 +129,12 @@ func sendToUser(db *sql.DB, userID int64, subject, body string) {
 		return
 	}
 
+	sendWG.Add(1)
 	go func() {
-		if err := shoutrrr.Send(smtpURL, body); err != nil {
+		defer sendWG.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), sendTimeout)
+		defer cancel()
+		if err := sendWithContext(ctx, smtpURL, body, fmt.Sprintf("email user %d", userID)); err != nil {
 			log.Printf("notify: email send failed for user %d: %v", userID, err)
 		}
 	}()
@@ -128,11 +152,15 @@ func sendBroadcast(db *sql.DB, body string) {
 		return
 	}
 
+	sendWG.Add(1)
 	go func() {
+		defer sendWG.Done()
 		for _, u := range urls {
-			if err := shoutrrr.Send(u, body); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), sendTimeout)
+			if err := sendWithContext(ctx, u, body, "broadcast "+maskURL(u)); err != nil {
 				log.Printf("notify: broadcast send failed for url %q: %v", maskURL(u), err)
 			}
+			cancel()
 		}
 	}()
 }
@@ -353,6 +381,11 @@ func parseURLs(urlsStr string) []string {
 
 // maskURL masks credentials in a Shoutrrr URL for safe logging.
 func maskURL(u string) string {
+	// Short strings can't safely be sliced and have little to mask; return
+	// them whole rather than indexing out of range.
+	if len(u) <= 5 {
+		return u
+	}
 	if len(u) <= 15 {
 		return u[:5] + "••••"
 	}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 )
@@ -59,31 +58,26 @@ func (p *AnthropicProvider) Generate(ctx context.Context, systemPrompt, userProm
 		return nil, fmt.Errorf("llm/anthropic: marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(jsonBody))
-	if err != nil {
-		return nil, fmt.Errorf("llm/anthropic: create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", p.apiKey)
-	req.Header.Set("anthropic-version", "2023-06-01")
-
 	start := time.Now()
-	resp, err := p.client.Do(req)
+	statusCode, respBody, err := doWithRetry(ctx, p.client, func() (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(jsonBody))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("x-api-key", p.apiKey)
+		req.Header.Set("anthropic-version", "2023-06-01")
+		return req, nil
+	}, 3)
 	if err != nil {
 		return nil, fmt.Errorf("llm/anthropic: request failed: %w", err)
 	}
-	defer resp.Body.Close()
 	duration := time.Since(start)
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("llm/anthropic: read response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
+	if statusCode != http.StatusOK {
 		apiErr := &APIError{
 			Provider:   "Anthropic",
-			StatusCode: resp.StatusCode,
+			StatusCode: statusCode,
 		}
 		var errResp struct {
 			Error struct {

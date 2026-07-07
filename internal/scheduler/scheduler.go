@@ -9,14 +9,21 @@ import (
 	"github.com/carpenike/replog/internal/models"
 )
 
+// mcpTokenGraceWindow is how long an expired/revoked MCP token (and an
+// abandoned DCR client) lingers before the sweep hard-deletes it. A grace
+// window keeps recently-expired credentials around briefly for audit/debugging.
+const mcpTokenGraceWindow = 30 * 24 * time.Hour
+
 // Status holds the result of the last maintenance run.
 type Status struct {
-	LastRun           time.Time
-	NextRun           time.Time
-	TokensDeleted     int64
+	LastRun             time.Time
+	NextRun             time.Time
+	TokensDeleted       int64
 	NotificationsPruned int64
-	IntervalHours     int
-	RetentionDays     int
+	MCPTokensDeleted    int64
+	DCRClientsDeleted   int64
+	IntervalHours       int
+	RetentionDays       int
 }
 
 // Scheduler runs periodic maintenance tasks in the background.
@@ -97,6 +104,8 @@ func (s *Scheduler) runMaintenance() {
 
 	tokensDeleted := s.cleanExpiredTokens()
 	notifsPruned := s.pruneOldNotifications()
+	mcpTokensDeleted := s.cleanExpiredMCPTokens()
+	dcrClientsDeleted := s.cleanOrphanDCRClients()
 
 	now := time.Now()
 	interval := s.getInterval()
@@ -107,6 +116,8 @@ func (s *Scheduler) runMaintenance() {
 		NextRun:             now.Add(interval),
 		TokensDeleted:       tokensDeleted,
 		NotificationsPruned: notifsPruned,
+		MCPTokensDeleted:    mcpTokensDeleted,
+		DCRClientsDeleted:   dcrClientsDeleted,
 		IntervalHours:       models.GetMaintenanceIntervalHours(s.db),
 		RetentionDays:       models.GetMaintenanceRetentionDays(s.db),
 	}
@@ -124,6 +135,36 @@ func (s *Scheduler) cleanExpiredTokens() int64 {
 	}
 	if deleted > 0 {
 		log.Printf("Maintenance: deleted %d expired login token(s)", deleted)
+	}
+	return deleted
+}
+
+// cleanExpiredMCPTokens hard-deletes MCP bearer tokens that expired or were
+// revoked more than the grace window ago.
+func (s *Scheduler) cleanExpiredMCPTokens() int64 {
+	cutoff := time.Now().Add(-mcpTokenGraceWindow)
+	deleted, err := models.DeleteExpiredMCPTokens(s.db, cutoff)
+	if err != nil {
+		log.Printf("Maintenance: clean expired mcp tokens: %v", err)
+		return 0
+	}
+	if deleted > 0 {
+		log.Printf("Maintenance: deleted %d expired/revoked MCP token(s)", deleted)
+	}
+	return deleted
+}
+
+// cleanOrphanDCRClients hard-deletes Dynamic Client Registration rows older
+// than the grace window that never produced a surviving token (abandoned flows).
+func (s *Scheduler) cleanOrphanDCRClients() int64 {
+	cutoff := time.Now().Add(-mcpTokenGraceWindow)
+	deleted, err := models.DeleteOrphanDCRClients(s.db, cutoff)
+	if err != nil {
+		log.Printf("Maintenance: clean orphan dcr clients: %v", err)
+		return 0
+	}
+	if deleted > 0 {
+		log.Printf("Maintenance: deleted %d orphan DCR client(s)", deleted)
 	}
 	return deleted
 }

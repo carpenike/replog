@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Spinner, EmptyState, QueryError } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
+import { usePageTitle } from '@/lib/usePageTitle'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -30,7 +31,13 @@ export function JournalPage() {
   const [showNoteForm, setShowNoteForm] = useState(false)
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
   const [editContent, setEditContent] = useState('')
-  const { data: entries, isLoading, error } = useQuery({
+  usePageTitle('Journal')
+  const { data: athlete } = useQuery({
+    queryKey: ['athlete', athleteId],
+    queryFn: () => api.getAthlete(athleteId),
+    enabled: !isNaN(athleteId),
+  })
+  const { data: entries, isLoading, error, refetch } = useQuery({
     queryKey: ['journal', athleteId],
     queryFn: () => api.listJournalEntries(athleteId),
     enabled: !isNaN(athleteId),
@@ -56,11 +63,11 @@ export function JournalPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['journal', athleteId] }),
   })
   if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load journal.</p>
+  if (error) return <QueryError error={error} onRetry={refetch} resource="journal" />
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">Athlete</Link>
+        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
         {' / Journal'}
       </p>
       <div className="flex items-center justify-between mb-6">
@@ -89,7 +96,7 @@ export function JournalPage() {
         </form>
       )}
       {entries && entries.length === 0 ? (
-        <p className="text-muted-foreground">No journal entries yet.</p>
+        <EmptyState icon="📓" title="No journal entries yet" description="Add a note to capture context on this athlete." />
       ) : (
         <div className="space-y-2">
           {entries?.map((entry, i) => (
@@ -97,7 +104,7 @@ export function JournalPage() {
               className={`rounded-lg border bg-card p-3 ${entry.pinned ? 'border-primary/30' : 'border-border'}`}
             >
               <div className="flex items-start gap-3">
-                <span className="text-lg">{typeIcons[entry.type] ?? '📄'}</span>
+                <span className="text-lg" aria-hidden="true">{typeIcons[entry.type] ?? '📄'}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{entry.summary}</p>

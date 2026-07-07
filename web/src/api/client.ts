@@ -1,4 +1,5 @@
 import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AthleteProgram } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
 // *Request structs in internal/api/requests.go.
@@ -218,6 +219,20 @@ class ApiClient {
 
   async deleteAthlete(id: number): Promise<void> {
     await this.request(`/api/athletes/${id}`, { method: 'DELETE' });
+  }
+
+  // Data export — returns a Blob so the caller can trigger a file download.
+  // Follows the client's /api prefix convention: GET /api/athletes/{id}/export/{format}.
+  async exportAthlete(id: number, format: 'json' | 'csv'): Promise<Blob> {
+    const res = await fetch(`${this.baseUrl}/api/athletes/${id}/export/${format}`, {
+      credentials: 'include',
+      headers: { 'Accept': format === 'json' ? 'application/json' : 'text/csv' },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText, code: res.status })) as APIError;
+      throw new ApiError(body.error, body.code, body.details);
+    }
+    return res.blob();
   }
 
   // Exercises
@@ -460,7 +475,7 @@ class ApiClient {
     await this.request(`/api/programs/${programId}/rules/${ruleId}`, { method: 'DELETE' });
   }
 
-  async listAthletePrograms(athleteId: number): Promise<unknown[]> {
+  async listAthletePrograms(athleteId: number): Promise<AthleteProgram[]> {
     return this.request(`/api/athletes/${athleteId}/programs`);
   }
 

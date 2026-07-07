@@ -41,12 +41,15 @@ func (h *Handlers) CreateAthlete(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, "name is required")
 		return
 	}
+	if !validateAthleteFields(w, &req) {
+		return
+	}
 
 	coachID := sql.NullInt64{Int64: user.ID, Valid: true}
 	athlete, err := models.CreateAthlete(h.DB, req.Name, req.Tier, req.Notes, req.Goal, req.DateOfBirth, req.Grade, req.Gender, coachID, req.TrackBodyWeight)
 	if err != nil {
 		log.Printf("api: create athlete: %v", err)
-		WriteError(w, http.StatusInternalServerError, "failed to create athlete")
+		WriteDBError(w, err, "failed to create athlete")
 		return
 	}
 
@@ -99,11 +102,14 @@ func (h *Handlers) UpdateAthlete(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, "name is required")
 		return
 	}
+	if !validateAthleteFields(w, &req) {
+		return
+	}
 
 	updated, err := models.UpdateAthlete(h.DB, id, req.Name, req.Tier, req.Notes, req.Goal, req.DateOfBirth, req.Grade, req.Gender, athlete.CoachID, req.TrackBodyWeight)
 	if err != nil {
 		log.Printf("api: update athlete %d: %v", id, err)
-		WriteError(w, http.StatusInternalServerError, "failed to update athlete")
+		WriteDBError(w, err, "failed to update athlete")
 		return
 	}
 

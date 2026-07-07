@@ -58,7 +58,7 @@ func TestUpdateAthleteNote(t *testing.T) {
 	note, _ := CreateAthleteNote(db, a.ID, coach.ID, "", "Original note", false, false)
 
 	t.Run("update content and visibility", func(t *testing.T) {
-		updated, err := UpdateAthleteNote(db, note.ID, "Updated note", true, true)
+		updated, err := UpdateAthleteNote(db, note.ID, a.ID, "Updated note", true, true)
 		if err != nil {
 			t.Fatalf("update note: %v", err)
 		}
@@ -74,7 +74,7 @@ func TestUpdateAthleteNote(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		_, err := UpdateAthleteNote(db, 99999, "anything", false, false)
+		_, err := UpdateAthleteNote(db, 99999, a.ID, "anything", false, false)
 		if err == nil {
 			t.Fatal("expected error for non-existent note")
 		}
@@ -88,7 +88,7 @@ func TestDeleteAthleteNote(t *testing.T) {
 
 	note, _ := CreateAthleteNote(db, a.ID, coach.ID, "", "Delete me", false, false)
 
-	if err := DeleteAthleteNote(db, note.ID); err != nil {
+	if err := DeleteAthleteNote(db, note.ID, a.ID); err != nil {
 		t.Fatalf("delete note: %v", err)
 	}
 

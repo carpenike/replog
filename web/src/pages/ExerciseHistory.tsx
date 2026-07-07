@@ -2,12 +2,9 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { formatWeight } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card'
-
-function formatWeight(w: number): string {
-  return w === Math.floor(w) ? w.toString() : w.toFixed(1)
-}
 
 export function ExerciseHistory() {
   const { id, exerciseId } = useParams<{ id: string; exerciseId: string }>()

@@ -44,6 +44,10 @@ func TestSetCRUD(t *testing.T) {
 	})
 }
 
+// ptr returns a pointer to v — a test helper for the pointer-based partial
+// UpdateSet signature (nil = leave unchanged).
+func ptr[T any](v T) *T { return &v }
+
 func TestUpdateSet(t *testing.T) {
 	db := testDB(t)
 
@@ -52,7 +56,7 @@ func TestUpdateSet(t *testing.T) {
 	w, _ := CreateWorkout(db, a.ID, "2026-06-01", "", 0)
 	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "", "", "")
 
-	updated, err := UpdateSet(db, s.ID, 8, 110, 0, "form felt better")
+	updated, err := UpdateSet(db, s.ID, a.ID, ptr(8), ptr(110.0), nil, ptr("form felt better"))
 	if err != nil {
 		t.Fatalf("update set: %v", err)
 	}
@@ -67,6 +71,49 @@ func TestUpdateSet(t *testing.T) {
 	}
 }
 
+// TestUpdateSet_PreservesOmittedFields is the regression guard for the
+// partial-update data-loss bug (HIGH): updating ONLY notes must not wipe the
+// set's weight and RPE (which would corrupt the training-load / ACWR history).
+func TestUpdateSet_PreservesOmittedFields(t *testing.T) {
+	db := testDB(t)
+
+	a, _ := CreateAthlete(db, "Preserve Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	e, _ := CreateExercise(db, "Preserve Lift", "", "", "", 0)
+	w, _ := CreateWorkout(db, a.ID, "2026-06-02", "", 0)
+	s, _ := AddSet(db, w.ID, e.ID, 5, 225, 8.5, "", "", "first attempt")
+
+	// Update ONLY notes; reps/weight/rpe are nil (leave unchanged).
+	updated, err := UpdateSet(db, s.ID, a.ID, nil, nil, nil, ptr("felt strong"))
+	if err != nil {
+		t.Fatalf("update notes only: %v", err)
+	}
+	if updated.Reps != 5 {
+		t.Errorf("reps = %d, want 5 (must be preserved)", updated.Reps)
+	}
+	if !updated.Weight.Valid || updated.Weight.Float64 != 225 {
+		t.Errorf("weight = %v, want 225 (must be preserved)", updated.Weight)
+	}
+	if !updated.RPE.Valid || updated.RPE.Float64 != 8.5 {
+		t.Errorf("rpe = %v, want 8.5 (must be preserved)", updated.RPE)
+	}
+	if !updated.Notes.Valid || updated.Notes.String != "felt strong" {
+		t.Errorf("notes = %v, want felt strong", updated.Notes)
+	}
+
+	// A supplied 0 weight explicitly clears the column.
+	cleared, err := UpdateSet(db, s.ID, a.ID, nil, ptr(0.0), nil, nil)
+	if err != nil {
+		t.Fatalf("clear weight: %v", err)
+	}
+	if cleared.Weight.Valid {
+		t.Errorf("weight = %v, want cleared (NULL)", cleared.Weight)
+	}
+	// RPE and notes untouched by the weight-only update.
+	if !cleared.RPE.Valid || cleared.RPE.Float64 != 8.5 {
+		t.Errorf("rpe = %v, want 8.5 still preserved", cleared.RPE)
+	}
+}
+
 func TestDeleteSet(t *testing.T) {
 	db := testDB(t)
 
@@ -75,7 +122,7 @@ func TestDeleteSet(t *testing.T) {
 	w, _ := CreateWorkout(db, a.ID, "2026-07-01", "", 0)
 	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "", "", "")
 
-	if err := DeleteSet(db, s.ID); err != nil {
+	if err := DeleteSet(db, s.ID, a.ID); err != nil {
 		t.Fatalf("delete set: %v", err)
 	}
 	_, err := GetSetByID(db, s.ID)
@@ -117,7 +164,7 @@ func TestDeleteSet_Renumbers(t *testing.T) {
 	s3, _ := AddSet(db, w.ID, e.ID, 5, 120, 0, "", "", "")
 
 	// Delete the middle set.
-	if err := DeleteSet(db, s2.ID); err != nil {
+	if err := DeleteSet(db, s2.ID, a.ID); err != nil {
 		t.Fatalf("delete middle set: %v", err)
 	}
 
@@ -136,8 +183,36 @@ func TestDeleteSet_Renumbers(t *testing.T) {
 func TestDeleteSet_NotFound(t *testing.T) {
 	db := testDB(t)
 
-	if err := DeleteSet(db, 99999); err != ErrNotFound {
+	if err := DeleteSet(db, 99999, 1); err != ErrNotFound {
 		t.Errorf("err = %v, want ErrNotFound", err)
+	}
+}
+
+// TestSetOps_ScopedToAthlete guards against the cross-athlete IDOR: a set that
+// belongs to athlete A must be invisible to (unmodifiable by) a call scoped to
+// athlete B, even though the set ID is globally valid.
+func TestSetOps_ScopedToAthlete(t *testing.T) {
+	db := testDB(t)
+
+	a, _ := CreateAthlete(db, "Owner", "", "", "", "", "", "", sql.NullInt64{}, true)
+	b, _ := CreateAthlete(db, "Other", "", "", "", "", "", "", sql.NullInt64{}, true)
+	e, _ := CreateExercise(db, "Scoped Lift", "", "", "", 0)
+	w, _ := CreateWorkout(db, a.ID, "2026-10-01", "", 0)
+	s, _ := AddSet(db, w.ID, e.ID, 5, 100, 0, "", "", "")
+
+	if _, err := UpdateSet(db, s.ID, b.ID, ptr(9), ptr(999.0), nil, ptr("hax")); err != ErrNotFound {
+		t.Errorf("cross-athlete UpdateSet err = %v, want ErrNotFound", err)
+	}
+	if err := DeleteSet(db, s.ID, b.ID); err != ErrNotFound {
+		t.Errorf("cross-athlete DeleteSet err = %v, want ErrNotFound", err)
+	}
+	// The set must still exist and be untouched.
+	got, err := GetSetByID(db, s.ID)
+	if err != nil {
+		t.Fatalf("set should survive cross-athlete tamper: %v", err)
+	}
+	if got.Reps != 5 {
+		t.Errorf("reps mutated cross-athlete: got %d, want 5", got.Reps)
 	}
 }
 

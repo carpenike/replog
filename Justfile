@@ -64,7 +64,7 @@ lint:
 
 # Run all Go tests.
 test:
-    go test -count=1 ./...
+    go test -count=1 -race ./...
 
 # Build everything: frontend bundle + Go binary with embedded SPA.
 build:

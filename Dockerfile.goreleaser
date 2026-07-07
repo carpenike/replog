@@ -10,5 +10,10 @@ ENV REPLOG_DB_PATH=/data/replog.db
 ENV REPLOG_AVATAR_DIR=/data/avatars
 ENV REPLOG_ADDR=:8080
 
+# Distroless has no shell, so use the exec form against the binary's built-in
+# `healthcheck` subcommand (GETs the local /healthz, exits 0/1).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["/replog", "healthcheck"]
+
 USER nonroot:nonroot
 ENTRYPOINT ["/replog"]

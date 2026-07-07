@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen:types": "swagger2openapi ../internal/api/openapi/swagger.yaml --outfile node_modules/.cache/openapi3.json && openapi-typescript node_modules/.cache/openapi3.json -o src/api/generated.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
@@ -35,7 +36,9 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "openapi-typescript": "^7.13.0",
     "shadcn": "^4.0.2",
+    "swagger2openapi": "^7.0.8",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^8.1.0"

@@ -45,7 +45,7 @@ func TestUpdateWorkoutNotes(t *testing.T) {
 	a, _ := CreateAthlete(db, "Notes Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	w, _ := CreateWorkout(db, a.ID, "2026-03-01", "", 0)
 
-	if err := UpdateWorkoutNotes(db, w.ID, "updated notes"); err != nil {
+	if err := UpdateWorkoutNotes(db, w.ID, a.ID, "updated notes"); err != nil {
 		t.Fatalf("update notes: %v", err)
 	}
 
@@ -61,7 +61,7 @@ func TestDeleteWorkout(t *testing.T) {
 	a, _ := CreateAthlete(db, "Del Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
 	w, _ := CreateWorkout(db, a.ID, "2026-04-01", "", 0)
 
-	if err := DeleteWorkout(db, w.ID); err != nil {
+	if err := DeleteWorkout(db, w.ID, a.ID); err != nil {
 		t.Fatalf("delete workout: %v", err)
 	}
 	_, err := GetWorkoutByID(db, w.ID)

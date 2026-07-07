@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { api, ApiError } from '@/api/client'
+import { Spinner, QueryError } from '@/components/ui'
+import { usePageTitle } from '@/lib/usePageTitle'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -17,11 +18,13 @@ export function CycleReview() {
     queryFn: () => api.getAthlete(athleteId),
     enabled: !isNaN(athleteId),
   })
-  const { data: review, isLoading, error } = useQuery({
+  const { data: review, isLoading, error, refetch } = useQuery({
     queryKey: ['cycle-review', athleteId],
     queryFn: () => api.getCycleReview(athleteId),
     enabled: !isNaN(athleteId),
+    retry: false,
   })
+  usePageTitle('Cycle Review')
   const [selections, setSelections] = useState<Record<number, boolean>>({})
   const [applied, setApplied] = useState(false)
   const applyMutation = useMutation({
@@ -39,20 +42,29 @@ export function CycleReview() {
     },
   })
   if (isLoading) return <Spinner />
-  if (error) return (
-    <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / Cycle Review'}
-      </p>
-      <h1 className="text-2xl font-bold mb-4">Cycle Review</h1>
-      <Card className="text-center">
-        <CardContent>
-        <p className="text-muted-foreground">No active program or cycle data available.</p>
-        </CardContent>
-      </Card>
-    </div>
-  )
+  // A 404 is the expected "no active program/cycle" state; any other error
+  // (e.g. a 500) is a real failure and should be reported and retryable.
+  if (error) {
+    const noData = error instanceof ApiError && error.code === 404
+    return (
+      <div>
+        <p className="text-sm text-muted-foreground mb-1">
+          <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
+          {' / Cycle Review'}
+        </p>
+        <h1 className="text-2xl font-bold mb-4">Cycle Review</h1>
+        {noData ? (
+          <Card className="text-center">
+            <CardContent>
+            <p className="text-muted-foreground">No active program or cycle data available.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <QueryError error={error} onRetry={refetch} resource="cycle review" />
+        )}
+      </div>
+    )
+  }
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-1">

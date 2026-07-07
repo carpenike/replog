@@ -73,7 +73,10 @@ func (h *Handlers) CreateThrowingSession(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if req.Date == "" {
-		req.Date = time.Now().Format("2006-01-02")
+		req.Date = todayInUserTZ(r)
+	} else if !validDate(req.Date) {
+		WriteValidationError(w, "date", "must be a valid date in YYYY-MM-DD format")
+		return
 	}
 
 	session, err := models.CreateThrowingSession(h.DB, athleteID, models.ThrowingSessionInput{
@@ -456,7 +459,10 @@ func (h *Handlers) CreateConditioningSession(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if req.Date == "" {
-		req.Date = time.Now().Format("2006-01-02")
+		req.Date = todayInUserTZ(r)
+	} else if !validDate(req.Date) {
+		WriteValidationError(w, "date", "must be a valid date in YYYY-MM-DD format")
+		return
 	}
 
 	intervals := make([]models.ConditioningIntervalInput, len(req.Intervals))
@@ -599,7 +605,10 @@ func (h *Handlers) CreateSkillSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Date == "" {
-		req.Date = time.Now().Format("2006-01-02")
+		req.Date = todayInUserTZ(r)
+	} else if !validDate(req.Date) {
+		WriteValidationError(w, "date", "must be a valid date in YYYY-MM-DD format")
+		return
 	}
 
 	session, err := models.CreateSkillSession(h.DB, athleteID, models.SkillSessionInput{
@@ -724,7 +733,10 @@ func (h *Handlers) CreateRecoveryCheckin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if req.Date == "" {
-		req.Date = time.Now().Format("2006-01-02")
+		req.Date = todayInUserTZ(r)
+	} else if !validDate(req.Date) {
+		WriteValidationError(w, "date", "must be a valid date in YYYY-MM-DD format")
+		return
 	}
 
 	checkin, err := models.CreateRecoveryCheckin(h.DB, athleteID, models.RecoveryCheckinInput{

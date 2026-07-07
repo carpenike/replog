@@ -37,7 +37,7 @@ jobs:
         uses: actions/create-github-app-token@v3
         id: app-token
         with:
-          client-id: ${{ secrets.CARPENIKE_APP_ID }}
+          app-id: ${{ secrets.CARPENIKE_APP_ID }}
           private-key: ${{ secrets.CARPENIKE_APP_PRIVATE_KEY }}
           owner: carpenike
           repositories: nix-config

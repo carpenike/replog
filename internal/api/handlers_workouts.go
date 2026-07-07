@@ -53,6 +53,13 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusInternalServerError, "failed to get workout")
 		return
 	}
+	// Guard against cross-athlete access: the workout ID is global, so a caller
+	// authorized for this athlete must not be able to read another athlete's
+	// workout by guessing its ID.
+	if workout.AthleteID != athleteID {
+		WriteError(w, http.StatusNotFound, "workout not found")
+		return
+	}
 
 	groups, err := models.ListSetsByWorkout(h.DB, workoutID)
 	if err != nil {
@@ -92,6 +99,7 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 //	@Success      201  {object}  api.Workout
 //	@Failure      400  {object}  api.APIError
 //	@Failure      403  {object}  api.APIError
+//	@Failure      409  {object}  api.APIError  "a resistance workout already exists for this date"
 //	@Router       /athletes/{id}/workouts [post]
 func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
@@ -111,7 +119,10 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Date == "" {
-		req.Date = time.Now().Format("2006-01-02")
+		req.Date = todayInUserTZ(r)
+	} else if !validDate(req.Date) {
+		WriteValidationError(w, "date", "must be a valid date in YYYY-MM-DD format")
+		return
 	}
 
 	// When seeding from the prescription, resolve today's assignment so the
@@ -200,7 +211,11 @@ func (h *Handlers) DeleteWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteWorkout(h.DB, workoutID); err != nil {
+	if err := models.DeleteWorkout(h.DB, workoutID, athleteID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "workout not found")
+			return
+		}
 		log.Printf("api: delete workout %d: %v", workoutID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete workout")
 		return
@@ -241,6 +256,19 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify the workout belongs to the path athlete before mutating it — the
+	// workout ID is global and CanAccessAthlete only authorized {id}.
+	workout, err := models.GetWorkoutByID(h.DB, workoutID)
+	if errors.Is(err, models.ErrNotFound) || (err == nil && workout.AthleteID != athleteID) {
+		WriteError(w, http.StatusNotFound, "workout not found")
+		return
+	}
+	if err != nil {
+		log.Printf("api: get workout %d for add set: %v", workoutID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to add set")
+		return
+	}
+
 	var req WorkoutSetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid request body")
@@ -256,11 +284,25 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 	if req.Category == "" {
 		req.Category = "main"
 	}
+	// Validate CHECK-constrained enums/ranges at the boundary so violations
+	// surface as 400 (with details) instead of a 500 from the DB layer.
+	if !validSetRepType(req.RepType) {
+		WriteValidationError(w, "rep_type", "must be one of reps, each_side, seconds, distance")
+		return
+	}
+	if !validSetCategory(req.Category) {
+		WriteValidationError(w, "category", "must be one of main, supplemental, accessory")
+		return
+	}
+	if req.RPE != 0 && (req.RPE < 1 || req.RPE > 10) {
+		WriteValidationError(w, "rpe", "must be between 1 and 10")
+		return
+	}
 
 	set, err := models.AddSet(h.DB, workoutID, req.ExerciseID, req.Reps, req.Weight, req.RPE, req.RepType, req.Category, req.Notes)
 	if err != nil {
 		log.Printf("api: add set to workout %d: %v", workoutID, err)
-		WriteError(w, http.StatusInternalServerError, "failed to add set")
+		WriteDBError(w, err, "failed to add set")
 		return
 	}
 
@@ -313,14 +355,21 @@ func (h *Handlers) UpdateWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	set, err := models.UpdateSet(h.DB, setID, req.Reps, req.Weight, req.RPE, req.Notes)
+	// Pointer fields: nil = leave unchanged. Only validate a supplied, non-zero
+	// RPE (a supplied 0 explicitly clears it).
+	if req.RPE != nil && *req.RPE != 0 && (*req.RPE < 1 || *req.RPE > 10) {
+		WriteValidationError(w, "rpe", "must be between 1 and 10")
+		return
+	}
+
+	set, err := models.UpdateSet(h.DB, setID, athleteID, req.Reps, req.Weight, req.RPE, req.Notes)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "set not found")
 		return
 	}
 	if err != nil {
 		log.Printf("api: update set %d: %v", setID, err)
-		WriteError(w, http.StatusInternalServerError, "failed to update set")
+		WriteDBError(w, err, "failed to update set")
 		return
 	}
 
@@ -357,7 +406,11 @@ func (h *Handlers) DeleteWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteSet(h.DB, setID); err != nil {
+	if err := models.DeleteSet(h.DB, setID, athleteID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "set not found")
+			return
+		}
 		log.Printf("api: delete set %d: %v", setID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete set")
 		return

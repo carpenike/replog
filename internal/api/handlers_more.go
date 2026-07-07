@@ -37,10 +37,7 @@ func (h *Handlers) ListBodyWeights(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	offset := 0
-	if o := r.URL.Query().Get("offset"); o != "" {
-		offset, _ = strconv.Atoi(o)
-	}
+	_, offset := parsePage(r, 1, 1)
 
 	page, err := models.ListBodyWeights(h.DB, athleteID, offset)
 	if err != nil {
@@ -125,7 +122,11 @@ func (h *Handlers) DeleteBodyWeight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteBodyWeight(h.DB, bwID); err != nil {
+	if err := models.DeleteBodyWeight(h.DB, bwID, athleteID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusNotFound, "body weight entry not found")
+			return
+		}
 		log.Printf("api: delete body weight %d: %v", bwID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to delete body weight")
 		return
@@ -227,14 +228,10 @@ func (h *Handlers) GetTrainingMaxHistory(w http.ResponseWriter, r *http.Request)
 func (h *Handlers) ListNotifications(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
 
-	limit := 50
-	offset := 0
-	if l := r.URL.Query().Get("limit"); l != "" {
-		limit, _ = strconv.Atoi(l)
-	}
-	if o := r.URL.Query().Get("offset"); o != "" {
-		offset, _ = strconv.Atoi(o)
-	}
+	// Clamp caller-supplied paging: ListNotifications passes limit straight to
+	// SQL where LIMIT -1 means "unlimited", so an unclamped limit=-1 would dump
+	// every notification. parsePage caps it and rejects negatives.
+	limit, offset := parsePage(r, 50, 200)
 
 	notifications, err := models.ListNotifications(h.DB, user.ID, limit, offset)
 	if err != nil {
@@ -340,6 +337,13 @@ func (h *Handlers) ListProgramTemplates(w http.ResponseWriter, r *http.Request) 
 			WriteError(w, http.StatusBadRequest, "invalid athlete_id")
 			return
 		}
+		// Athlete-scoped templates can embed that athlete's context (e.g.
+		// AI-generated programs), so gate on access before returning them.
+		user := middleware.UserFromContext(r.Context())
+		if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+			WriteError(w, http.StatusForbidden, "access denied")
+			return
+		}
 		programs, err = models.ListProgramTemplatesForAthlete(h.DB, athleteID)
 	} else {
 		programs, err = models.ListProgramTemplates(h.DB)
@@ -384,6 +388,17 @@ func (h *Handlers) GetProgramTemplate(w http.ResponseWriter, r *http.Request) {
 		log.Printf("api: get program template %d: %v", id, err)
 		WriteError(w, http.StatusInternalServerError, "failed to get program")
 		return
+	}
+	// Athlete-scoped templates embed that athlete's context; a global template
+	// (AthleteID == nil) is readable by any authenticated user, but a scoped one
+	// requires access to its athlete. Treat a denied scoped template as 404 so
+	// its existence is not disclosed.
+	if program.AthleteID != nil {
+		user := middleware.UserFromContext(r.Context())
+		if !middleware.CanAccessAthlete(h.DB, user, *program.AthleteID) {
+			WriteError(w, http.StatusNotFound, "program not found")
+			return
+		}
 	}
 
 	sets, err := models.ListPrescribedSets(h.DB, id)

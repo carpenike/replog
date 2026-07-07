@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -50,6 +52,51 @@ func (e *APIError) UserMessage() string {
 	}
 }
 
+// doWithRetry executes an HTTP request built fresh by build() up to
+// maxAttempts times, retrying on network errors and 429/5xx responses with
+// exponential backoff (respecting ctx cancellation). build must construct a
+// new *http.Request each call because the body is consumed per attempt.
+// Returns the final response's status, body bytes, and any transport error.
+// Generation is idempotent (nothing is committed until the row completes), so
+// retrying a dropped/overloaded call is safe.
+func doWithRetry(ctx context.Context, client *http.Client, build func() (*http.Request, error), maxAttempts int) (int, []byte, error) {
+	var lastErr error
+	backoff := 500 * time.Millisecond
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return 0, nil, ctx.Err()
+			case <-time.After(backoff):
+			}
+			backoff *= 2
+		}
+		req, err := build()
+		if err != nil {
+			return 0, nil, err
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			continue // network error — retry
+		}
+		body, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil {
+			lastErr = readErr
+			continue
+		}
+		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+			lastErr = fmt.Errorf("HTTP %d", resp.StatusCode)
+			if attempt < maxAttempts-1 {
+				continue // transient — retry
+			}
+		}
+		return resp.StatusCode, body, nil
+	}
+	return 0, nil, lastErr
+}
+
 // containsAny returns true if s contains any of the substrings (case-insensitive).
 func containsAny(s string, subs ...string) bool {
 	lower := strings.ToLower(s)
@@ -94,9 +141,9 @@ type Response struct {
 // GenerationRequest describes what to generate.
 type GenerationRequest struct {
 	AthleteID            int64
-	ProgramName          string   // e.g. "Sport Performance Month 4"
-	NumWeeks             int      // 1 (loop) or N (fixed block)
-	NumDays              int      // training days per week
+	ProgramName          string // e.g. "Sport Performance Month 4"
+	NumWeeks             int    // 1 (loop) or N (fixed block)
+	NumDays              int    // training days per week
 	IsLoop               bool
 	FocusAreas           []string // e.g. ["power", "conditioning"]
 	CoachDirections      string   // free-text instructions for the LLM
@@ -123,9 +170,9 @@ type GenerationRequest struct {
 
 // GenerationResult holds the complete output from a generation.
 type GenerationResult struct {
-	CatalogJSON []byte        // valid CatalogJSON ready for import
-	Reasoning   string        // LLM's explanation of choices
-	RawResponse string        // full unprocessed LLM response
+	CatalogJSON []byte // valid CatalogJSON ready for import
+	Reasoning   string // LLM's explanation of choices
+	RawResponse string // full unprocessed LLM response
 	TokensUsed  int
 	Duration    time.Duration
 	Model       string
@@ -138,6 +185,13 @@ type GenerationResult struct {
 	// prompt followed by a delimiter and the user prompt.
 	ContextJSON []byte
 	Prompt      string
+
+	// Warnings from the deterministic post-generation lint (LintCatalog) —
+	// advisories the coach sees in the preview (e.g. an invented exercise
+	// name). Advisory only; never blocks the draft. PromptVersion records the
+	// prompt-contract version that produced this draft.
+	Warnings      []string
+	PromptVersion string
 }
 
 // NewProviderFromSettings creates a Provider using the current app_settings

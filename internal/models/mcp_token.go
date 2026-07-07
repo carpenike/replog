@@ -132,6 +132,23 @@ func ValidateMCPToken(db *sql.DB, presented string) (*User, error) {
 	return user, nil
 }
 
+// DeleteExpiredMCPTokens hard-deletes tokens that expired or were revoked
+// before the given cutoff. The scheduler passes a cutoff in the past (a grace
+// window, e.g. 30 days ago) so a recently-expired token lingers briefly for
+// audit/debugging before it is swept. Returns the number of rows removed.
+func DeleteExpiredMCPTokens(db *sql.DB, cutoff time.Time) (int64, error) {
+	res, err := db.Exec(
+		`DELETE FROM mcp_tokens
+		 WHERE expires_at < ? OR (revoked_at IS NOT NULL AND revoked_at < ?)`,
+		cutoff, cutoff,
+	)
+	if err != nil {
+		return 0, errors.New("models: delete expired mcp tokens: " + err.Error())
+	}
+	n, _ := res.RowsAffected()
+	return n, nil
+}
+
 // RevokeMCPToken soft-deletes a token by id (sets revoked_at). Idempotent.
 func RevokeMCPToken(db *sql.DB, id int64) error {
 	_, err := db.Exec(`UPDATE mcp_tokens SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`, time.Now(), id)

@@ -120,6 +120,39 @@ func readTool[In any](
 	}}
 }
 
+// readToolQ registers a GET-style tool that also forwards a query string, so
+// list tools can expose optional offset/limit paging to the caller instead of
+// silently returning only the newest page.
+func readToolQ[In any](
+	name, desc, method string,
+	pick func(*api.Handlers) http.HandlerFunc,
+	params func(In) map[string]string,
+	query func(In) url.Values,
+) mcpTool {
+	return mcpTool{name: name, reg: func(s *mcp.Server, inv *mcpInvoker) {
+		mcp.AddTool(s, &mcp.Tool{Name: name, Description: desc},
+			func(ctx context.Context, _ *mcp.CallToolRequest, in In) (*mcp.CallToolResult, any, error) {
+				return inv.run(ctx, pick(inv.h), method, params(in), query(in), nil)
+			})
+	}}
+}
+
+// pageQuery builds an offset/limit query, omitting zero values so the handler
+// falls back to its own defaults.
+func pageQuery(offset, limit int) url.Values {
+	q := url.Values{}
+	if offset > 0 {
+		q.Set("offset", strconv.Itoa(offset))
+	}
+	if limit > 0 {
+		q.Set("limit", strconv.Itoa(limit))
+	}
+	if len(q) == 0 {
+		return nil
+	}
+	return q
+}
+
 // writeTool registers a mutating tool: typed input → path params + JSON body.
 func writeTool[In any](
 	name, desc, method string,
@@ -145,6 +178,19 @@ func i64(v int64) string { return strconv.FormatInt(v, 10) }
 
 type athleteInput struct {
 	AthleteID int64 `json:"athlete_id"`
+}
+
+// listWorkoutsInput adds optional paging to the athlete-scoped workout list so
+// an agent can page back through history instead of only seeing the newest page.
+type listWorkoutsInput struct {
+	AthleteID int64 `json:"athlete_id"`
+	Offset    int   `json:"offset,omitempty" jsonschema:"Number of workouts to skip for paging (0 = newest page). Results are newest-first."`
+}
+
+// listJournalInput adds an optional limit to the journal list.
+type listJournalInput struct {
+	AthleteID int64 `json:"athlete_id"`
+	Limit     int   `json:"limit,omitempty" jsonschema:"Max entries to return, newest-first (defaults to 50)."`
 }
 type workoutInput struct {
 	AthleteID int64 `json:"athlete_id"`
@@ -236,19 +282,24 @@ func athleteParams(in athleteInput) map[string]string {
 func mcpTools() []mcpTool {
 	return []mcpTool{
 		// --- reads ---
-		readTool[struct{}]("dashboard", "Coach dashboard: athletes, pending reviews, and recent activity.",
+		readTool[struct{}]("dashboard", "Coach dashboard: athletes, pending reviews, and recent activity. Call this first to discover the athlete_id values every other tool requires.",
 			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.Dashboard },
+			func(struct{}) map[string]string { return nil }),
+		readTool[struct{}]("list_exercises", "List the exercise catalog (id, name, tier). Call this to resolve an exercise name to the exercise_id required by add_workout_set.",
+			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.ListExercises },
 			func(struct{}) map[string]string { return nil }),
 		readTool[athleteInput]("get_athlete", "Get one athlete's profile and program summary.",
 			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.GetAthlete }, athleteParams),
-		readTool[athleteInput]("list_workouts", "List an athlete's resistance-training workouts.",
-			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.ListWorkouts }, athleteParams),
+		readToolQ[listWorkoutsInput]("list_workouts", "List an athlete's resistance-training workouts, newest first (one page per call). Pass offset to page back through older workouts.",
+			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.ListWorkouts },
+			func(in listWorkoutsInput) map[string]string { return map[string]string{"id": i64(in.AthleteID)} },
+			func(in listWorkoutsInput) url.Values { return pageQuery(in.Offset, 0) }),
 		readTool[workoutInput]("get_workout", "Get one workout with its logged sets.",
 			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.GetWorkout },
 			func(in workoutInput) map[string]string {
 				return map[string]string{"id": i64(in.AthleteID), "workoutID": i64(in.WorkoutID)}
 			}),
-		readTool[athleteInput]("get_prescription", "Get the athlete's prescribed workout for today.",
+		readTool[athleteInput]("get_prescription", "Get the athlete's prescribed workout for today. Returns null when no program is assigned.",
 			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.GetPrescription }, athleteParams),
 		readTool[athleteInput]("list_training_maxes", "List the athlete's current training maxes.",
 			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.ListTrainingMaxes }, athleteParams),
@@ -257,8 +308,10 @@ func mcpTools() []mcpTool {
 			func(in exerciseTMInput) map[string]string {
 				return map[string]string{"id": i64(in.AthleteID), "exerciseID": i64(in.ExerciseID)}
 			}),
-		readTool[athleteInput]("list_journal", "List the athlete's journal entries and notes.",
-			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.ListJournalEntries }, athleteParams),
+		readToolQ[listJournalInput]("list_journal", "List the athlete's journal entries and notes, newest first (defaults to the newest 50; pass limit to widen).",
+			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.ListJournalEntries },
+			func(in listJournalInput) map[string]string { return map[string]string{"id": i64(in.AthleteID)} },
+			func(in listJournalInput) url.Values { return pageQuery(0, in.Limit) }),
 		readTool[athleteInput]("list_athlete_programs", "List the programs assigned to an athlete.",
 			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.ListAthletePrograms }, athleteParams),
 		readTool[athleteInput]("list_athlete_equipment", "List the athlete's available equipment.",
@@ -279,17 +332,17 @@ func mcpTools() []mcpTool {
 			http.MethodGet, func(h *api.Handlers) http.HandlerFunc { return h.ListBioSamples }, athleteParams),
 
 		// --- clerical writes (gated by CanManageAthlete in the handlers) ---
-		writeTool[createWorkoutInput]("create_workout", "Create a resistance-training workout for an athlete on a date.",
+		writeTool[createWorkoutInput]("create_workout", "Create a resistance-training workout for an athlete on a date (one per athlete per day; date defaults to today in the user's timezone). Not idempotent — on timeout, call list_workouts to check before retrying.",
 			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.CreateWorkout },
 			athleteParamsFrom(func(in createWorkoutInput) int64 { return in.AthleteID }),
 			func(in createWorkoutInput) any { return in.WorkoutRequest }),
-		writeTool[addSetInput]("add_workout_set", "Add a set to a workout.",
+		writeTool[addSetInput]("add_workout_set", "Add a set to a workout. exercise_id is required — resolve a name with list_exercises. Not idempotent — on timeout, call get_workout to check before retrying.",
 			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.AddWorkoutSet },
 			func(in addSetInput) map[string]string {
 				return map[string]string{"id": i64(in.AthleteID), "workoutID": i64(in.WorkoutID)}
 			},
 			func(in addSetInput) any { return in.WorkoutSetRequest }),
-		writeTool[updateSetInput]("update_workout_set", "Update an existing set's reps, weight, RPE, or notes.",
+		writeTool[updateSetInput]("update_workout_set", "Update an existing set. Only the fields you send change; omitted fields are left as-is (send weight/rpe of 0 to clear them).",
 			http.MethodPut, func(h *api.Handlers) http.HandlerFunc { return h.UpdateWorkoutSet },
 			func(in updateSetInput) map[string]string {
 				return map[string]string{"id": i64(in.AthleteID), "workoutID": i64(in.WorkoutID), "setID": i64(in.SetID)}
@@ -307,31 +360,31 @@ func mcpTools() []mcpTool {
 				return map[string]string{"id": i64(in.AthleteID), "workoutID": i64(in.WorkoutID)}
 			},
 			func(in workoutNotesInput) any { return in.WorkoutNotesRequest }),
-		writeTool[bodyWeightInput]("create_body_weight", "Log a body-weight measurement for an athlete.",
+		writeTool[bodyWeightInput]("create_body_weight", "Log a body-weight measurement for an athlete. Weight is in the user's configured unit (lbs by default, kg if configured); date defaults to today in the user's timezone. Not idempotent — repeated calls create duplicate entries.",
 			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.CreateBodyWeight },
 			athleteParamsFrom(func(in bodyWeightInput) int64 { return in.AthleteID }),
 			func(in bodyWeightInput) any { return in.BodyWeightRequest }),
-		writeTool[athleteNoteInput]("create_athlete_note", "Add a journal note for an athlete.",
+		writeTool[athleteNoteInput]("create_athlete_note", "Add a journal note for an athlete. Not idempotent — repeated calls create duplicate notes.",
 			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.CreateAthleteNote },
 			athleteParamsFrom(func(in athleteNoteInput) int64 { return in.AthleteID }),
 			func(in athleteNoteInput) any { return in.AthleteNoteRequest }),
-		writeTool[throwingInput]("create_throwing_session", "Log a throwing session for an athlete.",
+		writeTool[throwingInput]("create_throwing_session", "Log a throwing session for an athlete (date defaults to today in the user's timezone). Not idempotent — repeated calls create duplicate sessions.",
 			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.CreateThrowingSession },
 			athleteParamsFrom(func(in throwingInput) int64 { return in.AthleteID }),
 			func(in throwingInput) any { return in.ThrowingSessionRequest }),
-		writeTool[conditioningInput]("create_conditioning_session", "Log a conditioning session for an athlete.",
+		writeTool[conditioningInput]("create_conditioning_session", "Log a conditioning session for an athlete (date defaults to today in the user's timezone). Not idempotent — repeated calls create duplicate sessions.",
 			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.CreateConditioningSession },
 			athleteParamsFrom(func(in conditioningInput) int64 { return in.AthleteID }),
 			func(in conditioningInput) any { return in.ConditioningSessionRequest }),
-		writeTool[skillInput]("create_skill_session", "Log a skill session for an athlete.",
+		writeTool[skillInput]("create_skill_session", "Log a skill session for an athlete (date defaults to today in the user's timezone). Not idempotent — repeated calls create duplicate sessions.",
 			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.CreateSkillSession },
 			athleteParamsFrom(func(in skillInput) int64 { return in.AthleteID }),
 			func(in skillInput) any { return in.SkillSessionRequest }),
-		writeTool[recoveryInput]("create_recovery_checkin", "Log a recovery check-in for an athlete.",
+		writeTool[recoveryInput]("create_recovery_checkin", "Log a recovery check-in for an athlete (soreness/energy on a 1-10 scale; date defaults to today in the user's timezone). Not idempotent — repeated calls create duplicate check-ins.",
 			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.CreateRecoveryCheckin },
 			athleteParamsFrom(func(in recoveryInput) int64 { return in.AthleteID }),
 			func(in recoveryInput) any { return in.RecoveryCheckinRequest }),
-		writeTool[bioSampleInput]("create_bio_sample", "Log a biometric sample for an athlete.",
+		writeTool[bioSampleInput]("create_bio_sample", "Log a biometric sample for an athlete. Not idempotent — repeated calls create duplicate samples.",
 			http.MethodPost, func(h *api.Handlers) http.HandlerFunc { return h.CreateBioSample },
 			athleteParamsFrom(func(in bioSampleInput) int64 { return in.AthleteID }),
 			func(in bioSampleInput) any { return in.BioSampleRequest }),

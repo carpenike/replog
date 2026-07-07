@@ -172,8 +172,9 @@ func ListAllAccessoryPlans(db *sql.DB, athleteID int64) ([]*AccessoryPlan, error
 	return plans, rows.Err()
 }
 
-// UpdateAccessoryPlan updates an existing accessory plan entry.
-func UpdateAccessoryPlan(db *sql.DB, id int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int) error {
+// UpdateAccessoryPlan updates a plan, scoped to athleteID so a coach cannot
+// mutate a plan belonging to an athlete they do not manage by guessing its ID.
+func UpdateAccessoryPlan(db *sql.DB, id, athleteID int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int) error {
 	var tsVal sql.NullInt64
 	if targetSets > 0 {
 		tsVal = sql.NullInt64{Int64: int64(targetSets), Valid: true}
@@ -196,8 +197,8 @@ func UpdateAccessoryPlan(db *sql.DB, id int64, targetSets, targetRepMin, targetR
 	}
 
 	result, err := db.Exec(
-		`UPDATE accessory_plans SET target_sets = ?, target_rep_min = ?, target_rep_max = ?, target_weight = ?, notes = ?, sort_order = ? WHERE id = ?`,
-		tsVal, minVal, maxVal, wVal, nVal, sortOrder, id,
+		`UPDATE accessory_plans SET target_sets = ?, target_rep_min = ?, target_rep_max = ?, target_weight = ?, notes = ?, sort_order = ? WHERE id = ? AND athlete_id = ?`,
+		tsVal, minVal, maxVal, wVal, nVal, sortOrder, id, athleteID,
 	)
 	if err != nil {
 		return fmt.Errorf("models: update accessory plan %d: %w", id, err)
@@ -209,9 +210,10 @@ func UpdateAccessoryPlan(db *sql.DB, id int64, targetSets, targetRepMin, targetR
 	return nil
 }
 
-// DeactivateAccessoryPlan sets active = 0 on an accessory plan.
-func DeactivateAccessoryPlan(db *sql.DB, id int64) error {
-	result, err := db.Exec(`UPDATE accessory_plans SET active = 0 WHERE id = ?`, id)
+// DeactivateAccessoryPlan sets active = 0 on an accessory plan, scoped to the
+// owning athlete (ErrNotFound on cross-athlete mismatch).
+func DeactivateAccessoryPlan(db *sql.DB, id, athleteID int64) error {
+	result, err := db.Exec(`UPDATE accessory_plans SET active = 0 WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: deactivate accessory plan %d: %w", id, err)
 	}
@@ -222,9 +224,10 @@ func DeactivateAccessoryPlan(db *sql.DB, id int64) error {
 	return nil
 }
 
-// DeleteAccessoryPlan permanently removes an accessory plan entry.
-func DeleteAccessoryPlan(db *sql.DB, id int64) error {
-	result, err := db.Exec(`DELETE FROM accessory_plans WHERE id = ?`, id)
+// DeleteAccessoryPlan permanently removes an accessory plan entry, scoped to
+// the owning athlete (ErrNotFound on cross-athlete mismatch).
+func DeleteAccessoryPlan(db *sql.DB, id, athleteID int64) error {
+	result, err := db.Exec(`DELETE FROM accessory_plans WHERE id = ? AND athlete_id = ?`, id, athleteID)
 	if err != nil {
 		return fmt.Errorf("models: delete accessory plan %d: %w", id, err)
 	}

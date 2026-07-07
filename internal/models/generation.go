@@ -25,6 +25,14 @@ const (
 	GenerationKindWOD     = "wod"
 )
 
+// ErrGenerationInFlight is returned when creating a generation would violate
+// the unique-per-(athlete, kind) invariant enforced by the partial index
+// idx_generations_inflight (migration 0012): an athlete may not have two
+// pending/running generations of the same kind at once. The handler maps this
+// to 409. This closes the check-then-act race the app-level pre-check alone
+// left open under concurrent submits.
+var ErrGenerationInFlight = errors.New("a generation is already in flight for this athlete")
+
 // Generation is one AI Coach program-draft request.
 //
 // The lifecycle is: pending → running → (succeeded | failed | cancelled).
@@ -54,6 +62,12 @@ type Generation struct {
 	// that went over the wire. Both NULL on rows created before 0003.
 	ContextJSON sql.NullString
 	Prompt      sql.NullString
+
+	// Post-generation lint results and prompt-contract version (migration
+	// 0014). Warnings is a JSON array of strings surfaced to the coach in the
+	// preview; PromptVersion is llm.PromptVersion at generation time.
+	Warnings      sql.NullString
+	PromptVersion sql.NullString
 
 	ExecutedAt  sql.NullTime
 	CreatedAt   time.Time
@@ -91,6 +105,11 @@ func CreateGenerationWithKind(db *sql.DB, athleteID, requestedBy int64, requestJ
 		RequestJSON: requestJSON,
 	}
 	if err := row.Scan(&g.ID, &g.CreatedAt); err != nil {
+		if isUniqueViolation(err) {
+			// The partial unique index rejected a concurrent duplicate — an
+			// in-flight generation of this kind already exists for the athlete.
+			return nil, ErrGenerationInFlight
+		}
 		return nil, fmt.Errorf("models: create generation: %w", err)
 	}
 	return g, nil
@@ -125,7 +144,7 @@ func MarkGenerationRunning(db *sql.DB, id int64) error {
 // parse. contextJSON / prompt may be empty/zero when called from a path
 // that doesn't have them (none today, but we'd rather have the per-arg
 // zero-value than a panic).
-func CompleteGeneration(db *sql.DB, id int64, catalogJSON, reasoning, model, stopReason string, tokensUsed, durationMS int, contextJSON, prompt string) error {
+func CompleteGeneration(db *sql.DB, id int64, catalogJSON, reasoning, model, stopReason string, tokensUsed, durationMS int, contextJSON, prompt, warnings, promptVersion string) error {
 	var ctxVal sql.NullString
 	if contextJSON != "" {
 		ctxVal = sql.NullString{String: contextJSON, Valid: true}
@@ -134,20 +153,30 @@ func CompleteGeneration(db *sql.DB, id int64, catalogJSON, reasoning, model, sto
 	if prompt != "" {
 		promptVal = sql.NullString{String: prompt, Valid: true}
 	}
+	var warnVal sql.NullString
+	if warnings != "" {
+		warnVal = sql.NullString{String: warnings, Valid: true}
+	}
+	var versionVal sql.NullString
+	if promptVersion != "" {
+		versionVal = sql.NullString{String: promptVersion, Valid: true}
+	}
 	res, err := db.Exec(
 		`UPDATE generations
-		    SET status        = ?,
-		        catalog_json  = ?,
-		        reasoning     = ?,
-		        model         = ?,
-		        stop_reason   = ?,
-		        tokens_used   = ?,
-		        duration_ms   = ?,
-		        context_json  = ?,
-		        prompt        = ?,
-		        completed_at  = CURRENT_TIMESTAMP
+		    SET status         = ?,
+		        catalog_json   = ?,
+		        reasoning      = ?,
+		        model          = ?,
+		        stop_reason    = ?,
+		        tokens_used    = ?,
+		        duration_ms    = ?,
+		        context_json   = ?,
+		        prompt         = ?,
+		        warnings       = ?,
+		        prompt_version = ?,
+		        completed_at   = CURRENT_TIMESTAMP
 		  WHERE id = ? AND status = ?`,
-		GenerationSucceeded, catalogJSON, reasoning, model, stopReason, tokensUsed, durationMS, ctxVal, promptVal,
+		GenerationSucceeded, catalogJSON, reasoning, model, stopReason, tokensUsed, durationMS, ctxVal, promptVal, warnVal, versionVal,
 		id, GenerationRunning,
 	)
 	if err != nil {
@@ -205,8 +234,12 @@ func CancelGeneration(db *sql.DB, id int64) error {
 	return nil
 }
 
-// MarkGenerationExecuted stamps executed_at so the SPA can render "imported"
-// and the execute handler can reject a second commit of the same draft.
+// MarkGenerationExecuted atomically claims the one-time execute slot: it stamps
+// executed_at only if it is still NULL and reports ErrNotFound when the row is
+// missing OR already executed (rows-affected == 0). Callers MUST claim BEFORE
+// running the import so two concurrent execute requests cannot both commit the
+// same draft (which would create duplicate programs); on import failure the
+// claim is released with UnmarkGenerationExecuted so the coach can retry.
 func MarkGenerationExecuted(db *sql.DB, id int64) error {
 	res, err := db.Exec(
 		`UPDATE generations SET executed_at = CURRENT_TIMESTAMP
@@ -223,13 +256,24 @@ func MarkGenerationExecuted(db *sql.DB, id int64) error {
 	return nil
 }
 
+// UnmarkGenerationExecuted releases a previously-claimed execute slot by
+// clearing executed_at. Used to roll back the claim when the import that
+// followed a successful MarkGenerationExecuted fails, so the draft is not
+// permanently stuck in an "executed" state it never completed.
+func UnmarkGenerationExecuted(db *sql.DB, id int64) error {
+	if _, err := db.Exec(`UPDATE generations SET executed_at = NULL WHERE id = ?`, id); err != nil {
+		return fmt.Errorf("models: unmark generation %d executed: %w", id, err)
+	}
+	return nil
+}
+
 // GetGeneration loads a single generation by ID. Returns ErrNotFound if
 // the row does not exist.
 func GetGeneration(db *sql.DB, id int64) (*Generation, error) {
 	row := db.QueryRow(
 		`SELECT id, athlete_id, requested_by, status, kind, request_json,
 		        catalog_json, reasoning, model, tokens_used, duration_ms,
-		        stop_reason, error, context_json, prompt,
+		        stop_reason, error, context_json, prompt, warnings, prompt_version,
 		        executed_at, created_at, started_at, completed_at
 		   FROM generations WHERE id = ?`,
 		id,
@@ -238,7 +282,7 @@ func GetGeneration(db *sql.DB, id int64) (*Generation, error) {
 	err := row.Scan(
 		&g.ID, &g.AthleteID, &g.RequestedBy, &g.Status, &g.Kind, &g.RequestJSON,
 		&g.CatalogJSON, &g.Reasoning, &g.Model, &g.TokensUsed, &g.DurationMS,
-		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt,
+		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt, &g.Warnings, &g.PromptVersion,
 		&g.ExecutedAt, &g.CreatedAt, &g.StartedAt, &g.CompletedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -259,7 +303,7 @@ func LatestGenerationForAthlete(db *sql.DB, athleteID int64, kind string) (*Gene
 	row := db.QueryRow(
 		`SELECT id, athlete_id, requested_by, status, kind, request_json,
 		        catalog_json, reasoning, model, tokens_used, duration_ms,
-		        stop_reason, error, context_json, prompt,
+		        stop_reason, error, context_json, prompt, warnings, prompt_version,
 		        executed_at, created_at, started_at, completed_at
 		   FROM generations
 		  WHERE athlete_id = ? AND kind = ?
@@ -270,7 +314,7 @@ func LatestGenerationForAthlete(db *sql.DB, athleteID int64, kind string) (*Gene
 	err := row.Scan(
 		&g.ID, &g.AthleteID, &g.RequestedBy, &g.Status, &g.Kind, &g.RequestJSON,
 		&g.CatalogJSON, &g.Reasoning, &g.Model, &g.TokensUsed, &g.DurationMS,
-		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt,
+		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt, &g.Warnings, &g.PromptVersion,
 		&g.ExecutedAt, &g.CreatedAt, &g.StartedAt, &g.CompletedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {

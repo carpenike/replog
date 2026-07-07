@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -244,24 +245,71 @@ func GetSetByID(db *sql.DB, id int64) (*WorkoutSet, error) {
 	return s, nil
 }
 
-// UpdateSet updates a set's reps, weight, RPE, and notes.
-func UpdateSet(db *sql.DB, id int64, reps int, weight float64, rpe float64, notes string) (*WorkoutSet, error) {
-	var weightVal sql.NullFloat64
-	if weight > 0 {
-		weightVal = sql.NullFloat64{Float64: weight, Valid: true}
+// UpdateSet performs a PARTIAL update of a set's reps, weight, RPE, and notes.
+// Each argument is a pointer: a nil pointer leaves the corresponding column
+// UNCHANGED, so a caller updating only notes cannot silently wipe weight/RPE
+// (which would corrupt the training-load / ACWR history). A non-nil weight/rpe
+// of <= 0 clears that column (NULL); a non-nil empty notes clears the note.
+//
+// The update is scoped to athleteID by joining through the parent workout so a
+// caller authorized for one athlete cannot mutate another athlete's set by
+// guessing its ID (returns ErrNotFound on mismatch — mapped to 404 by the
+// handler).
+func UpdateSet(db *sql.DB, id, athleteID int64, reps *int, weight *float64, rpe *float64, notes *string) (*WorkoutSet, error) {
+	var setClauses []string
+	var args []any
+
+	if reps != nil {
+		setClauses = append(setClauses, "reps = ?")
+		args = append(args, *reps)
 	}
-	var rpeVal sql.NullFloat64
-	if rpe > 0 {
-		rpeVal = sql.NullFloat64{Float64: rpe, Valid: true}
+	if weight != nil {
+		var v sql.NullFloat64
+		if *weight > 0 {
+			v = sql.NullFloat64{Float64: *weight, Valid: true}
+		}
+		setClauses = append(setClauses, "weight = ?")
+		args = append(args, v)
 	}
-	var notesVal sql.NullString
-	if notes != "" {
-		notesVal = sql.NullString{String: notes, Valid: true}
+	if rpe != nil {
+		var v sql.NullFloat64
+		if *rpe > 0 {
+			v = sql.NullFloat64{Float64: *rpe, Valid: true}
+		}
+		setClauses = append(setClauses, "rpe = ?")
+		args = append(args, v)
+	}
+	if notes != nil {
+		var v sql.NullString
+		if *notes != "" {
+			v = sql.NullString{String: *notes, Valid: true}
+		}
+		setClauses = append(setClauses, "notes = ?")
+		args = append(args, v)
 	}
 
+	// No fields supplied: nothing to change, but still enforce athlete scoping
+	// so a bad/foreign set ID reports 404 rather than a silent no-op success.
+	if len(setClauses) == 0 {
+		var owned int
+		err := db.QueryRow(
+			`SELECT 1 FROM workout_sets WHERE id = ? AND workout_id IN (SELECT id FROM workouts WHERE athlete_id = ?)`,
+			id, athleteID,
+		).Scan(&owned)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		if err != nil {
+			return nil, fmt.Errorf("models: update set %d: %w", id, err)
+		}
+		return GetSetByID(db, id)
+	}
+
+	args = append(args, id, athleteID)
 	result, err := db.Exec(
-		`UPDATE workout_sets SET reps = ?, weight = ?, rpe = ?, notes = ? WHERE id = ?`,
-		reps, weightVal, rpeVal, notesVal, id,
+		`UPDATE workout_sets SET `+strings.Join(setClauses, ", ")+
+			` WHERE id = ? AND workout_id IN (SELECT id FROM workouts WHERE athlete_id = ?)`,
+		args...,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("models: update set %d: %w", id, err)
@@ -274,17 +322,25 @@ func UpdateSet(db *sql.DB, id int64, reps int, weight float64, rpe float64, note
 }
 
 // DeleteSet removes a set from a workout and renumbers the remaining sets
-// for the same workout+exercise to maintain a contiguous sequence.
-func DeleteSet(db *sql.DB, id int64) error {
+// for the same workout+exercise to maintain a contiguous sequence. The initial
+// lookup is scoped to athleteID (joined through the parent workout) so a set
+// belonging to another athlete returns ErrNotFound rather than being deleted.
+func DeleteSet(db *sql.DB, id, athleteID int64) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("models: begin tx for delete set: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Look up the set's workout and exercise before deleting.
+	// Look up the set's workout and exercise before deleting, scoped to the
+	// owning athlete so cross-athlete IDs cannot be tampered with.
 	var workoutID, exerciseID int64
-	err = tx.QueryRow(`SELECT workout_id, exercise_id FROM workout_sets WHERE id = ?`, id).Scan(&workoutID, &exerciseID)
+	err = tx.QueryRow(
+		`SELECT ws.workout_id, ws.exercise_id
+		 FROM workout_sets ws
+		 JOIN workouts w ON w.id = ws.workout_id
+		 WHERE ws.id = ? AND w.athlete_id = ?`, id, athleteID,
+	).Scan(&workoutID, &exerciseID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}

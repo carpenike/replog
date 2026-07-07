@@ -26,6 +26,7 @@ export function NewWorkout() {
 
   const createMutation = useMutation({
     mutationFn: () => api.createWorkout(athleteId, date, notes),
+    meta: { skipGlobalError: true },
     onSuccess: (workout) => {
       queryClient.invalidateQueries({ queryKey: ['workouts', athleteId] })
       navigate(`/athletes/${athleteId}/workouts/${workout.id}`)
@@ -60,7 +61,7 @@ export function NewWorkout() {
 
         <div>
           <Label htmlFor="date" >Date</Label>
-          <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
+          <Input id="date" type="date" enterKeyHint="done" value={date} onChange={e => setDate(e.target.value)} required className="h-11 mt-1" />
         </div>
 
         <div>
@@ -71,12 +72,12 @@ export function NewWorkout() {
         </div>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={createMutation.isPending}
+          <Button type="submit" size="touch" disabled={createMutation.isPending}
             >
             {createMutation.isPending ? 'Creating...' : 'Create Workout'}
           </Button>
           <Link to={`/athletes/${athleteId}/workouts`}
-            className={buttonVariants({ variant: "outline" })}>
+            className={buttonVariants({ variant: "outline", size: "touch" })}>
             Cancel
           </Link>
         </div>

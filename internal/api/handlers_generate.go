@@ -34,13 +34,13 @@ const generationTimeout = 5 * time.Minute
 // reload — if status is 'running' it polls; if 'succeeded' it jumps straight
 // to the preview step.
 type GenerateFormResponse struct {
-	Configured             bool                  `json:"configured"`
-	AthleteContext         any                   `json:"athlete_context,omitempty"`
-	ReferencePrograms      []ProgramTemplate     `json:"reference_programs,omitempty"`
-	DefaultDays            int                   `json:"default_days"`
-	DefaultWeeks           int                   `json:"default_weeks"`
-	LatestGeneration       *GenerationResponse   `json:"latest_generation,omitempty"`
-	AvailableMethodologies []MethodologyOption   `json:"available_methodologies,omitempty"`
+	Configured             bool                `json:"configured"`
+	AthleteContext         any                 `json:"athlete_context,omitempty"`
+	ReferencePrograms      []ProgramTemplate   `json:"reference_programs,omitempty"`
+	DefaultDays            int                 `json:"default_days"`
+	DefaultWeeks           int                 `json:"default_weeks"`
+	LatestGeneration       *GenerationResponse `json:"latest_generation,omitempty"`
+	AvailableMethodologies []MethodologyOption `json:"available_methodologies,omitempty"`
 	// DefaultMethodologyID is the SPA's pre-selected methodology for this
 	// athlete. Youth athletes get their tier-mapped methodology
 	// (foundational → yessis-1x20, intermediate → yessis-1x15,
@@ -110,6 +110,11 @@ type GenerationResponse struct {
 	Exercises  int    `json:"exercises,omitempty"`
 	Error      string `json:"error,omitempty"`
 	Executed   bool   `json:"executed,omitempty"`
+
+	// Warnings are advisories from the deterministic post-generation lint
+	// (e.g. an exercise name the LLM invented). The coach sees these on the
+	// preview step; they do not block approval.
+	Warnings []string `json:"warnings,omitempty"`
 
 	// Preview is the set-level projection of catalog_json — present only
 	// on succeeded generations. Lets the SPA render the actual prescribed
@@ -290,9 +295,10 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 // covers the unset path, see Phase 2 / ADR 016 D1).
 //
 // Tier → default methodology key mapping (youth):
-//   foundational      → yessis-1x20
-//   intermediate      → yessis-1x15
-//   sport_performance → yessis-sport-performance
+//
+//	foundational      → yessis-1x20
+//	intermediate      → yessis-1x15
+//	sport_performance → yessis-sport-performance
 func (h *Handlers) buildMethodologyOptions(athleteID int64) ([]MethodologyOption, *int64) {
 	athlete, err := models.GetAthleteByID(h.DB, athleteID)
 	if err != nil {
@@ -460,7 +466,8 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	// the HTTP boundary (instead of producing a 'failed' generation row).
 	provider, err := h.llmProvider()
 	if err != nil {
-		WriteError(w, http.StatusInternalServerError, "AI Coach not configured: "+err.Error())
+		log.Printf("api: llm provider not configured: %v", err)
+		WriteError(w, http.StatusInternalServerError, "AI Coach is not configured")
 		return
 	}
 
@@ -486,6 +493,10 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	gen, err := models.CreateGeneration(h.DB, athleteID, user.ID, string(reqJSON))
 	if err != nil {
+		if errors.Is(err, models.ErrGenerationInFlight) {
+			WriteError(w, http.StatusConflict, "a draft is already in flight for this athlete")
+			return
+		}
 		log.Printf("api: create generation for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to enqueue generation")
 		return
@@ -578,7 +589,8 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 	if err := models.CompleteGeneration(h.DB, genID,
 		string(result.CatalogJSON), result.Reasoning, result.Model, result.StopReason,
 		result.TokensUsed, durationMS,
-		string(result.ContextJSON), result.Prompt); err != nil {
+		string(result.ContextJSON), result.Prompt,
+		llm.MarshalWarnings(result.Warnings), result.PromptVersion); err != nil {
 		if !errors.Is(err, models.ErrNotFound) {
 			log.Printf("api: complete generation %d: %v", genID, err)
 		}
@@ -768,10 +780,29 @@ func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
 		ms.Programs = importers.BuildProgramMappings(parsed.Programs, nil)
 	}
 
+	// Claim the one-time execute slot BEFORE importing. This is the atomic
+	// guard against a check-then-act race: two concurrent execute requests both
+	// pass the gen.ExecutedAt.Valid check above, but only one can win this
+	// claiming UPDATE. The loser gets ErrNotFound → 409, so we never run the
+	// import twice and create duplicate programs.
+	if err := models.MarkGenerationExecuted(h.DB, gen.ID); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			WriteError(w, http.StatusConflict, "generation has already been executed")
+			return
+		}
+		log.Printf("api: claim generation %d for execute: %v", gen.ID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to execute generation")
+		return
+	}
+
 	result, err := models.ExecuteCatalogImport(h.DB, ms, &gen.AthleteID, false)
 	if err != nil {
+		// Release the claim so the coach can retry after a transient failure.
+		if rbErr := models.UnmarkGenerationExecuted(h.DB, gen.ID); rbErr != nil {
+			log.Printf("api: roll back execute claim for generation %d: %v", gen.ID, rbErr)
+		}
 		log.Printf("api: execute generation %d for athlete %d: %v", gen.ID, gen.AthleteID, err)
-		WriteError(w, http.StatusInternalServerError, "Failed to save program: "+err.Error())
+		WriteError(w, http.StatusInternalServerError, "failed to save program")
 		return
 	}
 
@@ -779,10 +810,6 @@ func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
 	// Approving the draft creates an athlete-scoped but UNASSIGNED template;
 	// the coach edits via PUT /programs/{id} + sets/rules and then explicitly
 	// assigns via POST /athletes/{id}/programs (HOF-001 #13, ADR 007).
-
-	if err := models.MarkGenerationExecuted(h.DB, gen.ID); err != nil && !errors.Is(err, models.ErrNotFound) {
-		log.Printf("api: mark generation %d executed: %v", gen.ID, err)
-	}
 
 	WriteJSON(w, http.StatusOK, GenerateExecuteResponse{
 		ProgramsCreated:    result.ProgramsCreated,
@@ -876,6 +903,12 @@ func generationToResponse(g *models.Generation) *GenerationResponse {
 	}
 	if g.Error.Valid {
 		resp.Error = g.Error.String
+	}
+	if g.Warnings.Valid && g.Warnings.String != "" {
+		var warnings []string
+		if err := json.Unmarshal([]byte(g.Warnings.String), &warnings); err == nil {
+			resp.Warnings = warnings
+		}
 	}
 
 	// Best-effort preview projection — only on success. Counts mirror the

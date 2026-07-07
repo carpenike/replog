@@ -82,9 +82,32 @@ func (h *Handlers) DeleteReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	athleteID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
+		return
+	}
+	if !middleware.CanAccessAthlete(h.DB, user, athleteID) {
+		WriteError(w, http.StatusForbidden, "access denied")
+		return
+	}
+
 	workoutID, err := strconv.ParseInt(r.PathValue("workoutID"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid workout ID")
+		return
+	}
+
+	// Ensure the workout (and thus its review) belongs to the path athlete —
+	// the workout ID is global and must not be reachable cross-athlete.
+	workout, err := models.GetWorkoutByID(h.DB, workoutID)
+	if errors.Is(err, models.ErrNotFound) || (err == nil && workout.AthleteID != athleteID) {
+		WriteError(w, http.StatusNotFound, "review not found")
+		return
+	}
+	if err != nil {
+		log.Printf("api: get workout %d for delete review: %v", workoutID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to delete review")
 		return
 	}
 

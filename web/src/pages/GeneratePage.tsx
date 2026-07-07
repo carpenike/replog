@@ -12,69 +12,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import type { Generation } from '@/api/generation'
 
-// Backend GenerationResponse shape (see internal/api/handlers_generate.go).
-// Kept inline so this page can run without waiting on `just openapi` to
-// regenerate the typed client.
-interface PrescribedSetPreview {
-  exercise: string
-  set_number: number
-  reps?: number
-  rep_type?: string
-  percentage?: number
-  absolute_weight?: number
-  notes?: string
-}
-
-interface DayPreview {
-  day: number
-  sets: PrescribedSetPreview[]
-}
-
-interface WeekPreview {
-  week: number
-  days: DayPreview[]
-}
-
-interface ProgramPreview {
-  name: string
-  description?: string
-  num_weeks: number
-  num_days: number
-  is_loop: boolean
-  weeks: WeekPreview[]
-}
-
-interface ProgressionRulePreview {
-  program: string
-  exercise: string
-  increment: number
-}
-
-interface GenerationPreview {
-  programs: ProgramPreview[]
-  progression_rules?: ProgressionRulePreview[]
-}
-
-interface Generation {
-  id: number
-  athlete_id: number
-  status: 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled'
-  reasoning?: string
-  model?: string
-  tokens_used?: number
-  duration?: string
-  truncated?: boolean
-  programs?: number
-  exercises?: number
-  error?: string
-  executed?: boolean
-  preview?: GenerationPreview
-  created_at: string
-  started_at?: string
-  completed_at?: string
-}
-
+// Page-local form/result shapes (the shared generation + preview shapes now
+// live in @/api/generation).
 interface GenerateFormData {
   configured: boolean
   reference_programs: { id: number; name: string }[]
@@ -243,6 +184,7 @@ export function GeneratePage() {
       }
       return api.startGeneration(athleteId, requestBody) as Promise<{ generation_id: number; status: Generation['status'] }>
     },
+    meta: { skipGlobalError: true },
     onSuccess: (data) => {
       setGenerationId(data.generation_id)
       setGeneration({
@@ -278,6 +220,7 @@ export function GeneratePage() {
       if (generationId == null) throw new Error('no generation id')
       return api.executeGeneration(athleteId, generationId) as Promise<ExecuteResult>
     },
+    meta: { skipGlobalError: true },
     onSuccess: (data) => {
       setExecResult(data)
       setStep('result')
@@ -355,12 +298,12 @@ export function GeneratePage() {
             </div>
           )}
           <div>
-            <Label >Program Name *</Label>
-            <Input type="text" value={programName} onChange={e => setProgramName(e.target.value)} required placeholder="e.g. Ryan — Block 5" />
+            <Label htmlFor="gen-program-name">Program Name *</Label>
+            <Input id="gen-program-name" type="text" value={programName} onChange={e => setProgramName(e.target.value)} required placeholder="e.g. Ryan — Block 5" />
           </div>
           <div>
-            <Label>Days/Week</Label>
-            <Input type="number" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} className="w-24" />
+            <Label htmlFor="gen-days">Days/Week</Label>
+            <Input id="gen-days" type="number" inputMode="numeric" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} className="w-24" />
           </div>
           <div>
             <Label>Schedule</Label>
@@ -376,10 +319,12 @@ export function GeneratePage() {
                   <span className="flex items-center gap-2 ml-2">
                     <Input
                       type="number"
+                      inputMode="numeric"
                       min={1}
                       max={52}
                       value={numWeeks}
                       onChange={e => setNumWeeks(e.target.value)}
+                      aria-label="Number of weeks"
                       className="w-20"
                     />
                     <span className="text-sm text-muted-foreground">weeks</span>
@@ -396,13 +341,13 @@ export function GeneratePage() {
             </RadioGroup>
           </div>
           <div>
-            <Label >Coach Directions</Label>
-            <Textarea value={coachDirections} onChange={e => setCoachDirections(e.target.value)}
+            <Label htmlFor="gen-directions">Coach Directions</Label>
+            <Textarea id="gen-directions" value={coachDirections} onChange={e => setCoachDirections(e.target.value)}
               placeholder="Specific instructions for the AI coach..." />
           </div>
           <div>
-            <Label >Focus Areas</Label>
-            <Input type="text" value={focusAreas} onChange={e => setFocusAreas(e.target.value)} placeholder="e.g. power, conditioning, hypertrophy (comma-separated)" />
+            <Label htmlFor="gen-focus">Focus Areas</Label>
+            <Input id="gen-focus" type="text" value={focusAreas} onChange={e => setFocusAreas(e.target.value)} placeholder="e.g. power, conditioning, hypertrophy (comma-separated)" />
           </div>
           {/* Advanced: override the methodology's default reference programs.
               When the coach selects entries here, they REPLACE (not add to)

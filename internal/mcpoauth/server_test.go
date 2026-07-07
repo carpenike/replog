@@ -83,8 +83,9 @@ func TestASMetadata_OmitsJWKS(t *testing.T) {
 	if got := body["code_challenge_methods_supported"].([]any); got[0] != "S256" {
 		t.Errorf("code_challenge_methods_supported = %v, want [S256]", got)
 	}
-	// "none" must be advertised for public/PKCE-only clients (production-proven
-	// reference shape — W.W.W./marginalia oauth-metadata.ts).
+	// "none" must be advertised: the pocketid-mcp-as conformance contract (v1.1)
+	// validates the reference metadata shape, which includes "none" for
+	// public/PKCE-only clients alongside the confidential-client methods.
 	authMethods, _ := body["token_endpoint_auth_methods_supported"].([]any)
 	var hasNone bool
 	for _, m := range authMethods {
@@ -93,7 +94,7 @@ func TestASMetadata_OmitsJWKS(t *testing.T) {
 		}
 	}
 	if !hasNone {
-		t.Errorf("token_endpoint_auth_methods_supported = %v, want it to include \"none\"", authMethods)
+		t.Errorf("token_endpoint_auth_methods_supported = %v, must include \"none\" (conformance contract)", authMethods)
 	}
 }
 

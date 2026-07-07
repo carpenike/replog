@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { usePageTitle } from '@/lib/usePageTitle'
 import type { User } from '@/api/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,7 @@ function tierLabel(tier: string): string {
 }
 
 export function AthletesList({ user }: { user: User }) {
+  usePageTitle('Athletes')
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
 

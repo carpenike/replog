@@ -110,8 +110,6 @@ REPLOG_DB_PATH=/var/lib/replog/replog.db
 REPLOG_AVATAR_DIR=/var/lib/replog/avatars
 REPLOG_ADDR=127.0.0.1:8080            # bind loopback; expose via reverse proxy
 REPLOG_BASE_URL=https://replog.example.com
-REPLOG_WEBAUTHN_RPID=replog.example.com
-REPLOG_WEBAUTHN_ORIGINS=https://replog.example.com
 REPLOG_TRUSTED_PROXIES=127.0.0.1/32   # whatever your proxy is
 ```
 
@@ -123,6 +121,68 @@ Setting `REPLOG_BASE_URL` to an `https://` URL automatically:
 
 You can override either explicitly with `REPLOG_SECURE_COOKIES=true|false`
 if needed.
+
+Optional observability and diagnostics (all off/default unless set):
+
+```bash
+REPLOG_LOG_FORMAT=json          # structured JSON logs (default: text) — see below
+REPLOG_METRICS_ENABLED=true     # expose GET /metrics (Prometheus text; default: off)
+```
+
+- **Structured logging.** With `REPLOG_LOG_FORMAT=json`, startup/shutdown and
+  request logs emit JSON via `log/slog` for ingestion by a log pipeline; the
+  default remains human-readable text.
+- **Metrics.** With `REPLOG_METRICS_ENABLED=true`, `GET /metrics` serves a
+  hand-rolled Prometheus text exposition (request counters + Go runtime gauges,
+  no external dependency). Keep it on the loopback/internal listener behind your
+  proxy — do not expose it publicly.
+- **Healthcheck.** The binary ships a `replog healthcheck` subcommand that GETs
+  the local `/healthz` and exits 0/1; the container images wire it as a Docker
+  `HEALTHCHECK`. `/healthz` is also directly usable by an external monitor.
+- **Corruption detection.** On startup the server runs `PRAGMA quick_check` and
+  logs a warning if the database does not return `ok` — an early signal to
+  restore from backup (see [Backups](#backups)).
+
+### 4a. Configure PocketID OIDC login (recommended)
+
+Per [ADR 019](adr/019-self-hosted-identity-native-mcp.md), interactive
+login federates to a self-hosted [PocketID](https://pocket-id.org/)
+instance over OIDC. Passkeys/WebAuthn were retired; the local password
+path stays as **break-glass** access and is used whenever OIDC is unset
+or unreachable.
+
+OIDC is enabled only when all three of these are set (see
+`cmd/replog/main.go`):
+
+```bash
+REPLOG_OIDC_ISSUER=https://id.example.com      # PocketID base URL (issuer)
+REPLOG_OIDC_CLIENT_ID=replog                   # OIDC client id
+REPLOG_OIDC_CLIENT_SECRET=<client secret>      # SECRET — put in EnvironmentFile
+```
+
+Optional — the redirect (callback) URL:
+
+```bash
+REPLOG_OIDC_REDIRECT_URL=https://replog.example.com/auth/oidc/callback
+```
+
+When `REPLOG_OIDC_REDIRECT_URL` is unset it defaults to
+`REPLOG_BASE_URL` + `/auth/oidc/callback`, so setting `REPLOG_BASE_URL`
+is enough for the standard single-hostname deployment. Only set the
+redirect explicitly if the browser reaches RepLog at a different URL
+than `REPLOG_BASE_URL`.
+
+In PocketID, create an OIDC client for RepLog and **register that exact
+redirect URI** (`https://replog.example.com/auth/oidc/callback` by
+default) as an allowed callback — PocketID rejects the callback
+otherwise and login fails. Copy the generated client id and secret into
+the env vars above. Keep `REPLOG_OIDC_CLIENT_SECRET` in the
+root-readable `EnvironmentFile` (sops-nix / agenix), never in
+`settings` / the Nix store.
+
+If any of the three vars is missing the binary logs
+`OIDC login disabled: ...` at startup and only the password path is
+available.
 
 ### 5. First boot and smoke test
 
@@ -139,9 +199,14 @@ Secret key generated and stored in database         # OR: loaded from database /
 Bootstrapped admin user: admin (id=1)
 Seeded catalog: N equipment, N exercises, N programs ...
 Background scheduler started
-WebAuthn enabled: RPID=replog.example.com, Origins=[https://replog.example.com]
+OIDC login enabled: issuer=https://id.example.com redirect=https://replog.example.com/auth/oidc/callback
 RepLog 0.x.y (commit, date) listening on :8080
 ```
+
+(If OIDC is not configured you'll instead see
+`OIDC login disabled: set REPLOG_OIDC_ISSUER, REPLOG_OIDC_CLIENT_ID, and
+REPLOG_OIDC_CLIENT_SECRET to enable PocketID login` — the password path
+still works.)
 
 Then through the proxy:
 
@@ -151,8 +216,10 @@ curl -fsS https://replog.example.com/readyz    # -> "ok"   (DB ping)
 ```
 
 Open the URL in a browser, log in with the bootstrap admin, change the
-password, register a passkey, and (optionally) clear `REPLOG_ADMIN_PASS`
-from the systemd EnvironmentFile.
+password, confirm PocketID OIDC login works (if configured), and
+(optionally) clear `REPLOG_ADMIN_PASS` from the systemd EnvironmentFile.
+Keep the admin password set somewhere safe regardless — it is the
+break-glass path when OIDC is down.
 
 ---
 
@@ -540,15 +607,17 @@ server {
 
 Then on the binary side: `REPLOG_TRUSTED_PROXIES=127.0.0.1/32`.
 
-### WebAuthn caveat
+### OIDC redirect caveat
 
-`REPLOG_WEBAUTHN_RPID` and `REPLOG_WEBAUTHN_ORIGINS` are validated
-strictly by the WebAuthn library against what the browser sends. If
-your reverse proxy serves a different hostname than the configured
-RPID, passkey registration will fail with an opaque
-`origin not allowed` error. Rule of thumb: `RPID` is the bare host
-(`replog.example.com`), `ORIGINS` is the full scheme+host
-(`https://replog.example.com`).
+The OIDC callback URL the binary sends to PocketID is derived from
+`REPLOG_BASE_URL` (`<baseUrl>/auth/oidc/callback`) unless
+`REPLOG_OIDC_REDIRECT_URL` overrides it. If your reverse proxy serves a
+different hostname than `REPLOG_BASE_URL`, the browser lands on a
+callback URL PocketID doesn't recognize and login fails. Rule of thumb:
+`REPLOG_BASE_URL` must be the exact public scheme+host the browser uses
+(`https://replog.example.com`), and that same
+`https://replog.example.com/auth/oidc/callback` must be registered as an
+allowed redirect URI in the PocketID client.
 
 ---
 
@@ -764,13 +833,16 @@ change.
 - [ ] `REPLOG_TRUSTED_PROXIES` is set to your proxy's address(es) — and
       **only** to those — so `X-Forwarded-For` is trusted there and
       nowhere else.
-- [ ] The bootstrap admin password has been rotated to something real,
-      and `REPLOG_ADMIN_PASS` no longer appears in the systemd
+- [ ] The bootstrap admin password has been rotated to something real
+      (it is the break-glass path when OIDC is down), and
+      `REPLOG_ADMIN_PASS` no longer appears in the systemd
       EnvironmentFile.
-- [ ] The admin user has registered at least one passkey.
-- [ ] `REPLOG_WEBAUTHN_RPID` matches the bare hostname in
-      `REPLOG_BASE_URL`; `REPLOG_WEBAUTHN_ORIGINS` matches the full
-      scheme+host. Passkey registration succeeds end-to-end.
+- [ ] If using PocketID: `REPLOG_OIDC_ISSUER` / `REPLOG_OIDC_CLIENT_ID`
+      are set, `REPLOG_OIDC_CLIENT_SECRET` lives only in the
+      `EnvironmentFile` (never the Nix store), and the redirect URI
+      (`REPLOG_BASE_URL` + `/auth/oidc/callback`, or an explicit
+      `REPLOG_OIDC_REDIRECT_URL`) is registered in the PocketID client.
+      OIDC login succeeds end-to-end.
 - [ ] `REPLOG_SECRET_KEY` strategy is decided and documented (auto-gen
       vs env-supplied), and any env-supplied value is in a backed-up
       vault.

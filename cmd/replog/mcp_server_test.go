@@ -20,6 +20,7 @@ func TestMCPTools_ExhaustiveAndStable(t *testing.T) {
 	want := []string{
 		// reads
 		"dashboard",
+		"list_exercises",
 		"get_athlete",
 		"list_workouts",
 		"get_workout",

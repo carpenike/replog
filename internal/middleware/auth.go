@@ -72,13 +72,13 @@ func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Han
 		}
 		ctx = context.WithValue(ctx, PrefsContextKey, prefs)
 
-		// Load unread notification count for the sidebar badge.
-		unreadCount, err := models.GetUnreadCount(db, user.ID)
-		if err != nil {
-			log.Printf("middleware: failed to load unread count for user %d: %v", userID, err)
-			// Non-fatal — default to 0.
-		}
-		ctx = context.WithValue(ctx, UnreadCountContextKey, unreadCount)
+		// NOTE: the unread notification count is deliberately NOT loaded here.
+		// It was a third query on every authenticated request (including the
+		// SPA's ~2s notification polling) but nothing read it back out of the
+		// context — the SPA fetches it from the dedicated GET
+		// /api/notifications/count endpoint instead. Dropping it removes a
+		// per-request DB round-trip that, under SetMaxOpenConns(1), serialized
+		// behind every other query.
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}))

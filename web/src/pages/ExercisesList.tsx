@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { usePageTitle } from '@/lib/usePageTitle'
 import type { User } from '@/api/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export function ExercisesList({ user }: { user: User }) {
+  usePageTitle('Exercises')
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
 

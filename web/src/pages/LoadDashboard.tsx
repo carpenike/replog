@@ -2,7 +2,8 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import type { PitchSmartStatus } from '@/api/types'
-import { Spinner } from '@/components/ui'
+import { Spinner, QueryError } from '@/components/ui'
+import { usePageTitle } from '@/lib/usePageTitle'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +16,7 @@ const DISCIPLINE_LABELS: Record<string, string> = {
 }
 
 export function LoadDashboard() {
+  usePageTitle('Training Load')
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
 
@@ -24,7 +26,7 @@ export function LoadDashboard() {
     enabled: !isNaN(athleteId),
   })
 
-  const { data: load, isLoading, error } = useQuery({
+  const { data: load, isLoading, error, refetch } = useQuery({
     queryKey: ['load-summary', athleteId],
     queryFn: () => api.getLoadSummary(athleteId),
     enabled: !isNaN(athleteId),
@@ -47,7 +49,7 @@ export function LoadDashboard() {
   })
 
   if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load training load.</p>
+  if (error) return <QueryError error={error} onRetry={refetch} resource="training load" />
 
   return (
     <div>

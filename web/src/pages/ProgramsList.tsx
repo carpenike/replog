@@ -2,12 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
+import { usePageTitle } from '@/lib/usePageTitle'
 import type { User } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export function ProgramsList({ user }: { user: User }) {
+  usePageTitle('Programs')
   const navigate = useNavigate()
 
   const { data: programs, isLoading, error } = useQuery({
