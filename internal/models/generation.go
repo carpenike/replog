@@ -63,6 +63,12 @@ type Generation struct {
 	ContextJSON sql.NullString
 	Prompt      sql.NullString
 
+	// Post-generation lint results and prompt-contract version (migration
+	// 0014). Warnings is a JSON array of strings surfaced to the coach in the
+	// preview; PromptVersion is llm.PromptVersion at generation time.
+	Warnings      sql.NullString
+	PromptVersion sql.NullString
+
 	ExecutedAt  sql.NullTime
 	CreatedAt   time.Time
 	StartedAt   sql.NullTime
@@ -138,7 +144,7 @@ func MarkGenerationRunning(db *sql.DB, id int64) error {
 // parse. contextJSON / prompt may be empty/zero when called from a path
 // that doesn't have them (none today, but we'd rather have the per-arg
 // zero-value than a panic).
-func CompleteGeneration(db *sql.DB, id int64, catalogJSON, reasoning, model, stopReason string, tokensUsed, durationMS int, contextJSON, prompt string) error {
+func CompleteGeneration(db *sql.DB, id int64, catalogJSON, reasoning, model, stopReason string, tokensUsed, durationMS int, contextJSON, prompt, warnings, promptVersion string) error {
 	var ctxVal sql.NullString
 	if contextJSON != "" {
 		ctxVal = sql.NullString{String: contextJSON, Valid: true}
@@ -147,20 +153,30 @@ func CompleteGeneration(db *sql.DB, id int64, catalogJSON, reasoning, model, sto
 	if prompt != "" {
 		promptVal = sql.NullString{String: prompt, Valid: true}
 	}
+	var warnVal sql.NullString
+	if warnings != "" {
+		warnVal = sql.NullString{String: warnings, Valid: true}
+	}
+	var versionVal sql.NullString
+	if promptVersion != "" {
+		versionVal = sql.NullString{String: promptVersion, Valid: true}
+	}
 	res, err := db.Exec(
 		`UPDATE generations
-		    SET status        = ?,
-		        catalog_json  = ?,
-		        reasoning     = ?,
-		        model         = ?,
-		        stop_reason   = ?,
-		        tokens_used   = ?,
-		        duration_ms   = ?,
-		        context_json  = ?,
-		        prompt        = ?,
-		        completed_at  = CURRENT_TIMESTAMP
+		    SET status         = ?,
+		        catalog_json   = ?,
+		        reasoning      = ?,
+		        model          = ?,
+		        stop_reason    = ?,
+		        tokens_used    = ?,
+		        duration_ms    = ?,
+		        context_json   = ?,
+		        prompt         = ?,
+		        warnings       = ?,
+		        prompt_version = ?,
+		        completed_at   = CURRENT_TIMESTAMP
 		  WHERE id = ? AND status = ?`,
-		GenerationSucceeded, catalogJSON, reasoning, model, stopReason, tokensUsed, durationMS, ctxVal, promptVal,
+		GenerationSucceeded, catalogJSON, reasoning, model, stopReason, tokensUsed, durationMS, ctxVal, promptVal, warnVal, versionVal,
 		id, GenerationRunning,
 	)
 	if err != nil {
@@ -257,7 +273,7 @@ func GetGeneration(db *sql.DB, id int64) (*Generation, error) {
 	row := db.QueryRow(
 		`SELECT id, athlete_id, requested_by, status, kind, request_json,
 		        catalog_json, reasoning, model, tokens_used, duration_ms,
-		        stop_reason, error, context_json, prompt,
+		        stop_reason, error, context_json, prompt, warnings, prompt_version,
 		        executed_at, created_at, started_at, completed_at
 		   FROM generations WHERE id = ?`,
 		id,
@@ -266,7 +282,7 @@ func GetGeneration(db *sql.DB, id int64) (*Generation, error) {
 	err := row.Scan(
 		&g.ID, &g.AthleteID, &g.RequestedBy, &g.Status, &g.Kind, &g.RequestJSON,
 		&g.CatalogJSON, &g.Reasoning, &g.Model, &g.TokensUsed, &g.DurationMS,
-		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt,
+		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt, &g.Warnings, &g.PromptVersion,
 		&g.ExecutedAt, &g.CreatedAt, &g.StartedAt, &g.CompletedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -287,7 +303,7 @@ func LatestGenerationForAthlete(db *sql.DB, athleteID int64, kind string) (*Gene
 	row := db.QueryRow(
 		`SELECT id, athlete_id, requested_by, status, kind, request_json,
 		        catalog_json, reasoning, model, tokens_used, duration_ms,
-		        stop_reason, error, context_json, prompt,
+		        stop_reason, error, context_json, prompt, warnings, prompt_version,
 		        executed_at, created_at, started_at, completed_at
 		   FROM generations
 		  WHERE athlete_id = ? AND kind = ?
@@ -298,7 +314,7 @@ func LatestGenerationForAthlete(db *sql.DB, athleteID int64, kind string) (*Gene
 	err := row.Scan(
 		&g.ID, &g.AthleteID, &g.RequestedBy, &g.Status, &g.Kind, &g.RequestJSON,
 		&g.CatalogJSON, &g.Reasoning, &g.Model, &g.TokensUsed, &g.DurationMS,
-		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt,
+		&g.StopReason, &g.Error, &g.ContextJSON, &g.Prompt, &g.Warnings, &g.PromptVersion,
 		&g.ExecutedAt, &g.CreatedAt, &g.StartedAt, &g.CompletedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {

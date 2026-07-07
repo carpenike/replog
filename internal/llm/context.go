@@ -19,17 +19,18 @@ import (
 // Every field is specific to one athlete — the same function called
 // for two different athletes produces completely different contexts.
 type AthleteContext struct {
-	Athlete           AthleteProfile     `json:"athlete"`
-	Equipment         []string           `json:"available_equipment"`
-	CurrentPrograms   []ProgramSummary   `json:"current_programs"`
-	ProgramHistory    []ProgramHistoryEntry `json:"program_history"`
-	Performance       PerformanceData    `json:"performance"`
-	CoachNotes        []NoteEntry        `json:"coach_notes"`
-	Goals             GoalContext        `json:"goals"`
-	ExerciseCatalog   []ExerciseEntry    `json:"exercise_catalog"`
-	RecentWorkouts    []WorkoutSummary   `json:"recent_workouts"`
+	Athlete           AthleteProfile            `json:"athlete"`
+	Equipment         []string                  `json:"available_equipment"`
+	CurrentPrograms   []ProgramSummary          `json:"current_programs"`
+	ProgramHistory    []ProgramHistoryEntry     `json:"program_history"`
+	Performance       PerformanceData           `json:"performance"`
+	CoachNotes        []NoteEntry               `json:"coach_notes"`
+	Goals             GoalContext               `json:"goals"`
+	ExerciseCatalog   []ExerciseEntry           `json:"exercise_catalog"`
+	RecentWorkouts    []WorkoutSummary          `json:"recent_workouts"`
+	RecentActivity    RecentActivity            `json:"recent_activity"`
 	ReferencePrograms []ReferenceProgramSummary `json:"reference_programs"`
-	PriorTemplates    []TemplateSummary  `json:"prior_templates"`
+	PriorTemplates    []TemplateSummary         `json:"prior_templates"`
 
 	// Methodology is a lean projection of the selected program-design
 	// methodology (ADR 016 Phase 2). When non-nil, the LLM was given a
@@ -57,16 +58,16 @@ type AthleteContext struct {
 // the marshalled AthleteContext (ADR 016 Phase 2 — keep audit rows small).
 // The full `definition` lives in the prompt column on the generation row.
 type MethodologyProjection struct {
-	ID                  int64   `json:"id"`
-	Key                 string  `json:"key"`
-	Name                string  `json:"name"`
-	Audience            string  `json:"audience,omitempty"`
-	ApplicableTiers     string  `json:"applicable_tiers,omitempty"`
-	Philosophy          string  `json:"philosophy,omitempty"`
-	AllowedPatterns     []string `json:"allowed_patterns,omitempty"`
-	AllowedEquipmentN   int     `json:"allowed_equipment_count"`
-	AllowedExercisesN   int     `json:"allowed_exercises_count"`
-	ReferenceProgramsN  int     `json:"reference_programs_count"`
+	ID                 int64    `json:"id"`
+	Key                string   `json:"key"`
+	Name               string   `json:"name"`
+	Audience           string   `json:"audience,omitempty"`
+	ApplicableTiers    string   `json:"applicable_tiers,omitempty"`
+	Philosophy         string   `json:"philosophy,omitempty"`
+	AllowedPatterns    []string `json:"allowed_patterns,omitempty"`
+	AllowedEquipmentN  int      `json:"allowed_equipment_count"`
+	AllowedExercisesN  int      `json:"allowed_exercises_count"`
+	ReferenceProgramsN int      `json:"reference_programs_count"`
 }
 
 // AthleteProfile contains the athlete's identity and summary stats.
@@ -81,6 +82,39 @@ type AthleteProfile struct {
 	TrainingMonths int      `json:"training_months"`
 	TotalWorkouts  int      `json:"total_workouts"`
 	LatestBW       *float64 `json:"latest_body_weight,omitempty"`
+	// WeightUnit is the unit ("lbs" or "kg") that every weight in this context
+	// — and every weight the LLM emits — is expressed in. Sourced from the app
+	// default weight-unit setting so the model never has to guess.
+	WeightUnit string `json:"weight_unit"`
+}
+
+// RecentActivity is a compact rollup of the ADR-018 cross-discipline signals
+// (season phase, recovery, throwing/conditioning volume, training-load
+// advisories) that bear on programming decisions — especially youth safety.
+type RecentActivity struct {
+	SeasonPhase     *string           `json:"season_phase,omitempty"`
+	LatestRecovery  *RecoverySnapshot `json:"latest_recovery,omitempty"`
+	Throwing14d     *DisciplineVolume `json:"throwing_14d,omitempty"`
+	Conditioning14d *DisciplineVolume `json:"conditioning_14d,omitempty"`
+	// LoadAdvisory carries short human-readable flags derived from the ACWR
+	// load summary (e.g. "throwing ACWR 1.6 — elevated"). Empty when nothing
+	// is noteworthy.
+	LoadAdvisory []string `json:"load_advisory,omitempty"`
+}
+
+// RecoverySnapshot is the most recent recovery check-in in compact form.
+type RecoverySnapshot struct {
+	Date       string   `json:"date"`
+	SleepHours *float64 `json:"sleep_hours,omitempty"`
+	Soreness   *int64   `json:"soreness,omitempty"` // 1-10
+	Energy     *int64   `json:"energy,omitempty"`   // 1-10
+	Notes      string   `json:"notes,omitempty"`
+}
+
+// DisciplineVolume summarizes recent session count/volume for one discipline.
+type DisciplineVolume struct {
+	Sessions int    `json:"sessions"`
+	Detail   string `json:"detail,omitempty"` // e.g. "142 throws", "3200s"
 }
 
 // ProgramSummary describes one of the athlete's currently active programs.
@@ -111,19 +145,19 @@ type ProgramHistoryEntry struct {
 
 // PerformanceData holds training maxes and body weight history.
 type PerformanceData struct {
-	TrainingMaxes []TMEntry              `json:"training_maxes"`
-	BodyWeights   []BodyWeightEntry      `json:"body_weights"`
-	Trends        []ExercisePerformance  `json:"trends,omitempty"`
+	TrainingMaxes []TMEntry             `json:"training_maxes"`
+	BodyWeights   []BodyWeightEntry     `json:"body_weights"`
+	Trends        []ExercisePerformance `json:"trends,omitempty"`
 }
 
 // ExercisePerformance holds computed performance trends for a single exercise
 // from the athlete's recent workout history.
 type ExercisePerformance struct {
-	Exercise   string   `json:"exercise"`
-	AvgRPE     *float64 `json:"avg_rpe,omitempty"`
-	MaxWeight  *float64 `json:"max_weight,omitempty"`
-	TotalSets  int      `json:"total_sets"`
-	TotalReps  int      `json:"total_reps"`
+	Exercise  string   `json:"exercise"`
+	AvgRPE    *float64 `json:"avg_rpe,omitempty"`
+	MaxWeight *float64 `json:"max_weight,omitempty"`
+	TotalSets int      `json:"total_sets"`
+	TotalReps int      `json:"total_reps"`
 }
 
 // TMEntry is a single training max snapshot.
@@ -192,20 +226,20 @@ type TemplateSummary struct {
 // ReferenceProgramSummary is a global seed/reference program with full prescribed sets.
 // Included so the LLM can see concrete structural examples for the athlete's audience.
 type ReferenceProgramSummary struct {
-	Name           string                   `json:"name"`
-	Description    string                   `json:"description,omitempty"`
-	NumWeeks       int                      `json:"num_weeks"`
-	NumDays        int                      `json:"num_days"`
-	IsLoop         bool                     `json:"is_loop"`
-	Audience       string                   `json:"audience,omitempty"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	NumWeeks    int    `json:"num_weeks"`
+	NumDays     int    `json:"num_days"`
+	IsLoop      bool   `json:"is_loop"`
+	Audience    string `json:"audience,omitempty"`
 	// Phase labels a youth reference program with the tier it represents
 	// ("foundational", "intermediate", "sport_performance") so the LLM can
 	// tell which of the youth references matches the athlete's current tier.
 	// Empty for adult programs and any youth program whose name we don't
 	// recognise (defensive — adding a new seeded youth program is not a
 	// silent labeling failure, it's an unlabeled program).
-	Phase          string                   `json:"phase,omitempty"`
-	PrescribedSets []PrescribedSetSummary   `json:"prescribed_sets"`
+	Phase          string                 `json:"phase,omitempty"`
+	PrescribedSets []PrescribedSetSummary `json:"prescribed_sets"`
 }
 
 // PrescribedSetSummary is a single prescribed set within a reference program.
@@ -353,6 +387,12 @@ func BuildAthleteContext(db *sql.DB, athleteID int64, now time.Time, opts BuildC
 	// Exercise performance trends (computed from recent workouts).
 	ctx.Performance.Trends = buildPerformanceTrends(workouts)
 
+	// Cross-discipline recent-activity rollup (ADR 018): season phase,
+	// recovery, throwing/conditioning volume, and load advisories. Best-effort
+	// — a query failure here degrades the context but must not fail generation,
+	// since none of it is load-bearing for the JSON schema.
+	ctx.RecentActivity = buildRecentActivity(db, athleteID, now)
+
 	// Prior program templates (athlete-scoped only — previously generated for this athlete).
 	templates, err := buildPriorTemplates(db, athleteID)
 	if err != nil {
@@ -477,7 +517,8 @@ func buildProfile(db *sql.DB, athleteID int64, now time.Time) (*AthleteProfile, 
 	}
 
 	profile := &AthleteProfile{
-		Name: athlete.Name,
+		Name:       athlete.Name,
+		WeightUnit: models.GetDefaultWeightUnit(db),
 	}
 	if athlete.Tier.Valid {
 		profile.Tier = &athlete.Tier.String
@@ -744,11 +785,11 @@ func buildExerciseCatalog(db *sql.DB, athleteID int64, methodology *models.Metho
 
 	// Methodology scoping prep — build the lookup sets once.
 	var (
-		scopeActive       bool
-		allowedPatterns   map[string]struct{}
-		allowedExercises  map[int64]struct{}
-		allowedEquipment  map[int64]struct{}
-		patternsByExercise map[int64][]string
+		scopeActive             bool
+		allowedPatterns         map[string]struct{}
+		allowedExercises        map[int64]struct{}
+		allowedEquipment        map[int64]struct{}
+		patternsByExercise      map[int64][]string
 		requiredEquipByExercise map[int64][]int64
 	)
 	if methodology != nil {
@@ -940,6 +981,100 @@ func buildRecentWorkouts(db *sql.DB, athleteID int64) ([]WorkoutSummary, error) 
 		summaries = append(summaries, ws)
 	}
 	return summaries, nil
+}
+
+// buildRecentActivity assembles the ADR-018 cross-discipline rollup. It is
+// best-effort: any sub-query failure is swallowed (the field is simply omitted)
+// because none of this data is required for a valid CatalogJSON — it only
+// improves programming judgment and youth safety.
+func buildRecentActivity(db *sql.DB, athleteID int64, now time.Time) RecentActivity {
+	var ra RecentActivity
+	cutoff := now.AddDate(0, 0, -14).Format("2006-01-02")
+	today := now.Format("2006-01-02")
+
+	// Current season phase: the phase spanning today.
+	if phases, err := models.ListSeasonPhases(db, athleteID); err == nil {
+		for _, sp := range phases {
+			endsOK := !sp.EndDate.Valid || sp.EndDate.String >= today
+			if sp.StartDate <= today && endsOK {
+				label := sp.Phase
+				if sp.Sport.Valid && sp.Sport.String != "" {
+					label = sp.Sport.String + " " + sp.Phase
+				}
+				ra.SeasonPhase = &label
+				break
+			}
+		}
+	}
+
+	// Most recent recovery check-in.
+	if checkins, err := models.ListRecoveryCheckins(db, athleteID, 1); err == nil && len(checkins) > 0 {
+		c := checkins[0]
+		snap := &RecoverySnapshot{Date: normalizeDate(c.Date)}
+		if c.SleepHours.Valid {
+			snap.SleepHours = &c.SleepHours.Float64
+		}
+		if c.Soreness.Valid {
+			snap.Soreness = &c.Soreness.Int64
+		}
+		if c.Energy.Valid {
+			snap.Energy = &c.Energy.Int64
+		}
+		if c.Notes.Valid {
+			snap.Notes = c.Notes.String
+		}
+		ra.LatestRecovery = snap
+	}
+
+	// Throwing volume over the last 14 days.
+	if sessions, err := models.ListThrowingSessions(db, athleteID, 100); err == nil {
+		count, throws := 0, int64(0)
+		for _, s := range sessions {
+			if s.Date >= cutoff {
+				count++
+				if s.ThrowCount.Valid {
+					throws += s.ThrowCount.Int64
+				}
+			}
+		}
+		if count > 0 {
+			ra.Throwing14d = &DisciplineVolume{Sessions: count, Detail: fmt.Sprintf("%d throws", throws)}
+		}
+	}
+
+	// Conditioning volume over the last 14 days.
+	if sessions, err := models.ListConditioningSessions(db, athleteID, 100); err == nil {
+		count, secs := 0, int64(0)
+		for _, s := range sessions {
+			if s.Date >= cutoff {
+				count++
+				if s.DurationSeconds.Valid {
+					secs += s.DurationSeconds.Int64
+				}
+			}
+		}
+		if count > 0 {
+			ra.Conditioning14d = &DisciplineVolume{Sessions: count, Detail: fmt.Sprintf("%ds", secs)}
+		}
+	}
+
+	// Load advisories: surface any discipline whose ACWR is elevated (>1.3) or
+	// very high (>1.5), the conventional injury-risk thresholds.
+	if ls, err := models.GetLoadSummary(db, athleteID); err == nil && ls != nil {
+		for _, d := range ls.Disciplines {
+			if d.ACWR == nil {
+				continue
+			}
+			switch {
+			case *d.ACWR > 1.5:
+				ra.LoadAdvisory = append(ra.LoadAdvisory, fmt.Sprintf("%s ACWR %.2f — high, reduce load", d.Discipline, *d.ACWR))
+			case *d.ACWR > 1.3:
+				ra.LoadAdvisory = append(ra.LoadAdvisory, fmt.Sprintf("%s ACWR %.2f — elevated", d.Discipline, *d.ACWR))
+			}
+		}
+	}
+
+	return ra
 }
 
 // buildProgramHistory returns all program assignments for the athlete,

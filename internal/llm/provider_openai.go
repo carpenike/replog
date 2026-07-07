@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -31,7 +31,7 @@ func NewOpenAIProvider(apiKey, model, baseURL string) *OpenAIProvider {
 		apiKey:  apiKey,
 		model:   model,
 		baseURL: baseURL,
-		client:  &http.Client{
+		client: &http.Client{
 			Timeout: 5 * time.Minute,
 		},
 	}
@@ -44,6 +44,23 @@ func (p *OpenAIProvider) Ping(ctx context.Context) error {
 	return err
 }
 
+// isOfficialOpenAI reports whether this provider targets api.openai.com (vs an
+// OpenAI-compatible server like a self-hosted gateway). Official OpenAI has
+// deprecated max_tokens in favor of max_completion_tokens and rejects a
+// non-default temperature on reasoning models; compat servers often still want
+// the legacy field, so we only switch shape for the official endpoint.
+func (p *OpenAIProvider) isOfficialOpenAI() bool {
+	return strings.Contains(p.baseURL, "api.openai.com")
+}
+
+// isReasoningModel reports whether the model is an OpenAI reasoning-class model
+// (o-series, gpt-5 family), which reject a non-default temperature parameter.
+func isReasoningModel(model string) bool {
+	m := strings.ToLower(model)
+	return strings.HasPrefix(m, "o1") || strings.HasPrefix(m, "o3") ||
+		strings.HasPrefix(m, "o4") || strings.HasPrefix(m, "gpt-5")
+}
+
 func (p *OpenAIProvider) Generate(ctx context.Context, systemPrompt, userPrompt string, opts Options) (*Response, error) {
 	body := map[string]any{
 		"model": p.model,
@@ -51,10 +68,19 @@ func (p *OpenAIProvider) Generate(ctx context.Context, systemPrompt, userPrompt 
 			{"role": "system", "content": systemPrompt},
 			{"role": "user", "content": userPrompt},
 		},
-		"temperature": opts.Temperature,
+	}
+	// Reasoning models reject an explicit temperature; only send it otherwise.
+	if !isReasoningModel(p.model) {
+		body["temperature"] = opts.Temperature
 	}
 	if opts.MaxTokens > 0 {
-		body["max_tokens"] = opts.MaxTokens
+		// Official OpenAI: max_completion_tokens (max_tokens is deprecated and
+		// rejected by reasoning models). Compat servers: legacy max_tokens.
+		if p.isOfficialOpenAI() {
+			body["max_completion_tokens"] = opts.MaxTokens
+		} else {
+			body["max_tokens"] = opts.MaxTokens
+		}
 	}
 
 	jsonBody, err := json.Marshal(body)
@@ -62,32 +88,27 @@ func (p *OpenAIProvider) Generate(ctx context.Context, systemPrompt, userPrompt 
 		return nil, fmt.Errorf("llm/openai: marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", p.baseURL+"/chat/completions", bytes.NewReader(jsonBody))
-	if err != nil {
-		return nil, fmt.Errorf("llm/openai: create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if p.apiKey != "" {
-		req.Header.Set("Authorization", "Bearer "+p.apiKey)
-	}
-
 	start := time.Now()
-	resp, err := p.client.Do(req)
+	statusCode, respBody, err := doWithRetry(ctx, p.client, func() (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, "POST", p.baseURL+"/chat/completions", bytes.NewReader(jsonBody))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		if p.apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+p.apiKey)
+		}
+		return req, nil
+	}, 3)
 	if err != nil {
 		return nil, fmt.Errorf("llm/openai: request failed: %w", err)
 	}
-	defer resp.Body.Close()
 	duration := time.Since(start)
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("llm/openai: read response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
+	if statusCode != http.StatusOK {
 		apiErr := &APIError{
 			Provider:   "OpenAI",
-			StatusCode: resp.StatusCode,
+			StatusCode: statusCode,
 		}
 		var errResp struct {
 			Error struct {

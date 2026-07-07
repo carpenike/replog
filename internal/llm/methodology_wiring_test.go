@@ -21,11 +21,11 @@ func TestExerciseInMethodologyScope(t *testing.T) {
 	allowedEquipment := map[int64]struct{}{1: {}, 2: {}}
 
 	cases := []struct {
-		name        string
-		exerciseID  int64
-		patterns    []string
-		required    []int64
-		want        bool
+		name       string
+		exerciseID int64
+		patterns   []string
+		required   []int64
+		want       bool
 	}{
 		// Pattern admission
 		{"in by single allowed pattern", 1, []string{"push"}, nil, true},

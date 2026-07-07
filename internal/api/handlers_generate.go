@@ -34,13 +34,13 @@ const generationTimeout = 5 * time.Minute
 // reload — if status is 'running' it polls; if 'succeeded' it jumps straight
 // to the preview step.
 type GenerateFormResponse struct {
-	Configured             bool                  `json:"configured"`
-	AthleteContext         any                   `json:"athlete_context,omitempty"`
-	ReferencePrograms      []ProgramTemplate     `json:"reference_programs,omitempty"`
-	DefaultDays            int                   `json:"default_days"`
-	DefaultWeeks           int                   `json:"default_weeks"`
-	LatestGeneration       *GenerationResponse   `json:"latest_generation,omitempty"`
-	AvailableMethodologies []MethodologyOption   `json:"available_methodologies,omitempty"`
+	Configured             bool                `json:"configured"`
+	AthleteContext         any                 `json:"athlete_context,omitempty"`
+	ReferencePrograms      []ProgramTemplate   `json:"reference_programs,omitempty"`
+	DefaultDays            int                 `json:"default_days"`
+	DefaultWeeks           int                 `json:"default_weeks"`
+	LatestGeneration       *GenerationResponse `json:"latest_generation,omitempty"`
+	AvailableMethodologies []MethodologyOption `json:"available_methodologies,omitempty"`
 	// DefaultMethodologyID is the SPA's pre-selected methodology for this
 	// athlete. Youth athletes get their tier-mapped methodology
 	// (foundational → yessis-1x20, intermediate → yessis-1x15,
@@ -110,6 +110,11 @@ type GenerationResponse struct {
 	Exercises  int    `json:"exercises,omitempty"`
 	Error      string `json:"error,omitempty"`
 	Executed   bool   `json:"executed,omitempty"`
+
+	// Warnings are advisories from the deterministic post-generation lint
+	// (e.g. an exercise name the LLM invented). The coach sees these on the
+	// preview step; they do not block approval.
+	Warnings []string `json:"warnings,omitempty"`
 
 	// Preview is the set-level projection of catalog_json — present only
 	// on succeeded generations. Lets the SPA render the actual prescribed
@@ -290,9 +295,10 @@ func (h *Handlers) GenerateFormData(w http.ResponseWriter, r *http.Request) {
 // covers the unset path, see Phase 2 / ADR 016 D1).
 //
 // Tier → default methodology key mapping (youth):
-//   foundational      → yessis-1x20
-//   intermediate      → yessis-1x15
-//   sport_performance → yessis-sport-performance
+//
+//	foundational      → yessis-1x20
+//	intermediate      → yessis-1x15
+//	sport_performance → yessis-sport-performance
 func (h *Handlers) buildMethodologyOptions(athleteID int64) ([]MethodologyOption, *int64) {
 	athlete, err := models.GetAthleteByID(h.DB, athleteID)
 	if err != nil {
@@ -583,7 +589,8 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 	if err := models.CompleteGeneration(h.DB, genID,
 		string(result.CatalogJSON), result.Reasoning, result.Model, result.StopReason,
 		result.TokensUsed, durationMS,
-		string(result.ContextJSON), result.Prompt); err != nil {
+		string(result.ContextJSON), result.Prompt,
+		llm.MarshalWarnings(result.Warnings), result.PromptVersion); err != nil {
 		if !errors.Is(err, models.ErrNotFound) {
 			log.Printf("api: complete generation %d: %v", genID, err)
 		}
@@ -896,6 +903,12 @@ func generationToResponse(g *models.Generation) *GenerationResponse {
 	}
 	if g.Error.Valid {
 		resp.Error = g.Error.String
+	}
+	if g.Warnings.Valid && g.Warnings.String != "" {
+		var warnings []string
+		if err := json.Unmarshal([]byte(g.Warnings.String), &warnings); err == nil {
+			resp.Warnings = warnings
+		}
 	}
 
 	// Best-effort preview projection — only on success. Counts mirror the
