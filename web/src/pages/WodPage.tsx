@@ -9,60 +9,10 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
+import type { Generation } from '@/api/generation'
 
-// Backend GenerationResponse / preview shapes (see
-// internal/api/handlers_generate.go). Kept inline so this page runs without
-// waiting on `just openapi` to regenerate the typed client — same pattern
-// as GeneratePage.
-interface PrescribedSetPreview {
-  exercise: string
-  set_number: number
-  reps?: number
-  rep_type?: string
-  percentage?: number
-  absolute_weight?: number
-  notes?: string
-}
-
-interface DayPreview {
-  day: number
-  sets: PrescribedSetPreview[]
-}
-
-interface WeekPreview {
-  week: number
-  days: DayPreview[]
-}
-
-interface ProgramPreview {
-  name: string
-  description?: string
-  num_weeks: number
-  num_days: number
-  is_loop: boolean
-  weeks: WeekPreview[]
-}
-
-interface GenerationPreview {
-  programs: ProgramPreview[]
-}
-
-interface Generation {
-  id: number
-  athlete_id: number
-  status: 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled'
-  kind?: string
-  reasoning?: string
-  model?: string
-  tokens_used?: number
-  duration?: string
-  truncated?: boolean
-  error?: string
-  executed?: boolean
-  preview?: GenerationPreview
-  created_at: string
-}
-
+// WOD-specific result shape; shared generation + preview shapes live in
+// @/api/generation.
 interface WODLogResult {
   workout_id: number
   sets_created: number
@@ -132,6 +82,7 @@ export function WodPage() {
       }
       return api.startWOD(athleteId, body) as Promise<{ generation_id: number; status: Generation['status'] }>
     },
+    meta: { skipGlobalError: true },
     onSuccess: (data) => {
       setGenerationId(data.generation_id)
       setGeneration({ id: data.generation_id, athlete_id: athleteId, status: data.status, created_at: new Date().toISOString() })
@@ -161,6 +112,7 @@ export function WodPage() {
       setError('')
       return api.logWOD(athleteId, generationId, { date: logDate, replace }) as Promise<WODLogResult>
     },
+    meta: { skipGlobalError: true },
     onSuccess: (data) => {
       setLogResult(data)
       setCollision(false)
@@ -315,7 +267,7 @@ export function WodPage() {
             <CardContent className="space-y-3">
               <div>
                 <Label htmlFor="wod-date">Log date</Label>
-                <Input id="wod-date" type="date" value={logDate} onChange={e => setLogDate(e.target.value)} className="w-48" />
+                <Input id="wod-date" type="date" enterKeyHint="done" value={logDate} onChange={e => setLogDate(e.target.value)} className="h-11 w-48 mt-1" />
               </div>
 
               {collision ? (
@@ -332,10 +284,10 @@ export function WodPage() {
                 </Alert>
               ) : (
                 <div className="flex gap-3">
-                  <Button onClick={() => logMutation.mutate(false)} disabled={logMutation.isPending}>
+                  <Button size="touch" onClick={() => logMutation.mutate(false)} disabled={logMutation.isPending}>
                     {logMutation.isPending ? 'Logging...' : 'Log it'}
                   </Button>
-                  <Button variant="ghost" onClick={discard} disabled={logMutation.isPending}>
+                  <Button variant="ghost" size="touch" onClick={discard} disabled={logMutation.isPending}>
                     Discard
                   </Button>
                 </div>

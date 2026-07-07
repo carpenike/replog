@@ -2,19 +2,24 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Spinner, EmptyState, QueryError } from '@/components/ui'
+import { usePageTitle } from '@/lib/usePageTitle'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Sparkline } from '@/components/ui/sparkline'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate } from '@/lib/utils'
-function formatWeight(w: number): string {
-  return w === Math.floor(w) ? w.toString() : w.toFixed(1)
-}
+import { formatDate, formatWeight } from '@/lib/utils'
 export function TrainingMaxesList() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
+  usePageTitle('Training Maxes')
+  const { data: athlete } = useQuery({
+    queryKey: ['athlete', athleteId],
+    queryFn: () => api.getAthlete(athleteId),
+    enabled: !isNaN(athleteId),
+  })
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [exerciseId, setExerciseId] = useState('')
@@ -27,7 +32,7 @@ export function TrainingMaxesList() {
     queryFn: () => api.getTrainingMaxHistory(athleteId, selectedExercise!.id),
     enabled: !!selectedExercise,
   })
-  const { data: maxes, isLoading, error } = useQuery({
+  const { data: maxes, isLoading, error, refetch } = useQuery({
     queryKey: ['training-maxes', athleteId],
     queryFn: () => api.listTrainingMaxes(athleteId),
     enabled: !isNaN(athleteId),
@@ -52,11 +57,11 @@ export function TrainingMaxesList() {
     },
   })
   if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load training maxes.</p>
+  if (error) return <QueryError error={error} onRetry={refetch} resource="training maxes" />
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">Athlete</Link>
+        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
         {' / Training Maxes'}
       </p>
       <div className="flex items-center justify-between mb-6">
@@ -91,7 +96,7 @@ export function TrainingMaxesList() {
             </div>
             <div>
               <Label htmlFor="tm-weight" >Weight</Label>
-              <Input id="tm-weight" type="number" step="0.5" value={weight} onChange={e => setWeight(e.target.value)} required min={1} />
+              <Input id="tm-weight" type="number" inputMode="decimal" step="0.5" value={weight} onChange={e => setWeight(e.target.value)} required min={1} />
             </div>
             <div>
               <Label htmlFor="tm-date" >Effective Date</Label>
@@ -109,14 +114,21 @@ export function TrainingMaxesList() {
         </form>
       )}
       {maxes && maxes.length === 0 ? (
-        <p className="text-muted-foreground">No training maxes recorded.</p>
+        <EmptyState icon="💪" title="No training maxes recorded" description="Set a TM above to drive percentage-based prescriptions." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {maxes?.map(tm => (
+          {maxes?.map(tm => {
+            const selected = selectedExercise?.id === tm.exercise_id
+            const toggle = () => setSelectedExercise(selected ? null : { id: tm.exercise_id, name: tm.exercise_name ?? '' })
+            return (
             <div key={tm.id}
-              onClick={() => setSelectedExercise(selectedExercise?.id === tm.exercise_id ? null : { id: tm.exercise_id, name: tm.exercise_name ?? '' })}
-              className={`rounded-lg border bg-card p-4 cursor-pointer transition-colors ${
-                selectedExercise?.id === tm.exercise_id ? 'border-primary' : 'border-border hover:border-primary/30'
+              role="button"
+              tabIndex={0}
+              aria-pressed={selected}
+              onClick={toggle}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
+              className={`rounded-lg border bg-card p-4 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+                selected ? 'border-primary' : 'border-border hover:border-primary/30'
               }`}>
               <p className="text-sm text-muted-foreground">{tm.exercise_name}</p>
               <p className="text-2xl font-bold mt-1">{formatWeight(tm.weight)}</p>
@@ -127,13 +139,24 @@ export function TrainingMaxesList() {
                 <p className="text-xs text-muted-foreground mt-1">{tm.notes}</p>
               )}
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
       {/* TM History */}
       {selectedExercise && history && (
         <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-3">{selectedExercise.name} — History</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">{selectedExercise.name} — History</h2>
+            {history.length >= 2 && (
+              <Sparkline
+                data={history.map(tm => tm.weight).slice().reverse()}
+                width={160}
+                height={40}
+                ariaLabel={`${selectedExercise.name} training max progression`}
+              />
+            )}
+          </div>
           <Table>
             <TableHeader>
               <TableRow>

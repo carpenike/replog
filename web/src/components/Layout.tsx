@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetTrigger, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -15,6 +16,31 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+
+interface NavItemData { href: string; label: string; icon: string }
+
+/** A single sidebar nav link — single source of truth for the link markup/classes. */
+function NavItem({
+  item, active, onNavigate, children,
+}: { item: NavItemData; active: boolean; onNavigate?: () => void; children?: ReactNode }) {
+  return (
+    <Link
+      to={item.href}
+      onClick={onNavigate}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors',
+        active
+          ? 'bg-primary/10 text-primary font-medium'
+          : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+      )}
+    >
+      <span aria-hidden="true">{item.icon}</span>
+      {item.label}
+      {children}
+    </Link>
+  )
+}
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: '🏠' },
@@ -82,43 +108,20 @@ function NavLinks({ user, pathname, unreadCount, onNavigate }: NavLinksProps) {
             { href: `/athletes/${user.athlete_id}/journal`, label: 'My Journal', icon: '📖' },
             { href: `/athletes/${user.athlete_id}`, label: 'My Profile', icon: '👤' },
           ].map(item => (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={onNavigate}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                isActive(user, pathname, item.href)
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </Link>
+            <NavItem key={item.href} item={item} active={isActive(user, pathname, item.href)} onNavigate={onNavigate} />
           ))}
           <Separator className="my-2" />
         </>
       )}
 
       {navItems.map(item => (
-        <Link
-          key={item.href}
-          to={item.href}
-          onClick={onNavigate}
-          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-            isActive(user, pathname, item.href)
-              ? 'bg-primary/10 text-primary font-medium'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-          }`}
-        >
-          <span>{item.icon}</span>
-          {item.label}
+        <NavItem key={item.href} item={item} active={isActive(user, pathname, item.href)} onNavigate={onNavigate}>
           {item.href === '/notifications' && unreadCount > 0 && (
             <Badge variant="default" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
               {unreadCount}
             </Badge>
           )}
-        </Link>
+        </NavItem>
       ))}
 
       {(user.is_coach || user.is_admin) && (
@@ -128,19 +131,7 @@ function NavLinks({ user, pathname, unreadCount, onNavigate }: NavLinksProps) {
             Coaching
           </p>
           {coachItems.map(item => (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={onNavigate}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                isActive(user, pathname, item.href)
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </Link>
+            <NavItem key={item.href} item={item} active={isActive(user, pathname, item.href)} onNavigate={onNavigate} />
           ))}
         </>
       )}
@@ -152,19 +143,7 @@ function NavLinks({ user, pathname, unreadCount, onNavigate }: NavLinksProps) {
             Admin
           </p>
           {adminItems.map(item => (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={onNavigate}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                isActive(user, pathname, item.href)
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </Link>
+            <NavItem key={item.href} item={item} active={isActive(user, pathname, item.href)} onNavigate={onNavigate} />
           ))}
         </>
       )}

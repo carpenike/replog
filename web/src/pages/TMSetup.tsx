@@ -24,7 +24,7 @@ export function TMSetup() {
     queryFn: () => api.listAthletePrograms(athleteId),
     enabled: !isNaN(athleteId),
   })
-  const activeProgram = (programs as { template_id: number; active: boolean; template_name: string }[] | undefined)?.find(p => p.active)
+  const activeProgram = programs?.find(p => p.active)
   const resolvedTemplateId = templateId ? parseInt(templateId) : activeProgram?.template_id
   const { data: missing, isLoading } = useQuery({
     queryKey: ['missing-tms', athleteId, resolvedTemplateId],

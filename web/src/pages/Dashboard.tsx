@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { EmptyState, QueryError } from '@/components/ui'
+import { usePageTitle } from '@/lib/usePageTitle'
+import { formatDate } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/api/types'
 
 interface DashboardProps {
@@ -16,12 +19,33 @@ function formatVolume(v: number): string {
 }
 
 export function Dashboard({ user }: DashboardProps) {
-  const { data, isLoading } = useQuery({
+  usePageTitle('Dashboard')
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.dashboard(),
   })
 
-  if (isLoading) return <Spinner />
+  if (isLoading) {
+    return (
+      <div>
+        <Skeleton className="h-8 w-56 mb-6" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+        </div>
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-6">Welcome, {user.name ?? user.username}</h1>
+        <QueryError error={error} onRetry={refetch} resource="dashboard" />
+      </div>
+    )
+  }
 
   // Athlete-only user: redirect-like quick actions for their own profile
   if (!user.is_coach && !user.is_admin && user.athlete_id) {
@@ -148,6 +172,15 @@ export function Dashboard({ user }: DashboardProps) {
       )}
 
       {/* Athletes grid */}
+      {data?.athletes && data.athletes.length === 0 && (
+        <EmptyState
+          icon="🧑‍🤝‍🧑"
+          title="No athletes yet"
+          description="Add your first athlete to get started."
+          action="Add athlete"
+          actionTo="/athletes/new"
+        />
+      )}
       {data?.athletes && data.athletes.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold mb-3">Athletes</h2>
@@ -169,13 +202,13 @@ export function Dashboard({ user }: DashboardProps) {
                   <div>
                     <p className="font-medium">{a.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {a.last_workout_date ? `Last: ${a.last_workout_date}` : 'No workouts'}
+                      {a.last_workout_date ? `Last: ${formatDate(a.last_workout_date)}` : 'No workouts'}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   {a.week_streak > 0 && (
-                    <span className="text-sm">🔥 {a.week_streak}w</span>
+                    <span className="text-sm"><span aria-hidden="true">🔥</span> {a.week_streak}w</span>
                   )}
                 </div>
               </Link>

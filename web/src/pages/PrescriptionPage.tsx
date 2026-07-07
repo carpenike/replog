@@ -2,19 +2,20 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { EmptyState, QueryError } from '@/components/ui'
+import { usePageTitle } from '@/lib/usePageTitle'
+import { formatWeight } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-
-function formatWeight(w: number): string {
-  return w === Math.floor(w) ? w.toString() : w.toFixed(1)
-}
 
 export function PrescriptionPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
+
+  usePageTitle("Today's Workout")
 
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
@@ -22,14 +23,16 @@ export function PrescriptionPage() {
     enabled: !isNaN(athleteId),
   })
 
-  const { data: prescription, isLoading, error } = useQuery({
+  const { data: prescription, isLoading, error, refetch } = useQuery({
     queryKey: ['prescription', athleteId],
     queryFn: () => api.getPrescription(athleteId),
     enabled: !isNaN(athleteId),
+    retry: false,
   })
 
   const startLogging = useMutation({
     mutationFn: () => api.createWorkout(athleteId, new Date().toISOString().slice(0, 10), '', true),
+    meta: { skipGlobalError: true },
     onSuccess: (workout) => {
       navigate(`/athletes/${athleteId}/workouts/${workout.id}`)
     },
@@ -44,23 +47,43 @@ export function PrescriptionPage() {
     },
   })
 
-  if (isLoading) return <Spinner />
+  const breadcrumb = (
+    <p className="text-sm text-muted-foreground mb-1">
+      <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
+      {' / Prescription'}
+    </p>
+  )
+
+  if (isLoading) {
+    return (
+      <div>
+        {breadcrumb}
+        <Skeleton className="h-8 w-48 mb-4" />
+        <Skeleton className="h-32 w-full mb-4" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    )
+  }
+
+  // A 404 means no program is assigned for today — an expected empty state.
+  // Any other error is a real failure and should be retryable, not disguised.
+  const noProgram = error instanceof ApiError && error.code === 404
 
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / Prescription'}
-      </p>
+      {breadcrumb}
 
-      {error || !prescription ? (
+      {error && !noProgram ? (
+        <div>
+          <h1 className="text-2xl font-bold mb-4">Today's Workout</h1>
+          <QueryError error={error} onRetry={refetch} resource="prescription" />
+        </div>
+      ) : noProgram || !prescription ? (
         <div>
           <h1 className="text-2xl font-bold mb-4">Today's Workout</h1>
           <Card className="text-center">
             <CardContent>
-            <span className="text-3xl block mb-2">📋</span>
-            <p className="text-muted-foreground">No program assigned for today.</p>
-            <p className="text-sm text-muted-foreground mt-1">Ask your coach to assign a program.</p>
+            <EmptyState icon="📋" title="No program assigned for today." description="Ask your coach to assign a program." />
             </CardContent>
           </Card>
         </div>
@@ -74,13 +97,13 @@ export function PrescriptionPage() {
                 {prescription.cycle_number > 1 && ` (Cycle ${prescription.cycle_number})`}
               </p>
             </div>
-            <Button onClick={() => startLogging.mutate()} disabled={startLogging.isPending}>
+            <Button size="touch" onClick={() => startLogging.mutate()} disabled={startLogging.isPending}>
               {startLogging.isPending ? 'Starting…' : 'Start Logging'}
             </Button>
           </div>
 
           {prescription.lines.length === 0 ? (
-            <p className="text-muted-foreground">Rest day — no exercises prescribed.</p>
+            <EmptyState icon="😌" title="Rest day" description="No exercises prescribed." />
           ) : (
             <div className="space-y-4">
               {prescription.lines.map((line, i) => (

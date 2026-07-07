@@ -14,9 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn, formatDate } from '@/lib/utils'
 
 const tierColors: Record<string, string> = {
-  foundational: 'bg-emerald-500/10 text-emerald-400',
-  intermediate: 'bg-amber-500/10 text-amber-400',
-  sport_performance: 'bg-purple-500/10 text-purple-400',
+  foundational: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+  intermediate: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  sport_performance: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
 }
 function tierLabel(tier: string): string {
   switch (tier) {
@@ -63,6 +63,7 @@ export function AthleteDetail() {
   const queryClient = useQueryClient()
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalText, setGoalText] = useState('')
+  const [showMore, setShowMore] = useState(false)
   const [showAssign, setShowAssign] = useState(assignParam != null)
   const [assignTemplateId, setAssignTemplateId] = useState(assignParam ?? '')
   const [assignDate, setAssignDate] = useState(new Date().toISOString().slice(0, 10))
@@ -159,68 +160,108 @@ export function AthleteDetail() {
         </div>
       </div>
       {/* Quick nav */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <Link to={`/athletes/${athleteId}/prescription`} className={buttonVariants({ variant: "default", size: "sm" })}>
-          📋 Today's Workout
-        </Link>
-        <Link to={`/athletes/${athleteId}/workouts`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          📝 Workouts
-        </Link>
-        <Link to={`/athletes/${athleteId}/body-weights`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          ⚖️ Body Weight
-        </Link>
-        <Link to={`/athletes/${athleteId}/training-maxes`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          💪 Training Maxes
-        </Link>
-        <Link to={`/athletes/${athleteId}/journal`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          📖 Journal
-        </Link>
-        <Link to={`/athletes/${athleteId}/accessories`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          🔧 Accessories
-        </Link>
-        <Link to={`/athletes/${athleteId}/throwing-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          ⚾ Throwing
-        </Link>
-        <Link to={`/athletes/${athleteId}/conditioning-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          🏃 Conditioning
-        </Link>
-        <Link to={`/athletes/${athleteId}/skill-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          🎯 Skill
-        </Link>
-        <Link to={`/athletes/${athleteId}/recovery-checkins`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          😴 Recovery
-        </Link>
-        <Link to={`/athletes/${athleteId}/load`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          📊 Load
-        </Link>
+      <div className="space-y-4 mb-6">
+        {/* Train */}
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2">Train</p>
+          <div className="flex flex-wrap gap-2">
+            <Link to={`/athletes/${athleteId}/prescription`} className={buttonVariants({ variant: "default", size: "sm" })}>
+              📋 Today's Workout
+            </Link>
+            <Link to={`/athletes/${athleteId}/workouts`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              📝 Workouts
+            </Link>
+            <Link to={`/athletes/${athleteId}/body-weights`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              ⚖️ Body Weight
+            </Link>
+          </div>
+        </div>
+        {/* Sessions */}
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2">Sessions</p>
+          <div className="flex flex-wrap gap-2">
+            <Link to={`/athletes/${athleteId}/throwing-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              ⚾ Throwing
+            </Link>
+            <Link to={`/athletes/${athleteId}/conditioning-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              🏃 Conditioning
+            </Link>
+            <Link to={`/athletes/${athleteId}/skill-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              🎯 Skill
+            </Link>
+            <Link to={`/athletes/${athleteId}/recovery-checkins`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              😴 Recovery
+            </Link>
+            <Link to={`/athletes/${athleteId}/load`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              📊 Load
+            </Link>
+          </div>
+        </div>
+        {/* Program */}
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2">Program</p>
+          <div className="flex flex-wrap gap-2">
+            <Link to={`/athletes/${athleteId}/training-maxes`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              💪 Training Maxes
+            </Link>
+            <Link to={`/athletes/${athleteId}/accessories`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              🔧 Accessories
+            </Link>
+            {isCoach && (
+              <>
+                <Link to={`/athletes/${athleteId}/assignments`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  🎯 Assignments
+                </Link>
+                <Link to={`/athletes/${athleteId}/cycle-review`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  📈 Cycle Review
+                </Link>
+                <Link to={`/athletes/${athleteId}/season-phases`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  📅 Season Phases
+                </Link>
+                <Link to={`/athletes/${athleteId}/tm-setup`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  🔧 TM Setup
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+        {/* Coach tools */}
         {isCoach && (
-          <>
-            <Link to={`/athletes/${athleteId}/season-phases`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              📅 Season Phases
-            </Link>
-            <Link to={`/athletes/${athleteId}/assignments`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              🎯 Assignments
-            </Link>
-            <Link to={`/athletes/${athleteId}/tm-setup`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              🔧 TM Setup
-            </Link>
-            <Link to={`/athletes/${athleteId}/cycle-review`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              📈 Cycle Review
-            </Link>
-            <Link to={`/athletes/${athleteId}/export`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              📦 Export
-            </Link>
-            <Link to={`/athletes/${athleteId}/import`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              📥 Import
-            </Link>
-            <Link to={`/athletes/${athleteId}/generate`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              🤖 AI Coach
-            </Link>
-            <Link to={`/athletes/${athleteId}/wod`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              🔥 WOD
-            </Link>
-          </>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Coach Tools</p>
+            <div className="flex flex-wrap gap-2">
+              <Link to={`/athletes/${athleteId}/generate`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                🤖 AI Coach
+              </Link>
+              <Link to={`/athletes/${athleteId}/wod`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                🔥 WOD
+              </Link>
+              <Link to={`/athletes/${athleteId}/import`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                📥 Import
+              </Link>
+              <Link to={`/athletes/${athleteId}/export`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                📦 Export
+              </Link>
+            </div>
+          </div>
         )}
+        {/* More */}
+        <div>
+          <Button variant="ghost" size="sm" onClick={() => setShowMore(!showMore)}
+            className="text-xs text-muted-foreground">
+            {showMore ? 'Less ▲' : 'More ▼'}
+          </Button>
+          {showMore && (
+            <div className="mt-2">
+              <p className="text-xs font-medium text-muted-foreground mb-2">More</p>
+              <div className="flex flex-wrap gap-2">
+                <Link to={`/athletes/${athleteId}/journal`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  📖 Journal
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       {/* Info cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
