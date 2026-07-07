@@ -10,9 +10,12 @@
 #      sees a populated tree at compile time.
 #
 # Hashes that must be refreshed when the corresponding lockfile changes:
-#   * npmDepsHash  — when web/package-lock.json changes. Refresh with:
-#       nix-shell -p prefetch-npm-deps --run \
-#         "prefetch-npm-deps ./web/package-lock.json"
+#   * npmDepsHash  — when web/package-lock.json changes. Refresh with the
+#       fakeHash-and-build method, NOT prefetch-npm-deps: set this to
+#       lib.fakeHash, `nix build` on the DEPLOY platform (x86_64-linux),
+#       and copy the printed `got:` value. prefetch-npm-deps produced a
+#       hash that the in-build fetcher rejected on linux (the lockfile's
+#       platform-specific optional deps make the FOD platform-dependent).
 #   * vendorHash   — when go.sum changes. Refresh by setting it to
 #       lib.fakeHash and running `nix build`; nix prints the correct
 #       value on the mismatch error.
@@ -49,7 +52,7 @@ let
         && base != ".vite";
     };
 
-    npmDepsHash = "sha256-AUovqqAjjQn9iGU4uo8zu2D1TIkgUOeSfuK0p1mRKJY=";
+    npmDepsHash = "sha256-GXB41Boyq7AIkTVXTp8QkdQjQrxbJaMX9Ggp8XIKtsU=";
 
     nodejs = nodejs_22;
 
