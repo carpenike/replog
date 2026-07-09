@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -37,6 +38,17 @@ func (p *AnthropicProvider) Ping(ctx context.Context) error {
 	return err
 }
 
+// rejectsTemperature reports whether the Anthropic model deprecates the
+// temperature parameter and rejects it with an HTTP 400. Newer Claude models
+// (Sonnet 4.5 and later) no longer accept temperature; older ones still do.
+func rejectsTemperature(model string) bool {
+	m := strings.ToLower(model)
+	return strings.HasPrefix(m, "claude-sonnet-4-5") ||
+		strings.HasPrefix(m, "claude-sonnet-5") ||
+		strings.HasPrefix(m, "claude-opus-4-5") ||
+		strings.HasPrefix(m, "claude-opus-5")
+}
+
 func (p *AnthropicProvider) Generate(ctx context.Context, systemPrompt, userPrompt string, opts Options) (*Response, error) {
 	maxTokens := opts.MaxTokens
 	if maxTokens <= 0 {
@@ -50,7 +62,11 @@ func (p *AnthropicProvider) Generate(ctx context.Context, systemPrompt, userProm
 		"messages": []map[string]string{
 			{"role": "user", "content": userPrompt},
 		},
-		"temperature": opts.Temperature,
+	}
+	// Newer Claude models deprecate temperature and reject it with a 400;
+	// only send it for models that still accept it.
+	if !rejectsTemperature(p.model) {
+		body["temperature"] = opts.Temperature
 	}
 
 	jsonBody, err := json.Marshal(body)
