@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { Spinner } from '@/components/ui'
 import { Button } from '@/components/ui/button'
+
 export function NotificationsList() {
   const queryClient = useQueryClient()
   const { data: notifications, isLoading, error } = useQuery({
@@ -48,22 +50,43 @@ export function NotificationsList() {
                 n.read ? 'border-border' : 'border-primary/30 bg-primary/5'
               }`}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className={`text-sm font-medium ${n.read ? '' : 'text-primary'}`}>
-                    {n.title}
-                  </p>
-                  {n.message && (
-                    <p className="text-sm text-muted-foreground mt-0.5">{n.message}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 ml-4">
+              <div className="flex items-start gap-4">
+                {n.link ? (
+                  <Link
+                    to={n.link}
+                    onClick={() => {
+                      if (!n.read && !markReadMutation.isPending) markReadMutation.mutate(n.id)
+                    }}
+                    className="min-w-0 flex-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <p className={`text-sm font-medium ${n.read ? '' : 'text-primary'}`}>
+                      {n.title}
+                    </p>
+                    {n.message && (
+                      <p className="text-sm text-muted-foreground mt-0.5">{n.message}</p>
+                    )}
+                  </Link>
+                ) : (
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-sm font-medium ${n.read ? '' : 'text-primary'}`}>
+                      {n.title}
+                    </p>
+                    {n.message && (
+                      <p className="text-sm text-muted-foreground mt-0.5">{n.message}</p>
+                    )}
+                  </div>
+                )}
+                <div className="flex shrink-0 items-center gap-2">
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {new Date(n.created_at).toLocaleDateString()}
                   </span>
                   {!n.read && (
-                    <Button variant="ghost" onClick={() => markReadMutation.mutate(n.id)}
-                      >
+                    <Button
+                      variant="ghost"
+                      aria-label={`Mark ${n.title} as read`}
+                      onClick={() => markReadMutation.mutate(n.id)}
+                      disabled={markReadMutation.isPending}
+                    >
                       ✓
                     </Button>
                   )}

@@ -68,6 +68,13 @@ engine** but commits to a different artifact.
    are a separate, larger conversation. The endpoint rejects tier-bearing (youth)
    athletes.
 
+7. **Link-addressed resume.** A completed WOD notification links to
+   `/athletes/{id}/wod?gen={generation_id}`. `WodPage` hydrates that generation
+   through the existing athlete-scoped generation status endpoint and lands on
+   the same preview step used by the in-session flow. The gate stays human:
+   nothing is logged unless the coach explicitly clicks **Log it**; discard still
+   writes nothing and no separate WOD storage surface is introduced.
+
 ### Surfaces
 
 - `POST /athletes/{id}/wod` — enqueue (202); polling/cancel reuse the existing
@@ -84,6 +91,9 @@ engine** but commits to a different artifact.
   scoping; the only genuinely new surface is the commit-to-workout path.
 - Logged WODs feed future generation context for free via the existing
   recent-workout context builder.
+- The async notification promise is actionable: a coach can leave the page,
+   click the completion notification later, and return to the generated WOD at
+   the log-or-discard review step.
 
 ### Negative / cost
 
@@ -102,8 +112,6 @@ engine** but commits to a different artifact.
   `SeedSetsFromPrescription` (`workout_sets.reps` is `NOT NULL`); a WOD-specific
   change would create drift. Any fix belongs to a logbook-wide planned-vs-performed
   modeling decision, not here.
-- No WOD resume-after-reload: cheap given the `kind` column, but low value for a
-  throwaway session; deferred.
 
 ## Alternatives considered
 
@@ -128,4 +136,6 @@ engine** but commits to a different artifact.
   `assignment_id` NULL).
 - `docs/COACH_VOICE.md` — the no-automated-coaching line.
 - basic-memory `handoff/HOF-015` + `HOF-015 DISCUSSION` (review record).
+- basic-memory `handoff/HOF-017` + `HOF-017 DISCUSSION` (link-addressed WOD
+   resume amendment).
 - GitHub #32 (implemented), #33 (allow-list follow-up); commit `de3579b`.

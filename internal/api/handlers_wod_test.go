@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -74,13 +75,13 @@ func TestWODSubmit_NotifiesWithWODLink(t *testing.T) {
 	adult := env.createAthlete(t, "Charlie", coach.ID)
 	cookies := env.loginAs(t, coach)
 
-	wodSubmitAndWait(t, env, adult.ID, cookies, `{}`)
+	genID := wodSubmitAndWait(t, env, adult.ID, cookies, `{}`)
 
 	notifs, err := models.ListNotifications(context.Background(), env.DB, coach.ID, 50, 0)
 	if err != nil {
 		t.Fatalf("ListNotifications: %v", err)
 	}
-	wantLink := fmt.Sprintf("/athletes/%d/wod", adult.ID)
+	wantLink := fmt.Sprintf("/athletes/%d/wod?gen=%d", adult.ID, genID)
 	found := false
 	for _, n := range notifs {
 		if n.Type != models.NotifyGenerationComplete {
@@ -100,6 +101,41 @@ func TestWODSubmit_NotifiesWithWODLink(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("expected a NotifyGenerationComplete notification, got %+v", notifs)
+	}
+}
+
+func TestWODSubmit_NotifiesFailureWithWODLink(t *testing.T) {
+	env := setupTest(t)
+	mock := useMockLLM(t, env)
+	mock.GenerateErr = &llm.APIError{Provider: "Anthropic", StatusCode: 401, Message: "invalid api key"}
+	seedMethodologiesForTest(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	adult := env.createAthlete(t, "Charlie", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	genID := wodSubmitAndWait(t, env, adult.ID, cookies, `{}`)
+
+	notifs, err := models.ListNotifications(context.Background(), env.DB, coach.ID, 50, 0)
+	if err != nil {
+		t.Fatalf("ListNotifications: %v", err)
+	}
+	wantLink := fmt.Sprintf("/athletes/%d/wod?gen=%d", adult.ID, genID)
+	found := false
+	for _, n := range notifs {
+		if n.Type != models.NotifyGenerationFailed {
+			continue
+		}
+		found = true
+		if n.Link.String != wantLink {
+			t.Errorf("expected failed WOD notification link %q, got %q", wantLink, n.Link.String)
+		}
+		if !strings.Contains(n.Title, "WOD") {
+			t.Errorf("expected WOD in title, got %q", n.Title)
+		}
+		break
+	}
+	if !found {
+		t.Errorf("expected a NotifyGenerationFailed notification, got %+v", notifs)
 	}
 }
 

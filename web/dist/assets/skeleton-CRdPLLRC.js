@@ -1,0 +1,1 @@
+import{a as e}from"./vendor-query-MooC-Z-K.js";import{y as t}from"./index-C0hT9I1V.js";var n=e();function r({className:e,...r}){return(0,n.jsx)(`div`,{"data-slot":`skeleton`,className:t(`animate-pulse rounded-md bg-muted`,e),...r})}export{r as t};

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Spinner } from '@/components/ui'
@@ -23,21 +23,30 @@ const TERMINAL_STATUSES: Generation['status'][] = ['succeeded', 'failed', 'cance
 
 const today = () => new Date().toISOString().slice(0, 10)
 
+function parseGenerationID(value: string | null) {
+  if (!value) return null
+  const id = Number(value)
+  return Number.isSafeInteger(id) && id > 0 ? id : null
+}
+
 export function WodPage() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const resumeGenerationId = parseGenerationID(searchParams.get('gen'))
+  const invalidResumeLink = searchParams.has('gen') && resumeGenerationId == null
   const queryClient = useQueryClient()
   // 'form' = entry; 'generating' = polling; 'preview' = succeeded, awaiting
   // the log-or-discard decision; 'result' = logged.
-  const [step, setStep] = useState<'form' | 'generating' | 'preview' | 'result'>('form')
+  const [step, setStep] = useState<'form' | 'generating' | 'preview' | 'result'>(() => resumeGenerationId == null ? 'form' : 'generating')
   const [coachDirections, setCoachDirections] = useState('')
   const [focusAreas, setFocusAreas] = useState('')
   const [logDate, setLogDate] = useState(today())
-  const [generationId, setGenerationId] = useState<number | null>(null)
+  const [generationId, setGenerationId] = useState<number | null>(() => resumeGenerationId)
   const [generation, setGeneration] = useState<Generation | null>(null)
   const [logResult, setLogResult] = useState<WODLogResult | null>(null)
   const [collision, setCollision] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(() => invalidResumeLink ? 'This WOD link is invalid.' : '')
 
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
@@ -52,7 +61,25 @@ export function WodPage() {
     queryKey: ['wod-generation', athleteId, generationId],
     queryFn: async () => {
       if (generationId == null) throw new Error('no generation id')
-      const data = await api.pollGeneration(athleteId, generationId) as Generation
+      let data: Generation
+      try {
+        data = await api.pollGeneration(athleteId, generationId) as Generation
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Failed to load WOD')
+        setGenerationId(null)
+        setGeneration(null)
+        setStep('form')
+        setSearchParams({}, { replace: true })
+        throw err
+      }
+      if (data.kind !== 'wod') {
+        setError('This WOD link is invalid.')
+        setGenerationId(null)
+        setGeneration(null)
+        setStep('form')
+        setSearchParams({}, { replace: true })
+        return data
+      }
       setGeneration(data)
       if (data.status === 'succeeded') {
         setStep('preview')
@@ -86,6 +113,7 @@ export function WodPage() {
     onSuccess: (data) => {
       setGenerationId(data.generation_id)
       setGeneration({ id: data.generation_id, athlete_id: athleteId, status: data.status, created_at: new Date().toISOString() })
+      setSearchParams({ gen: String(data.generation_id) }, { replace: true })
       setStep('generating')
     },
     onError: (err) => {
@@ -103,6 +131,7 @@ export function WodPage() {
       setStep('form')
       setGenerationId(null)
       setGeneration(null)
+      setSearchParams({}, { replace: true })
     },
   })
 
@@ -117,6 +146,7 @@ export function WodPage() {
       setLogResult(data)
       setCollision(false)
       setStep('result')
+      setSearchParams({}, { replace: true })
       queryClient.invalidateQueries({ queryKey: ['workouts', athleteId] })
     },
     onError: (err) => {
@@ -138,6 +168,7 @@ export function WodPage() {
     setGeneration(null)
     setCollision(false)
     setError('')
+    setSearchParams({}, { replace: true })
   }
 
   return (

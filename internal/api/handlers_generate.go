@@ -600,7 +600,7 @@ func (h *Handlers) runGeneration(ctx context.Context, genID int64, provider llm.
 			Type:      models.NotifyGenerationComplete,
 			Title:     fmt.Sprintf("WOD ready for %s", athleteName),
 			Message:   fmt.Sprintf("Log or discard the generated WOD for %s.", athleteName),
-			Link:      fmt.Sprintf("/athletes/%d/wod", gen.AthleteID),
+			Link:      fmt.Sprintf("/athletes/%d/wod?gen=%d", gen.AthleteID, gen.ID),
 			AthleteID: sql.NullInt64{Int64: gen.AthleteID, Valid: true},
 		})
 		return
@@ -640,7 +640,7 @@ func (h *Handlers) failAndNotify(ctx context.Context, genID int64, msg string, d
 			Type:      models.NotifyGenerationFailed,
 			Title:     fmt.Sprintf("WOD failed for %s", athleteName),
 			Message:   msg,
-			Link:      fmt.Sprintf("/athletes/%d/wod", gen.AthleteID),
+			Link:      fmt.Sprintf("/athletes/%d/wod?gen=%d", gen.AthleteID, gen.ID),
 			AthleteID: sql.NullInt64{Int64: gen.AthleteID, Valid: true},
 		})
 		return
