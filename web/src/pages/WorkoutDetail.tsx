@@ -318,8 +318,8 @@ export function WorkoutDetail() {
                     <TableHead>Reps</TableHead>
                     <TableHead>Weight</TableHead>
                     <TableHead>RPE</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="w-24 text-right">Edit</TableHead>
+                    <TableHead className="whitespace-normal">Notes</TableHead>
+                    <TableHead className="w-12 sm:w-24 text-right">Edit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -365,10 +365,13 @@ export function WorkoutDetail() {
                         <TableCell>{set.reps_label ?? set.reps}</TableCell>
                         <TableCell>{formatWeight(set.weight)}</TableCell>
                         <TableCell>{set.rpe ?? '—'}</TableCell>
-                        <TableCell className="text-muted-foreground">{set.notes ?? ''}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-normal wrap-break-word">{set.notes ?? ''}</TableCell>
                         <TableCell onClick={e => e.stopPropagation()}>
                           <div className="flex gap-1 justify-end">
+                            {/* Row tap already opens edit — the pencil is redundant at phone widths
+                                and its 44px column pushed Notes off-screen. */}
                             <Button variant="ghost" size="icon-touch" aria-label={`Edit set ${set.set_number}`}
+                              className="hidden sm:inline-flex"
                               onClick={() => beginEdit(set)}
                             ><Pencil aria-hidden="true" /></Button>
                             <Button variant="ghost" size="icon-touch" aria-label={`Delete set ${set.set_number}`}
