@@ -8,7 +8,7 @@ go 1.25.6
 // GO-2026-4918 (HTTP/2 SETTINGS_MAX_FRAME_SIZE infinite loop), and
 // GO-2026-5037 (crypto/x509 hostname parsing) / GO-2026-5039
 // (net/textproto unescaped error inputs).
-toolchain go1.25.11
+toolchain go1.25.12
 
 require (
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de
