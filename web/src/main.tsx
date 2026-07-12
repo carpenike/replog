@@ -6,6 +6,7 @@ import { Toaster, toast } from 'sonner'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { App } from './App'
 import './index.css'
+import './pwa'
 
 // Allow mutations to opt out of the global error toast when they render their
 // own inline error UI (e.g. WodPage's 409 replace/cancel flow).

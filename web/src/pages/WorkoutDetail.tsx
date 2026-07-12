@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { Check, Pencil, Play, Plus, Trash2, X } from 'lucide-react'
 import { api } from '@/api/client'
 import { EmptyState, QueryError } from '@/components/ui'
+import { ExercisePicker, type PickedExercise } from '@/components/ExercisePicker'
 import { useConfirm } from '@/lib/useConfirm'
 import { usePageTitle } from '@/lib/usePageTitle'
-import { formatDate, formatWeight, cn } from '@/lib/utils'
+import { formatDate, formatWeight, localDateISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -29,8 +30,7 @@ export function WorkoutDetail() {
   const queryKey = ['workout', athleteId, wId] as const
 
   const [exerciseId, setExerciseId] = useState('')
-  const [exerciseSearch, setExerciseSearch] = useState('')
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const [exerciseName, setExerciseName] = useState('')
   const [reps, setReps] = useState('')
   const [setWeight, setSetWeight] = useState('')
   const [rpe, setRpe] = useState('')
@@ -55,21 +55,10 @@ export function WorkoutDetail() {
     queryKey: ['me'],
     queryFn: () => api.me(),
   })
-  const { data: exercises } = useQuery({
-    queryKey: ['exercises'],
-    queryFn: () => api.listExercises(),
-    enabled: showAddForm,
-  })
-  // Context for the picker: today's prescription and this athlete's assigned lifts.
+  // Today's prescription drives the reps/weight prefill after picking a lift.
   const { data: prescription } = useQuery({
     queryKey: ['prescription', athleteId],
     queryFn: () => api.getPrescription(athleteId),
-    enabled: showAddForm && !isNaN(athleteId),
-    retry: false,
-  })
-  const { data: assignments } = useQuery({
-    queryKey: ['assignments', athleteId],
-    queryFn: () => api.listAssignments(athleteId),
     enabled: showAddForm && !isNaN(athleteId),
     retry: false,
   })
@@ -86,7 +75,7 @@ export function WorkoutDetail() {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey })
       const prev = queryClient.getQueryData<WorkoutData>(queryKey)
-      const exName = exercises?.find(e => String(e.id) === exerciseId)?.name ?? 'Exercise'
+      const exName = exerciseName || 'Exercise'
       const exId = parseInt(exerciseId)
       const optimistic: WorkoutSet = {
         id: -Date.now(),
@@ -214,43 +203,16 @@ export function WorkoutDetail() {
     },
   })
 
-  // Grouped, searchable exercise options for the Add Set picker.
-  const pickerGroups = useMemo(() => {
-    const q = exerciseSearch.trim().toLowerCase()
-    const match = (name: string) => !q || name.toLowerCase().includes(q)
-    const prescribed = (prescription?.lines ?? [])
-      .filter(l => match(l.exercise_name))
-      .map(l => ({ id: l.exercise_id, name: l.exercise_name }))
-    const prescribedIds = new Set(prescribed.map(e => e.id))
-    const assigned = (assignments ?? [])
-      .filter(a => a.active && a.exercise_name && match(a.exercise_name) && !prescribedIds.has(a.exercise_id))
-      .map(a => ({ id: a.exercise_id, name: a.exercise_name as string }))
-    const assignedIds = new Set(assigned.map(e => e.id))
-    const all = (exercises ?? [])
-      .filter(e => match(e.name) && !prescribedIds.has(e.id) && !assignedIds.has(e.id))
-      .map(e => ({ id: e.id, name: e.name }))
-    return [
-      { key: 'prescribed', label: 'Prescribed today', items: prescribed },
-      { key: 'assigned', label: 'Assigned', items: assigned },
-      { key: 'all', label: 'All exercises', items: all },
-    ].filter(g => g.items.length > 0)
-  }, [exerciseSearch, prescription, assignments, exercises])
-
-  function pickExercise(exId: number, name: string) {
-    setExerciseId(String(exId))
-    setPickerOpen(false)
-    setExerciseSearch('')
+  function pickExercise(ex: PickedExercise) {
+    setExerciseId(String(ex.id))
+    setExerciseName(ex.name)
     // Prefill reps/weight from today's prescription line where available.
-    const line = prescription?.lines.find(l => l.exercise_id === exId)
+    const line = prescription?.lines.find(l => l.exercise_id === ex.id)
     const firstSet = line?.sets?.[0]
     if (firstSet?.reps != null) setReps(String(firstSet.reps))
     const target = firstSet?.absolute_weight ?? firstSet?.target_weight
     if (target != null && !setWeight) setSetWeight(String(target))
-    void name
   }
-
-  const selectedExerciseName = exercises?.find(e => String(e.id) === exerciseId)?.name
-    ?? prescription?.lines.find(l => String(l.exercise_id) === exerciseId)?.exercise_name
 
   function beginEdit(set: WorkoutSet) {
     setEditingSetId(set.id)
@@ -295,6 +257,16 @@ export function WorkoutDetail() {
       </div>
       {workout.program_name && (
         <p className="text-sm text-muted-foreground mb-4">{workout.program_name}</p>
+      )}
+      {/* Today's workout gets a fast path into the live session screen. */}
+      {formatDate(workout.date) === localDateISO() && (
+        <Button
+          size="touch"
+          render={<Link to={`/athletes/${athleteId}/workouts/${wId}/session`} />}
+          className="w-full mb-4"
+        >
+          <Play aria-hidden="true" /> Continue Session
+        </Button>
       )}
       {/* Editable notes */}
       {editingNotes ? (
@@ -434,54 +406,12 @@ export function WorkoutDetail() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
                 <Label id="exercise-picker-label">Exercise</Label>
-                <button
-                  type="button"
-                  aria-labelledby="exercise-picker-label"
-                  aria-expanded={pickerOpen}
-                  onClick={() => setPickerOpen(o => !o)}
-                  className="mt-1 flex h-11 w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 text-left text-base transition-colors hover:bg-muted/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none dark:bg-input/30"
-                >
-                  <span className={cn(!selectedExerciseName && 'text-muted-foreground')}>
-                    {selectedExerciseName ?? 'Select exercise...'}
-                  </span>
-                </button>
-                {pickerOpen && (
-                  <div className="mt-1 rounded-lg border border-border bg-popover shadow-md">
-                    <div className="flex items-center gap-2 border-b border-border px-3">
-                      <Search className="size-4 text-muted-foreground" aria-hidden="true" />
-                      <input
-                        autoFocus
-                        value={exerciseSearch}
-                        onChange={e => setExerciseSearch(e.target.value)}
-                        placeholder="Search exercises..."
-                        aria-label="Search exercises"
-                        className="h-11 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
-                      />
-                    </div>
-                    <div className="max-h-64 overflow-y-auto p-1">
-                      {pickerGroups.length === 0 ? (
-                        <p className="px-3 py-4 text-sm text-muted-foreground">No matches</p>
-                      ) : pickerGroups.map(g => (
-                        <div key={g.key}>
-                          <p className="px-2 pt-2 pb-1 text-xs font-medium text-muted-foreground">{g.label}</p>
-                          {g.items.map(item => (
-                            <button
-                              key={`${g.key}-${item.id}`}
-                              type="button"
-                              onClick={() => pickExercise(item.id, item.name)}
-                              className={cn(
-                                'flex h-11 w-full items-center rounded-md px-2 text-left text-sm hover:bg-accent hover:text-accent-foreground',
-                                String(item.id) === exerciseId && 'bg-accent text-accent-foreground',
-                              )}
-                            >
-                              {item.name}
-                            </button>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <ExercisePicker
+                  athleteId={athleteId}
+                  value={exerciseId ? Number(exerciseId) : null}
+                  onSelect={pickExercise}
+                  triggerLabelId="exercise-picker-label"
+                />
               </div>
               <div>
                 <Label htmlFor="set-reps">Reps</Label>
@@ -500,7 +430,7 @@ export function WorkoutDetail() {
               <Button type="submit" size="touch" disabled={addSetMutation.isPending || !exerciseId || !reps}>
                 {addSetMutation.isPending ? 'Adding...' : 'Add Set'}
               </Button>
-              <Button variant="ghost" size="touch" type="button" onClick={() => { setShowAddForm(false); setPickerOpen(false) }}>
+              <Button variant="ghost" size="touch" type="button" onClick={() => setShowAddForm(false)}>
                 Cancel
               </Button>
             </div>

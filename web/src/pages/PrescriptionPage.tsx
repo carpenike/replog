@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
 import { EmptyState, QueryError } from '@/components/ui'
 import { usePageTitle } from '@/lib/usePageTitle'
-import { formatWeight } from '@/lib/utils'
+import { formatDate, formatWeight, localDateISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -31,16 +31,31 @@ export function PrescriptionPage() {
   })
 
   const startLogging = useMutation({
-    mutationFn: () => api.createWorkout(athleteId, new Date().toISOString().slice(0, 10), '', true),
+    // fromPrescription=false: the session screen logs sets as the athlete
+    // completes them — pre-creating the full prescription would mark every
+    // row done (and record volume that was never performed). Local date, not
+    // UTC: near midnight toISOString() lands the workout on the wrong day.
+    mutationFn: () => api.createWorkout(athleteId, localDateISO(), '', false),
     meta: { skipGlobalError: true },
     onSuccess: (workout) => {
-      navigate(`/athletes/${athleteId}/workouts/${workout.id}`)
+      navigate(`/athletes/${athleteId}/workouts/${workout.id}/session`)
     },
-    onError: (err) => {
-      // A workout already exists for today — send them to the log to continue it.
+    onError: async (err) => {
+      // A workout already exists for today — resume its live session. The 409
+      // was raised against the same date string createWorkout sent, so match
+      // on it to find the colliding workout.
       if (err instanceof ApiError && err.code === 409) {
-        toast.info('A workout already exists for today.')
-        navigate(`/athletes/${athleteId}/workouts`)
+        toast.info('A workout already exists for today — resuming it.')
+        const today = localDateISO()
+        try {
+          const page = await api.listWorkouts(athleteId)
+          const existing = page.workouts.find(w => formatDate(w.date) === today)
+          navigate(existing
+            ? `/athletes/${athleteId}/workouts/${existing.id}/session`
+            : `/athletes/${athleteId}/workouts`)
+        } catch {
+          navigate(`/athletes/${athleteId}/workouts`)
+        }
         return
       }
       toast.error('Failed to start logging.')

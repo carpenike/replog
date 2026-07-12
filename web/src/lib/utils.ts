@@ -20,3 +20,11 @@ export function formatWeight(w: number | null | undefined): string {
   if (w == null) return '—'
   return w === Math.floor(w) ? w.toString() : w.toFixed(1)
 }
+
+/**
+ * Local calendar date as YYYY-MM-DD. toISOString() would shift the date near
+ * UTC midnight — this is the "is it today for the athlete?" comparison.
+ */
+export function localDateISO(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
