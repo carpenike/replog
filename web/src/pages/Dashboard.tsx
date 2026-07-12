@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
 import { EmptyState, QueryError } from '@/components/ui'
+import { fetchWeekStreak } from '@/lib/streak'
 import { usePageTitle } from '@/lib/usePageTitle'
-import { formatDate } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,6 +24,15 @@ export function Dashboard({ user }: DashboardProps) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.dashboard(),
+  })
+  // The dashboard endpoint only returns streaks for coach-owned athlete
+  // cards, so athlete users compute their own from recent workouts.
+  const athleteId = !user.is_coach && !user.is_admin ? user.athlete_id : null
+  const { data: streak } = useQuery({
+    queryKey: ['week-streak', athleteId],
+    queryFn: () => fetchWeekStreak(athleteId!),
+    enabled: athleteId != null,
+    staleTime: 5 * 60_000,
   })
 
   if (isLoading) {
@@ -54,6 +64,25 @@ export function Dashboard({ user }: DashboardProps) {
         <h1 className="text-2xl font-bold mb-6">
           Welcome, {user.name ?? user.username}
         </h1>
+        {streak != null && (
+          <div
+            className={cn(
+              'mb-4 rounded-lg border px-4 py-3',
+              streak > 0 ? 'border-warning/30 bg-warning/5' : 'border-border bg-card',
+            )}
+          >
+            {streak > 0 ? (
+              <p className="text-sm font-medium">
+                <span aria-hidden="true">🔥</span> {streak}-week streak
+                <span className="font-normal text-muted-foreground"> — keep it going!</span>
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Log a workout this week to start a streak <span aria-hidden="true">💪</span>
+              </p>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link to={`/athletes/${user.athlete_id}/prescription`}
             className="rounded-lg border border-primary/30 bg-primary/5 p-6 hover:border-primary/50 transition-colors text-center">

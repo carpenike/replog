@@ -38,3 +38,4 @@ mem.out
 
 # macOS Finder metadata — never relevant in-tree
 **/.DS_Store
+.claude/settings.local.json

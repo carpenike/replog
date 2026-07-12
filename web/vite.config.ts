@@ -2,10 +2,45 @@ import path from "path"
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      // Custom worker (src/pwa-sw.ts): generateSW's runtimeCaching can't
+      // share one BackgroundSync queue across POST/PUT/DELETE routes.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'pwa-sw.ts',
+      registerType: 'autoUpdate',
+      // The plugin generates manifest.webmanifest and injects its <link> into
+      // index.html (this replaced the old hand-written public/manifest.json).
+      manifest: {
+        name: 'RepLog',
+        short_name: 'RepLog',
+        description: 'Self-hosted workout tracking for the family',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#1a1a1a',
+        theme_color: '#1a1a1a',
+        categories: ['fitness', 'sports'],
+        icons: [
+          { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' },
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+      injectManifest: {
+        // App shell precache: hashed js/css plus icons and fonts.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+      },
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

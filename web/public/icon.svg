@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- RepLog app icon: barbell glyph on a rounded-square indigo background.
+       Source of truth for all raster icons; regenerate with `npm run gen:icons`. -->
+  <rect width="512" height="512" rx="116" fill="#8b8ff5"/>
+  <g fill="#1a1a1a">
+    <!-- bar -->
+    <rect x="56" y="241" width="400" height="30" rx="15"/>
+    <!-- outer (small) plates -->
+    <rect x="72" y="192" width="40" height="128" rx="18"/>
+    <rect x="400" y="192" width="40" height="128" rx="18"/>
+    <!-- inner (large) plates -->
+    <rect x="128" y="160" width="48" height="192" rx="22"/>
+    <rect x="336" y="160" width="48" height="192" rx="22"/>
+  </g>
+</svg>

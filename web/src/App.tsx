@@ -27,6 +27,7 @@ const NewExercise = lazy(() => import('@/pages/NewExercise').then(m => ({ defaul
 const EditExercise = lazy(() => import('@/pages/EditExercise').then(m => ({ default: m.EditExercise })))
 const WorkoutsList = lazy(() => import('@/pages/WorkoutsList').then(m => ({ default: m.WorkoutsList })))
 const WorkoutDetail = lazy(() => import('@/pages/WorkoutDetail').then(m => ({ default: m.WorkoutDetail })))
+const ActiveWorkout = lazy(() => import('@/pages/ActiveWorkout').then(m => ({ default: m.ActiveWorkout })))
 const NewWorkout = lazy(() => import('@/pages/NewWorkout').then(m => ({ default: m.NewWorkout })))
 const BodyWeightsList = lazy(() => import('@/pages/BodyWeightsList').then(m => ({ default: m.BodyWeightsList })))
 const TrainingMaxesList = lazy(() => import('@/pages/TrainingMaxesList').then(m => ({ default: m.TrainingMaxesList })))
@@ -102,6 +103,7 @@ export function App() {
         <Route path="/athletes/:id/workouts" element={<WorkoutsList />} />
         <Route path="/athletes/:id/workouts/new" element={<NewWorkout />} />
         <Route path="/athletes/:id/workouts/:workoutId" element={<WorkoutDetail />} />
+        <Route path="/athletes/:id/workouts/:workoutId/session" element={<ActiveWorkout />} />
         <Route path="/athletes/:id/body-weights" element={<BodyWeightsList />} />
         <Route path="/athletes/:id/training-maxes" element={<TrainingMaxesList />} />
         <Route path="/athletes/:id/journal" element={<JournalPage />} />

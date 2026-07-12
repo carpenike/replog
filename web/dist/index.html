@@ -8,7 +8,13 @@
     <meta property="og:title" content="RepLog" />
     <meta property="og:description" content="Self-hosted workout tracking for the family" />
     <meta property="og:type" content="website" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RepLog" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>RepLog</title>
     <script>
       // Apply saved theme before React hydrates to prevent flash.
@@ -18,14 +24,14 @@
       })();
     </script>
     <style>body { background-color: oklch(0.145 0 0); } html:not(.dark) body { background-color: oklch(1 0 0); }</style>
-    <link rel="manifest" href="/manifest.json" />
-    <script type="module" crossorigin src="/assets/index-C0hT9I1V.js"></script>
+    <!-- The web app manifest <link> is injected at build time by vite-plugin-pwa. -->
+    <script type="module" crossorigin src="/assets/index-CN0D99z5.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-Bh1tDfsg.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-query-MooC-Z-K.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-react-gtuKhUqR.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-ui-B_-h7l3R.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-D-RYRcEh.css">
-  </head>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-query-CY67vr7o.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-react-c_ropT_s.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-ui-D0urBgAg.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-CvZBeHd7.css">
+  <link rel="manifest" href="/manifest.webmanifest"></head>
   <body>
     <div id="root"></div>
   </body>
