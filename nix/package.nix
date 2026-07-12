@@ -16,6 +16,9 @@
 #       and copy the printed `got:` value. prefetch-npm-deps produced a
 #       hash that the in-build fetcher rejected on linux (the lockfile's
 #       platform-specific optional deps make the FOD platform-dependent).
+#       `just nix-npm-hash` (prefetch-based) is a quick first guess —
+#       on 2026-07-11 it matched the linux builder's `got:` value for
+#       the then-current lockfile — but the linux build is what counts.
 #   * vendorHash   — when go.sum changes. Refresh by setting it to
 #       lib.fakeHash and running `nix build`; nix prints the correct
 #       value on the mismatch error.

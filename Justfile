@@ -127,11 +127,16 @@ build-release:
 build-nix:
     nix build
 
-# Print the npmDepsHash that nix/package.nix should pin for the current
-# web/package-lock.json. Run after `npm install` changes the lockfile;
-# paste the printed sha256 into nix/package.nix.
+# Print a *candidate* npmDepsHash for the current web/package-lock.json.
+# The authoritative method (see the header of nix/package.nix) is
+# fakeHash-and-build on the deploy platform: set npmDepsHash to
+# lib.fakeHash, `nix build` on x86_64-linux, and copy the printed
+# `got:` value. prefetch-npm-deps once produced a hash the in-build
+# fetcher rejected on linux, so verify this recipe's output with a
+# linux `nix build` before deploying.
 nix-npm-hash:
     @nix-shell -p prefetch-npm-deps --run "prefetch-npm-deps ./web/package-lock.json"
+    @echo "→ Candidate only — verify per the npmDepsHash notes in nix/package.nix (fakeHash + nix build on x86_64-linux)."
 
 # Print the vendorHash nix/package.nix should pin for the current go.sum.
 # Forces a rebuild against `lib.fakeHash` and extracts the "got:" line
