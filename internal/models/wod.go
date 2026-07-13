@@ -17,6 +17,20 @@ import (
 // than a raw 409 (HOF-015 same-day collision decision).
 var ErrWODCollision = errors.New("a resistance workout already exists for this date")
 
+// UnknownExercisesError is returned by LogWODFromCatalog when the generated
+// catalog prescribes exercise names that don't resolve to the exercise
+// catalog. The log path REJECTS these rather than auto-creating them (the
+// ADR 020 follow-up): a hallucinated name must not pollute the shared global
+// catalog, and the coach already saw these names flagged by the generation
+// lint in the preview. The coach's recourse is to regenerate.
+type UnknownExercisesError struct {
+	Names []string
+}
+
+func (e *UnknownExercisesError) Error() string {
+	return fmt.Sprintf("models: WOD prescribes unknown exercises: %s", strings.Join(e.Names, ", "))
+}
+
 // WODLogResult summarizes what LogWODFromCatalog committed.
 type WODLogResult struct {
 	WorkoutID   int64
@@ -29,15 +43,16 @@ type WODLogResult struct {
 // from-prescription transcribe-then-confirm flow, but operates on the
 // generation's CatalogJSON rather than a program-derived *Prescription:
 //
-//  1. Resolve the same-day collision — if a resistance workout already
+//  1. Resolve every prescribed-set exercise name to an exercise ID. Names
+//     that don't resolve fail the whole log with *UnknownExercisesError —
+//     BEFORE any mutation, so a replace never deletes the existing workout
+//     only to then reject the WOD. Unknown names are rejected rather than
+//     auto-created (ADR 020 follow-up): a hallucinated exercise must not
+//     pollute the shared global catalog.
+//  2. Resolve the same-day collision — if a resistance workout already
 //     exists for the date and replace is false, return ErrWODCollision so
 //     the handler can prompt replace-or-cancel. When replace is true, the
 //     existing resistance workout is deleted (its sets cascade).
-//  2. Resolve every prescribed-set exercise name to an exercise ID,
-//     creating any missing exercise from the parsed catalog metadata. This
-//     runs before the insert transaction because the pure-Go SQLite driver
-//     pins a single connection (SetMaxOpenConns(1)); creating rows inside an
-//     open transaction would deadlock.
 //  3. Create the ad-hoc workout (assignment_id NULL → discipline defaults to
 //     'resistance', which the read-path filters require so the WOD feeds
 //     future BuildAthleteContext) and insert its sets in one transaction.
@@ -51,23 +66,7 @@ func LogWODFromCatalog(ctx context.Context, db *sql.DB, athleteID int64, date st
 		return nil, fmt.Errorf("models: log WOD with nil parsed catalog")
 	}
 
-	// Step 1: same-day collision.
-	existing, err := GetWorkoutByAthleteDate(ctx, db, athleteID, date)
-	if err != nil && !errors.Is(err, ErrNotFound) {
-		return nil, fmt.Errorf("models: check existing workout for WOD: %w", err)
-	}
-	replaced := false
-	if err == nil && existing != nil {
-		if !replace {
-			return nil, ErrWODCollision
-		}
-		if derr := DeleteWorkout(ctx, db, existing.ID, athleteID); derr != nil {
-			return nil, fmt.Errorf("models: replace existing workout %d for WOD: %w", existing.ID, derr)
-		}
-		replaced = true
-	}
-
-	// Step 2: resolve exercise names → IDs (create missing) BEFORE the tx.
+	// Step 1: resolve exercise names → IDs, rejecting unknowns up front.
 	nameToID := make(map[string]int64)
 	exercises, err := ListExercises(ctx, db, "")
 	if err != nil {
@@ -76,43 +75,9 @@ func LogWODFromCatalog(ctx context.Context, db *sql.DB, athleteID int64, date st
 	for _, ex := range exercises {
 		nameToID[strings.ToLower(ex.Name)] = ex.ID
 	}
-	parsedMeta := make(map[string]importers.ParsedExercise, len(parsed.Exercises))
-	for _, pe := range parsed.Exercises {
-		parsedMeta[strings.ToLower(pe.Name)] = pe
-	}
-	resolve := func(name string) (int64, error) {
-		key := strings.ToLower(strings.TrimSpace(name))
-		if key == "" {
-			return 0, fmt.Errorf("models: WOD set references an empty exercise name")
-		}
-		if id, ok := nameToID[key]; ok {
-			return id, nil
-		}
-		tier, formNotes, demoURL := "", "", ""
-		restSeconds := 0
-		if pe, ok := parsedMeta[key]; ok {
-			if pe.Tier != nil {
-				tier = *pe.Tier
-			}
-			if pe.FormNotes != nil {
-				formNotes = *pe.FormNotes
-			}
-			if pe.DemoURL != nil {
-				demoURL = *pe.DemoURL
-			}
-			if pe.RestSeconds != nil {
-				restSeconds = *pe.RestSeconds
-			}
-		}
-		ex, cerr := CreateExercise(ctx, db, name, tier, formNotes, demoURL, restSeconds)
-		if cerr != nil {
-			return 0, fmt.Errorf("models: create exercise %q for WOD: %w", name, cerr)
-		}
-		nameToID[key] = ex.ID
-		return ex.ID, nil
-	}
 
-	// Flatten the parsed sets, resolving exercise IDs up front.
+	// Flatten the parsed sets, resolving exercise IDs and collecting every
+	// unknown name so the error reports the full list in one shot.
 	type setRow struct {
 		exerciseID int64
 		setNumber  int
@@ -123,11 +88,21 @@ func LogWODFromCatalog(ctx context.Context, db *sql.DB, athleteID int64, date st
 		sortOrder  int
 	}
 	var rows []setRow
+	var unknown []string
+	seenUnknown := map[string]bool{}
 	for _, prog := range parsed.Programs {
 		for _, ps := range prog.Template.PrescribedSets {
-			exID, rerr := resolve(ps.Exercise)
-			if rerr != nil {
-				return nil, rerr
+			name := strings.TrimSpace(ps.Exercise)
+			if name == "" {
+				return nil, fmt.Errorf("models: WOD set references an empty exercise name")
+			}
+			exID, ok := nameToID[strings.ToLower(name)]
+			if !ok {
+				if !seenUnknown[strings.ToLower(name)] {
+					seenUnknown[strings.ToLower(name)] = true
+					unknown = append(unknown, name)
+				}
+				continue
 			}
 			r := setRow{
 				exerciseID: exID,
@@ -150,12 +125,32 @@ func LogWODFromCatalog(ctx context.Context, db *sql.DB, athleteID int64, date st
 			rows = append(rows, r)
 		}
 	}
+	if len(unknown) > 0 {
+		sort.Strings(unknown)
+		return nil, &UnknownExercisesError{Names: unknown}
+	}
 	sort.SliceStable(rows, func(i, j int) bool {
 		if rows[i].sortOrder != rows[j].sortOrder {
 			return rows[i].sortOrder < rows[j].sortOrder
 		}
 		return rows[i].setNumber < rows[j].setNumber
 	})
+
+	// Step 2: same-day collision.
+	existing, err := GetWorkoutByAthleteDate(ctx, db, athleteID, date)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return nil, fmt.Errorf("models: check existing workout for WOD: %w", err)
+	}
+	replaced := false
+	if err == nil && existing != nil {
+		if !replace {
+			return nil, ErrWODCollision
+		}
+		if derr := DeleteWorkout(ctx, db, existing.ID, athleteID); derr != nil {
+			return nil, fmt.Errorf("models: replace existing workout %d for WOD: %w", existing.ID, derr)
+		}
+		replaced = true
+	}
 
 	// Step 3: create the ad-hoc resistance workout + insert sets.
 	workout, err := CreateWorkout(ctx, db, athleteID, date, "", 0)

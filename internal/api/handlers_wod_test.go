@@ -160,6 +160,52 @@ func TestWODKindIsolation(t *testing.T) {
 	}
 }
 
+// TestWODLog_RejectsUnknownExercises covers the ADR 020 follow-up at the API
+// layer: a WOD whose catalog prescribes an exercise name outside the catalog
+// is rejected with 400 (naming the offender), nothing is auto-created, and
+// the one-shot log claim is released so the coach isn't locked out.
+func TestWODLog_RejectsUnknownExercises(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	seedMethodologiesForTest(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	adult := env.createAthlete(t, "Adult", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	genID := wodSubmitAndWait(t, env, adult.ID, cookies, `{}`)
+
+	// Rewrite the stored catalog with an invented exercise name, as a
+	// hallucinating model would produce.
+	catalog := `{"version":"1.0","type":"catalog","exercises":[],"programs":[{"name":"Ad-hoc WOD","num_weeks":1,"num_days":1,"is_loop":false,"prescribed_sets":[{"exercise":"Quantum Burpee","week":1,"day":1,"set_number":1,"reps":5,"rep_type":"reps","sort_order":1}]}]}`
+	if _, err := env.DB.Exec(`UPDATE generations SET catalog_json = ? WHERE id = ?`, catalog, genID); err != nil {
+		t.Fatalf("rewrite catalog: %v", err)
+	}
+
+	logURL := fmt.Sprintf("/api/athletes/%d/wod/%d/log", adult.ID, genID)
+	rr := env.do(t, "POST", logURL, `{"date":"2026-06-22"}`, cookies)
+	requireStatus(t, rr, http.StatusBadRequest)
+	if !strings.Contains(rr.Body.String(), "Quantum Burpee") {
+		t.Errorf("error should name the unknown exercise; got %s", rr.Body.String())
+	}
+
+	// The invented exercise must not have been auto-created.
+	var created int
+	if err := env.DB.QueryRow(`SELECT COUNT(*) FROM exercises WHERE name = 'Quantum Burpee'`).Scan(&created); err != nil {
+		t.Fatalf("count invented exercise: %v", err)
+	}
+	if created != 0 {
+		t.Error("invented exercise must not be auto-created in the catalog")
+	}
+
+	// The one-shot log claim was released — a retry hits the same 400,
+	// not "already been logged".
+	rr = env.do(t, "POST", logURL, `{"date":"2026-06-22"}`, cookies)
+	requireStatus(t, rr, http.StatusBadRequest)
+	if strings.Contains(rr.Body.String(), "already been logged") {
+		t.Error("log claim was not released after the rejected log")
+	}
+}
+
 func TestWODLog_CollisionThenReplace(t *testing.T) {
 	env := setupTest(t)
 	useMockLLM(t, env)
