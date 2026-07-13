@@ -14,7 +14,8 @@
       "allowed_equipment": [
         "Dumbbells", "Kettlebell", "Resistance Band", "Pull-up Bar",
         "TRX/Suspension Trainer", "Plyo Box", "Medicine Ball",
-        "Stability Ball", "Furniture Sliders"
+        "Stability Ball", "Furniture Sliders", "Flat Bench", "Trap Bar",
+        "Cable Machine"
       ],
       "allowed_patterns": ["push", "pull", "hinge", "squat", "ground"],
       "allowed_exercises": []
@@ -52,7 +53,7 @@
         "Barbell", "Trap Bar", "Power Rack", "Flat Bench", "Adjustable Bench",
         "Dumbbells", "Kettlebell", "Resistance Band", "Pull-up Bar",
         "TRX/Suspension Trainer", "Plyo Box", "Medicine Ball",
-        "Stability Ball", "Furniture Sliders", "Cable Machine"
+        "Stability Ball", "Furniture Sliders", "Cable Machine", "Dip Station"
       ],
       "allowed_patterns": ["push", "pull", "hinge", "squat", "ground", "carry"],
       "allowed_exercises": []
@@ -177,9 +178,10 @@
         "Barbell", "Power Rack", "Dumbbells", "Kettlebell", "Pull-up Bar",
         "TRX/Suspension Trainer", "Plyo Box", "Medicine Ball",
         "Stability Ball", "Furniture Sliders", "Sled", "Battle Rope",
-        "Weight Plate", "Flat Bench"
+        "Weight Plate", "Flat Bench", "Adjustable Bench", "Resistance Band",
+        "Cable Machine"
       ],
-      "allowed_patterns": ["push", "pull", "hinge", "squat", "carry", "ground"],
+      "allowed_patterns": ["push", "pull", "hinge", "squat", "carry", "ground", "conditioning", "mobility"],
       "allowed_exercises": []
     }
   ]

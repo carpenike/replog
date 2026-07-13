@@ -191,32 +191,40 @@ func ListExercises(ctx context.Context, db *sql.DB, tierFilter string) ([]*Exerc
 	return exercises, nil
 }
 
-// MovementPattern enumerates the Dan John fundamental movement patterns
-// used to tag exercises (ADR 016 Phase 1). The set is enforced by a CHECK
-// constraint on exercise_movement_patterns.pattern in migration 0004.
+// MovementPattern enumerates the movement-pattern tags used on exercises:
+// the six Dan John fundamental patterns (ADR 016 Phase 1) plus 'conditioning'
+// (locomotion/energy-system work: sprints, shuffles, battle ropes) and
+// 'mobility' (stretches, cool-down positions) added for #33 so circuit-style
+// methodologies can scope those exercises in. The set is enforced by a CHECK
+// constraint on exercise_movement_patterns.pattern (migration 0004, widened
+// in 0015).
 type MovementPattern = string
 
 const (
-	MovementPatternPush   MovementPattern = "push"
-	MovementPatternPull   MovementPattern = "pull"
-	MovementPatternHinge  MovementPattern = "hinge"
-	MovementPatternSquat  MovementPattern = "squat"
-	MovementPatternCarry  MovementPattern = "carry"
-	MovementPatternGround MovementPattern = "ground"
+	MovementPatternPush         MovementPattern = "push"
+	MovementPatternPull         MovementPattern = "pull"
+	MovementPatternHinge        MovementPattern = "hinge"
+	MovementPatternSquat        MovementPattern = "squat"
+	MovementPatternCarry        MovementPattern = "carry"
+	MovementPatternGround       MovementPattern = "ground"
+	MovementPatternConditioning MovementPattern = "conditioning"
+	MovementPatternMobility     MovementPattern = "mobility"
 )
 
 // validMovementPatterns mirrors the CHECK constraint so callers can validate
 // input before the round-trip to SQLite returns a constraint error.
 var validMovementPatterns = map[string]struct{}{
-	MovementPatternPush:   {},
-	MovementPatternPull:   {},
-	MovementPatternHinge:  {},
-	MovementPatternSquat:  {},
-	MovementPatternCarry:  {},
-	MovementPatternGround: {},
+	MovementPatternPush:         {},
+	MovementPatternPull:         {},
+	MovementPatternHinge:        {},
+	MovementPatternSquat:        {},
+	MovementPatternCarry:        {},
+	MovementPatternGround:       {},
+	MovementPatternConditioning: {},
+	MovementPatternMobility:     {},
 }
 
-// IsValidMovementPattern reports whether s is one of the six Dan John tags.
+// IsValidMovementPattern reports whether s is one of the recognized tags.
 func IsValidMovementPattern(s string) bool {
 	_, ok := validMovementPatterns[s]
 	return ok
@@ -261,7 +269,7 @@ func ListExerciseMovementPatterns(ctx context.Context, db *sql.DB, exerciseID in
 func SetExerciseMovementPatterns(ctx context.Context, db *sql.DB, exerciseID int64, patterns []string) error {
 	for _, p := range patterns {
 		if !IsValidMovementPattern(p) {
-			return fmt.Errorf("models: invalid movement pattern %q (allowed: push, pull, hinge, squat, carry, ground)", p)
+			return fmt.Errorf("models: invalid movement pattern %q (allowed: push, pull, hinge, squat, carry, ground, conditioning, mobility)", p)
 		}
 	}
 

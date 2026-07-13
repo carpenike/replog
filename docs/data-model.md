@@ -1451,15 +1451,19 @@ equipment before building the LLM-facing exercise catalog.
 
 ### `exercise_movement_patterns`
 
-Dan John movement-pattern tags on exercises (push / pull / hinge / squat /
-carry / ground). The same tag set powers the `methodology_allowed_patterns`
-allow-list AND the joint-action / movement-coverage checks the youth
-methodologies already require.
+Movement-pattern tags on exercises: the six Dan John fundamentals (push /
+pull / hinge / squat / carry / ground) plus `conditioning`
+(locomotion/energy-system work: sprints, shuffles, battle ropes) and
+`mobility` (stretches, cool-down positions), added in migration 0015 (#33)
+so circuit-style methodologies can scope those exercises in. The same tag
+set powers the `methodology_allowed_patterns` allow-list AND the
+joint-action / movement-coverage checks the youth methodologies already
+require.
 
 | Column        | Type     | Constraints                                                                                 |
 |---------------|----------|---------------------------------------------------------------------------------------------|
 | `exercise_id` | INTEGER  | NOT NULL, FK → exercises(id) ON DELETE CASCADE                                              |
-| `pattern`     | TEXT     | NOT NULL, CHECK IN ('push', 'pull', 'hinge', 'squat', 'carry', 'ground')                    |
+| `pattern`     | TEXT     | NOT NULL, CHECK IN ('push', 'pull', 'hinge', 'squat', 'carry', 'ground', 'conditioning', 'mobility') |
 
 - Composite PRIMARY KEY `(exercise_id, pattern)` — natural dedup.
 - Index on `pattern` for the reverse lookup (Phase 2 catalog filtering).
@@ -1476,7 +1480,7 @@ Pattern-scoped allow-list — the broad rule. E.g. Yessis 1×20 allows
 | Column           | Type     | Constraints                                                                                 |
 |------------------|----------|---------------------------------------------------------------------------------------------|
 | `methodology_id` | INTEGER  | NOT NULL, FK → methodologies(id) ON DELETE CASCADE                                          |
-| `pattern`        | TEXT     | NOT NULL, CHECK IN ('push', 'pull', 'hinge', 'squat', 'carry', 'ground')                    |
+| `pattern`        | TEXT     | NOT NULL, CHECK IN ('push', 'pull', 'hinge', 'squat', 'carry', 'ground', 'conditioning', 'mobility') |
 
 - Composite PRIMARY KEY `(methodology_id, pattern)`.
 

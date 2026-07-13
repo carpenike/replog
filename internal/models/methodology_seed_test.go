@@ -201,18 +201,18 @@ func TestBackfillExerciseMovementPatterns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("backfill: %v", err)
 	}
-	if result.ExercisesTagged != 3 {
-		t.Errorf("ExercisesTagged = %d, want 3 (Track Sprint is intentionally untagged in seed)", result.ExercisesTagged)
+	if result.ExercisesTagged != 4 {
+		t.Errorf("ExercisesTagged = %d, want 4", result.ExercisesTagged)
 	}
-	if result.PatternsInserted < 3 {
-		t.Errorf("PatternsInserted = %d, want >= 3", result.PatternsInserted)
+	if result.PatternsInserted < 4 {
+		t.Errorf("PatternsInserted = %d, want >= 4", result.PatternsInserted)
 	}
 
-	// Confirm the tags landed.
+	// Confirm the tags landed — including the conditioning tag added for #33.
 	for _, tc := range []struct {
 		name string
 		want string
-	}{{"Squat", "squat"}, {"Bench Press", "push"}, {"Plank", "ground"}} {
+	}{{"Squat", "squat"}, {"Bench Press", "push"}, {"Plank", "ground"}, {"Track Sprint", "conditioning"}} {
 		ex, _ := getExerciseByName(context.Background(), db, tc.name)
 		got, _ := ListExerciseMovementPatterns(context.Background(), db, ex.ID)
 		if len(got) == 0 || got[0] != tc.want {
@@ -228,8 +228,8 @@ func TestBackfillExerciseMovementPatterns(t *testing.T) {
 	if result2.ExercisesTagged != 0 {
 		t.Errorf("second backfill tagged = %d, want 0 (should skip already-tagged)", result2.ExercisesTagged)
 	}
-	if result2.SkippedAlreadyTagged != 3 {
-		t.Errorf("second backfill skipped = %d, want 3", result2.SkippedAlreadyTagged)
+	if result2.SkippedAlreadyTagged != 4 {
+		t.Errorf("second backfill skipped = %d, want 4", result2.SkippedAlreadyTagged)
 	}
 
 	// Manual edits are preserved: tag an exercise differently, re-run, no change.
