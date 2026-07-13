@@ -46,7 +46,12 @@ jobs:
         run: go vet ./...
 
       - name: Test
-        run: go test -count=1 -race -coverprofile=coverage.out ./...
+        # -timeout raises the per-PACKAGE limit from go test's 10m default.
+        # Under -race + coverage on a shared runner the internal/api package
+        # alone runs ~10m (41s locally); main was passing a hair under the
+        # default until PR #44 added tests and tipped it over. 20m is
+        # headroom, not a target — a genuinely hung test still fails the run.
+        run: go test -count=1 -race -timeout 20m -coverprofile=coverage.out ./...
 
   lint:
     name: Lint
