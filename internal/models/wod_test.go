@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/carpenike/replog/internal/importers"
@@ -10,19 +11,14 @@ import (
 
 // wodParsedCatalog builds a single-session ParsedFile (one program, one
 // week/day) the way a generated WOD's CatalogJSON parses, with two
-// prescribed sets — one for an exercise that already exists in the catalog
-// and one for a brand-new exercise the log path must create.
-func wodParsedCatalog(existingName, newName string) *importers.ParsedFile {
+// prescribed sets for the two named exercises.
+func wodParsedCatalog(nameA, nameB string) *importers.ParsedFile {
 	reps2 := 5
 	reps1 := 8
 	w1 := 95.0
 	w2 := 135.0
 	return &importers.ParsedFile{
 		Format: importers.FormatCatalogJSON,
-		Exercises: []importers.ParsedExercise{
-			{Name: existingName},
-			{Name: newName},
-		},
 		Programs: []importers.ParsedProgram{
 			{
 				Template: importers.ParsedProgramTemplate{
@@ -30,8 +26,8 @@ func wodParsedCatalog(existingName, newName string) *importers.ParsedFile {
 					NumWeeks: 1,
 					NumDays:  1,
 					PrescribedSets: []importers.ParsedPrescribedSet{
-						{Exercise: newName, Week: 1, Day: 1, SetNumber: 1, Reps: &reps1, RepType: "reps", AbsoluteWeight: &w1, SortOrder: 1},
-						{Exercise: existingName, Week: 1, Day: 1, SetNumber: 1, Reps: &reps2, RepType: "reps", AbsoluteWeight: &w2, SortOrder: 2},
+						{Exercise: nameB, Week: 1, Day: 1, SetNumber: 1, Reps: &reps1, RepType: "reps", AbsoluteWeight: &w1, SortOrder: 1},
+						{Exercise: nameA, Week: 1, Day: 1, SetNumber: 1, Reps: &reps2, RepType: "reps", AbsoluteWeight: &w2, SortOrder: 2},
 					},
 				},
 			},
@@ -46,8 +42,10 @@ func TestLogWODFromCatalog_SeedsResistanceWorkout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
-	if _, err := CreateExercise(context.Background(), db, "Power Clean", "", "", "", 0); err != nil {
-		t.Fatalf("create exercise: %v", err)
+	for _, name := range []string{"Power Clean", "Battle Rope Wave"} {
+		if _, err := CreateExercise(context.Background(), db, name, "", "", "", 0); err != nil {
+			t.Fatalf("create exercise %q: %v", name, err)
+		}
 	}
 
 	parsed := wodParsedCatalog("Power Clean", "Battle Rope Wave")
@@ -83,10 +81,53 @@ func TestLogWODFromCatalog_SeedsResistanceWorkout(t *testing.T) {
 	if len(page.Workouts) != 1 {
 		t.Fatalf("expected 1 resistance workout in ListWorkouts, got %d", len(page.Workouts))
 	}
+}
 
-	// The missing exercise was created during the log.
-	if _, err := getExerciseByName(context.Background(), db, "Battle Rope Wave"); err != nil {
-		t.Errorf("expected 'Battle Rope Wave' to be created: %v", err)
+// TestLogWODFromCatalog_RejectsUnknownExercises asserts the ADR 020 follow-up
+// behavior: a WOD prescribing exercise names outside the catalog is rejected
+// with *UnknownExercisesError (naming every offender), auto-creates nothing,
+// and — crucially — rejects BEFORE a replace deletes the existing workout.
+func TestLogWODFromCatalog_RejectsUnknownExercises(t *testing.T) {
+	db := testDB(t)
+
+	athlete, err := CreateAthlete(context.Background(), db, "WOD Athlete", "", "", "", "", "", "", sql.NullInt64{}, false)
+	if err != nil {
+		t.Fatalf("create athlete: %v", err)
+	}
+	for _, name := range []string{"Power Clean", "Goblet Squat"} {
+		if _, err := CreateExercise(context.Background(), db, name, "", "", "", 0); err != nil {
+			t.Fatalf("create exercise %q: %v", name, err)
+		}
+	}
+
+	date := "2026-06-20"
+
+	// Log a valid WOD first so the replace path has something to protect.
+	valid := wodParsedCatalog("Power Clean", "Goblet Squat")
+	first, err := LogWODFromCatalog(context.Background(), db, athlete.ID, date, valid, false)
+	if err != nil {
+		t.Fatalf("valid log: %v", err)
+	}
+
+	// Replace with a WOD naming an invented exercise → rejected.
+	bad := wodParsedCatalog("Power Clean", "Quantum Burpee")
+	_, err = LogWODFromCatalog(context.Background(), db, athlete.ID, date, bad, true)
+	var unknownErr *UnknownExercisesError
+	if !errors.As(err, &unknownErr) {
+		t.Fatalf("expected *UnknownExercisesError, got %v", err)
+	}
+	if len(unknownErr.Names) != 1 || unknownErr.Names[0] != "Quantum Burpee" {
+		t.Errorf("unknown names = %v, want [Quantum Burpee]", unknownErr.Names)
+	}
+
+	// The invented exercise was NOT created in the catalog.
+	if _, err := getExerciseByName(context.Background(), db, "Quantum Burpee"); err == nil {
+		t.Error("invented exercise must not be auto-created")
+	}
+
+	// The existing same-day workout survived the failed replace.
+	if _, err := GetWorkoutByID(context.Background(), db, first.WorkoutID); err != nil {
+		t.Errorf("existing workout must survive a rejected replace: %v", err)
 	}
 }
 
@@ -97,8 +138,10 @@ func TestLogWODFromCatalog_CollisionAndReplace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create athlete: %v", err)
 	}
-	if _, err := CreateExercise(context.Background(), db, "Goblet Squat", "", "", "", 0); err != nil {
-		t.Fatalf("create exercise: %v", err)
+	for _, name := range []string{"Goblet Squat", "Sled Push"} {
+		if _, err := CreateExercise(context.Background(), db, name, "", "", "", 0); err != nil {
+			t.Fatalf("create exercise %q: %v", name, err)
+		}
 	}
 
 	date := "2026-06-21"

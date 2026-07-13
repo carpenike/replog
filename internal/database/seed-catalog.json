@@ -2286,6 +2286,9 @@
           "name": "Battle Rope",
           "optional": false
         }
+      ],
+      "movement_patterns": [
+        "conditioning"
       ]
     },
     {
@@ -2425,7 +2428,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "mobility"
+      ]
     },
     {
       "name": "Burpee",
@@ -2447,7 +2453,10 @@
       "demo_url": null,
       "rest_seconds": 120,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "conditioning"
+      ]
     },
     {
       "name": "Side Shuffle",
@@ -2456,7 +2465,10 @@
       "demo_url": null,
       "rest_seconds": 60,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "conditioning"
+      ]
     },
     {
       "name": "Sit-up",
@@ -2477,7 +2489,10 @@
       "demo_url": null,
       "rest_seconds": 30,
       "featured": false,
-      "equipment": []
+      "equipment": [],
+      "movement_patterns": [
+        "mobility"
+      ]
     },
     {
       "name": "Box Jump-Broad Jump",

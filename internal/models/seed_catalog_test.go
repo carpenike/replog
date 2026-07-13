@@ -167,6 +167,8 @@ func TestSeedCatalogImport_MovementPatterns(t *testing.T) {
 		{"Farmer's Carry", []string{"carry"}},
 		{"Plank", []string{"ground"}},
 		{"Trap Bar Deadlift", []string{"hinge", "squat"}},
+		{"Track Sprint", []string{"conditioning"}},
+		{"Hamstring Stretch", []string{"mobility"}},
 	}
 	for _, tc := range cases {
 		ex, err := getExerciseByName(context.Background(), db, tc.name)
@@ -187,14 +189,6 @@ func TestSeedCatalogImport_MovementPatterns(t *testing.T) {
 			if got[i] != p {
 				t.Errorf("%s pattern[%d] = %q, want %q (got=%v)", tc.name, i, got[i], p, got)
 			}
-		}
-	}
-
-	// And confirm an intentionally-untagged exercise has zero tags.
-	if ex, err := getExerciseByName(context.Background(), db, "Track Sprint"); err == nil {
-		got, _ := ListExerciseMovementPatterns(context.Background(), db, ex.ID)
-		if len(got) != 0 {
-			t.Errorf("Track Sprint should be untagged; got %v", got)
 		}
 	}
 

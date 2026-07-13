@@ -100,11 +100,18 @@ engine** but commits to a different artifact.
 - The WOD and program paths now duplicate seeding, completion-notify branching,
   the duplicate-submit guard, and resume. Acceptable for now; converge on shared
   helpers as the WOD matures rather than letting conventions drift.
-- Known follow-ups (deferred deliberately): `sarge-circuit`'s
-  `methodology_allowed_exercises` omits some conditioning/locomotion implements
-  that lack movement-pattern tags (#33); `LogWODFromCatalog` auto-creates missing
-  exercises in the global catalog (should validate at preview and reject unknowns
-  instead); replace+log is not yet atomic (create-before-delete + single tx).
+- Known follow-ups (deferred deliberately): replace+log is not yet atomic
+  (create-before-delete + single tx).
+- ~~`sarge-circuit`'s scope omits conditioning/locomotion implements that lack
+  movement-pattern tags (#33)~~ — **resolved**: migration 0015 widened the
+  pattern vocabulary with `conditioning` and `mobility`, the seed catalog tags
+  the affected exercises, and `TestSeedMethodologyExemplarsInScope` now guards
+  every methodology's exemplars against scope drift.
+- ~~`LogWODFromCatalog` auto-creates missing exercises in the global catalog~~
+  — **resolved**: unknown exercise names now fail the log with a 400 naming
+  the offenders (before any mutation, so a rejected replace never deletes the
+  existing workout); `Generate` additionally runs one bounded lint-repair
+  retry that asks the model to substitute valid catalog exercises.
 
 ### Neutral / won't-fix
 

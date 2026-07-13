@@ -22,7 +22,7 @@ import (
 const wodMethodologyKey = "sarge-circuit"
 
 // wodCoachDirections is the one-session framing preset prepended to any
-// coach-supplied directions. The adult Sarge block in buildSystemPrompt
+// coach-supplied directions. The sarge-circuit methodology definition
 // already encodes the circuit shape; this constrains the engine to emit a
 // single day to vary from the A/B/C exemplars rather than a multi-day block.
 const wodCoachDirections = "Generate exactly ONE training day as a single Sarge Athletics circuit-style WOD. " +
@@ -290,6 +290,18 @@ func (h *Handlers) WODLog(w http.ResponseWriter, r *http.Request) {
 			Error:     "a resistance workout already exists for this date — replace it or cancel",
 			Collision: true,
 		})
+		return
+	}
+	var unknownErr *models.UnknownExercisesError
+	if errors.As(err, &unknownErr) {
+		// Nothing was written — release the claim. The generated WOD names
+		// exercises that don't exist in the catalog (the lint flagged these
+		// in the preview); the coach's recourse is to regenerate, not to let
+		// invented names auto-create catalog rows (ADR 020 follow-up).
+		if rbErr := models.UnmarkGenerationExecuted(r.Context(), h.DB, gen.ID); rbErr != nil {
+			log.Printf("api: roll back WOD log claim %d: %v", gen.ID, rbErr)
+		}
+		WriteError(w, http.StatusBadRequest, "WOD cannot be logged — it prescribes exercises not in the catalog: "+strings.Join(unknownErr.Names, ", ")+". Regenerate the WOD.")
 		return
 	}
 	if err != nil {
