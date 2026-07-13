@@ -3,6 +3,7 @@ package llm
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/carpenike/replog/internal/importers"
@@ -14,6 +15,14 @@ type LintResult struct {
 	// preview. A non-empty list does NOT block the draft — the coach reviews
 	// and edits before anything is committed.
 	Warnings []string
+
+	// UnknownExercises and IncompatibleExercises are the structured name
+	// lists behind the corresponding warnings (sorted, deduplicated). They
+	// drive Generate's bounded lint-repair retry: both classes are fixable
+	// by substituting a valid catalog exercise, unlike the loading-rule
+	// advisories which stay warning-only.
+	UnknownExercises      []string
+	IncompatibleExercises []string
 }
 
 // LintCatalog runs deterministic checks over a generated CatalogJSON against
@@ -76,20 +85,36 @@ func LintCatalog(catalogJSON []byte, ctx *AthleteContext) LintResult {
 		}
 	}
 
-	for name := range unknown {
+	res.UnknownExercises = sortedKeys(unknown)
+	res.IncompatibleExercises = sortedKeys(incompatible)
+
+	for _, name := range res.UnknownExercises {
 		res.Warnings = append(res.Warnings, fmt.Sprintf(
 			"Exercise %q is not in the athlete's catalog — it will be dropped on import. Rename it to an existing exercise or add it first.", name))
 	}
-	for name := range incompatible {
+	for _, name := range res.IncompatibleExercises {
 		res.Warnings = append(res.Warnings, fmt.Sprintf(
 			"Exercise %q requires equipment the athlete does not have (marked incompatible).", name))
 	}
-	for name := range percentageYouth {
+	for _, name := range sortedKeys(percentageYouth) {
 		res.Warnings = append(res.Warnings, fmt.Sprintf(
 			"Exercise %q uses percentage-based loading, which is not appropriate for a foundational/intermediate youth athlete — use absolute weight.", name))
 	}
 
 	return res
+}
+
+// sortedKeys returns the map's keys sorted, for deterministic warning order.
+func sortedKeys(m map[string]bool) []string {
+	if len(m) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // MarshalWarnings serializes lint warnings to a JSON array string for

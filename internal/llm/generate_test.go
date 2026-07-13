@@ -5,7 +5,40 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 )
+
+// scriptedProvider returns queued responses in call order, repeating the
+// last one when the queue runs out. Used to exercise Generate's bounded
+// retry paths, where MockProvider's single fixed response can't distinguish
+// the first attempt from the repair attempt.
+type scriptedProvider struct {
+	responses []string
+	calls     int
+	// prompts records the user prompt of each call so tests can assert on
+	// the repair prompt's content.
+	prompts []string
+}
+
+func (p *scriptedProvider) Name() string { return "Scripted" }
+
+func (p *scriptedProvider) Ping(context.Context) error { return nil }
+
+func (p *scriptedProvider) Generate(_ context.Context, _, userPrompt string, _ Options) (*Response, error) {
+	i := p.calls
+	if i >= len(p.responses) {
+		i = len(p.responses) - 1
+	}
+	p.calls++
+	p.prompts = append(p.prompts, userPrompt)
+	return &Response{
+		Content:    p.responses[i],
+		Model:      "scripted",
+		TokensUsed: 100,
+		Duration:   time.Millisecond,
+		StopReason: "end_turn",
+	}, nil
+}
 
 func TestGenerate_MockProvider(t *testing.T) {
 	db := testDB(t)
@@ -38,6 +71,110 @@ func TestGenerate_MockProvider(t *testing.T) {
 	}
 	if result.RawResponse == "" {
 		t.Error("RawResponse should not be empty")
+	}
+}
+
+// wodSet returns a minimal one-set CatalogJSON prescribing the given exercise.
+func oneSetCatalog(exercise string) string {
+	return `{"version":"1.0","type":"catalog","exercises":[],"programs":[{"name":"P","num_weeks":1,"num_days":1,"is_loop":false,"prescribed_sets":[{"exercise":"` + exercise + `","week":1,"day":1,"set_number":1,"reps":10,"rep_type":"reps","sort_order":1}]}]}`
+}
+
+// TestGenerate_LintRepairRetry_AdoptsCleanerOutput covers the bounded
+// lint-repair pass: the first response invents an exercise, the repair
+// response substitutes a real catalog exercise, and Generate adopts the
+// repaired catalog with no unknown-exercise warnings.
+func TestGenerate_LintRepairRetry_AdoptsCleanerOutput(t *testing.T) {
+	db := testDB(t)
+	seedCatalogForTest(t, db)
+	athleteID := seedAthlete(t, db, "Adult", "", "")
+
+	provider := &scriptedProvider{responses: []string{
+		"<reasoning>ok</reasoning>\n" + oneSetCatalog("Flying Unicorn Press"),
+		oneSetCatalog("Push-up"),
+	}}
+
+	result, err := Generate(context.Background(), db, provider, GenerationRequest{
+		AthleteID: athleteID, ProgramName: "P", NumWeeks: 1, NumDays: 1,
+	})
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if provider.calls != 2 {
+		t.Fatalf("expected 2 provider calls (original + lint repair), got %d", provider.calls)
+	}
+	if !strings.Contains(provider.prompts[1], "Flying Unicorn Press") {
+		t.Errorf("repair prompt should name the invalid exercise; got %q", provider.prompts[1])
+	}
+	if !strings.Contains(string(result.CatalogJSON), "Push-up") {
+		t.Errorf("repaired catalog should have been adopted; got %s", result.CatalogJSON)
+	}
+	for _, w := range result.Warnings {
+		if strings.Contains(w, "Flying Unicorn Press") {
+			t.Errorf("adopted repair should clear the unknown-exercise warning; got %v", result.Warnings)
+		}
+	}
+	if result.Reasoning != "ok" {
+		t.Errorf("original reasoning should be kept; got %q", result.Reasoning)
+	}
+	if result.TokensUsed != 200 {
+		t.Errorf("TokensUsed should include the repair call (200), got %d", result.TokensUsed)
+	}
+}
+
+// TestGenerate_LintRepairRetry_KeepsOriginalWhenNotCleaner confirms the
+// repair is adopted only on strict improvement: when the retry is just as
+// bad, the original catalog and its warnings stand, and no further retries
+// are attempted (bounded at one).
+func TestGenerate_LintRepairRetry_KeepsOriginalWhenNotCleaner(t *testing.T) {
+	db := testDB(t)
+	seedCatalogForTest(t, db)
+	athleteID := seedAthlete(t, db, "Adult", "", "")
+
+	provider := &scriptedProvider{responses: []string{
+		"<reasoning>ok</reasoning>\n" + oneSetCatalog("Flying Unicorn Press"),
+		oneSetCatalog("Quantum Burpee"),
+	}}
+
+	result, err := Generate(context.Background(), db, provider, GenerationRequest{
+		AthleteID: athleteID, ProgramName: "P", NumWeeks: 1, NumDays: 1,
+	})
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if provider.calls != 2 {
+		t.Fatalf("expected exactly 2 provider calls (retry is bounded), got %d", provider.calls)
+	}
+	if !strings.Contains(string(result.CatalogJSON), "Flying Unicorn Press") {
+		t.Errorf("original catalog should stand when the repair isn't cleaner; got %s", result.CatalogJSON)
+	}
+	joined := strings.Join(result.Warnings, " ")
+	if !strings.Contains(joined, "Flying Unicorn Press") {
+		t.Errorf("warnings for the original catalog should stand; got %v", result.Warnings)
+	}
+}
+
+// TestGenerate_NoLintRepairWhenClean confirms a clean first response makes
+// exactly one provider call.
+func TestGenerate_NoLintRepairWhenClean(t *testing.T) {
+	db := testDB(t)
+	seedCatalogForTest(t, db)
+	athleteID := seedAthlete(t, db, "Adult", "", "")
+
+	provider := &scriptedProvider{responses: []string{
+		"<reasoning>ok</reasoning>\n" + oneSetCatalog("Push-up"),
+	}}
+
+	result, err := Generate(context.Background(), db, provider, GenerationRequest{
+		AthleteID: athleteID, ProgramName: "P", NumWeeks: 1, NumDays: 1,
+	})
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if provider.calls != 1 {
+		t.Errorf("clean generation should make exactly 1 provider call, got %d", provider.calls)
+	}
+	if len(result.Warnings) != 0 {
+		t.Errorf("expected no warnings, got %v", result.Warnings)
 	}
 }
 

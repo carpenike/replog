@@ -13,7 +13,7 @@ import (
 // it whenever the system-prompt rules, the CatalogJSON schema, or the context
 // shape change materially, so generation rows can be correlated with the prompt
 // that produced them. Persisted alongside the model on each generation row.
-const PromptVersion = "2026-07-07.1"
+const PromptVersion = "2026-07-13.1"
 
 // Generate orchestrates the full generation pipeline:
 // 1. Build athlete context
@@ -103,7 +103,45 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 	// loading violations to the coach in the preview. Advisory only.
 	var warnings []string
 	if catalogJSON != nil {
-		warnings = LintCatalog(catalogJSON, athleteCtx).Warnings
+		lint := LintCatalog(catalogJSON, athleteCtx)
+
+		// One bounded lint-repair retry, mirroring the parse-repair above:
+		// invented or equipment-incompatible exercises are the common failure
+		// mode when the model copies a reference-program exercise that got
+		// scoped out of the catalog. Both are mechanically fixable by
+		// substitution, so re-prompt once with the offending names and the
+		// previous JSON. The repaired output is adopted only if it lints
+		// strictly better on those two classes; otherwise the original (and
+		// its warnings) stand — the coach remains the backstop either way.
+		if bad := append(append([]string{}, lint.UnknownExercises...), lint.IncompatibleExercises...); len(bad) > 0 {
+			repairPrompt := userPrompt +
+				"\n\n═══════════════════════════════════════════════════════════════\n" +
+				"YOUR PREVIOUS CATALOGJSON USED INVALID EXERCISES\n" +
+				"═══════════════════════════════════════════════════════════════\n\n" +
+				"Previous CatalogJSON:\n" + string(catalogJSON) + "\n\n" +
+				"These exercises are invalid — each is either absent from the exercise " +
+				"catalog in <athlete_context> or marked \"compatible\": false:\n" +
+				strings.Join(bad, ", ") + "\n\n" +
+				"Re-emit the complete CatalogJSON with every invalid exercise replaced " +
+				"by a suitable catalog exercise marked \"compatible\": true, keeping the " +
+				"rest of the program unchanged. Emit ONLY the corrected CatalogJSON — " +
+				"no reasoning, no prose, no markdown fences.\n"
+			if retry, retryErr := provider.Generate(ctx, systemPrompt, repairPrompt, opts); retryErr == nil {
+				// The retry consumed tokens whether or not it is adopted.
+				resp.TokensUsed += retry.TokensUsed
+				if fixed, _ := extractResponse(retry.Content); fixed != nil {
+					if relint := LintCatalog(fixed, athleteCtx); len(relint.UnknownExercises)+len(relint.IncompatibleExercises) < len(bad) {
+						// Keep the original reasoning, adopt the repaired catalog.
+						catalogJSON = fixed
+						lint = relint
+						resp.StopReason = retry.StopReason
+						resp.Content = retry.Content
+					}
+				}
+			}
+		}
+
+		warnings = lint.Warnings
 	}
 
 	return &GenerationResult{
@@ -325,39 +363,6 @@ PERIODIZATION — select based on training history:
 AUTOREGULATION:
 - Include RPE guidance in set notes for main lifts (e.g., "Target RPE 7–8").
 - AMRAP sets (reps: null) are appropriate for final sets in strength blocks.
-
-CIRCUIT-STYLE PROGRAMMING:
-If the reference programs include "Sarge Athletics" templates, the athlete trains
-in a circuit/EMOM format. When generating workouts based on these references:
-
-- Structure: Every session opens with EMOM cleans (5×5 power cleans, one set per
-  minute), followed by 3 circuit "rows" of paired exercises done for multiple rounds.
-- Circuit rows: Each row pairs 2–3 exercises done back-to-back with minimal rest.
-  Complete all exercises in the row, then repeat for the prescribed number of rounds
-  (typically 3–4 rounds per row).
-- Indicate circuit structure via notes: The FIRST set of each row's first exercise
-  should include a note like "Circuit Row 1 — complete row then repeat x4 rounds".
-  EMOM sets should note "EMOM — 1 set every minute on the minute".
-- sort_order: Within a day, EMOM cleans get sort_order 1–5. Each circuit row's
-  exercises are interleaved by round (all rounds of one exercise, then all rounds
-  of the paired exercise), advancing sort_order sequentially.
-- Exercise pairing: Pair opposing movement patterns (push/pull, anterior/posterior)
-  or strength + stability (e.g., squat + plank variation).
-- Rest periods: Minimal rest within a circuit row (transition time only). Rest
-  60–90 seconds between rows. The EMOM format enforces its own rest.
-- Mix implements freely: barbells, dumbbells, kettlebells, bodyweight, medicine
-  balls, TRX, sleds, battle ropes, carries. Variety is a hallmark of this style.
-- Include conditioning elements: battle rope waves, sled work, sprints, burpees,
-  medicine ball slams. These should appear as exercises within circuit rows, not
-  as separate "cardio" blocks.
-- Core work: Integrate core stability (planks, holds, march variations) as paired
-  exercises within circuit rows rather than as a separate core block.
-- Carries and locomotion: farmer's carries, overhead carries, suitcase marches,
-  hover crawls, and similar loaded locomotion work as circuit row exercises.
-- Cool-down: Final circuit row may be lower intensity (stretches, mobility,
-  lighter movements) as a built-in cool-down.
-- Do NOT use percentage-based loading for circuit exercises — use absolute_weight.
-  The high-density format makes percentage-based loading inappropriate.
 
 `)
 	}
