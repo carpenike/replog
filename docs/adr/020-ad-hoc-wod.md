@@ -100,8 +100,10 @@ engine** but commits to a different artifact.
 - The WOD and program paths now duplicate seeding, completion-notify branching,
   the duplicate-submit guard, and resume. Acceptable for now; converge on shared
   helpers as the WOD matures rather than letting conventions drift.
-- Known follow-ups (deferred deliberately): replace+log is not yet atomic
-  (create-before-delete + single tx).
+- ~~Known follow-up: replace+log is not yet atomic~~ — **resolved**: the
+  collision check, replace-delete, workout create, and set inserts now run in
+  a single transaction, so a failed replace can neither destroy the existing
+  workout nor leave an orphan behind (`TestLogWODFromCatalog_ReplaceIsAtomic`).
 - ~~`sarge-circuit`'s scope omits conditioning/locomotion implements that lack
   movement-pattern tags (#33)~~ — **resolved**: migration 0015 widened the
   pattern vocabulary with `conditioning` and `mobility`, the seed catalog tags

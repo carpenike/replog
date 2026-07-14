@@ -49,13 +49,15 @@ type WODLogResult struct {
 //     only to then reject the WOD. Unknown names are rejected rather than
 //     auto-created (ADR 020 follow-up): a hallucinated exercise must not
 //     pollute the shared global catalog.
-//  2. Resolve the same-day collision — if a resistance workout already
-//     exists for the date and replace is false, return ErrWODCollision so
-//     the handler can prompt replace-or-cancel. When replace is true, the
-//     existing resistance workout is deleted (its sets cascade).
-//  3. Create the ad-hoc workout (assignment_id NULL → discipline defaults to
-//     'resistance', which the read-path filters require so the WOD feeds
-//     future BuildAthleteContext) and insert its sets in one transaction.
+//  2. In a SINGLE transaction: resolve the same-day collision (ErrWODCollision
+//     when a resistance workout exists for the date and replace is false;
+//     delete it when replace is true — its sets cascade), create the ad-hoc
+//     workout (assignment_id NULL → discipline defaults to 'resistance',
+//     which the read-path filters require so the WOD feeds future
+//     BuildAthleteContext), and insert its sets. Everything commits or rolls
+//     back together, so a failed replace can neither destroy the existing
+//     workout without producing its replacement nor leave an empty orphan
+//     workout behind (ADR 020 follow-up).
 //
 // The athlete then confirms/edits the seeded sets in the normal workout UI.
 // A WOD has NumDays=1/NumWeeks=1, so all prescribed sets belong to the one
@@ -136,47 +138,58 @@ func LogWODFromCatalog(ctx context.Context, db *sql.DB, athleteID int64, date st
 		return rows[i].setNumber < rows[j].setNumber
 	})
 
-	// Step 2: same-day collision.
-	existing, err := GetWorkoutByAthleteDate(ctx, db, athleteID, date)
-	if err != nil && !errors.Is(err, ErrNotFound) {
-		return nil, fmt.Errorf("models: check existing workout for WOD: %w", err)
+	// Step 2: collision + delete + create + sets, all in one transaction.
+	// Only tx-scoped statements below — the pure-Go SQLite driver pins a
+	// single connection (SetMaxOpenConns(1)), so touching db-level helpers
+	// while the transaction is open would deadlock.
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("models: begin tx for WOD log: %w", err)
 	}
+	defer tx.Rollback()
+
+	// Same-day collision (one resistance session per athlete per day).
 	replaced := false
-	if err == nil && existing != nil {
+	var existingID int64
+	err = tx.QueryRowContext(ctx,
+		`SELECT id FROM workouts WHERE athlete_id = ? AND date = ? AND discipline = 'resistance'`,
+		athleteID, date,
+	).Scan(&existingID)
+	switch {
+	case err == nil:
 		if !replace {
 			return nil, ErrWODCollision
 		}
-		if derr := DeleteWorkout(ctx, db, existing.ID, athleteID); derr != nil {
-			return nil, fmt.Errorf("models: replace existing workout %d for WOD: %w", existing.ID, derr)
+		if _, derr := tx.ExecContext(ctx, `DELETE FROM workouts WHERE id = ?`, existingID); derr != nil {
+			return nil, fmt.Errorf("models: replace existing workout %d for WOD: %w", existingID, derr)
 		}
 		replaced = true
+	case !errors.Is(err, sql.ErrNoRows):
+		return nil, fmt.Errorf("models: check existing workout for WOD: %w", err)
 	}
 
-	// Step 3: create the ad-hoc resistance workout + insert sets.
-	workout, err := CreateWorkout(ctx, db, athleteID, date, "", 0)
-	if err != nil {
+	// Create the ad-hoc resistance workout (assignment_id NULL) + its sets.
+	var workoutID int64
+	if err := tx.QueryRowContext(ctx,
+		`INSERT INTO workouts (athlete_id, date, assignment_id, notes) VALUES (?, ?, NULL, NULL) RETURNING id`,
+		athleteID, date,
+	).Scan(&workoutID); err != nil {
 		return nil, fmt.Errorf("models: create ad-hoc WOD workout: %w", err)
 	}
-
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("models: begin tx for WOD sets: %w", err)
-	}
-	defer tx.Rollback()
 	for _, r := range rows {
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, NULL, ?, 'main', ?)`,
-			workout.ID, r.exerciseID, r.setNumber, r.reps, r.weight, r.repType, r.notes,
+			workoutID, r.exerciseID, r.setNumber, r.reps, r.weight, r.repType, r.notes,
 		); err != nil {
-			return nil, fmt.Errorf("models: insert WOD set for exercise %d in workout %d: %w", r.exerciseID, workout.ID, err)
+			return nil, fmt.Errorf("models: insert WOD set for exercise %d in workout %d: %w", r.exerciseID, workoutID, err)
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("models: commit WOD sets: %w", err)
+		return nil, fmt.Errorf("models: commit WOD log: %w", err)
 	}
 
 	return &WODLogResult{
-		WorkoutID:   workout.ID,
+		WorkoutID:   workoutID,
 		SetsCreated: len(rows),
 		Replaced:    replaced,
 	}, nil

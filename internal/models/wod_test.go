@@ -131,6 +131,57 @@ func TestLogWODFromCatalog_RejectsUnknownExercises(t *testing.T) {
 	}
 }
 
+// TestLogWODFromCatalog_ReplaceIsAtomic covers the ADR 020 atomicity
+// follow-up: when a replace fails mid-way (here: the set insert violates the
+// workout_sets UNIQUE constraint), the whole transaction rolls back — the
+// existing same-day workout survives with its sets, and no orphan
+// replacement workout is left behind.
+func TestLogWODFromCatalog_ReplaceIsAtomic(t *testing.T) {
+	db := testDB(t)
+
+	athlete, err := CreateAthlete(context.Background(), db, "WOD Athlete", "", "", "", "", "", "", sql.NullInt64{}, false)
+	if err != nil {
+		t.Fatalf("create athlete: %v", err)
+	}
+	for _, name := range []string{"Power Clean", "Goblet Squat"} {
+		if _, err := CreateExercise(context.Background(), db, name, "", "", "", 0); err != nil {
+			t.Fatalf("create exercise %q: %v", name, err)
+		}
+	}
+
+	date := "2026-06-20"
+	first, err := LogWODFromCatalog(context.Background(), db, athlete.ID, date, wodParsedCatalog("Power Clean", "Goblet Squat"), false)
+	if err != nil {
+		t.Fatalf("valid log: %v", err)
+	}
+
+	// Both sets name the same exercise with set_number 1 → the second insert
+	// violates UNIQUE(workout_id, exercise_id, set_number) inside the tx.
+	// The names resolve, so this failure happens AFTER the delete+create.
+	bad := wodParsedCatalog("Power Clean", "Power Clean")
+	if _, err := LogWODFromCatalog(context.Background(), db, athlete.ID, date, bad, true); err == nil {
+		t.Fatal("expected the duplicate-set replace to fail")
+	}
+
+	// The original workout survived, sets intact.
+	wk, err := GetWorkoutByID(context.Background(), db, first.WorkoutID)
+	if err != nil {
+		t.Fatalf("original workout must survive a failed replace: %v", err)
+	}
+	if wk.SetCount != first.SetsCreated {
+		t.Errorf("original workout sets = %d, want %d", wk.SetCount, first.SetsCreated)
+	}
+
+	// And no orphan replacement workout exists.
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM workouts WHERE athlete_id = ?`, athlete.ID).Scan(&count); err != nil {
+		t.Fatalf("count workouts: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("workout count after failed replace = %d, want 1 (no orphans)", count)
+	}
+}
+
 func TestLogWODFromCatalog_CollisionAndReplace(t *testing.T) {
 	db := testDB(t)
 
