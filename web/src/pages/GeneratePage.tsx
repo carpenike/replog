@@ -45,6 +45,7 @@ interface ExecuteResult {
 }
 
 const TERMINAL_STATUSES: Generation['status'][] = ['succeeded', 'failed', 'cancelled']
+const GALPIN_METHODOLOGY_KEY = 'galpin-3-to-5'
 
 export function GeneratePage() {
   const navigate = useNavigate()
@@ -89,6 +90,9 @@ export function GeneratePage() {
     queryFn: () => api.getGenerateForm(athleteId) as Promise<GenerateFormData>,
     enabled: !isNaN(athleteId) && step === 'form',
   })
+
+  const selectedMethodology = formData?.available_methodologies?.find(methodology => methodology.id === methodologyId)
+  const isGalpinMethodology = selectedMethodology?.key === GALPIN_METHODOLOGY_KEY
 
   // Apply defaults from form data once.
   const [defaultsApplied, setDefaultsApplied] = useState(false)
@@ -169,7 +173,7 @@ export function GeneratePage() {
       // only emits num_weeks when !is_loop, so anything else would
       // silently desync. (Backend also normalizes the invariant for
       // non-SPA clients; see HOF-007 D3.)
-      const isLoop = schedule === 'loop'
+      const isLoop = isGalpinMethodology || schedule === 'loop'
       const requestBody: Record<string, unknown> = {
         program_name: programName,
         num_days: parseInt(numDays),
@@ -202,6 +206,20 @@ export function GeneratePage() {
       setStep('form')
     },
   })
+
+  function selectMethodology(value: string | null) {
+    const nextID = value ? parseInt(value) : null
+    setMethodologyId(nextID)
+    const next = formData?.available_methodologies?.find(methodology => methodology.id === nextID)
+    if (next?.key === GALPIN_METHODOLOGY_KEY) {
+      setSchedule('loop')
+      setNumWeeks('1')
+      setNumDays(current => {
+        const days = parseInt(current)
+        return days >= 3 && days <= 5 ? current : '3'
+      })
+    }
+  }
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
@@ -268,7 +286,7 @@ export function GeneratePage() {
               </Label>
               <Select
                 value={methodologyId != null ? String(methodologyId) : ''}
-                onValueChange={(val) => setMethodologyId(val ? parseInt(val) : null)}
+                onValueChange={selectMethodology}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder={formData.default_methodology_id == null ? 'Optional — pick a methodology or leave blank' : 'Select a methodology'}>
@@ -302,18 +320,19 @@ export function GeneratePage() {
             <Input id="gen-program-name" type="text" value={programName} onChange={e => setProgramName(e.target.value)} required placeholder="e.g. Ryan — Block 5" />
           </div>
           <div>
-            <Label htmlFor="gen-days">Days/Week</Label>
-            <Input id="gen-days" type="number" inputMode="numeric" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} className="w-24" />
+            <Label htmlFor="gen-days">{isGalpinMethodology ? 'Days/Week (3-5)' : 'Days/Week'}</Label>
+            <Input id="gen-days" type="number" inputMode="numeric" min={isGalpinMethodology ? 3 : 1} max={isGalpinMethodology ? 5 : 7} value={numDays} onChange={e => setNumDays(e.target.value)} className="w-24" />
+            {isGalpinMethodology && <p className="mt-1 text-xs text-muted-foreground">Choose the session frequency deliberately; the coach reviews every generated detail.</p>}
           </div>
           <div>
             <Label>Schedule</Label>
             <RadioGroup
               value={schedule}
-              onValueChange={(val: 'fixed' | 'loop' | null) => { if (val) setSchedule(val) }}
+              onValueChange={(val: 'fixed' | 'loop' | null) => { if (val && (!isGalpinMethodology || val === 'loop')) setSchedule(val) }}
               className="mt-2"
             >
               <Label className="flex items-center gap-2 font-normal">
-                <RadioGroupItem value="fixed" />
+                <RadioGroupItem value="fixed" disabled={isGalpinMethodology} />
                 <span>Fixed block</span>
                 {schedule === 'fixed' && (
                   <span className="flex items-center gap-2 ml-2">
@@ -459,6 +478,7 @@ export function GeneratePage() {
                                   {s.reps != null ? `, ${s.reps} ${s.rep_type || 'reps'}` : ''}
                                   {s.percentage != null ? ` @ ${Math.round(s.percentage * 100)}% TM` : ''}
                                   {s.absolute_weight != null ? ` @ ${s.absolute_weight} lb` : ''}
+                                  {s.rest_seconds != null ? ` · rest ${s.rest_seconds}s` : ''}
                                   {s.notes ? ` (${s.notes})` : ''}
                                 </span>
                               </li>

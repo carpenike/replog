@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestPrescriptionLine_PercentageLabel(t *testing.T) {
@@ -167,6 +168,39 @@ func TestCurrentTrainingMaxes_Empty(t *testing.T) {
 	}
 }
 
+func TestResolveAssignment_WeekdaySchedule(t *testing.T) {
+	db := testDB(t)
+	tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "Scheduled", "", 1, 3, true, "adult")
+	if err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+	athlete, err := CreateAthlete(context.Background(), db, "Scheduled Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	if err != nil {
+		t.Fatalf("create athlete: %v", err)
+	}
+	if _, err := AssignProgram(context.Background(), db, athlete.ID, tmpl.ID, "2026-01-05", "", "", "primary", "[1,3,5]"); err != nil {
+		t.Fatalf("assign scheduled program: %v", err)
+	}
+
+	monday := time.Date(2026, time.January, 5, 12, 0, 0, 0, time.UTC)
+	assignment, err := ResolveAssignment(context.Background(), db, athlete.ID, monday, "UTC")
+	if err != nil {
+		t.Fatalf("resolve Monday: %v", err)
+	}
+	if assignment == nil || assignment.TemplateID != tmpl.ID {
+		t.Fatalf("Monday assignment = %+v, want template %d", assignment, tmpl.ID)
+	}
+
+	tuesday := monday.AddDate(0, 0, 1)
+	assignment, err = ResolveAssignment(context.Background(), db, athlete.ID, tuesday, "UTC")
+	if err != nil {
+		t.Fatalf("resolve Tuesday: %v", err)
+	}
+	if assignment != nil {
+		t.Errorf("Tuesday assignment = %+v, want rest day", assignment)
+	}
+}
+
 func TestGetPrescription_CycleWraparound(t *testing.T) {
 	db := testDB(t)
 
@@ -201,6 +235,7 @@ func TestGetPrescription_CycleWraparound(t *testing.T) {
 	}
 	if rx == nil {
 		t.Fatal("expected non-nil prescription")
+		return
 	}
 	if rx.CycleNumber != 2 {
 		t.Errorf("cycle = %d, want 2", rx.CycleNumber)
@@ -231,6 +266,7 @@ func TestGetPrescription_NoTrainingMax(t *testing.T) {
 	}
 	if rx == nil {
 		t.Fatal("expected non-nil prescription")
+		return
 	}
 	if len(rx.Lines) != 1 {
 		t.Fatalf("lines = %d, want 1", len(rx.Lines))

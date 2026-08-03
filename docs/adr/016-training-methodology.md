@@ -91,8 +91,9 @@ The youth-methodology research (2026-05-27) made a structural point clear:
   Neuromuscular Training (1–3 sets × 6–15 reps, multifaceted: strength +
   plyometrics + balance + agility + coordination, technique before load), as a
   complementary youth option.
-- **Adult (prescriptive):** 5/3/1, 5/3/1 BBB, Greyskull LP, GZCLP, 5×5, Sarge
-  circuit — already seeded as programs; promoted to methodologies.
+- **Adult (prescriptive):** 5/3/1, 5/3/1 BBB, Greyskull LP, GZCLP, 5×5, Galpin
+  3-to-5, Sarge circuit — already seeded as programs or added as an explicit
+  proposal framework; promoted to methodologies.
 - **Frameworks (doctrine, not methodologies):** LTAD, YPD, ASM — cited as the
   evidence base behind the tier definitions and youth-safety floors.
 - **Movement patterns (taxonomy):** push / pull / hinge / squat / loaded-carry /
@@ -155,6 +156,16 @@ Both allow-list surfaces ship in Phase 1 (`methodology_allowed_patterns` +
 `methodology_allowed_exercises`): Yessis 1×20 is cleanly pattern-scoped; 5/3/1
 adds an explicit barbell-mains list; the Sarge circuit is mostly a bespoke
 explicit list.
+
+### 2026-08 Amendment — Galpin 3-to-5
+
+Galpin 3-to-5 is an adult methodology whose prescription is a bounded
+framework rather than a universal exercise split: the coach selects a point in
+the 3-to-5 range for weekly sessions, exercises, work sets, reps, and minutes
+of rest. Generation produces a one-week looping proposal with a per-set
+180-300 second rest override. The deterministic lint surfaces structural
+deviations for review; it neither edits the draft nor applies progression.
+Loading, exercise selection, and any progression rule remain coach decisions.
 
 The `exercise_movement_patterns` tags are seeded by extending the catalog
 importer additively — `importers.ParsedExercise` gains an optional

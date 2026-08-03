@@ -178,6 +178,38 @@ func TestAddPrescribedSet_ExplicitSeconds(t *testing.T) {
 	}
 }
 
+func TestPrescribedSet_RestSecondsRoundTrip(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	tpl := env.createProgramTemplate(t, "Galpin 3-to-5", 1, 3)
+	exercise := env.createExercise(t, "Squat")
+	cookies := env.loginAs(t, coach)
+
+	createBody := fmt.Sprintf(
+		`{"exercise_id":%d,"week":1,"day":1,"set_number":1,"reps":5,"rest_seconds":180}`,
+		exercise.ID)
+	rr := env.do(t, "POST", fmt.Sprintf("/api/programs/%d/sets", tpl.ID), createBody, cookies)
+	requireStatus(t, rr, http.StatusCreated)
+
+	var created PrescribedSet
+	decodeJSON(t, rr, &created)
+	if created.RestSeconds == nil || *created.RestSeconds != 180 {
+		t.Fatalf("rest_seconds = %v, want 180", created.RestSeconds)
+	}
+
+	updateBody := fmt.Sprintf(
+		`{"exercise_id":%d,"set_number":1,"reps":5,"rep_type":"reps","rest_seconds":240}`,
+		exercise.ID)
+	rr = env.do(t, "PUT", fmt.Sprintf("/api/programs/%d/sets/%d", tpl.ID, created.ID), updateBody, cookies)
+	requireStatus(t, rr, http.StatusOK)
+
+	var updated PrescribedSet
+	decodeJSON(t, rr, &updated)
+	if updated.RestSeconds == nil || *updated.RestSeconds != 240 {
+		t.Errorf("updated rest_seconds = %v, want 240", updated.RestSeconds)
+	}
+}
+
 func TestUpdatePrescribedSet_DefaultRepType(t *testing.T) {
 	// Regression: UpdatePrescribedSet had no rep_type default; an empty
 	// string would trip the CHECK constraint. ef4f7b3 added the default.
@@ -365,6 +397,24 @@ func TestAssignProgramToAthlete_Success(t *testing.T) {
 	}
 }
 
+func TestAssignProgramToAthlete_SavesWeekdaySchedule(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	tpl := env.createProgramTemplate(t, "Galpin 3-to-5", 1, 3)
+	cookies := env.loginAs(t, coach)
+
+	body := fmt.Sprintf(`{"template_id":%d,"start_date":"2026-05-12","schedule":"[1,3,5]"}`, tpl.ID)
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/programs", athlete.ID), body, cookies)
+	requireStatus(t, rr, http.StatusCreated)
+
+	var got AthleteProgram
+	decodeJSON(t, rr, &got)
+	if got.Schedule == nil || *got.Schedule != "[1,3,5]" {
+		t.Errorf("schedule = %v, want [1,3,5]", got.Schedule)
+	}
+}
+
 func TestAssignProgramToAthlete_AutoDeactivatesPrior(t *testing.T) {
 	// Per ADR 010 + the handler comment, assigning a program in a role that
 	// already has an active program must auto-deactivate the prior one.
@@ -432,6 +482,47 @@ func TestAssignProgramToAthlete_RequiresFields(t *testing.T) {
 			rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/programs", athlete.ID), tc.body, cookies)
 			requireStatus(t, rr, http.StatusBadRequest)
 		})
+	}
+}
+
+func TestAssignProgramToAthlete_RejectsInvalidSchedule(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	tpl := env.createProgramTemplate(t, "5/3/1", 3, 4)
+	cookies := env.loginAs(t, coach)
+
+	for _, schedule := range []string{"[1,1]", "[0,2]", "[]", "not-json"} {
+		t.Run(schedule, func(t *testing.T) {
+			body := fmt.Sprintf(`{"template_id":%d,"start_date":"2026-05-12","schedule":%q}`, tpl.ID, schedule)
+			rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/programs", athlete.ID), body, cookies)
+			requireStatus(t, rr, http.StatusBadRequest)
+		})
+	}
+}
+
+func TestAssignProgramToAthlete_InvalidReplacementKeepsExistingProgram(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Charlie", coach.ID)
+	first := env.createProgramTemplate(t, "5/3/1", 3, 4)
+	second := env.createProgramTemplate(t, "Galpin 3-to-5", 1, 3)
+	cookies := env.loginAs(t, coach)
+
+	firstBody := fmt.Sprintf(`{"template_id":%d,"start_date":"2026-05-12"}`, first.ID)
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/programs", athlete.ID), firstBody, cookies)
+	requireStatus(t, rr, http.StatusCreated)
+
+	badReplacement := fmt.Sprintf(`{"template_id":%d,"start_date":"2026-05-13","schedule":"[1,1]"}`, second.ID)
+	rr = env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/programs", athlete.ID), badReplacement, cookies)
+	requireStatus(t, rr, http.StatusBadRequest)
+
+	rr = env.do(t, "GET", fmt.Sprintf("/api/athletes/%d/programs", athlete.ID), nil, cookies)
+	requireStatus(t, rr, http.StatusOK)
+	var programs []*AthleteProgram
+	decodeJSON(t, rr, &programs)
+	if len(programs) != 1 || !programs[0].Active || programs[0].TemplateID != first.ID {
+		t.Fatalf("invalid replacement changed active programs: %+v", programs)
 	}
 }
 

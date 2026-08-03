@@ -356,7 +356,8 @@ func TestBuildAthleteContext_ReferencePrograms_WithSets(t *testing.T) {
 	}
 	exID := seedExercise(t, db, "Push-up", "foundational")
 	reps := 20
-	if _, err := models.CreatePrescribedSet(context.Background(), db, tmpl.ID, exID, 1, 1, 1, &reps, nil, nil, 1, "reps", "Form: full ROM"); err != nil {
+	restSeconds := 90
+	if _, err := models.CreatePrescribedSetWithRest(context.Background(), db, tmpl.ID, exID, 1, 1, 1, &reps, nil, nil, &restSeconds, 1, "reps", "Form: full ROM"); err != nil {
 		t.Fatalf("create prescribed set: %v", err)
 	}
 
@@ -382,6 +383,9 @@ func TestBuildAthleteContext_ReferencePrograms_WithSets(t *testing.T) {
 	}
 	if ps.Notes != "Form: full ROM" {
 		t.Errorf("notes = %q, want 'Form: full ROM'", ps.Notes)
+	}
+	if ps.RestSeconds == nil || *ps.RestSeconds != 90 {
+		t.Errorf("rest_seconds = %v, want 90", ps.RestSeconds)
 	}
 }
 

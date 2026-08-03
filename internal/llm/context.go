@@ -253,6 +253,7 @@ type PrescribedSetSummary struct {
 	RepType        string   `json:"rep_type"`
 	Percentage     *float64 `json:"percentage,omitempty"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	RestSeconds    *int     `json:"rest_seconds,omitempty"`
 	SortOrder      int      `json:"sort_order"`
 	Notes          string   `json:"notes,omitempty"`
 }
@@ -1198,6 +1199,10 @@ func templatesToReferenceSummaries(ctx context.Context, db *sql.DB, templates []
 			if ps.AbsoluteWeight.Valid {
 				w := ps.AbsoluteWeight.Float64
 				pss.AbsoluteWeight = &w
+			}
+			if ps.RestSeconds.Valid {
+				rest := int(ps.RestSeconds.Int64)
+				pss.RestSeconds = &rest
 			}
 			if ps.Notes.Valid {
 				pss.Notes = ps.Notes.String

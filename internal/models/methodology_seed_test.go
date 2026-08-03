@@ -70,6 +70,7 @@ func TestMethodologySeed_FullSeedFile(t *testing.T) {
 		{"greyskull-lp", 1, 3, 5},
 		{"gzclp", 1, 3, 5},
 		{"5x5", 0, 3, 3},
+		{"galpin-3-to-5", 0, 5, 8},
 		{"sarge-circuit", 3, 5, 8},
 	}
 	for _, tc := range cases {
@@ -106,7 +107,7 @@ func TestMethodologySeed_FullSeedFile(t *testing.T) {
 	}
 
 	// And the adult ones audience=adult.
-	for _, k := range []string{"531", "531-bbb", "greyskull-lp", "gzclp", "5x5", "sarge-circuit"} {
+	for _, k := range []string{"531", "531-bbb", "greyskull-lp", "gzclp", "5x5", "galpin-3-to-5", "sarge-circuit"} {
 		m, _ := GetMethodologyByKey(context.Background(), db, k)
 		if !m.Audience.Valid || m.Audience.String != MethodologyAudienceAdult {
 			t.Errorf("%s: Audience = %v, want adult", k, m.Audience)

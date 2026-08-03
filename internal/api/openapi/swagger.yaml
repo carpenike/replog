@@ -1074,6 +1074,8 @@ definitions:
         type: string
       reps:
         type: integer
+      rest_seconds:
+        type: integer
       set_number:
         type: integer
       sort_order:
@@ -1099,6 +1101,8 @@ definitions:
         type: string
       reps:
         type: integer
+      rest_seconds:
+        type: integer
       set_number:
         type: integer
     type: object
@@ -1123,6 +1127,9 @@ definitions:
       reps:
         example: 5
         type: integer
+      rest_seconds:
+        example: 180
+        type: integer
       set_number:
         example: 1
         type: integer
@@ -1146,6 +1153,9 @@ definitions:
       rep_type:
         type: string
       reps:
+        type: integer
+      rest_seconds:
+        example: 180
         type: integer
       set_number:
         example: 1
@@ -2064,6 +2074,8 @@ definitions:
         type: string
       reps:
         type: integer
+      rest_seconds:
+        type: integer
       set_number:
         type: integer
       sort_order:
@@ -2080,6 +2092,8 @@ definitions:
       notes:
         type: string
       role:
+        type: string
+      schedule:
         type: string
       start_date:
         type: string

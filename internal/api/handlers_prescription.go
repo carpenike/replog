@@ -24,6 +24,7 @@ type PrescriptionSetResponse struct {
 	Percentage     *float64 `json:"percentage,omitempty"`
 	TargetWeight   *float64 `json:"target_weight,omitempty"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	RestSeconds    *int64   `json:"rest_seconds,omitempty"`
 	RepType        string   `json:"rep_type"`
 	Notes          *string  `json:"notes,omitempty"`
 }
@@ -90,6 +91,7 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 				Percentage:     nullFloat(s.Percentage),
 				TargetWeight:   s.TargetWeight,
 				AbsoluteWeight: nullFloat(s.AbsoluteWeight),
+				RestSeconds:    nullInt(s.RestSeconds),
 				RepType:        s.RepType,
 				Notes:          nullStr(s.Notes),
 			}

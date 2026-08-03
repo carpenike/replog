@@ -9,11 +9,16 @@ import (
 	"time"
 )
 
-// ErrProgramAlreadyActive is returned when assigning a primary program to an athlete who already has one.
-var ErrProgramAlreadyActive = errors.New("athlete already has an active primary program")
-
-// ErrScheduleConflict is returned when a supplemental's schedule overlaps with an existing assignment.
-var ErrScheduleConflict = errors.New("schedule conflicts with an existing active program")
+var (
+	// ErrProgramAlreadyActive is returned when assigning a primary program to an athlete who already has one.
+	ErrProgramAlreadyActive = errors.New("athlete already has an active primary program")
+	// ErrScheduleConflict is returned when a supplemental's schedule overlaps with an existing assignment.
+	ErrScheduleConflict = errors.New("schedule conflicts with an existing active program")
+	// ErrInvalidSchedule is returned for malformed or unusable weekday schedules.
+	ErrInvalidSchedule = errors.New("invalid program schedule")
+	// ErrInvalidProgramRole is returned for values outside the schema's role enum.
+	ErrInvalidProgramRole = errors.New("invalid program role")
+)
 
 // AthleteProgram links an athlete to a program template.
 type AthleteProgram struct {
@@ -50,10 +55,54 @@ func (ap *AthleteProgram) ScheduleDays() []int {
 	return days
 }
 
+// parseScheduleDays validates a JSON array of distinct ISO weekdays.
+func parseScheduleDays(schedule string) ([]int, error) {
+	var days []int
+	if err := json.Unmarshal([]byte(schedule), &days); err != nil {
+		return nil, fmt.Errorf("%w: must be a JSON array of ISO weekdays: %v", ErrInvalidSchedule, err)
+	}
+	if len(days) == 0 {
+		return nil, fmt.Errorf("%w: select at least one weekday or omit schedule", ErrInvalidSchedule)
+	}
+
+	seen := make(map[int]struct{}, len(days))
+	for _, day := range days {
+		if day < 1 || day > 7 {
+			return nil, fmt.Errorf("%w: weekdays must be between 1 (Monday) and 7 (Sunday)", ErrInvalidSchedule)
+		}
+		if _, ok := seen[day]; ok {
+			return nil, fmt.Errorf("%w: weekdays must not repeat", ErrInvalidSchedule)
+		}
+		seen[day] = struct{}{}
+	}
+
+	return days, nil
+}
+
+// validateProgramAssignment validates the role and optional weekday schedule.
+// An omitted schedule leaves a primary program flexible, preserving existing
+// assignment semantics.
+func validateProgramAssignment(role, schedule string) ([]int, error) {
+	if role != "primary" && role != "supplemental" {
+		return nil, fmt.Errorf("%w: must be primary or supplemental", ErrInvalidProgramRole)
+	}
+	if schedule == "" {
+		return nil, nil
+	}
+	return parseScheduleDays(schedule)
+}
+
 // AssignProgram assigns a program template to an athlete.
 // role must be "primary" or "supplemental". schedule is a JSON weekday array (e.g. "[2,4]") or empty.
 // Only one active primary is allowed. Supplemental schedules are validated against existing assignments.
 func AssignProgram(ctx context.Context, db *sql.DB, athleteID, templateID int64, startDate, notes, goal, role, schedule string) (*AthleteProgram, error) {
+	if role == "" {
+		role = "primary"
+	}
+	if _, err := validateProgramAssignment(role, schedule); err != nil {
+		return nil, err
+	}
+
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
@@ -61,9 +110,6 @@ func AssignProgram(ctx context.Context, db *sql.DB, athleteID, templateID int64,
 	var goalVal sql.NullString
 	if goal != "" {
 		goalVal = sql.NullString{String: goal, Valid: true}
-	}
-	if role == "" {
-		role = "primary"
 	}
 	var scheduleVal sql.NullString
 	if schedule != "" {
@@ -95,9 +141,9 @@ func AssignProgram(ctx context.Context, db *sql.DB, athleteID, templateID int64,
 // validateScheduleConflict checks that the proposed schedule doesn't overlap with any
 // existing active assignment. excludeID is an assignment ID to skip (0 to skip none).
 func validateScheduleConflict(ctx context.Context, db *sql.DB, athleteID int64, schedule string, excludeID int64) error {
-	var proposedDays []int
-	if err := json.Unmarshal([]byte(schedule), &proposedDays); err != nil {
-		return fmt.Errorf("models: invalid schedule JSON: %w", err)
+	proposedDays, err := parseScheduleDays(schedule)
+	if err != nil {
+		return err
 	}
 
 	existing, err := ListActiveProgramAssignments(ctx, db, athleteID)
@@ -117,6 +163,108 @@ func validateScheduleConflict(ctx context.Context, db *sql.DB, athleteID int64, 
 				}
 			}
 		}
+	}
+	return nil
+}
+
+// ReplaceProgram atomically deactivates active assignments in the requested
+// role and creates the replacement. Validation runs before the transaction so
+// a malformed request can never strand an athlete without their current plan.
+func ReplaceProgram(ctx context.Context, db *sql.DB, athleteID, templateID int64, startDate, notes, goal, role, schedule string) (*AthleteProgram, error) {
+	if role == "" {
+		role = "primary"
+	}
+	proposedDays, err := validateProgramAssignment(role, schedule)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("models: replace program begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE athlete_programs
+		 SET active = 0, deactivated_at = CURRENT_TIMESTAMP
+		 WHERE athlete_id = ? AND active = 1 AND role = ?`,
+		athleteID, role,
+	); err != nil {
+		return nil, fmt.Errorf("models: deactivate active %s program for athlete %d: %w", role, athleteID, err)
+	}
+
+	if role == "supplemental" && len(proposedDays) > 0 {
+		if err := validateScheduleConflictInTx(ctx, tx, athleteID, proposedDays); err != nil {
+			return nil, err
+		}
+	}
+
+	var notesVal sql.NullString
+	if notes != "" {
+		notesVal = sql.NullString{String: notes, Valid: true}
+	}
+	var goalVal sql.NullString
+	if goal != "" {
+		goalVal = sql.NullString{String: goal, Valid: true}
+	}
+	var scheduleVal sql.NullString
+	if schedule != "" {
+		scheduleVal = sql.NullString{String: schedule, Valid: true}
+	}
+
+	var id int64
+	err = tx.QueryRowContext(ctx,
+		`INSERT INTO athlete_programs (athlete_id, template_id, start_date, role, schedule, notes, goal)
+		 VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		athleteID, templateID, startDate, role, scheduleVal, notesVal, goalVal,
+	).Scan(&id)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrProgramAlreadyActive
+		}
+		return nil, fmt.Errorf("models: replace program for athlete %d: %w", athleteID, err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("models: replace program commit: %w", err)
+	}
+	return GetAthleteProgramByID(ctx, db, id)
+}
+
+func validateScheduleConflictInTx(ctx context.Context, tx *sql.Tx, athleteID int64, proposedDays []int) error {
+	rows, err := tx.QueryContext(ctx,
+		`SELECT schedule
+		 FROM athlete_programs
+		 WHERE athlete_id = ? AND active = 1 AND schedule IS NOT NULL`,
+		athleteID,
+	)
+	if err != nil {
+		return fmt.Errorf("models: list active schedules for athlete %d: %w", athleteID, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var schedule sql.NullString
+		if err := rows.Scan(&schedule); err != nil {
+			return fmt.Errorf("models: scan active schedule: %w", err)
+		}
+		existingDays, err := parseScheduleDays(schedule.String)
+		if err != nil {
+			// Preserve the existing resolver's behavior for legacy malformed
+			// schedules: they do not claim a weekday.
+			continue
+		}
+		for _, existingDay := range existingDays {
+			for _, proposedDay := range proposedDays {
+				if existingDay == proposedDay {
+					return ErrScheduleConflict
+				}
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("models: iterate active schedules: %w", err)
 	}
 	return nil
 }

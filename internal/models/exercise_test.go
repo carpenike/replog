@@ -264,6 +264,7 @@ func TestListFeaturedLifts(t *testing.T) {
 		}
 		if benchLift == nil {
 			t.Fatal("expected bench lift in results")
+			return
 		}
 
 		if !benchLift.BestWeight.Valid || benchLift.BestWeight.Float64 != 245 {

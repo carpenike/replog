@@ -8318,6 +8318,7 @@ export interface components {
             percentage?: number;
             rep_type?: string;
             reps?: number;
+            rest_seconds?: number;
             set_number?: number;
             sort_order?: number;
             target_weight?: number;
@@ -8331,6 +8332,7 @@ export interface components {
             percentage?: number;
             rep_type?: string;
             reps?: number;
+            rest_seconds?: number;
             set_number?: number;
         };
         "api.PrescribedSetRequest": {
@@ -8346,6 +8348,8 @@ export interface components {
             rep_type?: string;
             /** @example 5 */
             reps?: number;
+            /** @example 180 */
+            rest_seconds?: number;
             /** @example 1 */
             set_number?: number;
             sort_order?: number;
@@ -8360,6 +8364,8 @@ export interface components {
             percentage?: number;
             rep_type?: string;
             reps?: number;
+            /** @example 180 */
+            rest_seconds?: number;
             /** @example 1 */
             set_number?: number;
             sort_order?: number;
@@ -8865,6 +8871,7 @@ export interface components {
             percentage?: number;
             rep_type?: string;
             reps?: number;
+            rest_seconds?: number;
             set_number?: number;
             sort_order?: number;
             week?: number;
@@ -8874,6 +8881,7 @@ export interface components {
             goal?: string;
             notes?: string;
             role?: string;
+            schedule?: string;
             start_date?: string;
             template?: components["schemas"]["models.ExportProgramTemplate"];
         };

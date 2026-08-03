@@ -89,6 +89,7 @@ func TestGetCycleSummary_AfterFirstCycle(t *testing.T) {
 	}
 	if summary == nil {
 		t.Fatal("expected non-nil summary after completing a cycle")
+		return
 	}
 
 	if summary.CycleNumber != 1 {
@@ -154,6 +155,7 @@ func TestGetCycleSummary_NoTMSkipsExercise(t *testing.T) {
 	}
 	if summary == nil {
 		t.Fatal("expected non-nil summary")
+		return
 	}
 
 	if len(summary.Suggestions) != 0 {

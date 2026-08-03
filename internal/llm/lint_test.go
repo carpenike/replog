@@ -17,6 +17,16 @@ func youthCtx() *AthleteContext {
 	}
 }
 
+func galpinCtx() *AthleteContext {
+	return &AthleteContext{
+		Athlete:     AthleteProfile{Name: "Adult", WeightUnit: "lbs"},
+		Methodology: &MethodologyProjection{Key: MethodologyKeyGalpinThreeToFive},
+		ExerciseCatalog: []ExerciseEntry{
+			{Name: "Squat", Compatible: true},
+		},
+	}
+}
+
 func TestLintCatalog_FlagsUnknownExercise(t *testing.T) {
 	// "Goblet Squats" (plural) does not resolve against "Goblet Squat".
 	catalog := `{"version":"1.0","type":"catalog","exercises":[],"programs":[{"name":"P","num_weeks":1,"num_days":1,"prescribed_sets":[{"exercise":"Goblet Squats","week":1,"day":1,"set_number":1,"reps":10,"rep_type":"reps"}]}]}`
@@ -46,6 +56,33 @@ func TestLintCatalog_FlagsIncompatibleAndYouthPercentage(t *testing.T) {
 	}
 	if !strings.Contains(joined, "percentage") {
 		t.Errorf("expected youth percentage-loading warning, got %v", res.Warnings)
+	}
+}
+
+func TestLintCatalog_GalpinWarnsForStructuralDrift(t *testing.T) {
+	catalog := `{"version":"1.0","type":"catalog","exercises":[],"programs":[{"name":"Galpin","num_weeks":2,"num_days":2,"is_loop":false,"prescribed_sets":[{"exercise":"Squat","week":1,"day":1,"set_number":1,"reps":2,"rep_type":"reps","rest_seconds":90}],"progression_rules":[{"exercise":"Squat","increment":5}]}]}`
+	res := LintCatalog([]byte(catalog), galpinCtx())
+	joined := strings.Join(res.Warnings, " ")
+	for _, want := range []string{
+		"one-week looping", "3 to 5 days", "has 1 exercises", "has 1 work sets",
+		"3 to 5 reps", "rest_seconds values [90]", "progression rules without",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing Galpin warning %q in %v", want, res.Warnings)
+		}
+	}
+
+	withCoachRequest := LintCatalogWithCoachDirections([]byte(catalog), galpinCtx(), "Include a progression proposal.")
+	if strings.Contains(strings.Join(withCoachRequest.Warnings, " "), "progression rules without") {
+		t.Errorf("explicit coach request should suppress the progression warning: %v", withCoachRequest.Warnings)
+	}
+}
+
+func TestLintCatalog_GalpinWarnsForMultiplePrograms(t *testing.T) {
+	catalog := `{"version":"1.0","type":"catalog","exercises":[],"programs":[{"name":"A","num_weeks":1,"num_days":3,"is_loop":true},{"name":"B","num_weeks":1,"num_days":3,"is_loop":true}]}`
+	res := LintCatalog([]byte(catalog), galpinCtx())
+	if !strings.Contains(strings.Join(res.Warnings, " "), "contains 2 program templates") {
+		t.Errorf("expected multiple-program Galpin warning, got %v", res.Warnings)
 	}
 }
 

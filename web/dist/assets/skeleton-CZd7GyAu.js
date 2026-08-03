@@ -1,1 +1,0 @@
-import{s as e}from"./vendor-query-CY67vr7o.js";import{y as t}from"./index-DahxOdGr.js";var n=e();function r({className:e,...r}){return(0,n.jsx)(`div`,{"data-slot":`skeleton`,className:t(`animate-pulse rounded-md bg-muted`,e),...r})}export{r as t};

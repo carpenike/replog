@@ -8,6 +8,7 @@ export interface PrescribedSetPreview {
   rep_type?: string
   percentage?: number
   absolute_weight?: number
+  rest_seconds?: number
   notes?: string
 }
 

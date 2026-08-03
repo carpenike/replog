@@ -229,6 +229,7 @@ type PrescribedSetRequest struct {
 	Reps           *int     `json:"reps,omitempty" example:"5"`
 	Percentage     *float64 `json:"percentage,omitempty" example:"0.65"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	RestSeconds    *int     `json:"rest_seconds,omitempty" example:"180"`
 	SortOrder      int      `json:"sort_order,omitempty"`
 	RepType        string   `json:"rep_type,omitempty" example:"reps"`
 	Notes          string   `json:"notes,omitempty"`
@@ -241,6 +242,7 @@ type PrescribedSetUpdateRequest struct {
 	Reps           *int     `json:"reps,omitempty"`
 	Percentage     *float64 `json:"percentage,omitempty"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	RestSeconds    *int     `json:"rest_seconds,omitempty" example:"180"`
 	SortOrder      int      `json:"sort_order,omitempty"`
 	RepType        string   `json:"rep_type,omitempty"`
 	Notes          string   `json:"notes,omitempty"`

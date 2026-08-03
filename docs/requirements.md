@@ -73,7 +73,7 @@
 
 ## v1.1 — Nice-to-Have
 
-- [x] Rest timer between sets (configurable per exercise or global)
+- [x] Rest timer between sets (exercise default with optional per-prescribed-set override)
 - [x] Weekly completion streaks (did the athlete complete all assigned exercises?)
 - [x] Exercise demo video links (URL field on exercise)
 - [x] Printable workout cards (HTML print stylesheet)
@@ -98,6 +98,8 @@
 - [x] **Workout reviews** — coaches can leave post-workout review notes; pending reviews queue
 - [x] **Cycle review & TM bumps** — cycle summary reports with coach-driven training max progression decisions
 - [x] **Progression rules** — per-exercise TM increment rules on program templates
+- [x] **Program-day schedules** — coaches can choose ISO weekdays when assigning a program; unselected days resolve as rest days
+- [x] **Galpin 3-to-5 adult strength workflow** — coach-selected methodology drafts a one-week looping program within the 3-to-5 frequency, exercise, set, rep, and rest envelope; every draft remains coach-reviewed and explicitly assigned
 - [x] **User preferences** — configurable weight unit (lbs/kg), timezone, and date display format
 - [x] **Exercise history charts** — visual progress tracking via SVG charts
 

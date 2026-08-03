@@ -169,11 +169,15 @@ func (h *Handlers) AddPrescribedSet(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, "exercise_id is required")
 		return
 	}
+	if req.RestSeconds != nil && *req.RestSeconds < 0 {
+		WriteValidationError(w, "rest_seconds", "must be zero or greater")
+		return
+	}
 	if req.RepType == "" {
 		req.RepType = "reps"
 	}
 
-	set, err := models.CreatePrescribedSet(r.Context(), h.DB, templateID, req.ExerciseID, req.Week, req.Day, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.SortOrder, req.RepType, req.Notes)
+	set, err := models.CreatePrescribedSetWithRest(r.Context(), h.DB, templateID, req.ExerciseID, req.Week, req.Day, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes)
 	if err != nil {
 		log.Printf("api: add prescribed set to template %d: %v", templateID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to add set")
@@ -218,8 +222,12 @@ func (h *Handlers) UpdatePrescribedSet(w http.ResponseWriter, r *http.Request) {
 	if req.RepType == "" {
 		req.RepType = "reps"
 	}
+	if req.RestSeconds != nil && *req.RestSeconds < 0 {
+		WriteValidationError(w, "rest_seconds", "must be zero or greater")
+		return
+	}
 
-	set, err := models.UpdatePrescribedSet(r.Context(), h.DB, setID, req.ExerciseID, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.SortOrder, req.RepType, req.Notes)
+	set, err := models.UpdatePrescribedSet(r.Context(), h.DB, setID, req.ExerciseID, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "set not found")
 		return

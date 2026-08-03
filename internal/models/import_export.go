@@ -61,6 +61,7 @@ type ExportPrescribedSet struct {
 	RepType        string   `json:"rep_type"`
 	Percentage     *float64 `json:"percentage"`
 	AbsoluteWeight *float64 `json:"absolute_weight"`
+	RestSeconds    *int     `json:"rest_seconds"`
 	SortOrder      int      `json:"sort_order"`
 	Notes          *string  `json:"notes"`
 }
@@ -181,6 +182,10 @@ func BuildCatalogExportJSON(ctx context.Context, db *sql.DB) (*CatalogJSON, erro
 			if ps.AbsoluteWeight.Valid {
 				w := ps.AbsoluteWeight.Float64
 				eps.AbsoluteWeight = &w
+			}
+			if ps.RestSeconds.Valid {
+				rest := int(ps.RestSeconds.Int64)
+				eps.RestSeconds = &rest
 			}
 			eps.Notes = nullStringPtr(ps.Notes)
 			ept.PrescribedSets = append(ept.PrescribedSets, eps)

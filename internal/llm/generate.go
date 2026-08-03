@@ -13,7 +13,7 @@ import (
 // it whenever the system-prompt rules, the CatalogJSON schema, or the context
 // shape change materially, so generation rows can be correlated with the prompt
 // that produced them. Persisted alongside the model on each generation row.
-const PromptVersion = "2026-07-13.1"
+const PromptVersion = "2026-08-03.1"
 
 // Generate orchestrates the full generation pipeline:
 // 1. Build athlete context
@@ -103,7 +103,7 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 	// loading violations to the coach in the preview. Advisory only.
 	var warnings []string
 	if catalogJSON != nil {
-		lint := LintCatalog(catalogJSON, athleteCtx)
+		lint := LintCatalogWithCoachDirections(catalogJSON, athleteCtx, req.CoachDirections)
 
 		// One bounded lint-repair retry, mirroring the parse-repair above:
 		// invented or equipment-incompatible exercises are the common failure
@@ -130,7 +130,7 @@ func Generate(ctx context.Context, db *sql.DB, provider Provider, req Generation
 				// The retry consumed tokens whether or not it is adopted.
 				resp.TokensUsed += retry.TokensUsed
 				if fixed, _ := extractResponse(retry.Content); fixed != nil {
-					if relint := LintCatalog(fixed, athleteCtx); len(relint.UnknownExercises)+len(relint.IncompatibleExercises) < len(bad) {
+					if relint := LintCatalogWithCoachDirections(fixed, athleteCtx, req.CoachDirections); len(relint.UnknownExercises)+len(relint.IncompatibleExercises) < len(bad) {
 						// Keep the original reasoning, adopt the repaired catalog.
 						catalogJSON = fixed
 						lint = relint
@@ -391,6 +391,7 @@ CATALOGJSON SCHEMA
           "reps": 5,
           "rep_type": "reps",
           "percentage": 0.75,
+	  "rest_seconds": 180,
           "sort_order": 1,
           "notes": "Optional set notes (RPE targets, form cues, tempo, etc.)"
         }
@@ -408,6 +409,8 @@ FIELD DETAILS:
 - "absolute_weight": use instead of percentage for bodyweight, fixed-weight, or
   exercises without a training max. Value is in the athlete's unit — see
   athlete.weight_unit in the context. Do not mix units.
+- "rest_seconds": optional per-set rest-timer override. Omit it to use the
+	exercise catalog default.
 - "sort_order": controls exercise display order within a day (lower = earlier).
   Main lifts get 1–3, accessories get 4–6, conditioning/finishers get 7+.
 - Each set is ONE row — 3×5 means three entries with set_number 1, 2, 3.

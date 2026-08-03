@@ -22,6 +22,7 @@ interface PrescribedSetData {
   reps: number | null
   percentage: number | null
   absolute_weight: number | null
+  rest_seconds: number | null
   rep_type: string
   notes: string | null
 }
@@ -31,6 +32,7 @@ function formatSetInfo(s: PrescribedSetData): string {
   else parts.push('AMRAP')
   if (s.percentage) parts.push(`@ ${s.percentage}%`)
   else if (s.absolute_weight) parts.push(`@ ${s.absolute_weight}`)
+  if (s.rest_seconds != null) parts.push(`${s.rest_seconds}s rest`)
   return parts.join(' ')
 }
 export function ProgramDetail() {
@@ -47,6 +49,7 @@ export function ProgramDetail() {
   const [setReps, setSetReps] = useState('')
   const [setPercent, setSetPercent] = useState('')
   const [setAbsWeight, setSetAbsWeight] = useState('')
+  const [setRestSeconds, setSetRestSeconds] = useState('')
   const [showAddRule, setShowAddRule] = useState(false)
   const [ruleExId, setRuleExId] = useState('')
   const [ruleIncrement, setRuleIncrement] = useState('')
@@ -56,6 +59,7 @@ export function ProgramDetail() {
   const [editReps, setEditReps] = useState('')
   const [editPercent, setEditPercent] = useState('')
   const [editAbsWeight, setEditAbsWeight] = useState('')
+  const [editRestSeconds, setEditRestSeconds] = useState('')
   const [editNotes, setEditNotes] = useState('')
   const { data, isLoading, error } = useQuery({
     queryKey: ['program', programId],
@@ -88,12 +92,14 @@ export function ProgramDetail() {
       reps: setReps ? parseInt(setReps) : null,
       percentage: setPercent ? parseFloat(setPercent) : null,
       absolute_weight: setAbsWeight ? parseFloat(setAbsWeight) : null,
+      rest_seconds: setRestSeconds ? parseInt(setRestSeconds) : null,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['program', programId] })
       setSetReps('')
       setSetPercent('')
       setSetAbsWeight('')
+      setSetRestSeconds('')
     },
   })
   const deleteSetMutation = useMutation({
@@ -105,12 +111,14 @@ export function ProgramDetail() {
       const reps = editReps ? parseInt(editReps) : null
       const percentage = editPercent ? parseFloat(editPercent) : null
       const absolute_weight = editAbsWeight ? parseFloat(editAbsWeight) : null
+      const rest_seconds = editRestSeconds ? parseInt(editRestSeconds) : null
       return api.updatePrescribedSet(programId, vars.setId, {
         exercise_id: vars.data.exercise_id,
         set_number: vars.data.set_number,
         reps,
         percentage,
         absolute_weight,
+        rest_seconds,
         rep_type: vars.data.rep_type,
         notes: editNotes,
       })
@@ -127,6 +135,7 @@ export function ProgramDetail() {
     setEditReps(s.reps == null ? '' : String(s.reps))
     setEditPercent(s.percentage == null ? '' : String(s.percentage))
     setEditAbsWeight(s.absolute_weight == null ? '' : String(s.absolute_weight))
+    setEditRestSeconds(s.rest_seconds == null ? '' : String(s.rest_seconds))
     setEditNotes(s.notes ?? '')
   }
   const addRuleMutation = useMutation({
@@ -226,7 +235,7 @@ export function ProgramDetail() {
                               if (editing && editingSetId === s.id) {
                                 return (
                                   <div key={s.id} className="rounded-md border border-border bg-background p-2 my-1 space-y-2">
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                                       <div>
                                         <Label className="text-xs">Reps</Label>
                                         <Input type="number" min={1} value={editReps} onChange={e => setEditReps(e.target.value)} placeholder="AMRAP" />
@@ -238,6 +247,10 @@ export function ProgramDetail() {
                                       <div>
                                         <Label className="text-xs">Weight</Label>
                                         <Input type="number" step="0.5" value={editAbsWeight} onChange={e => setEditAbsWeight(e.target.value)} />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs">Rest (sec)</Label>
+                                        <Input type="number" min={0} value={editRestSeconds} onChange={e => setEditRestSeconds(e.target.value)} />
                                       </div>
                                     </div>
                                     <div>
@@ -337,6 +350,10 @@ export function ProgramDetail() {
               <div>
                 <Label >Abs. Weight</Label>
                 <Input type="number" step="0.5" value={setAbsWeight} onChange={e => setSetAbsWeight(e.target.value)} />
+              </div>
+              <div>
+                <Label >Rest (sec)</Label>
+                <Input type="number" min={0} value={setRestSeconds} onChange={e => setSetRestSeconds(e.target.value)} />
               </div>
             </div>
             <div className="flex gap-2">

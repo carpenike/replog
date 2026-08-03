@@ -120,6 +120,7 @@ type ExportProgramAssignment struct {
 	StartDate string                `json:"start_date"`
 	Active    bool                  `json:"active"`
 	Role      string                `json:"role"`
+	Schedule  *string               `json:"schedule,omitempty"`
 	Notes     *string               `json:"notes"`
 	Goal      *string               `json:"goal"`
 }
@@ -410,6 +411,10 @@ func BuildAthleteExportJSON(ctx context.Context, db *sql.DB, athleteID int64) (*
 				w := ps.AbsoluteWeight.Float64
 				eps.AbsoluteWeight = &w
 			}
+			if ps.RestSeconds.Valid {
+				rest := int(ps.RestSeconds.Int64)
+				eps.RestSeconds = &rest
+			}
 			tmpl.PrescribedSets = append(tmpl.PrescribedSets, eps)
 		}
 
@@ -429,6 +434,7 @@ func BuildAthleteExportJSON(ctx context.Context, db *sql.DB, athleteID int64) (*
 			StartDate: ap.StartDate,
 			Active:    ap.Active,
 			Role:      ap.Role,
+			Schedule:  nullStringPtr(ap.Schedule),
 			Notes:     nullStringPtr(ap.Notes),
 			Goal:      nullStringPtr(ap.Goal),
 		})

@@ -197,6 +197,7 @@ func TestLatestBodyWeight(t *testing.T) {
 		}
 		if bw == nil {
 			t.Fatal("expected non-nil body weight")
+			return
 		}
 		if !strings.HasPrefix(bw.Date, "2026-02-03") {
 			t.Errorf("date = %s, want prefix 2026-02-03", bw.Date)

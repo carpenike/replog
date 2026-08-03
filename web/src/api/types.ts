@@ -362,6 +362,7 @@ export interface PrescriptionSetData {
   percentage?: number | null;
   target_weight?: number | null;
   absolute_weight?: number | null;
+  rest_seconds?: number | null;
   rep_type: string;
   notes?: string | null;
 }

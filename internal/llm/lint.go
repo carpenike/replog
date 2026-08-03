@@ -9,6 +9,10 @@ import (
 	"github.com/carpenike/replog/internal/importers"
 )
 
+// MethodologyKeyGalpinThreeToFive identifies the coach-selected adult
+// strength framework whose output envelope receives advisory structural lint.
+const MethodologyKeyGalpinThreeToFive = "galpin-3-to-5"
+
 // LintResult holds the outcome of the deterministic post-generation lint.
 type LintResult struct {
 	// Warnings are human-readable advisories surfaced to the coach in the
@@ -36,6 +40,16 @@ type LintResult struct {
 // backstop, and a false positive must never block a legitimate draft. The
 // caller persists Warnings on the generation row for display in the preview.
 func LintCatalog(catalogJSON []byte, ctx *AthleteContext) LintResult {
+	return lintCatalog(catalogJSON, ctx, false)
+}
+
+// LintCatalogWithCoachDirections extends LintCatalog with the coach's stated
+// intent. Galpin permits a progression rule only when the coach asks for one.
+func LintCatalogWithCoachDirections(catalogJSON []byte, ctx *AthleteContext, coachDirections string) LintResult {
+	return lintCatalog(catalogJSON, ctx, coachDirectionsRequestProgression(coachDirections))
+}
+
+func lintCatalog(catalogJSON []byte, ctx *AthleteContext, progressionRequested bool) LintResult {
 	var res LintResult
 	if ctx == nil {
 		return res
@@ -100,8 +114,111 @@ func LintCatalog(catalogJSON []byte, ctx *AthleteContext) LintResult {
 		res.Warnings = append(res.Warnings, fmt.Sprintf(
 			"Exercise %q uses percentage-based loading, which is not appropriate for a foundational/intermediate youth athlete — use absolute weight.", name))
 	}
+	if ctx.Methodology != nil && ctx.Methodology.Key == MethodologyKeyGalpinThreeToFive {
+		res.Warnings = append(res.Warnings, lintGalpinThreeToFive(parsed, progressionRequested)...)
+	}
 
 	return res
+}
+
+func lintGalpinThreeToFive(parsed *importers.ParsedFile, progressionRequested bool) []string {
+	if len(parsed.Programs) == 0 {
+		return []string{"Galpin 3-to-5: the draft must contain one looping program template."}
+	}
+
+	var warnings []string
+	if len(parsed.Programs) != 1 {
+		warnings = append(warnings, fmt.Sprintf("Galpin 3-to-5: the draft contains %d program templates; use one looping program template.", len(parsed.Programs)))
+	}
+	for _, program := range parsed.Programs {
+		template := program.Template
+		name := template.Name
+		if name == "" {
+			name = "generated program"
+		}
+		prefix := fmt.Sprintf("Galpin 3-to-5 %q:", name)
+
+		if !template.IsLoop || template.NumWeeks != 1 {
+			warnings = append(warnings, prefix+" use a one-week looping template.")
+		}
+		if template.NumDays < 3 || template.NumDays > 5 {
+			warnings = append(warnings, prefix+" program 3 to 5 days per week.")
+		}
+
+		setsByDay := make(map[int]map[string]int)
+		invalidDay := false
+		invalidReps := false
+		missingRest := false
+		invalidRest := make(map[int]struct{})
+		for _, set := range template.PrescribedSets {
+			if set.Day < 1 || set.Day > template.NumDays {
+				invalidDay = true
+			}
+			exercise := normalizeName(set.Exercise)
+			if exercise == "" {
+				exercise = "(unnamed exercise)"
+			}
+			if setsByDay[set.Day] == nil {
+				setsByDay[set.Day] = make(map[string]int)
+			}
+			setsByDay[set.Day][exercise]++
+
+			if set.Reps == nil || *set.Reps < 3 || *set.Reps > 5 {
+				invalidReps = true
+			}
+			if set.RestSeconds == nil {
+				missingRest = true
+			} else if *set.RestSeconds < 180 || *set.RestSeconds > 300 {
+				invalidRest[*set.RestSeconds] = struct{}{}
+			}
+		}
+
+		if invalidDay {
+			warnings = append(warnings, prefix+" keep prescribed sets within the template's declared training days.")
+		}
+		for day := 1; day <= template.NumDays; day++ {
+			exercises := setsByDay[day]
+			if len(exercises) < 3 || len(exercises) > 5 {
+				warnings = append(warnings, fmt.Sprintf("%s day %d has %d exercises; use 3 to 5.", prefix, day, len(exercises)))
+			}
+			names := make([]string, 0, len(exercises))
+			for exercise := range exercises {
+				names = append(names, exercise)
+			}
+			sort.Strings(names)
+			for _, exercise := range names {
+				if count := exercises[exercise]; count < 3 || count > 5 {
+					warnings = append(warnings, fmt.Sprintf("%s day %d %s has %d work sets; use 3 to 5.", prefix, day, exercise, count))
+				}
+			}
+		}
+		if invalidReps {
+			warnings = append(warnings, prefix+" use 3 to 5 reps for every work set; AMRAP rows do not fit this framework.")
+		}
+		if missingRest {
+			warnings = append(warnings, prefix+" set rest_seconds on every work set to 180 through 300 seconds.")
+		}
+		if len(invalidRest) > 0 {
+			values := make([]int, 0, len(invalidRest))
+			for value := range invalidRest {
+				values = append(values, value)
+			}
+			sort.Ints(values)
+			warnings = append(warnings, fmt.Sprintf("%s rest_seconds values %v are outside the 180 through 300 second range.", prefix, values))
+		}
+		if len(template.ProgressionRules) > 0 && !progressionRequested {
+			warnings = append(warnings, prefix+" includes progression rules without an explicit coach request; review or remove them.")
+		}
+	}
+
+	return warnings
+}
+
+func coachDirectionsRequestProgression(directions string) bool {
+	directions = strings.ToLower(directions)
+	return strings.Contains(directions, "progression") ||
+		strings.Contains(directions, "increase load") ||
+		strings.Contains(directions, "add weight")
 }
 
 // sortedKeys returns the map's keys sorted, for deterministic warning order.

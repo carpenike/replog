@@ -450,11 +450,11 @@ class ApiClient {
   }
 
   // Prescribed Sets
-  async addPrescribedSet(programId: number, data: { exercise_id: number; week: number; day: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
+  async addPrescribedSet(programId: number, data: { exercise_id: number; week: number; day: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
     await this.request(`/api/programs/${programId}/sets`, { method: 'POST', body: JSON.stringify(data) });
   }
 
-  async updatePrescribedSet(programId: number, setId: number, data: { exercise_id: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
+  async updatePrescribedSet(programId: number, setId: number, data: { exercise_id: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
     await this.request(`/api/programs/${programId}/sets/${setId}`, { method: 'PUT', body: JSON.stringify(data) });
   }
 

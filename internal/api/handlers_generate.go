@@ -164,6 +164,7 @@ type PrescribedSetPreview struct {
 	RepType        string   `json:"rep_type,omitempty"`
 	Percentage     *float64 `json:"percentage,omitempty"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	RestSeconds    *int     `json:"rest_seconds,omitempty"`
 	Notes          string   `json:"notes,omitempty"`
 }
 
@@ -435,6 +436,43 @@ func (h *Handlers) GenerateSubmit(w http.ResponseWriter, r *http.Request) {
 	if req.ProgramName == "" || req.NumDays < 1 || req.NumWeeks < 1 {
 		WriteError(w, http.StatusBadRequest, "program_name, num_days, and num_weeks are required")
 		return
+	}
+
+	if req.MethodologyID != nil {
+		methodology, err := models.GetMethodologyByID(r.Context(), h.DB, *req.MethodologyID)
+		if errors.Is(err, models.ErrNotFound) {
+			WriteValidationError(w, "methodology_id", "must identify an available methodology")
+			return
+		}
+		if err != nil {
+			log.Printf("api: get methodology %d: %v", *req.MethodologyID, err)
+			WriteError(w, http.StatusInternalServerError, "failed to validate methodology")
+			return
+		}
+		if methodology.Key == llm.MethodologyKeyGalpinThreeToFive {
+			athlete, err := models.GetAthleteByID(r.Context(), h.DB, athleteID)
+			if err != nil {
+				log.Printf("api: get athlete %d for Galpin validation: %v", athleteID, err)
+				WriteError(w, http.StatusInternalServerError, "failed to validate athlete")
+				return
+			}
+			if athlete.Tier.Valid {
+				WriteValidationError(w, "methodology_id", "Galpin 3-to-5 is available only to adult athletes")
+				return
+			}
+			if !req.IsLoop {
+				WriteValidationError(w, "is_loop", "Galpin 3-to-5 uses a one-week looping template")
+				return
+			}
+			if req.NumWeeks != 1 {
+				WriteValidationError(w, "num_weeks", "Galpin 3-to-5 uses exactly one week before looping")
+				return
+			}
+			if req.NumDays < 3 || req.NumDays > 5 {
+				WriteValidationError(w, "num_days", "Galpin 3-to-5 requires 3 to 5 days per week")
+				return
+			}
+		}
 	}
 
 	// Normalize-on-write: a looping program is semantically one week's
@@ -962,6 +1000,7 @@ func buildGenerationPreview(parsed *importers.ParsedFile) *GenerationPreview {
 						RepType:        ps.RepType,
 						Percentage:     ps.Percentage,
 						AbsoluteWeight: ps.AbsoluteWeight,
+						RestSeconds:    ps.RestSeconds,
 					}
 					if ps.Notes != nil {
 						sp.Notes = *ps.Notes

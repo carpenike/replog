@@ -356,6 +356,7 @@ func TestSeedSetsFromPrescription(t *testing.T) {
 	}
 	if squatSet == nil || chinSet == nil {
 		t.Fatal("missing seeded sets")
+		return
 	}
 	// Weighted set keeps reps + target weight.
 	if squatSet.Reps != 15 {

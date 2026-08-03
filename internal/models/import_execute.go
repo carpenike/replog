@@ -614,6 +614,10 @@ func insertPrescribedSet(ctx context.Context, tx *sql.Tx, templateID, exerciseID
 	if ps.AbsoluteWeight != nil {
 		absWeightVal = sql.NullFloat64{Float64: *ps.AbsoluteWeight, Valid: true}
 	}
+	var restSecondsVal sql.NullInt64
+	if ps.RestSeconds != nil {
+		restSecondsVal = sql.NullInt64{Int64: int64(*ps.RestSeconds), Valid: true}
+	}
 	var notesVal sql.NullString
 	if ps.Notes != nil && *ps.Notes != "" {
 		notesVal = sql.NullString{String: *ps.Notes, Valid: true}
@@ -623,8 +627,8 @@ func insertPrescribedSet(ctx context.Context, tx *sql.Tx, templateID, exerciseID
 		repType = "reps"
 	}
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, sort_order, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		templateID, exerciseID, ps.Week, ps.Day, ps.SetNumber, repsVal, pctVal, absWeightVal, ps.SortOrder, repType, notesVal,
+		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, rest_seconds, sort_order, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		templateID, exerciseID, ps.Week, ps.Day, ps.SetNumber, repsVal, pctVal, absWeightVal, restSecondsVal, ps.SortOrder, repType, notesVal,
 	)
 	return err
 }
@@ -638,6 +642,12 @@ func insertProgressionRule(ctx context.Context, tx *sql.Tx, templateID, exercise
 }
 
 func insertAthleteProgram(ctx context.Context, tx *sql.Tx, athleteID, templateID int64, startDate, notes, goal, role, schedule string, active bool) error {
+	if role == "" {
+		role = "primary"
+	}
+	if _, err := validateProgramAssignment(role, schedule); err != nil {
+		return err
+	}
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
@@ -645,9 +655,6 @@ func insertAthleteProgram(ctx context.Context, tx *sql.Tx, athleteID, templateID
 	var goalVal sql.NullString
 	if goal != "" {
 		goalVal = sql.NullString{String: goal, Valid: true}
-	}
-	if role == "" {
-		role = "primary"
 	}
 	var scheduleVal sql.NullString
 	if schedule != "" {

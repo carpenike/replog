@@ -1,10 +1,35 @@
 package models
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/carpenike/replog/internal/importers"
 )
+
+func TestInsertAthleteProgram_RejectsInvalidSchedule(t *testing.T) {
+	db := testDB(t)
+	template, err := CreateProgramTemplate(context.Background(), db, nil, "Imported Program", "", 1, 3, true, "adult")
+	if err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+	athlete, err := CreateAthlete(context.Background(), db, "Imported Athlete", "", "", "", "", "", "", sql.NullInt64{}, true)
+	if err != nil {
+		t.Fatalf("create athlete: %v", err)
+	}
+	tx, err := db.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("begin tx: %v", err)
+	}
+	defer tx.Rollback()
+
+	err = insertAthleteProgram(context.Background(), tx, athlete.ID, template.ID, "2026-08-03", "", "", "primary", "[1,1]", true)
+	if !errors.Is(err, ErrInvalidSchedule) {
+		t.Fatalf("insert invalid schedule error = %v, want ErrInvalidSchedule", err)
+	}
+}
 
 func TestValidateImportData(t *testing.T) {
 	t.Run("clean data returns no warnings", func(t *testing.T) {

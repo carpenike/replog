@@ -50,12 +50,12 @@ type User struct {
 	// MCPEnabled mirrors models.User.MCPEnabled (HOF-004): when true,
 	// the bearer middleware on /api-mcp/* accepts JWTs that resolve to
 	// this user; the webui's scs cookie auth ignores the flag entirely.
-	MCPEnabled    bool    `json:"mcp_enabled"`
-	AvatarURL     string  `json:"avatar_url,omitempty"`
-	Impersonating bool    `json:"impersonating,omitempty"`
-	RealUserID    *int64  `json:"real_user_id,omitempty"`
-	CreatedAt     string  `json:"created_at"`
-	UpdatedAt string  `json:"updated_at"`
+	MCPEnabled    bool   `json:"mcp_enabled"`
+	AvatarURL     string `json:"avatar_url,omitempty"`
+	Impersonating bool   `json:"impersonating,omitempty"`
+	RealUserID    *int64 `json:"real_user_id,omitempty"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
 // UserWithAthlete extends User with the linked athlete's name.
@@ -315,6 +315,7 @@ type PrescribedSet struct {
 	Reps           *int64   `json:"reps"`
 	Percentage     *float64 `json:"percentage,omitempty"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	RestSeconds    *int64   `json:"rest_seconds,omitempty"`
 	SortOrder      int      `json:"sort_order"`
 	RepType        string   `json:"rep_type"`
 	Notes          *string  `json:"notes,omitempty"`
@@ -324,22 +325,22 @@ type PrescribedSet struct {
 
 // AthleteProgram is the JSON representation of models.AthleteProgram.
 type AthleteProgram struct {
-	ID           int64   `json:"id"`
-	AthleteID    int64   `json:"athlete_id"`
-	TemplateID   int64   `json:"template_id"`
-	StartDate    string  `json:"start_date"`
-	Active       bool    `json:"active"`
+	ID            int64   `json:"id"`
+	AthleteID     int64   `json:"athlete_id"`
+	TemplateID    int64   `json:"template_id"`
+	StartDate     string  `json:"start_date"`
+	Active        bool    `json:"active"`
 	DeactivatedAt *string `json:"deactivated_at,omitempty"`
-	Role         string  `json:"role"`
-	Schedule     *string `json:"schedule,omitempty"`
-	Notes        *string `json:"notes,omitempty"`
-	Goal         *string `json:"goal,omitempty"`
-	CreatedAt    string  `json:"created_at"`
-	UpdatedAt    string  `json:"updated_at"`
-	TemplateName string  `json:"template_name,omitempty"`
-	NumWeeks     int     `json:"num_weeks,omitempty"`
-	NumDays      int     `json:"num_days,omitempty"`
-	IsLoop       bool    `json:"is_loop,omitempty"`
+	Role          string  `json:"role"`
+	Schedule      *string `json:"schedule,omitempty"`
+	Notes         *string `json:"notes,omitempty"`
+	Goal          *string `json:"goal,omitempty"`
+	CreatedAt     string  `json:"created_at"`
+	UpdatedAt     string  `json:"updated_at"`
+	TemplateName  string  `json:"template_name,omitempty"`
+	NumWeeks      int     `json:"num_weeks,omitempty"`
+	NumDays       int     `json:"num_days,omitempty"`
+	IsLoop        bool    `json:"is_loop,omitempty"`
 }
 
 // AthleteExercise is the JSON representation of models.AthleteExercise (assignment).

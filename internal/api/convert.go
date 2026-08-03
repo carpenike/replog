@@ -414,6 +414,7 @@ func PrescribedSetFromModel(m *models.PrescribedSet) *PrescribedSet {
 		Reps:           nullInt(m.Reps),
 		Percentage:     nullFloat(m.Percentage),
 		AbsoluteWeight: nullFloat(m.AbsoluteWeight),
+		RestSeconds:    nullInt(m.RestSeconds),
 		SortOrder:      m.SortOrder,
 		RepType:        m.RepType,
 		Notes:          nullStr(m.Notes),
@@ -425,11 +426,11 @@ func PrescribedSetFromModel(m *models.PrescribedSet) *PrescribedSet {
 // AthleteProgramFromModel converts a models.AthleteProgram to an API AthleteProgram.
 func AthleteProgramFromModel(m *models.AthleteProgram) *AthleteProgram {
 	return &AthleteProgram{
-		ID:           m.ID,
-		AthleteID:    m.AthleteID,
-		TemplateID:   m.TemplateID,
-		StartDate:    fmtDate(m.StartDate),
-		Active:       m.Active,		DeactivatedAt: fmtNullTimeStr(m.DeactivatedAt),		Role:         m.Role,
+		ID:         m.ID,
+		AthleteID:  m.AthleteID,
+		TemplateID: m.TemplateID,
+		StartDate:  fmtDate(m.StartDate),
+		Active:     m.Active, DeactivatedAt: fmtNullTimeStr(m.DeactivatedAt), Role: m.Role,
 		Schedule:     nullStr(m.Schedule),
 		Notes:        nullStr(m.Notes),
 		Goal:         nullStr(m.Goal),

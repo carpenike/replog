@@ -6,6 +6,7 @@ import type { AthleteProgram } from '@/api/types'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,6 +19,32 @@ const tierColors: Record<string, string> = {
   intermediate: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
   sport_performance: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
 }
+
+const assignmentWeekdays = [
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+  { value: 7, label: 'Sun' },
+]
+
+function formatProgramSchedule(schedule?: string | null): string | null {
+  if (!schedule) return null
+  try {
+    const days: unknown = JSON.parse(schedule)
+    if (!Array.isArray(days)) return null
+    const labels = days
+      .filter((day): day is number => typeof day === 'number')
+      .map(day => assignmentWeekdays.find(weekday => weekday.value === day)?.label)
+      .filter((label): label is string => label != null)
+    return labels.length > 0 ? labels.join(', ') : null
+  } catch {
+    return null
+  }
+}
+
 function tierLabel(tier: string): string {
   switch (tier) {
     case 'foundational': return 'Foundational'
@@ -68,6 +95,7 @@ export function AthleteDetail() {
   const [assignTemplateId, setAssignTemplateId] = useState(assignParam ?? '')
   const [assignDate, setAssignDate] = useState(new Date().toISOString().slice(0, 10))
   const [assignRole, setAssignRole] = useState('primary')
+  const [assignWeekdays, setAssignWeekdays] = useState<number[]>([])
   // Consume the deep-link param once so a refresh doesn't re-trigger it.
   useEffect(() => {
     if (assignParam != null) {
@@ -93,13 +121,22 @@ export function AthleteDetail() {
       template_id: parseInt(assignTemplateId),
       start_date: assignDate,
       role: assignRole,
+      schedule: assignWeekdays.length > 0 ? JSON.stringify(assignWeekdays) : undefined,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] })
       setShowAssign(false)
       setAssignTemplateId('')
+      setAssignWeekdays([])
     },
   })
+
+  function toggleAssignmentWeekday(day: number, checked: boolean) {
+    setAssignWeekdays(current => {
+      if (checked) return [...new Set([...current, day])].sort((a, b) => a - b)
+      return current.filter(value => value !== day)
+    })
+  }
   const deactivateMutation = useMutation({
     mutationFn: (programId: number) => api.deactivateProgram(athleteId, programId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] }),
@@ -368,6 +405,21 @@ export function AthleteDetail() {
                 </Select>
               </div>
             </div>
+      <div>
+        <Label className="mb-2 block">Training Days</Label>
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          {assignmentWeekdays.map(weekday => (
+            <label key={weekday.value} htmlFor={`assignment-day-${weekday.value}`} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                id={`assignment-day-${weekday.value}`}
+                checked={assignWeekdays.includes(weekday.value)}
+                onCheckedChange={checked => toggleAssignmentWeekday(weekday.value, checked)}
+              />
+              {weekday.label}
+            </label>
+          ))}
+        </div>
+      </div>
             <Button type="submit" disabled={assignMutation.isPending || !assignTemplateId}
               >
               Assign Program
@@ -384,6 +436,7 @@ export function AthleteDetail() {
                     <p className="text-xs text-muted-foreground">
                       Started {formatDate(p.start_date)} • {p.role}
                       {p.num_weeks ? ` • ${p.num_weeks}w` : ''}
+                      {p.schedule ? ` • ${formatProgramSchedule(p.schedule) ?? 'Scheduled'}` : ''}
                     </p>
                   </Link>
                   <Button variant="ghost" size="xs" onClick={async () => { if (await confirm({ title: 'Deactivate Program', description: 'Deactivate this program assignment?', confirmLabel: 'Deactivate', variant: 'danger' })) deactivateMutation.mutate(p.id) }}

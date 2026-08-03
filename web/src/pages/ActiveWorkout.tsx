@@ -50,6 +50,7 @@ interface AddSetVars {
   weight?: number
   rpe?: number
   repType?: string
+  restSeconds?: number | null
   /** Row came from extraPending (freeform) rather than a prescribed slot. */
   freeform: boolean
 }
@@ -385,8 +386,9 @@ export function ActiveWorkout() {
     onSuccess: (set, vars) => {
       // Re-claim under the real id (the optimistic temp id disappears on refetch).
       setClaims(c => ({ ...c, [set.id]: vars.slotIndex }))
-      const rest = exercisesById.get(vars.exerciseId)?.rest_seconds
-      restTimer.start(rest && rest > 0 ? rest : DEFAULT_REST_SECONDS)
+      const exerciseRest = exercisesById.get(vars.exerciseId)?.rest_seconds
+      const rest = vars.restSeconds ?? (exerciseRest && exerciseRest > 0 ? exerciseRest : DEFAULT_REST_SECONDS)
+      restTimer.start(rest)
       void detectPR(set, vars)
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
@@ -705,6 +707,7 @@ export function ActiveWorkout() {
                               weight: weightStr ? parseFloat(weightStr) : undefined,
                               rpe: rpeStr ? parseFloat(rpeStr) : undefined,
                               repType: pset && pset.rep_type !== 'standard' ? pset.rep_type : undefined,
+                              restSeconds: pset?.rest_seconds,
                               freeform: pset == null,
                             })}
                           ><Check aria-hidden="true" /></Button>

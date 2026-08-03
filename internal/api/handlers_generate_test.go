@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/carpenike/replog/internal/database"
+	"github.com/carpenike/replog/internal/importers"
 	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/models"
 )
@@ -49,6 +50,37 @@ This is a mock program. Bench focus.
 func mockLLMFactory(p llm.Provider) func(*sql.DB) (llm.Provider, error) {
 	return func(_ *sql.DB) (llm.Provider, error) {
 		return p, nil
+	}
+}
+
+func TestBuildGenerationPreview_PreservesRestSeconds(t *testing.T) {
+	reps := 5
+	restSeconds := 180
+	preview := buildGenerationPreview(&importers.ParsedFile{
+		Programs: []importers.ParsedProgram{{
+			Template: importers.ParsedProgramTemplate{
+				Name:     "Galpin 3-to-5",
+				NumWeeks: 1,
+				NumDays:  3,
+				IsLoop:   true,
+				PrescribedSets: []importers.ParsedPrescribedSet{{
+					Exercise:    "Squat",
+					Week:        1,
+					Day:         1,
+					SetNumber:   1,
+					Reps:        &reps,
+					RepType:     "reps",
+					RestSeconds: &restSeconds,
+				}},
+			},
+		}},
+	})
+	if preview == nil || len(preview.Programs) != 1 || len(preview.Programs[0].Weeks) != 1 {
+		t.Fatalf("unexpected preview: %+v", preview)
+	}
+	got := preview.Programs[0].Weeks[0].Days[0].Sets[0].RestSeconds
+	if got == nil || *got != 180 {
+		t.Errorf("preview rest_seconds = %v, want 180", got)
 	}
 }
 
@@ -252,6 +284,42 @@ func TestGenerateSubmit_AcceptsMethodologyID(t *testing.T) {
 	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", athlete.ID), body, cookies)
 	requireStatus(t, rr, http.StatusAccepted)
 	env.Handlers.WaitForGenerations()
+}
+
+func TestGenerateSubmit_GalpinRequiresProtocolShape(t *testing.T) {
+	env := setupTest(t)
+	useMockLLM(t, env)
+	seedMethodologiesForTest(t, env)
+	coach := env.createUser(t, "coach", true, false)
+	adult := env.createAthlete(t, "Adult", coach.ID)
+	cookies := env.loginAs(t, coach)
+
+	galpin, err := models.GetMethodologyByKey(context.Background(), env.DB, llm.MethodologyKeyGalpinThreeToFive)
+	if err != nil {
+		t.Fatalf("get Galpin methodology: %v", err)
+	}
+
+	cases := []string{
+		`{"program_name":"Galpin","num_days":3,"num_weeks":1,"is_loop":false,"methodology_id":%d}`,
+		`{"program_name":"Galpin","num_days":3,"num_weeks":2,"is_loop":true,"methodology_id":%d}`,
+		`{"program_name":"Galpin","num_days":2,"num_weeks":1,"is_loop":true,"methodology_id":%d}`,
+		`{"program_name":"Galpin","num_days":6,"num_weeks":1,"is_loop":true,"methodology_id":%d}`,
+	}
+	for _, bodyTemplate := range cases {
+		rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", adult.ID), fmt.Sprintf(bodyTemplate, galpin.ID), cookies)
+		requireStatus(t, rr, http.StatusBadRequest)
+	}
+
+	genID := submitAndWait(t, env, adult.ID, cookies,
+		fmt.Sprintf(`{"program_name":"Galpin","num_days":3,"num_weeks":1,"is_loop":true,"methodology_id":%d}`, galpin.ID))
+	if genID == 0 {
+		t.Fatal("expected valid Galpin generation")
+	}
+
+	youth := env.createAthleteWithTier(t, "Youth", "foundational", coach.ID)
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/generate", youth.ID),
+		fmt.Sprintf(`{"program_name":"Galpin","num_days":3,"num_weeks":1,"is_loop":true,"methodology_id":%d}`, galpin.ID), cookies)
+	requireStatus(t, rr, http.StatusBadRequest)
 }
 
 // TestGenerateFormData_SuggestsProgramName confirms HOF-007: the form-data

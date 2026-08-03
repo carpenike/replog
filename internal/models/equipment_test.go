@@ -391,6 +391,7 @@ func TestCheckAthleteExerciseCompatibility(t *testing.T) {
 
 		if benchResult == nil {
 			t.Fatal("bench press not in results")
+			return
 		}
 		if benchResult.HasRequired {
 			t.Error("bench press should not be compatible without equipment")
@@ -398,6 +399,7 @@ func TestCheckAthleteExerciseCompatibility(t *testing.T) {
 
 		if pushResult == nil {
 			t.Fatal("push-ups not in results")
+			return
 		}
 		if !pushResult.HasRequired {
 			t.Error("push-ups should be compatible (no requirements)")

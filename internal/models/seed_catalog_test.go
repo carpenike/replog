@@ -133,6 +133,65 @@ func TestSeedCatalogImport_Idempotent(t *testing.T) {
 	}
 }
 
+func TestCatalogExportImport_RoundTripsPrescribedSetRestSeconds(t *testing.T) {
+	source := testDB(t)
+	template, err := CreateProgramTemplate(context.Background(), source, nil, "Galpin 3-to-5", "", 1, 3, true, "adult")
+	if err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+	exercise, err := CreateExercise(context.Background(), source, "Squat", "", "", "", 0)
+	if err != nil {
+		t.Fatalf("create exercise: %v", err)
+	}
+	reps := 5
+	restSeconds := 180
+	if _, err := CreatePrescribedSetWithRest(context.Background(), source, template.ID, exercise.ID, 1, 1, 1, &reps, nil, nil, &restSeconds, 0, "reps", ""); err != nil {
+		t.Fatalf("create prescribed set: %v", err)
+	}
+
+	catalog, err := BuildCatalogExportJSON(context.Background(), source)
+	if err != nil {
+		t.Fatalf("build catalog export: %v", err)
+	}
+	var encoded bytes.Buffer
+	if err := WriteCatalogJSON(&encoded, catalog); err != nil {
+		t.Fatalf("write catalog export: %v", err)
+	}
+	parsed, err := importers.ParseCatalogJSON(&encoded)
+	if err != nil {
+		t.Fatalf("parse catalog export: %v", err)
+	}
+	if len(parsed.Programs) != 1 || len(parsed.Programs[0].Template.PrescribedSets) != 1 {
+		t.Fatalf("unexpected exported programs: %+v", parsed.Programs)
+	}
+	if got := parsed.Programs[0].Template.PrescribedSets[0].RestSeconds; got == nil || *got != 180 {
+		t.Fatalf("exported rest_seconds = %v, want 180", got)
+	}
+
+	target := testDB(t)
+	ms := &importers.MappingState{
+		Format:    importers.FormatCatalogJSON,
+		Exercises: importers.BuildExerciseMappings(parsed.Exercises, nil),
+		Equipment: importers.BuildEquipmentMappings(parsed.Equipment, nil),
+		Programs:  importers.BuildProgramMappings(parsed.Programs, nil),
+		Parsed:    parsed,
+	}
+	if _, err := ExecuteCatalogImport(context.Background(), target, ms, nil, false); err != nil {
+		t.Fatalf("import catalog export: %v", err)
+	}
+	templates, err := ListProgramTemplates(context.Background(), target)
+	if err != nil || len(templates) != 1 {
+		t.Fatalf("list imported templates: %v, %d", err, len(templates))
+	}
+	sets, err := ListPrescribedSets(context.Background(), target, templates[0].ID)
+	if err != nil || len(sets) != 1 {
+		t.Fatalf("list imported sets: %v, %d", err, len(sets))
+	}
+	if !sets[0].RestSeconds.Valid || sets[0].RestSeconds.Int64 != 180 {
+		t.Errorf("imported rest_seconds = %+v, want 180", sets[0].RestSeconds)
+	}
+}
+
 // TestSeedCatalogImport_MovementPatterns confirms the additive movement-pattern
 // extension persists tags from seed-catalog.json into exercise_movement_patterns
 // via the import tx (ADR 016 Phase 1).
@@ -326,6 +385,7 @@ func TestCatalogImport_AssignsToAthlete(t *testing.T) {
 	}
 	if active == nil {
 		t.Fatal("expected active program, got nil")
+		return
 	}
 	if active.TemplateName != "Test Program" {
 		t.Errorf("active program name: got %q, want %q", active.TemplateName, "Test Program")
@@ -502,6 +562,7 @@ func TestCatalogImport_DeactivatesPriorProgram(t *testing.T) {
 	}
 	if activeAfter == nil {
 		t.Fatal("expected active program after import, got nil")
+		return
 	}
 	if activeAfter.TemplateName != "New Program" {
 		t.Errorf("active program name: got %q, want %q", activeAfter.TemplateName, "New Program")

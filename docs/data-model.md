@@ -685,6 +685,7 @@ erDiagram
 | `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds', 'distance')) |
 | `percentage`| REAL         | NULL (% of training max)             |
 | `absolute_weight`| REAL    | NULL (fixed weight in lbs/kg)        |
+| `rest_seconds`| INTEGER    | NULL, CHECK(NULL or >= 0)            |
 | `sort_order`| INTEGER      | NOT NULL DEFAULT 0                   |
 | `notes`     | TEXT         | NULL                                 |
 
@@ -693,6 +694,7 @@ erDiagram
 - `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s", `distance` → "20yd".
 - `percentage` is a decimal (e.g. 65.0 for 65%) used to calculate target weight from the athlete's training max.
 - `absolute_weight` is a fixed weight for programs that don't use percentage-of-TM (e.g. Yessis foundational, accessories). When both `percentage` and `absolute_weight` are set, percentage takes priority.
+- `rest_seconds` is an optional per-set rest-timer override. When NULL, the active workout uses the exercise-level rest setting, then the 90-second application default.
 - `sort_order` controls exercise display order within a day. All sets for the same exercise share the same sort_order. Lower values appear first. Critical for methodologies where exercise sequence matters.
 - `UNIQUE(template_id, week, day, exercise_id, set_number)` prevents duplicate sets.
 
@@ -713,6 +715,7 @@ erDiagram
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - Links an athlete to a program template.
+- `schedule`, when set, is a non-empty JSON array of unique ISO weekdays (`1` = Monday through `7` = Sunday). An omitted primary-program schedule is flexible; dates outside a stored schedule resolve as rest days.
 - `role` distinguishes primary programs (one active allowed) from supplemental programs (unlimited active).
 - `schedule` is a JSON array of ISO weekday numbers (1=Monday through 7=Sunday). NULL means "any day not claimed by another program" (default for primary). Supplementals must have a schedule.
 - Partial unique index enforces one active primary program per athlete: `WHERE active = 1 AND role = 'primary'`.
@@ -1070,6 +1073,7 @@ CREATE TABLE IF NOT EXISTS prescribed_sets (
     rep_type        TEXT    NOT NULL DEFAULT 'reps' CHECK(rep_type IN ('reps', 'each_side', 'seconds', 'distance')),
     percentage      REAL,
     absolute_weight REAL,
+    rest_seconds    INTEGER CHECK(rest_seconds IS NULL OR rest_seconds >= 0),
     sort_order      INTEGER NOT NULL DEFAULT 0,
     notes           TEXT,
     UNIQUE(template_id, week, day, exercise_id, set_number)

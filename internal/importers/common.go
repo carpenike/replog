@@ -157,6 +157,7 @@ type ParsedPrescribedSet struct {
 	RepType        string   `json:"rep_type"`
 	Percentage     *float64 `json:"percentage"`
 	AbsoluteWeight *float64 `json:"absolute_weight"`
+	RestSeconds    *int     `json:"rest_seconds"`
 	SortOrder      int      `json:"sort_order"`
 	Notes          *string  `json:"notes"`
 }

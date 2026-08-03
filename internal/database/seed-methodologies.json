@@ -163,6 +163,24 @@
       ]
     },
     {
+      "key": "galpin-3-to-5",
+      "name": "Galpin 3-to-5 (Adult Strength)",
+      "audience": "adult",
+      "applicable_tiers": null,
+      "philosophy": "A flexible adult strength, speed, and power framework: choose a sustainable point within 3 to 5 training days, exercises, work sets, reps, and minutes of rest.",
+      "definition": "GALPIN 3-TO-5 METHODOLOGY:\nThis adult athlete uses a flexible strength framework, not a fixed exercise split or an automatic progression algorithm. Build a ONE-WEEK LOOP that the coach reviews and explicitly assigns.\n- Frequency: use the coach-selected 3 to 5 training days per week.\n- Every training day: use 3 to 5 main exercises.\n- For every main exercise: use 3 to 5 working sets of 3 to 5 reps. Warm-ups are not prescribed-set rows.\n- Every working set MUST set rest_seconds from 180 to 300. Use the same value across a lift unless the coach gives a reason to vary it.\n- Select exercises and loading from the athlete's goal, history, available equipment, and coach directions. Do not assume a universal A/B/C split.\n- Use percentage loading only when an appropriate training max exists; otherwise use an explicit working weight or bodyweight.\n- Do NOT emit progression_rules unless the coach explicitly asks for a progression proposal. The coach decides all load and training-max changes after reviewing the log.\n- Keep the work technically sound and sustainable. The low end can be a short 3 exercise, 3 set, 3 rep session; the high end should be used deliberately, not automatically.\n",
+      "reference_programs": [],
+      "allowed_equipment": [
+        "Barbell", "Power Rack", "Flat Bench", "Adjustable Bench", "Dumbbells",
+        "Kettlebell", "Pull-up Bar", "Cable Machine", "Dip Station", "Trap Bar"
+      ],
+      "allowed_patterns": ["push", "pull", "hinge", "squat", "carry"],
+      "allowed_exercises": [
+        "Squat", "Bench Press", "Deadlift", "Overhead Press", "Barbell Row",
+        "Pull-up", "Chin-up"
+      ]
+    },
+    {
       "key": "sarge-circuit",
       "name": "Sarge Athletics Circuit",
       "audience": "adult",

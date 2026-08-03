@@ -360,6 +360,39 @@ func TestPrescribedSets(t *testing.T) {
 	})
 }
 
+func TestPrescribedSetRestSeconds(t *testing.T) {
+	db := testDB(t)
+	tmpl, err := CreateProgramTemplate(context.Background(), db, nil, "Galpin 3-to-5", "", 2, 3, true, "adult")
+	if err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+	exercise, err := CreateExercise(context.Background(), db, "Squat", "", "", "", 0)
+	if err != nil {
+		t.Fatalf("create exercise: %v", err)
+	}
+	reps := 5
+	restSeconds := 180
+
+	created, err := CreatePrescribedSetWithRest(context.Background(), db, tmpl.ID, exercise.ID, 1, 1, 1, &reps, nil, nil, &restSeconds, 0, "reps", "")
+	if err != nil {
+		t.Fatalf("create prescribed set: %v", err)
+	}
+	if !created.RestSeconds.Valid || created.RestSeconds.Int64 != 180 {
+		t.Fatalf("created rest_seconds = %+v, want 180", created.RestSeconds)
+	}
+
+	if _, err := CopyWeek(context.Background(), db, tmpl.ID, 1, 2); err != nil {
+		t.Fatalf("copy week: %v", err)
+	}
+	copied, err := ListPrescribedSetsForDay(context.Background(), db, tmpl.ID, 2, 1)
+	if err != nil {
+		t.Fatalf("list copied week: %v", err)
+	}
+	if len(copied) != 1 || !copied[0].RestSeconds.Valid || copied[0].RestSeconds.Int64 != 180 {
+		t.Fatalf("copied rest_seconds = %+v, want 180", copied)
+	}
+}
+
 func TestAthleteProgram(t *testing.T) {
 	db := testDB(t)
 
@@ -459,6 +492,7 @@ func TestGetPrescription(t *testing.T) {
 		}
 		if rx == nil {
 			t.Fatal("expected non-nil prescription")
+			return
 		}
 		if rx.CurrentWeek != 1 || rx.CurrentDay != 1 {
 			t.Errorf("position = W%dD%d, want W1D1", rx.CurrentWeek, rx.CurrentDay)
@@ -477,12 +511,14 @@ func TestGetPrescription(t *testing.T) {
 		}
 		if benchLine == nil {
 			t.Fatal("expected Bench Press line")
+			return
 		}
 		if benchLine.SetsSummary() != "3×5" {
 			t.Errorf("sets = %q, want 3×5", benchLine.SetsSummary())
 		}
 		if benchLine.TargetWeight == nil {
 			t.Fatal("expected non-nil target weight")
+			return
 		}
 		// 65% of 200 = 130, rounded to nearest 2.5
 		if *benchLine.TargetWeight != 130 {
