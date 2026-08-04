@@ -1,6 +1,6 @@
 # RepLog
 
-Self-hosted workout tracking for kids' resistance training progression and personal lifting logs.
+Self-hosted workout tracking for kids' resistance training progression and personal lifting logs.,
 
 ## What It Does
 
