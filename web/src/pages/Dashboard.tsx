@@ -1,10 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { api } from '@/api/client'
 import { EmptyState, QueryError } from '@/components/ui'
+import { Button } from '@/components/ui/button'
 import { fetchWeekStreak } from '@/lib/streak'
+import { openTodaySession, sessionPath, workoutOnDate } from '@/lib/todaySession'
 import { usePageTitle } from '@/lib/usePageTitle'
-import { cn, formatDate } from '@/lib/utils'
+import { cn, formatDate, localDateISO } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -20,19 +23,124 @@ function formatVolume(v: number): string {
 }
 
 export function Dashboard({ user }: DashboardProps) {
+  // Linked non-coach: the home screen is today's log, one tap away.
+  // Coaches and admins keep the staff dashboard even if they also have
+  // an athlete profile.
+  if (!user.is_coach && !user.is_admin && user.athlete_id != null) {
+    return <AthleteHome user={user} athleteId={user.athlete_id} />
+  }
+  return <StaffHome user={user} />
+}
+
+/**
+ * Kid home. The first control opens today's resistance session — resume
+ * the day's workout, or create an empty one. The screen records the log.
+ * It does not choose the work.
+ */
+function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
+  usePageTitle('Today')
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const today = localDateISO()
+  const { data: streak } = useQuery({
+    queryKey: ['week-streak', athleteId],
+    queryFn: () => fetchWeekStreak(athleteId),
+    staleTime: 5 * 60_000,
+  })
+  const workouts = useQuery({
+    queryKey: ['workouts', athleteId, 0],
+    queryFn: () => api.listWorkouts(athleteId),
+  })
+  const todayWorkout = workouts.data ? workoutOnDate(workouts.data.workouts, today) : undefined
+
+  const openSession = useMutation({
+    mutationFn: () => openTodaySession(api, athleteId, today),
+    meta: { skipGlobalError: true },
+    onSuccess: (path) => {
+      queryClient.invalidateQueries({ queryKey: ['workouts', athleteId] })
+      navigate(path)
+    },
+    onError: () => {
+      toast.error("Couldn't open today's session.")
+    },
+  })
+
+  const sessionLabel = !workouts.isSuccess
+    ? "Today's session"
+    : todayWorkout
+      ? "Continue today's session"
+      : "Start today's session"
+  const sessionClass = 'h-14 w-full text-base font-semibold'
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-4">
+        Welcome, {user.name ?? user.username}
+      </h1>
+
+      {todayWorkout ? (
+        <Button
+          size="touch"
+          className={sessionClass}
+          render={<Link to={sessionPath(athleteId, todayWorkout.id)} />}
+        >
+          {sessionLabel}
+        </Button>
+      ) : (
+        <Button
+          size="touch"
+          className={sessionClass}
+          onClick={() => openSession.mutate()}
+          disabled={openSession.isPending}
+        >
+          {openSession.isPending ? 'Opening…' : sessionLabel}
+        </Button>
+      )}
+      <p className="mt-2 text-sm text-muted-foreground">Log today's sets.</p>
+
+      {streak != null && (
+        <div
+          className={cn(
+            'mt-4 rounded-lg border px-4 py-3',
+            streak > 0 ? 'border-warning/30 bg-warning/5' : 'border-border bg-card',
+          )}
+        >
+          {streak > 0 ? (
+            <p className="text-sm font-medium">
+              <span aria-hidden="true">🔥</span> {streak}-week streak
+              <span className="font-normal text-muted-foreground"> — keep it going!</span>
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Log a workout this week to start a streak <span aria-hidden="true">💪</span>
+            </p>
+          )}
+        </div>
+      )}
+
+      <nav aria-label="More" className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        <Link to={`/athletes/${athleteId}/prescription`} className="text-muted-foreground hover:text-foreground">
+          Today's plan
+        </Link>
+        <Link to={`/athletes/${athleteId}/workouts`} className="text-muted-foreground hover:text-foreground">
+          History
+        </Link>
+        <Link to={`/athletes/${athleteId}/body-weights`} className="text-muted-foreground hover:text-foreground">
+          Body weight
+        </Link>
+        <Link to={`/athletes/${athleteId}`} className="text-muted-foreground hover:text-foreground">
+          Profile
+        </Link>
+      </nav>
+    </div>
+  )
+}
+
+function StaffHome({ user }: DashboardProps) {
   usePageTitle('Dashboard')
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.dashboard(),
-  })
-  // The dashboard endpoint only returns streaks for coach-owned athlete
-  // cards, so athlete users compute their own from recent workouts.
-  const athleteId = !user.is_coach && !user.is_admin ? user.athlete_id : null
-  const { data: streak } = useQuery({
-    queryKey: ['week-streak', athleteId],
-    queryFn: () => fetchWeekStreak(athleteId!),
-    enabled: athleteId != null,
-    staleTime: 5 * 60_000,
   })
 
   if (isLoading) {
@@ -53,68 +161,6 @@ export function Dashboard({ user }: DashboardProps) {
       <div>
         <h1 className="text-2xl font-bold mb-6">Welcome, {user.name ?? user.username}</h1>
         <QueryError error={error} onRetry={refetch} resource="dashboard" />
-      </div>
-    )
-  }
-
-  // Athlete-only user: redirect-like quick actions for their own profile
-  if (!user.is_coach && !user.is_admin && user.athlete_id) {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold mb-6">
-          Welcome, {user.name ?? user.username}
-        </h1>
-        {streak != null && (
-          <div
-            className={cn(
-              'mb-4 rounded-lg border px-4 py-3',
-              streak > 0 ? 'border-warning/30 bg-warning/5' : 'border-border bg-card',
-            )}
-          >
-            {streak > 0 ? (
-              <p className="text-sm font-medium">
-                <span aria-hidden="true">🔥</span> {streak}-week streak
-                <span className="font-normal text-muted-foreground"> — keep it going!</span>
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Log a workout this week to start a streak <span aria-hidden="true">💪</span>
-              </p>
-            )}
-          </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link to={`/athletes/${user.athlete_id}/prescription`}
-            className="rounded-lg border border-primary/30 bg-primary/5 p-6 hover:border-primary/50 transition-colors text-center">
-            <span className="text-3xl mb-2 block">📋</span>
-            <p className="font-semibold">Today's Workout</p>
-            <p className="text-sm text-muted-foreground mt-1">View your prescribed training</p>
-          </Link>
-          <Link to={`/athletes/${user.athlete_id}/workouts/new`}
-            className="rounded-lg border border-border bg-card p-6 hover:border-primary/50 transition-colors text-center">
-            <span className="text-3xl mb-2 block">🏋️</span>
-            <p className="font-semibold">Log Workout</p>
-            <p className="text-sm text-muted-foreground mt-1">Start a new workout session</p>
-          </Link>
-          <Link to={`/athletes/${user.athlete_id}/workouts`}
-            className="rounded-lg border border-border bg-card p-6 hover:border-primary/50 transition-colors text-center">
-            <span className="text-3xl mb-2 block">📝</span>
-            <p className="font-semibold">Workout History</p>
-            <p className="text-sm text-muted-foreground mt-1">View past workouts</p>
-          </Link>
-          <Link to={`/athletes/${user.athlete_id}/body-weights`}
-            className="rounded-lg border border-border bg-card p-6 hover:border-primary/50 transition-colors text-center">
-            <span className="text-3xl mb-2 block">⚖️</span>
-            <p className="font-semibold">Body Weight</p>
-            <p className="text-sm text-muted-foreground mt-1">Log or view body weight</p>
-          </Link>
-          <Link to={`/athletes/${user.athlete_id}`}
-            className="rounded-lg border border-border bg-card p-6 hover:border-primary/50 transition-colors text-center">
-            <span className="text-3xl mb-2 block">👤</span>
-            <p className="font-semibold">My Profile</p>
-            <p className="text-sm text-muted-foreground mt-1">View training maxes, programs, journal</p>
-          </Link>
-        </div>
       </div>
     )
   }
