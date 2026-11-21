@@ -313,45 +313,19 @@ func GetMaintenanceRetentionDays(ctx context.Context, db *sql.DB) int {
 	return 90
 }
 
-// GetOrCreateSecretKey ensures a secret key exists for encrypting sensitive settings.
-// Resolution: REPLOG_SECRET_KEY env var → _internal.secret_key DB row → auto-generate.
-// The key is stored in plaintext in app_settings (since it IS the encryption key).
-// Returns the key and sets it as an env var so the rest of the code can use it.
-func GetOrCreateSecretKey(ctx context.Context, db *sql.DB) (key, source string, err error) {
-	// 1. Check env var — if provided, persist to DB so the key survives
-	//    even if the env var is later removed.
-	if key = os.Getenv("REPLOG_SECRET_KEY"); key != "" {
-		_, _ = db.ExecContext(ctx,
-			`INSERT INTO app_settings (key, value) VALUES ('_internal.secret_key', ?)
-			 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key,
-		)
-		return key, "env", nil
+// SecretKeyFromEnv returns REPLOG_SECRET_KEY.
+//
+// The key is environment-only. This function never reads or writes
+// app_settings, including a legacy `_internal.secret_key` row, and it
+// never generates a key. Encryption of sensitive settings uses the
+// process environment directly (see secretKey). An empty variable is an
+// error so startup can warn instead of inventing a key.
+func SecretKeyFromEnv() (string, error) {
+	key := os.Getenv("REPLOG_SECRET_KEY")
+	if key == "" {
+		return "", fmt.Errorf("REPLOG_SECRET_KEY is not set")
 	}
-
-	// 2. Check DB for previously generated key.
-	err = db.QueryRowContext(ctx, `SELECT value FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&key)
-	if err == nil && key != "" {
-		os.Setenv("REPLOG_SECRET_KEY", key)
-		return key, "database", nil
-	}
-
-	// 3. Generate a new key.
-	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
-		return "", "", fmt.Errorf("models: generate secret key: %w", err)
-	}
-	key = base64.StdEncoding.EncodeToString(buf)
-
-	_, err = db.ExecContext(ctx,
-		`INSERT INTO app_settings (key, value) VALUES ('_internal.secret_key', ?)
-		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key,
-	)
-	if err != nil {
-		return "", "", fmt.Errorf("models: store secret key: %w", err)
-	}
-
-	os.Setenv("REPLOG_SECRET_KEY", key)
-	return key, "generated", nil
+	return key, nil
 }
 
 // ListSettingsByCategoryOrdered returns settings grouped by category in the

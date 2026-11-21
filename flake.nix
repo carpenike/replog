@@ -7,10 +7,14 @@
     #   inputs.replog.inputs.nixpkgs.follows = "nixpkgs";
     # if your consumer is on a different channel.
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    # Go toolchain only. nixos-25.11's `go` stops on the 1.25 line.
+    # nixos-26.05 carries go 1.27.4. Keep this input independent of
+    # `nixpkgs.follows` so a consumer on 25.11 still builds with 1.27.4.
+    nixpkgs-go.url = "github:NixOS/nixpkgs/nixos-26.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, nixpkgs-go, flake-utils }:
     let
       # The deployment target is NixOS on x86_64-linux (Forge). The
       # aarch64-linux and aarch64-darwin entries exist so dev machines
@@ -23,21 +27,27 @@
           (system: f {
             inherit system;
             pkgs = import nixpkgs { inherit system; };
+            pkgsGo = import nixpkgs-go { inherit system; };
           });
 
-      mkPackage = pkgs: pkgs.callPackage ./nix/package.nix {
+      mkPackage = pkgs: pkgsGo: pkgs.callPackage ./nix/package.nix {
         # Bake the flake's revision into the binary so `replog --version`
         # (and any future build-info endpoint) report the deployed
         # commit. Falls through to `dirtyRev` for uncommitted source
         # trees, then "unknown" when neither is available.
         gitRev = self.rev or self.dirtyRev or "unknown";
         buildTime = self.lastModifiedDate or "unknown";
+        # nixos-25.11's buildGoModule, driven by go_1_27 from
+        # nixpkgs-go. The default `go` on that channel is still the
+        # 1.26 line. GOTOOLCHAIN=local inside buildGoModule, so the
+        # go.mod version cannot download a different compiler.
+        buildGoModule = pkgs.buildGoModule.override { go = pkgsGo.go_1_27; };
       };
     in
     {
-      packages = forAllSystems ({ pkgs, ... }: {
-        default = mkPackage pkgs;
-        replog = mkPackage pkgs;
+      packages = forAllSystems ({ pkgs, pkgsGo, ... }: {
+        default = mkPackage pkgs pkgsGo;
+        replog = mkPackage pkgs pkgsGo;
       });
 
       # `nix run github:carpenike/replog`
@@ -60,22 +70,26 @@
         };
       });
 
-      devShells = forAllSystems ({ pkgs, ... }: {
+      devShells = forAllSystems ({ pkgs, pkgsGo, ... }: {
         default = pkgs.mkShell {
-          packages = with pkgs; [
-            go
-            gopls
-            gotools
-            go-swag
-            golangci-lint
-            goreleaser
-            sqlite
-            nodejs_22
-            just
+          packages = [
+            # go_1_27 is 1.27.4 on nixos-26.05. The default `go`
+            # attribute there is still 1.26, which cannot be the
+            # toolchain this module requires. gopls and golangci-lint
+            # from the same channel understand the 1.27 module.
+            pkgsGo.go_1_27
+            pkgsGo.gopls
+            pkgsGo.golangci-lint
+            pkgs.gotools
+            pkgs.go-swag
+            pkgs.goreleaser
+            pkgs.sqlite
+            pkgs.nodejs_22
+            pkgs.just
             # Refresh web/package-lock.json hash in nix/package.nix with:
             #   nix-shell -p prefetch-npm-deps --run \
             #     "prefetch-npm-deps ./web/package-lock.json"
-            prefetch-npm-deps
+            pkgs.prefetch-npm-deps
           ];
         };
       });

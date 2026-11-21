@@ -38,18 +38,19 @@ RepLog is a **single static binary** that owns:
   `REPLOG_AVATAR_DIR`) — small image files keyed by user ID + random
   suffix. Served from a public no-auth route, so don't put anything here
   except the binary's own writes.
-- **An optional secret key** in `app_settings._internal.secret_key` used
-  to AES-256-GCM-encrypt sensitive settings (LLM API keys, SMTP
-  password). Either supplied via `REPLOG_SECRET_KEY` or auto-generated on
-  first run.
+- **An encryption key** supplied only as `REPLOG_SECRET_KEY`. It
+  AES-256-GCM-encrypts sensitive settings (LLM API keys, SMTP
+  password). The app never writes it to `app_settings` and never reads
+  a legacy `_internal.secret_key` row.
 - **Sessions** in the same SQLite DB (table `sessions`).
 - **A background scheduler** that prunes expired login tokens and old
   notifications (interval and retention controlled by app settings;
   defaults: 24h / 90d).
 
-**There is no external state.** No Redis, no second database, no message
-queue. Backing up the DB file plus the avatar directory captures
-everything.
+**There is no external service.** No Redis, no second database, no message
+queue. Backing up the DB file plus the avatar directory captures the
+app data. `REPLOG_SECRET_KEY` is separate: it lives only in the
+environment, and a DB backup does not contain it.
 
 ---
 
@@ -69,23 +70,18 @@ sudo chmod 750 /var/lib/replog
 
 (On NixOS the systemd unit creates this for you via `StateDirectory`.)
 
-### 2. Decide on a `REPLOG_SECRET_KEY` strategy
+### 2. Set `REPLOG_SECRET_KEY`
 
-You have two options. **Pick one before first launch — switching later
-is non-trivial** (see [secret key section](#replog_secret_key-bootstrap-rotation-and-recovery)).
+Generate a key (`openssl rand -base64 32`) and inject it via
+`REPLOG_SECRET_KEY` (`EnvironmentFile=` in systemd, `--env-file` in
+Docker, sealed-secrets in k8s, etc.). The variable is the only source
+the binary will use. It is not written to `app_settings`, and a
+database row named `_internal.secret_key` is not read.
 
-- **Auto-generate** (no env var set). The binary generates a 32-byte
-  random key on first launch and stores it in the DB. The DB backup is
-  then sufficient to restore — no separate secret to manage.
-- **Provide via env var.** Generate a key (`openssl rand -base64 32`)
-  and inject it via `REPLOG_SECRET_KEY` (`EnvironmentFile=` in systemd,
-  `--env-file` in Docker, sealed-secrets in k8s, etc.). The env var
-  wins on every launch and is also persisted to the DB row, so backups
-  remain self-sufficient.
-
-For a small self-hosted family deployment, **auto-generate is fine** —
-the key only matters if you ever expose the DB file to someone you
-don't trust with the LLM API keys it encrypts.
+Without the variable, the app still starts, but sensitive settings
+cannot be encrypted or decrypted. Set the key before the first launch
+that stores an LLM key or SMTP password, and keep the same value for
+the life of those ciphertexts (see [secret key section](#replog_secret_key-bootstrap-rotation-and-recovery)).
 
 ### 3. Set the bootstrap admin credentials
 
@@ -195,7 +191,7 @@ Expected log lines on a clean boot:
 
 ```
 Database ready: /var/lib/replog/replog.db
-Secret key generated and stored in database         # OR: loaded from database / env
+Secret key loaded from REPLOG_SECRET_KEY environment variable
 Bootstrapped admin user: admin (id=1)
 Seeded catalog: N equipment, N exercises, N programs ...
 Background scheduler started
@@ -233,7 +229,8 @@ source tree.
 
 | Path | What's in it | Critical? |
 |------|--------------|-----------|
-| `$REPLOG_DB_PATH` | All user data, sessions, encrypted settings, secret key | **Yes** |
+| `$REPLOG_DB_PATH` | All user data, sessions, encrypted settings | **Yes** |
+| `REPLOG_SECRET_KEY` | Encryption key for those settings. Not stored in the DB | **Yes**, separately from the DB file |
 | `$REPLOG_AVATAR_DIR` | User avatar images | No (cosmetic) |
 
 ### How to take a SQLite backup safely
@@ -316,7 +313,7 @@ sudo journalctl -u replog -n 50
 What you should see in the logs:
 
 - `Database ready: /var/lib/replog/replog.db`
-- `Secret key loaded from database` (or `from REPLOG_SECRET_KEY environment variable`)
+- `Secret key loaded from REPLOG_SECRET_KEY environment variable`
 - **No** `Bootstrapped admin user` line — that only fires on an empty DB.
 - **No** `Seeded catalog` line — same reason.
 
@@ -326,13 +323,16 @@ admin would shadow the originals).
 
 ### Restoring to a different host
 
-If `REPLOG_SECRET_KEY` is auto-generated, **the key lives in the DB
-row**. A restore on a fresh host just works: the binary finds the row
-and uses it.
+**Inject the same `REPLOG_SECRET_KEY`** on the new host before starting
+the service. The encrypted LLM keys / SMTP password in `app_settings`
+are unrecoverable without it. The database backup does not carry the
+key. (See the next section.)
 
-If `REPLOG_SECRET_KEY` is supplied via env var, **you must inject the
-same value** on the new host. The encrypted LLM keys / SMTP password in
-`app_settings` are unrecoverable without it. (See the next section.)
+A database created by an older binary may still contain an
+`app_settings` row with key `_internal.secret_key`. Current binaries
+do not read that row. If that row is the only copy of a key you still
+need, copy its value into `REPLOG_SECRET_KEY` yourself. This tree does
+not migrate or delete the row.
 
 ---
 
@@ -349,35 +349,28 @@ from `REPLOG_SECRET_KEY` via HKDF-SHA256 (`info = "aes-256-gcm"`,
 The key is **the same value used for every encrypt and decrypt** — it is
 not a password, it is the key material. Treat it like one.
 
-### Bootstrap order (read this before changing anything)
+### Bootstrap (read this before changing anything)
 
-On every launch, `models.GetOrCreateSecretKey` resolves the key in this
-order:
+On every launch the binary reads `REPLOG_SECRET_KEY` and nothing else.
+It does not write `app_settings._internal.secret_key`, and it does not
+read that row back. A brand-new database has no such row.
 
-1. `REPLOG_SECRET_KEY` env var, if non-empty. The value is also written
-   to the `_internal.secret_key` row in `app_settings` so the DB stays
-   self-sufficient for backups.
-2. Otherwise, the `_internal.secret_key` row in `app_settings`, if
-   present.
-3. Otherwise, a freshly-generated 32-byte random key, written to
-   `_internal.secret_key` and used as the key going forward.
-
-The startup log line tells you which path was taken
-(`Secret key generated and stored in database` /
-`loaded from database` / `loaded from REPLOG_SECRET_KEY environment variable`).
+If the variable is set, the log line is
+`Secret key loaded from REPLOG_SECRET_KEY environment variable`.
+If it is empty, startup continues with
+`Warning: REPLOG_SECRET_KEY is not set — sensitive settings will not be encrypted`.
 
 ### "I lost the key, can I recover the encrypted settings?"
 
 **No.** AES-GCM with a lost key is not recoverable. Your options are:
 
-1. Restore a DB backup from before the key was lost (the key row
-   travels with the backup, assuming you didn't separately set the env
-   var to something different).
+1. Restore a DB backup **and** the `REPLOG_SECRET_KEY` value that
+   encrypted it. The key does not travel inside the database file.
 2. Re-enter the lost values through the admin Settings page. They will
    be re-encrypted with the current key.
 
-This is why the recommended posture is auto-generate-and-back-up, not
-manage-the-key-out-of-band.
+Back up the env var (sops, agenix, or your secret store) next to the
+database backups. A database snapshot alone cannot decrypt settings.
 
 ### Rotating the key
 
@@ -389,13 +382,13 @@ the old key. The supported rotation procedure is:
 2. From the admin Settings page, copy any sensitive values you still
    know (LLM keys, SMTP password) somewhere safe.
 3. Stop the service.
-4. In the DB, clear the encrypted settings and the existing key row:
+4. In the DB, clear the encrypted settings. A legacy
+   `_internal.secret_key` row is not used; deleting it is optional
+   cleanup and is not required for rotation:
    ```sql
-   DELETE FROM app_settings WHERE key = '_internal.secret_key';
    DELETE FROM app_settings WHERE value LIKE 'enc:%';
    ```
-5. Set the new `REPLOG_SECRET_KEY` env var (or unset it to
-   auto-generate).
+5. Set the new `REPLOG_SECRET_KEY` env var.
 6. Start the service. Re-enter the sensitive values via the admin UI.
 
 If the values are not recoverable (lost LLM key etc.), rotation is the
@@ -426,7 +419,7 @@ ciphertext in a transaction.
 4. **Watch the logs.** A successful upgrade looks like:
    ```
    Database ready: /var/lib/replog/replog.db
-   Secret key loaded from database
+   Secret key loaded from REPLOG_SECRET_KEY environment variable
    RepLog 0.X.Y (commit, date) listening on :8080
    ```
    If you see migration output (`OK 000N_*.sql`), that's expected for
@@ -632,8 +625,8 @@ The minimum-viable recovery story, ordered from "lost the binary" to
 | `web/dist/` | Same — embedded in the binary, rebuilt with the binary. |
 | The avatar directory | Cosmetic. Restore from rsync backup if you took one; otherwise users re-upload. |
 | The DB file | Restore from a SQLite `.backup` snapshot (see [restore](#restoring-from-backup)). All app state is here. |
-| The host | Provision a new one, restore DB + avatars, point DNS at it. If `REPLOG_SECRET_KEY` is supplied via env var, set it on the new host first. |
-| The `REPLOG_SECRET_KEY` env var (and not in DB) | Restore a DB backup taken when the env var was set, OR clear encrypted settings and re-enter via admin UI (see [secret key recovery](#replog_secret_key-bootstrap-rotation-and-recovery)). |
+| The host | Provision a new one, restore DB + avatars, set `REPLOG_SECRET_KEY` to the value that encrypted that DB, point DNS at it. |
+| The `REPLOG_SECRET_KEY` env var | Clear encrypted settings and re-enter them via the admin UI (see [secret key recovery](#replog_secret_key-bootstrap-rotation-and-recovery)). The app will not fall back to a database copy of the key. |
 | Everything | Cry, then restore from off-host backups. Provision host, install binary, copy DB and avatars into place, start service. |
 
 ### Recovery time objective
@@ -843,9 +836,9 @@ change.
       (`REPLOG_BASE_URL` + `/auth/oidc/callback`, or an explicit
       `REPLOG_OIDC_REDIRECT_URL`) is registered in the PocketID client.
       OIDC login succeeds end-to-end.
-- [ ] `REPLOG_SECRET_KEY` strategy is decided and documented (auto-gen
-      vs env-supplied), and any env-supplied value is in a backed-up
-      vault.
+- [ ] `REPLOG_SECRET_KEY` is set in the environment (not in the Nix
+      store) and that value is in a backed-up vault. The database
+      does not store it.
 - [ ] DB backups are running on a timer, integrity-checked at least
       quarterly, and copied off-host.
 - [ ] Reverse proxy is forwarding `Host`, `X-Forwarded-For`, and

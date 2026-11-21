@@ -1,14 +1,10 @@
 module github.com/carpenike/replog
 
-go 1.25.6
-
-// Pin the toolchain to a patched 1.25.x so builds pick up the stdlib
-// fixes for GO-2026-4982 / GO-2026-4980 (html/template XSS escaper
-// bypass), GO-2026-4971 (net.Dial NUL-byte panic on Windows),
-// GO-2026-4918 (HTTP/2 SETTINGS_MAX_FRAME_SIZE infinite loop), and
-// GO-2026-5037 (crypto/x509 hostname parsing) / GO-2026-5039
-// (net/textproto unescaped error inputs).
-toolchain go1.25.12
+// Minimum toolchain. The patch is part of the requirement so builds
+// pick up the stdlib security fixes through go1.27.4 (the 1.25.12 set
+// plus everything fixed on the 1.26 and 1.27 lines since). `go mod tidy`
+// drops a toolchain line that repeats this version.
+go 1.27.4
 
 require (
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de

@@ -31,6 +31,49 @@ func (e *testEnv) createWorkout(t *testing.T, athleteID int64, date string) *mod
 	return w
 }
 
+// TestLoginAndLogSet is the phase-1 smoke path: a real login, then one
+// logged set on a fresh database. The fresh database must not grow an
+// app_settings._internal.secret_key row along the way.
+func TestLoginAndLogSet(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Dana", coach.ID)
+	exercise := env.createExercise(t, "Back Squat")
+
+	rr := env.do(t, "POST", "/api/login", `{"username":"coach","password":"password123"}`, nil)
+	requireStatus(t, rr, http.StatusOK)
+	cookies := rr.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatal("expected a session cookie from login")
+	}
+
+	rr = env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/workouts", athlete.ID),
+		`{"date":"2026-05-12"}`, cookies)
+	requireStatus(t, rr, http.StatusCreated)
+	var workout Workout
+	decodeJSON(t, rr, &workout)
+
+	rr = env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/workouts/%d/sets", athlete.ID, workout.ID),
+		fmt.Sprintf(`{"exercise_id":%d,"reps":5,"weight":225}`, exercise.ID), cookies)
+	requireStatus(t, rr, http.StatusCreated)
+	var set WorkoutSet
+	decodeJSON(t, rr, &set)
+	if set.WorkoutID != workout.ID || set.ExerciseID != exercise.ID || set.Reps != 5 {
+		t.Fatalf("logged set = %+v, want workout %d exercise %d reps 5", set, workout.ID, exercise.ID)
+	}
+	if set.Weight == nil || *set.Weight != 225 {
+		t.Fatalf("logged set weight = %v, want 225", set.Weight)
+	}
+
+	var n int
+	if err := env.DB.QueryRow(`SELECT COUNT(*) FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&n); err != nil {
+		t.Fatalf("count secret key rows: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("fresh database has %d _internal.secret_key rows after login and a logged set, want 0", n)
+	}
+}
+
 func TestCreateWorkout_Success(t *testing.T) {
 	env := setupTest(t)
 	coach := env.createUser(t, "coach", true, false)
