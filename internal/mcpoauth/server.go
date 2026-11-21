@@ -91,6 +91,9 @@ type Server struct {
 // canonical public base URL (REPLOG_BASE_URL); issuer/clientID/clientSecret are
 // the same PocketID confidential client the webui uses (PocketID must register
 // BOTH redirect URIs — the webui callback and origin+/oauth/callback).
+//
+// Startup discovery is bounded and retried inside oidc.BuildConfig. ctx
+// cancels that sequence; it is not the per-attempt timeout.
 func New(ctx context.Context, db *sql.DB, origin, issuer, clientID, clientSecret string) (*Server, error) {
 	origin = strings.TrimRight(origin, "/")
 	if origin == "" {

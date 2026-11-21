@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	gooidc "github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
@@ -53,6 +54,64 @@ type Handler struct {
 	oauth    *oauth2.Config
 }
 
+// Startup discovery budget. A black-holed dial (Cilium toFQDNs not populated
+// yet on the first pod starts) used to sit in gooidc.NewProvider forever
+// because the caller passed context.Background(). Each attempt now has its
+// own timeout, and a few retries with backoff cover the window until the
+// network policy is in place. Overridden in tests.
+var (
+	discoveryAttempts       = 4
+	discoveryTimeout        = 10 * time.Second
+	discoveryInitialBackoff = time.Second
+)
+
+// discoverProvider calls gooidc.NewProvider with a bounded context and retries.
+// The parent ctx cancels the sequence (a deadline already on ctx still wins
+// inside each attempt). go-oidc v3 uses this context only for the discovery
+// HTTP call; later JWKS fetches use a background context, so cancelling an
+// attempt does not disable token verification.
+func discoverProvider(ctx context.Context, issuer string) (*gooidc.Provider, error) {
+	var lastErr error
+	tried := 0
+	backoff := discoveryInitialBackoff
+	for attempt := 1; attempt <= discoveryAttempts; attempt++ {
+		tried = attempt
+		if attempt > 1 {
+			log.Printf("oidc: discovery of %q attempt %d/%d failed: %v; retrying in %s",
+				issuer, attempt-1, discoveryAttempts, lastErr, backoff)
+			timer := time.NewTimer(backoff)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				log.Printf("oidc: discovery of %q cancelled after %d/%d attempt(s): %v",
+					issuer, attempt-1, discoveryAttempts, ctx.Err())
+				return nil, fmt.Errorf("oidc: discover provider at %q: %w", issuer, ctx.Err())
+			case <-timer.C:
+			}
+			backoff *= 2
+		}
+
+		attemptCtx, cancel := context.WithTimeout(ctx, discoveryTimeout)
+		provider, err := gooidc.NewProvider(attemptCtx, issuer)
+		cancel()
+		if err == nil {
+			if attempt > 1 {
+				log.Printf("oidc: discovery of %q succeeded on attempt %d/%d", issuer, attempt, discoveryAttempts)
+			}
+			return provider, nil
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			err = fmt.Errorf("timed out after %s: %w", discoveryTimeout, err)
+		}
+		lastErr = err
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	log.Printf("oidc: discovery of %q failed after %d/%d attempt(s): %v", issuer, tried, discoveryAttempts, lastErr)
+	return nil, fmt.Errorf("oidc: discover provider at %q: %w", issuer, lastErr)
+}
+
 // BuildConfig discovers the PocketID provider and returns an ID-token verifier
 // plus an oauth2.Config. It is the single shared constructor for both OIDC
 // consumers so the webui relying party (Phase 1) and the MCP OAuth
@@ -61,15 +120,19 @@ type Handler struct {
 // redirectURL and the scopes it needs.
 //
 // Discovery performs a network call to the issuer's well-known document, so
-// BuildConfig should be called once at startup per consumer.
+// BuildConfig should be called once at startup per consumer (oidc.New and
+// mcpoauth.New). Each attempt uses a bounded context and is retried with
+// backoff so a black-holed dial cannot stall process startup. Token exchange
+// and ID-token verification on the request path do not go through BuildConfig;
+// those keep using the request context.
 func BuildConfig(ctx context.Context, issuer, clientID, clientSecret, redirectURL string, scopes []string) (*gooidc.IDTokenVerifier, *oauth2.Config, error) {
 	if issuer == "" || clientID == "" || clientSecret == "" || redirectURL == "" {
 		return nil, nil, errors.New("oidc: issuer, client id, client secret, and redirect url are all required")
 	}
 
-	provider, err := gooidc.NewProvider(ctx, issuer)
+	provider, err := discoverProvider(ctx, issuer)
 	if err != nil {
-		return nil, nil, fmt.Errorf("oidc: discover provider at %q: %w", issuer, err)
+		return nil, nil, err
 	}
 
 	return provider.Verifier(&gooidc.Config{ClientID: clientID}),
@@ -89,8 +152,10 @@ func BuildConfig(ctx context.Context, issuer, clientID, clientSecret, redirectUR
 // exactly match the redirect registered in PocketID.
 //
 // Discovery performs a network call to the issuer's well-known document, so
-// New should be called once at startup. A failure here is fatal to OIDC login
-// but the caller decides whether that's fatal to the process.
+// New should be called once at startup. Discovery is bounded and retried
+// (see discoverProvider); a failure is fatal to OIDC login but the caller
+// decides whether that's fatal to the process. ctx cancels the whole
+// sequence. It does not replace the per-attempt timeout.
 func New(ctx context.Context, db *sql.DB, sessions *scs.SessionManager, issuer, clientID, clientSecret, redirectURL string) (*Handler, error) {
 	verifier, oauthCfg, err := BuildConfig(ctx, issuer, clientID, clientSecret, redirectURL,
 		[]string{gooidc.ScopeOpenID, "profile", "email"})

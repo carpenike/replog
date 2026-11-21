@@ -1,14 +1,18 @@
 package oidc
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -47,6 +51,165 @@ func TestSanitizeReturnTo(t *testing.T) {
 		if got := sanitizeReturnTo(c.in); got != c.want {
 			t.Errorf("sanitizeReturnTo(%q) = %q, want %q", c.in, got, c.want)
 		}
+	}
+}
+
+// withDiscoveryTiming shortens the startup discovery budget for tests that
+// would otherwise wait on the production 10s timeout and 1s backoff.
+func withDiscoveryTiming(t *testing.T, attempts int, timeout, backoff time.Duration) {
+	t.Helper()
+	prevAttempts, prevTimeout, prevBackoff := discoveryAttempts, discoveryTimeout, discoveryInitialBackoff
+	discoveryAttempts = attempts
+	discoveryTimeout = timeout
+	discoveryInitialBackoff = backoff
+	t.Cleanup(func() {
+		discoveryAttempts = prevAttempts
+		discoveryTimeout = prevTimeout
+		discoveryInitialBackoff = prevBackoff
+	})
+}
+
+func captureLog(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var buf bytes.Buffer
+	prevW := log.Writer()
+	prevF := log.Flags()
+	log.SetOutput(&buf)
+	log.SetFlags(0)
+	t.Cleanup(func() {
+		log.SetOutput(prevW)
+		log.SetFlags(prevF)
+	})
+	return &buf
+}
+
+func writeDiscovery(w http.ResponseWriter, issuer string) {
+	doc := map[string]any{
+		"issuer":                                issuer,
+		"authorization_endpoint":                issuer + "/authorize",
+		"token_endpoint":                        issuer + "/token",
+		"jwks_uri":                              issuer + "/jwks",
+		"response_types_supported":              []string{"code"},
+		"subject_types_supported":               []string{"public"},
+		"id_token_signing_alg_values_supported": []string{"RS256"},
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(doc)
+}
+
+// TestDiscoveryBudgetDefaults locks the production startup budget: 10s per
+// attempt and a few tries, so a black-holed issuer dial cannot hang the
+// process the way context.Background() did.
+func TestDiscoveryBudgetDefaults(t *testing.T) {
+	if discoveryTimeout != 10*time.Second {
+		t.Errorf("discoveryTimeout = %s, want 10s", discoveryTimeout)
+	}
+	if discoveryAttempts != 4 {
+		t.Errorf("discoveryAttempts = %d, want 4", discoveryAttempts)
+	}
+	if discoveryInitialBackoff != time.Second {
+		t.Errorf("discoveryInitialBackoff = %s, want 1s", discoveryInitialBackoff)
+	}
+}
+
+// TestNew_DiscoveryRetriesThenSucceeds covers the startup path shared with
+// mcpoauth.New (both call BuildConfig): a few failed discovery responses are
+// retried, then a valid document succeeds, and the failure is logged.
+func TestNew_DiscoveryRetriesThenSucceeds(t *testing.T) {
+	withDiscoveryTiming(t, 4, time.Second, time.Millisecond)
+	logs := captureLog(t)
+
+	var srv *httptest.Server
+	var hits int
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		if hits < 3 {
+			http.Error(w, "not ready", http.StatusServiceUnavailable)
+			return
+		}
+		writeDiscovery(w, srv.URL)
+	}))
+	t.Cleanup(srv.Close)
+
+	db := testDB(t)
+	h, err := New(context.Background(), db, newTestSessions(), srv.URL, testClientID, testClientSecret, testRedirectURL)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	if h == nil {
+		t.Fatal("New returned a nil handler")
+	}
+	if hits != 3 {
+		t.Errorf("discovery hits = %d, want 3", hits)
+	}
+	got := logs.String()
+	if !strings.Contains(got, "attempt 1/4 failed") || !strings.Contains(got, "succeeded on attempt 3/4") {
+		t.Errorf("log = %q, want a failed attempt and success on attempt 3", got)
+	}
+}
+
+// TestBuildConfig_HungDiscoveryIsBounded is the hang that kept the process
+// out of ListenAndServe: the issuer accepts the dial and never answers.
+// Discovery must return, and the log must say it timed out.
+func TestBuildConfig_HungDiscoveryIsBounded(t *testing.T) {
+	withDiscoveryTiming(t, 2, 50*time.Millisecond, 5*time.Millisecond)
+	logs := captureLog(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+
+	// Parent deadline is a backstop. The per-attempt timeout is 50ms, so a
+	// correct implementation finishes well under this.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	start := time.Now()
+	_, _, err := BuildConfig(ctx, srv.URL, testClientID, testClientSecret, testRedirectURL, []string{"openid"})
+	elapsed := time.Since(start)
+	if err == nil {
+		t.Fatal("BuildConfig succeeded against a hung issuer")
+	}
+	if elapsed > 2*time.Second {
+		t.Fatalf("discovery hung for %s; want a bounded failure", elapsed)
+	}
+	if !strings.Contains(err.Error(), "timed out after") {
+		t.Errorf("error = %q, want the per-attempt timeout", err)
+	}
+	got := logs.String()
+	if !strings.Contains(got, srv.URL) || !strings.Contains(got, "timed out after") || !strings.Contains(got, "failed after 2/2") {
+		t.Errorf("log = %q, want issuer, timeout, and final failure", got)
+	}
+}
+
+// TestBuildConfig_DiscoveryStopsWhenParentCancelled: a cancelled parent must
+// not burn the remaining backoff. Request-path calls never enter this helper.
+func TestBuildConfig_DiscoveryStopsWhenParentCancelled(t *testing.T) {
+	withDiscoveryTiming(t, 4, time.Second, time.Second)
+	logs := captureLog(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "nope", http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(srv.Close)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	start := time.Now()
+	_, _, err := BuildConfig(ctx, srv.URL, testClientID, testClientSecret, testRedirectURL, []string{"openid"})
+	if err == nil {
+		t.Fatal("BuildConfig succeeded with a cancelled context")
+	}
+	if time.Since(start) > time.Second {
+		t.Fatalf("cancelled discovery took %s", time.Since(start))
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("err = %v, want context.Canceled", err)
+	}
+	if strings.Contains(logs.String(), "retrying") {
+		t.Errorf("log = %q, want no retry after the parent was cancelled", logs.String())
 	}
 }
 

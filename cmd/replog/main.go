@@ -210,6 +210,9 @@ func main() {
 		if redirectURL == "" {
 			redirectURL = strings.TrimRight(baseURL, "/") + "/auth/oidc/callback"
 		}
+		// Discovery is bounded and retried inside oidc.New. An unbounded context
+		// passed straight to go-oidc used to stall startup before ListenAndServe
+		// when the issuer dial black-holed.
 		oh, err := oidc.New(context.Background(), db, sessionManager, oidcIssuer, oidcClientID, oidcClientSecret, redirectURL)
 		if err != nil {
 			log.Fatalf("Failed to configure OIDC relying party: %v", err)
@@ -273,6 +276,7 @@ func main() {
 	var mcpAuth *middleware.MCPTokenAuth
 	var asServer *mcpoauth.Server
 	if oidcIssuer != "" && oidcClientID != "" && oidcClientSecret != "" && baseURL != "" {
+		// Same bounded startup discovery as oidc.New (mcpoauth.New → oidc.BuildConfig).
 		as, err := mcpoauth.New(context.Background(), db, baseURL, oidcIssuer, oidcClientID, oidcClientSecret)
 		if err != nil {
 			log.Fatalf("Failed to configure MCP OAuth authorization server: %v", err)
