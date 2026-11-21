@@ -143,6 +143,8 @@ func (h *Handlers) AssignProgramToAthlete(w http.ResponseWriter, r *http.Request
 			WriteValidationError(w, "schedule", "conflicts with an existing active program")
 		case errors.Is(err, models.ErrProgramAlreadyActive):
 			WriteError(w, http.StatusConflict, "another active program already exists")
+		case errors.Is(err, models.ErrProgramDraft):
+			WriteValidationError(w, "template_id", "draft programs are not assigned until a coach approves them")
 		default:
 			log.Printf("api: assign program to athlete %d: %v", athleteID, err)
 			WriteError(w, http.StatusInternalServerError, "failed to assign program")

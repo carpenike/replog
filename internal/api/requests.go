@@ -230,6 +230,8 @@ type PrescribedSetRequest struct {
 	Percentage     *float64 `json:"percentage,omitempty" example:"0.65"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
 	RestSeconds    *int     `json:"rest_seconds,omitempty" example:"180"`
+	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty" example:"7.5"`
+	GroupLabel     string   `json:"group_label,omitempty" example:"T1"`
 	SortOrder      int      `json:"sort_order,omitempty"`
 	RepType        string   `json:"rep_type,omitempty" example:"reps"`
 	Notes          string   `json:"notes,omitempty"`
@@ -243,8 +245,44 @@ type PrescribedSetUpdateRequest struct {
 	Percentage     *float64 `json:"percentage,omitempty"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
 	RestSeconds    *int     `json:"rest_seconds,omitempty" example:"180"`
+	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty" example:"7.5"`
+	GroupLabel     string   `json:"group_label,omitempty" example:"T1"`
 	SortOrder      int      `json:"sort_order,omitempty"`
 	RepType        string   `json:"rep_type,omitempty"`
+	Notes          string   `json:"notes,omitempty"`
+}
+
+// WriteProgramDraftRequest is the body for POST /api/programs/drafts.
+// The program is always stored as a draft. source_text is the provenance
+// a coach reviews with the proposal.
+type WriteProgramDraftRequest struct {
+	AthleteID   *int64                      `json:"athlete_id,omitempty"`
+	Name        string                      `json:"name" example:"Squat block"`
+	Description string                      `json:"description,omitempty"`
+	NumWeeks    int                         `json:"num_weeks" example:"1"`
+	NumDays     int                         `json:"num_days" example:"3"`
+	IsLoop      bool                        `json:"is_loop,omitempty"`
+	Audience    string                      `json:"audience,omitempty" example:"adult"`
+	LineageID   *int64                      `json:"lineage_id,omitempty"`
+	SourceText  string                      `json:"source_text" example:"Wednesday session notes"`
+	SourceDate  string                      `json:"source_date,omitempty" example:"2026-11-21"`
+	Sets        []DraftPrescribedSetRequest `json:"sets,omitempty"`
+}
+
+// DraftPrescribedSetRequest is one prescribed set on a program draft.
+type DraftPrescribedSetRequest struct {
+	ExerciseID     int64    `json:"exercise_id" example:"42"`
+	Week           int      `json:"week" example:"1"`
+	Day            int      `json:"day" example:"1"`
+	SetNumber      int      `json:"set_number" example:"1"`
+	Reps           *int     `json:"reps,omitempty" example:"5"`
+	Percentage     *float64 `json:"percentage,omitempty"`
+	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
+	RestSeconds    *int     `json:"rest_seconds,omitempty"`
+	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty" example:"7.5"`
+	GroupLabel     string   `json:"group_label,omitempty" example:"T1"`
+	SortOrder      int      `json:"sort_order,omitempty"`
+	RepType        string   `json:"rep_type,omitempty" example:"reps"`
 	Notes          string   `json:"notes,omitempty"`
 }
 

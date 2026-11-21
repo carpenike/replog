@@ -236,6 +236,8 @@ func setupTest(t *testing.T) *testEnv {
 			// Program templates (catalog).
 			r.Get("/programs", h.ListProgramTemplates)
 			r.Post("/programs", h.CreateProgramTemplate)
+			r.Post("/programs/drafts", h.WriteProgramDraft)
+			r.Post("/programs/{id}/approve", h.ApproveProgramDraft)
 			r.Get("/programs/{id}", h.GetProgramTemplate)
 			r.Put("/programs/{id}", h.UpdateProgramTemplate)
 			r.Delete("/programs/{id}", h.DeleteProgramTemplate)

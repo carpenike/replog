@@ -298,6 +298,9 @@ type ProgramTemplate struct {
 	NumDays      int     `json:"num_days"`
 	IsLoop       bool    `json:"is_loop"`
 	Audience     *string `json:"audience,omitempty"`
+	Status       string  `json:"status"`
+	LineageID    *int64  `json:"lineage_id,omitempty"`
+	Version      int     `json:"version"`
 	CreatedAt    string  `json:"created_at"`
 	UpdatedAt    string  `json:"updated_at"`
 	AthleteCount int     `json:"athlete_count,omitempty"`
@@ -316,6 +319,8 @@ type PrescribedSet struct {
 	Percentage     *float64 `json:"percentage,omitempty"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
 	RestSeconds    *int64   `json:"rest_seconds,omitempty"`
+	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty"`
+	GroupLabel     *string  `json:"group_label,omitempty"`
 	SortOrder      int      `json:"sort_order"`
 	RepType        string   `json:"rep_type"`
 	Notes          *string  `json:"notes,omitempty"`

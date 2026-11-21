@@ -376,6 +376,41 @@ func TestDeleteProgressionRule_Success(t *testing.T) {
 
 // --- Athlete program assignment ---
 
+func TestAssignProgramToAthlete_SkipsDraft(t *testing.T) {
+	env := setupTest(t)
+	coach := env.createUser(t, "coach", true, false)
+	athlete := env.createAthlete(t, "Riley", coach.ID)
+	approved := env.createProgramTemplate(t, "Approved Block", 1, 3)
+	cookies := env.loginAs(t, coach)
+	draft, err := models.CreateProgramDraft(context.Background(), env.DB, models.ProgramDraftInput{
+		Name:       "Draft Block",
+		NumWeeks:   1,
+		NumDays:    3,
+		CoachID:    coach.ID,
+		SourceDate: "2026-11-21",
+		SourceText: "not assigned yet",
+	})
+	if err != nil {
+		t.Fatalf("create draft: %v", err)
+	}
+
+	body := fmt.Sprintf(`{"template_id":%d,"start_date":"2026-11-21"}`, draft.ID)
+	rr := env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/programs", athlete.ID), body, cookies)
+	requireStatus(t, rr, http.StatusBadRequest)
+
+	var n int
+	if err := env.DB.QueryRow(`SELECT COUNT(*) FROM athlete_programs WHERE athlete_id = ?`, athlete.ID).Scan(&n); err != nil {
+		t.Fatalf("count assignments: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("draft assignment rows = %d, want 0", n)
+	}
+
+	body = fmt.Sprintf(`{"template_id":%d,"start_date":"2026-11-21"}`, approved.ID)
+	rr = env.do(t, "POST", fmt.Sprintf("/api/athletes/%d/programs", athlete.ID), body, cookies)
+	requireStatus(t, rr, http.StatusCreated)
+}
+
 func TestAssignProgramToAthlete_Success(t *testing.T) {
 	env := setupTest(t)
 	coach := env.createUser(t, "coach", true, false)

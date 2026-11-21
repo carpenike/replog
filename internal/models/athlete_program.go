@@ -102,6 +102,9 @@ func AssignProgram(ctx context.Context, db *sql.DB, athleteID, templateID int64,
 	if _, err := validateProgramAssignment(role, schedule); err != nil {
 		return nil, err
 	}
+	if err := assignableTemplate(ctx, db, templateID); err != nil {
+		return nil, err
+	}
 
 	var notesVal sql.NullString
 	if notes != "" {
@@ -176,6 +179,9 @@ func ReplaceProgram(ctx context.Context, db *sql.DB, athleteID, templateID int64
 	}
 	proposedDays, err := validateProgramAssignment(role, schedule)
 	if err != nil {
+		return nil, err
+	}
+	if err := assignableTemplate(ctx, db, templateID); err != nil {
 		return nil, err
 	}
 

@@ -25,6 +25,11 @@ import (
 //	@Failure      403  {object}  api.APIError
 //	@Router       /programs [post]
 func (h *Handlers) CreateProgramTemplate(w http.ResponseWriter, r *http.Request) {
+	// This route inserts an approved template. A service token writes a
+	// proposal through POST /programs/drafts and cannot approve it here.
+	if refuseServiceCoaching(w, r) {
+		return
+	}
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
 		WriteError(w, http.StatusForbidden, "coach access required")
@@ -176,8 +181,12 @@ func (h *Handlers) AddPrescribedSet(w http.ResponseWriter, r *http.Request) {
 	if req.RepType == "" {
 		req.RepType = "reps"
 	}
+	if req.PrescribedRPE != nil && (*req.PrescribedRPE < 1 || *req.PrescribedRPE > 10) {
+		WriteValidationError(w, "prescribed_rpe", "must be between 1 and 10")
+		return
+	}
 
-	set, err := models.CreatePrescribedSetWithRest(r.Context(), h.DB, templateID, req.ExerciseID, req.Week, req.Day, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes)
+	set, err := models.CreatePrescribedSetWithRest(r.Context(), h.DB, templateID, req.ExerciseID, req.Week, req.Day, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes, req.PrescribedRPE, req.GroupLabel)
 	if err != nil {
 		log.Printf("api: add prescribed set to template %d: %v", templateID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to add set")
@@ -226,8 +235,12 @@ func (h *Handlers) UpdatePrescribedSet(w http.ResponseWriter, r *http.Request) {
 		WriteValidationError(w, "rest_seconds", "must be zero or greater")
 		return
 	}
+	if req.PrescribedRPE != nil && (*req.PrescribedRPE < 1 || *req.PrescribedRPE > 10) {
+		WriteValidationError(w, "prescribed_rpe", "must be between 1 and 10")
+		return
+	}
 
-	set, err := models.UpdatePrescribedSet(r.Context(), h.DB, setID, req.ExerciseID, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes)
+	set, err := models.UpdatePrescribedSet(r.Context(), h.DB, setID, req.ExerciseID, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes, req.PrescribedRPE, req.GroupLabel)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "set not found")
 		return

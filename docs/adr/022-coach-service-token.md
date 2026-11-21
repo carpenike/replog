@@ -43,3 +43,11 @@ token: `rlpat_` stays on `/api/mcp`, and `mcp_enabled` does not gate this path.
 - The connector can log work. It cannot approve a draft, change a training
   max, assign a program, or promote.
 - No new HTTP route. OpenAPI is unchanged.
+
+## Amendment 2026-11-21 — Program drafts (ADR 023)
+
+`POST /programs/drafts` is the write a service token is allowed to make.
+The row is a proposal with provenance. `POST /programs/{id}/approve` and
+`POST /programs` (which inserts an approved template) return 403 for the
+token. A browser session of the same coach can approve. Approval does
+not assign the program.

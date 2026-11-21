@@ -373,7 +373,7 @@ func TestPrescribedSetRestSeconds(t *testing.T) {
 	reps := 5
 	restSeconds := 180
 
-	created, err := CreatePrescribedSetWithRest(context.Background(), db, tmpl.ID, exercise.ID, 1, 1, 1, &reps, nil, nil, &restSeconds, 0, "reps", "")
+	created, err := CreatePrescribedSetWithRest(context.Background(), db, tmpl.ID, exercise.ID, 1, 1, 1, &reps, nil, nil, &restSeconds, 0, "reps", "", nil, "")
 	if err != nil {
 		t.Fatalf("create prescribed set: %v", err)
 	}
