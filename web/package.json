@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview",
     "gen:icons": "node scripts/generate-icons.mjs",
     "gen:types": "swagger2openapi ../internal/api/openapi/swagger.yaml --outfile node_modules/.cache/openapi3.json && openapi-typescript node_modules/.cache/openapi3.json -o src/api/generated.ts"
@@ -30,6 +31,8 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@tailwindcss/vite": "^4.3.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.13",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
@@ -39,6 +42,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jsdom": "^31.0.1",
     "openapi-typescript": "^7.13.0",
     "shadcn": "^4.0.2",
     "sharp": "^0.35.3",
@@ -47,6 +51,7 @@
     "typescript-eslint": "^8.48.0",
     "vite": "^8.1.0",
     "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^5.1.1",
     "workbox-background-sync": "^7.4.1",
     "workbox-build": "^7.4.1",
     "workbox-cacheable-response": "^7.4.1",

@@ -1,0 +1,137 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@/api/client'
+import type { User, Workout } from '@/api/types'
+import { fetchWeekStreak } from '@/lib/streak'
+import { localDateISO } from '@/lib/utils'
+import { Dashboard } from '@/pages/Dashboard'
+
+vi.mock('@/api/client', async () => {
+  const actual = await vi.importActual<typeof import('@/api/client')>('@/api/client')
+  return {
+    ...actual,
+    api: {
+      dashboard: vi.fn(),
+      listWorkouts: vi.fn(),
+      createWorkout: vi.fn(),
+    },
+  }
+})
+
+vi.mock('@/lib/streak', () => ({
+  fetchWeekStreak: vi.fn(),
+}))
+
+function user(partial: Partial<User> & Pick<User, 'is_coach' | 'is_admin'>): User {
+  return {
+    id: 2,
+    username: 'sam',
+    name: 'Sam',
+    athlete_id: null,
+    mcp_enabled: false,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    ...partial,
+  }
+}
+
+function workout(id: number, date: string): Workout {
+  return {
+    id,
+    athlete_id: 7,
+    date,
+    created_at: '2026-11-21T00:00:00Z',
+    updated_at: '2026-11-21T00:00:00Z',
+    set_count: 0,
+  }
+}
+
+function renderHome(u: User) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+  const router = createMemoryRouter(
+    [
+      { path: '/', element: <Dashboard user={u} /> },
+      { path: '/athletes/:id/workouts/:workoutId/session', element: <h1>Session</h1> },
+    ],
+    { initialEntries: ['/'] },
+  )
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  )
+  return router
+}
+
+beforeEach(() => {
+  vi.mocked(api.dashboard).mockReset()
+  vi.mocked(api.listWorkouts).mockReset()
+  vi.mocked(api.createWorkout).mockReset()
+  vi.mocked(api.dashboard).mockResolvedValue({ stats: null, review_stats: null, athletes: [] })
+  vi.mocked(fetchWeekStreak).mockResolvedValue(0)
+  vi.mocked(api.listWorkouts).mockResolvedValue({ workouts: [], has_more: false })
+  vi.mocked(api.createWorkout).mockResolvedValue(workout(99, localDateISO()))
+})
+
+describe('linked athlete home', () => {
+  const kid = user({ is_coach: false, is_admin: false, athlete_id: 7, name: 'Sam' })
+
+  it('opens a new session in one tap at full phone width', async () => {
+    renderHome(kid)
+
+    const open = await screen.findByRole('button', { name: "Start today's session" })
+    expect(open.className).toContain('w-full')
+    expect(open.className).toContain('h-14')
+    expect(open.compareDocumentPosition(screen.getByRole('link', { name: "Today's plan" })))
+      .toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+
+    await userEvent.click(open)
+
+    expect(await screen.findByRole('heading', { name: 'Session' })).toBeTruthy()
+    expect(api.createWorkout).toHaveBeenCalledWith(7, localDateISO(), '', false)
+    expect(api.createWorkout).toHaveBeenCalledTimes(1)
+  })
+
+  it('continues today in one tap when the session already exists', async () => {
+    vi.mocked(api.listWorkouts).mockResolvedValue({
+      workouts: [workout(42, `${localDateISO()}T00:00:00Z`)],
+      has_more: false,
+    })
+    renderHome(kid)
+
+    const open = await screen.findByRole('link', { name: "Continue today's session" })
+    expect(open.className).toContain('w-full')
+    expect(open.className).toContain('h-14')
+    expect(open.getAttribute('href')).toBe('/athletes/7/workouts/42/session')
+
+    await userEvent.click(open)
+
+    expect(await screen.findByRole('heading', { name: 'Session' })).toBeTruthy()
+    expect(api.createWorkout).not.toHaveBeenCalled()
+  })
+})
+
+describe('other homes stay put', () => {
+  it('does not give a coach the one-tap session control', async () => {
+    renderHome(user({ is_coach: true, is_admin: false, athlete_id: 7, name: 'Coach' }))
+
+    expect(await screen.findByText('No athletes yet')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /today's session/i })).toBeNull()
+    expect(screen.queryByRole('link', { name: /today's session/i })).toBeNull()
+  })
+
+  it('keeps the unlinked message for an account with no athlete', async () => {
+    renderHome(user({ is_coach: false, is_admin: false, athlete_id: null, name: 'Sam' }))
+
+    expect(await screen.findByText(/hasn't been linked to an athlete profile/i)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /today's session/i })).toBeNull()
+  })
+})
