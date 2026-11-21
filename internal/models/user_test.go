@@ -122,29 +122,14 @@ func TestGetUserByEmail(t *testing.T) {
 		}
 	})
 
-	t.Run("returns mcp_enabled correctly", func(t *testing.T) {
-		// Default after the 0005 migration is 0 (default-deny).
+	t.Run("mcp_enabled defaults to false", func(t *testing.T) {
+		// The column remains after the in-process MCP server was removed.
+		// New rows still default to 0 so the scan stays stable.
 		u, _ := GetUserByEmail(context.Background(), db, "coach@test.com")
 		if u.MCPEnabled {
 			t.Errorf("default mcp_enabled should be false, got true")
 		}
-		// Flip it and re-read.
-		if err := SetUserMCPEnabled(context.Background(), db, u.ID, true); err != nil {
-			t.Fatalf("set mcp_enabled: %v", err)
-		}
-		u, _ = GetUserByEmail(context.Background(), db, "coach@test.com")
-		if !u.MCPEnabled {
-			t.Errorf("mcp_enabled should be true after SetUserMCPEnabled")
-		}
 	})
-}
-
-func TestSetUserMCPEnabled_NotFound(t *testing.T) {
-	db := testDB(t)
-	err := SetUserMCPEnabled(context.Background(), db, 999999, true)
-	if !errors.Is(err, ErrNotFound) {
-		t.Errorf("err = %v, want ErrNotFound", err)
-	}
 }
 
 func TestAuthenticate(t *testing.T) {

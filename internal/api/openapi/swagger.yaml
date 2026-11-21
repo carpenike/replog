@@ -1007,11 +1007,6 @@ definitions:
       label:
         type: string
     type: object
-  api.MCPAccessRequest:
-    properties:
-      enabled:
-        type: boolean
-    type: object
   api.MethodologyOption:
     properties:
       applicable_tiers:
@@ -1683,9 +1678,10 @@ definitions:
         type: boolean
       mcp_enabled:
         description: |-
-          MCPEnabled mirrors models.User.MCPEnabled (HOF-004): when true,
-          the bearer middleware on /api-mcp/* accepts JWTs that resolve to
-          this user; the webui's scs cookie auth ignores the flag entirely.
+          MCPEnabled mirrors the stored users.mcp_enabled column. The in-process
+          MCP server that authorized on this flag has been removed, and there is
+          no writer left. The field stays so existing rows still scan and the
+          user payload shape is unchanged.
         type: boolean
       name:
         type: string
@@ -1772,9 +1768,10 @@ definitions:
         type: boolean
       mcp_enabled:
         description: |-
-          MCPEnabled mirrors models.User.MCPEnabled (HOF-004): when true,
-          the bearer middleware on /api-mcp/* accepts JWTs that resolve to
-          this user; the webui's scs cookie auth ignores the flag entirely.
+          MCPEnabled mirrors the stored users.mcp_enabled column. The in-process
+          MCP server that authorized on this flag has been removed, and there is
+          no writer left. The field stays so existing rows still scan and the
+          user payload shape is unchanged.
         type: boolean
       name:
         type: string
@@ -6524,47 +6521,6 @@ paths:
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Update user
-      tags:
-      - Users
-  /users/{userID}/mcp:
-    put:
-      consumes:
-      - application/json
-      description: Sets users.mcp_enabled (HOF-004). When false the bearer middleware
-        on /api-mcp/* rejects this user with 403 mcp-not-enabled even if their JWT
-        validates. Admin only.
-      parameters:
-      - description: User ID
-        in: path
-        name: userID
-        required: true
-        type: integer
-      - description: MCP access flag
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/api.MCPAccessRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.User'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.APIError'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/api.APIError'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.APIError'
-      summary: Toggle MCP access for a user
       tags:
       - Users
   /users/{userID}/tokens:

@@ -112,9 +112,9 @@ func TestDiscoveryBudgetDefaults(t *testing.T) {
 	}
 }
 
-// TestNew_DiscoveryRetriesThenSucceeds covers the startup path shared with
-// mcpoauth.New (both call BuildConfig): a few failed discovery responses are
-// retried, then a valid document succeeds, and the failure is logged.
+// TestNew_DiscoveryRetriesThenSucceeds covers OIDC startup discovery: a few
+// failed discovery responses are retried, then a valid document succeeds,
+// and the failure is logged.
 func TestNew_DiscoveryRetriesThenSucceeds(t *testing.T) {
 	withDiscoveryTiming(t, 4, time.Second, time.Millisecond)
 	logs := captureLog(t)

@@ -57,7 +57,6 @@ export function UsersList() {
                   {u.is_admin && <Badge variant="destructive">Admin</Badge>}
                   {u.is_coach && <Badge>Coach</Badge>}
                   {!u.is_admin && !u.is_coach && <Badge variant="secondary">Athlete</Badge>}
-                  {u.mcp_enabled && <Badge variant="outline" title="MCP access enabled">MCP</Badge>}
                 </div>
               </TableCell>
               <TableCell>

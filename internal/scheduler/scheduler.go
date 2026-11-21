@@ -147,8 +147,9 @@ func (s *Scheduler) cleanExpiredTokens() int64 {
 	return deleted
 }
 
-// cleanExpiredMCPTokens hard-deletes MCP bearer tokens that expired or were
-// revoked more than the grace window ago.
+// cleanExpiredMCPTokens hard-deletes leftover MCP bearer tokens that expired
+// or were revoked more than the grace window ago. No served route mints
+// these tokens anymore.
 func (s *Scheduler) cleanExpiredMCPTokens() int64 {
 	cutoff := time.Now().Add(-mcpTokenGraceWindow)
 	deleted, err := models.DeleteExpiredMCPTokens(s.ctx, s.db, cutoff)
@@ -162,8 +163,9 @@ func (s *Scheduler) cleanExpiredMCPTokens() int64 {
 	return deleted
 }
 
-// cleanOrphanDCRClients hard-deletes Dynamic Client Registration rows older
-// than the grace window that never produced a surviving token (abandoned flows).
+// cleanOrphanDCRClients hard-deletes leftover Dynamic Client Registration
+// rows older than the grace window that never produced a surviving token.
+// No served route registers clients anymore.
 func (s *Scheduler) cleanOrphanDCRClients() int64 {
 	cutoff := time.Now().Add(-mcpTokenGraceWindow)
 	deleted, err := models.DeleteOrphanDCRClients(s.ctx, s.db, cutoff)

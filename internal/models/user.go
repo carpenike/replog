@@ -35,10 +35,10 @@ type User struct {
 	AthleteID    sql.NullInt64
 	IsCoach      bool
 	IsAdmin      bool
-	// MCPEnabled gates whether the bearer middleware accepts JWTs that
-	// resolve to this user. Default 0 (rejected with 403 mcp-not-enabled)
-	// per HOF-004. The webui's scs session-cookie auth IGNORES this flag
-	// — it only affects the /api-mcp/* path.
+	// MCPEnabled is the stored users.mcp_enabled column (migration 0005).
+	// The in-process MCP server that read it is gone, and nothing in the
+	// running server authorizes on it. The column stays so existing rows
+	// still scan. Default 0.
 	MCPEnabled bool
 	// PocketIDSub is the stable PocketID subject (`sub` claim), bound on
 	// first OIDC login (ADR 019 Phase 1). Authoritative identity key for
@@ -666,27 +666,6 @@ func DeleteUser(ctx context.Context, db *sql.DB, id int64) error {
 	result, err := db.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("models: delete user %d: %w", id, err)
-	}
-	n, _ := result.RowsAffected()
-	if n == 0 {
-		return ErrNotFound
-	}
-	return nil
-}
-
-// SetUserMCPEnabled flips the MCP-access gate on a user (HOF-004).
-//
-// Toggled by an admin via PUT /api/users/{userID}/mcp; consumed by the
-// bearer middleware on every /api-mcp/* request. Returns ErrNotFound if
-// no row exists for the given id.
-func SetUserMCPEnabled(ctx context.Context, db *sql.DB, id int64, enabled bool) error {
-	flag := 0
-	if enabled {
-		flag = 1
-	}
-	result, err := db.ExecContext(ctx, `UPDATE users SET mcp_enabled = ? WHERE id = ?`, flag, id)
-	if err != nil {
-		return fmt.Errorf("models: set mcp_enabled for user %d: %w", id, err)
 	}
 	n, _ := result.RowsAffected()
 	if n == 0 {

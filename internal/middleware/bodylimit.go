@@ -18,7 +18,7 @@ const DefaultMaxJSONBody int64 = 1 << 20
 // exemptFromBodyLimit): multipart uploads (avatars, imports) install their own,
 // larger MaxBytesReader in the handler — double-wrapping here with a smaller cap
 // would break them — and the bulk import-execute / catalog endpoints carry large
-// mapping JSON. The native MCP endpoint streams and is left to its own handler.
+// mapping JSON.
 func MaxJSONBody(limit int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -41,8 +41,6 @@ func exemptFromBodyLimit(r *http.Request) bool {
 	case strings.HasSuffix(p, "/import/upload"), strings.HasSuffix(p, "/import/execute"):
 		return true
 	case strings.HasPrefix(p, "/api/catalog/import"):
-		return true
-	case strings.HasPrefix(p, "/api/mcp"):
 		return true
 	}
 	return false

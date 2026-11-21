@@ -1,11 +1,13 @@
 # ADR 019 — Self-Hosted Identity + Native MCP Server (supersedes ADR 017)
 
-> Status: **Proposed** (draft) · Date: 2026-06-01
+> Status: **OIDC kept; MCP server removed** · Date: 2026-06-01
 >
 > Supersedes **ADR 017** (resource-server-behind-homelab-mcp) outright, and
 > supersedes the authentication half of **ADR 003** (RepLog-managed
-> passwords/passkeys). Graduates to **Accepted** with the Phase-1
-> implementation. Draft authored by Coach for host diff review.
+> passwords/passkeys). PocketID OIDC login (decision 1 below) is in force.
+> The embedded MCP OAuth Authorization Server and the native `/api/mcp`
+> server (decisions 2–6) were removed on 2026-11-21 and are not served.
+> See the amendment at the end of this file.
 
 ## Context
 
@@ -211,3 +213,24 @@ into reviewable phases like ADR 016:
 - PocketID (pocket-id/pocket-id): OIDC + device-code (RFC 8628) + email
   one-time-access; **no DCR**, no minor controls.
 - RFC 6749/6750/7591/8252/8414/8628/9728; MCP authorization spec.
+
+## Amendment 2026-11-21 — embedded MCP server removed
+
+Decisions 2 through 6 are withdrawn. RepLog does not mount `/api/mcp`, does
+not register `/.well-known/oauth-protected-resource`, and does not serve
+`/oauth/register`, `/oauth/authorize`, `/oauth/callback`, or `/oauth/token`.
+`internal/mcpoauth` and the conformance workflow that booted the binary for
+the pocketid-mcp-as harness are gone. No production client called `/api/mcp`;
+the public route already answered 404, and the only caller was that CI job.
+
+Decision 1 stands. Browser login remains the PocketID OIDC relying party in
+`internal/oidc`, with password login kept as break-glass. PocketID needs the
+webui redirect URI only (`/auth/oidc/callback`).
+
+`users.mcp_enabled` stays in the schema so existing rows still scan. Nothing
+in the running server authorizes on it, and `PUT /api/users/{id}/mcp` is
+removed because that route existed only to flip the flag for the deleted
+server. `mcp_tokens` and `dcr_clients` remain; the scheduler still deletes
+expired tokens and orphan DCR clients. No served route mints or accepts
+those credentials. `rlpat_` is still rejected by REST auth so a leftover
+token cannot act as a coach service token.

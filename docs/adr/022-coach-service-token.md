@@ -11,9 +11,11 @@ not become a back door that assigns a program, executes a generation, writes
 a training max, or promotes an athlete. Those are coaching decisions. The
 human approves them in the browser (ADR 007).
 
-Login tokens and MCP tokens are already stored as SHA-256 hashes (ADR 019,
+Login tokens and MCP tokens are stored as SHA-256 hashes (ADR 019,
 ADR 021). The service credential follows that pattern. It is not an MCP
-token: `rlpat_` stays on `/api/mcp`, and `mcp_enabled` does not gate this path.
+token. `rlpat_` was the prefix for the removed `/api/mcp` bearer; that
+path is not served. `mcp_enabled` does not gate this path. `RequireAuth`
+accepts only an `rlcst_` bearer.
 
 ## Decision
 

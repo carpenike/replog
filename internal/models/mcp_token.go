@@ -11,15 +11,16 @@ import (
 )
 
 // MCPTokenPrefix is the human-recognizable prefix on every opaque MCP bearer
-// token ("RepLog Personal Access Token"). It lets the bearer middleware
-// reject obviously-non-MCP credentials with a cheap string check before
-// touching the database, and makes a leaked token greppable in logs.
+// token ("RepLog Personal Access Token"). The HTTP server that accepted
+// these tokens has been removed. RequireAuth still rejects the prefix so a
+// leftover rlpat_ credential cannot authenticate the REST API. The prefix
+// also makes a leaked token greppable in logs.
 const MCPTokenPrefix = "rlpat_"
 
 // MCPTokenLifetime is the validity window for a freshly minted MCP token.
-// 90 days matches the long-lived-agent-credential posture in ADR 019: the
-// Claude/VS Code client holds one token across many sessions and only
-// re-runs the OAuth dance when it expires or is revoked.
+// 90 days matched the long-lived-agent-credential posture in ADR 019. No
+// served route mints these tokens anymore; the constant remains for the
+// stored rows and the maintenance sweep.
 const MCPTokenLifetime = 90 * 24 * time.Hour
 
 // MCPToken is a stored opaque bearer token. The plaintext secret is never

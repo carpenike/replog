@@ -34,11 +34,7 @@ Self-hosted workout tracking for kids' resistance training progression and perso
 - **OIDC** — PocketID relying-party login via `coreos/go-oidc` + `golang.org/x/oauth2` (PKCE)
 - **Shoutrrr** — external notification dispatch (Slack, Discord, email, etc.)
 
-The embedded MCP OAuth Authorization Server (ADR 019) conforms to
-[`pocketid-mcp-as`](https://github.com/carpenike/mcp-as-contract) **v1.1**,
-profile `opaque-no-refresh`, scope `mcp-only`, MCP path `/api/mcp` — enforced in
-CI by [`.github/workflows/conformance.yml`](.github/workflows/conformance.yml),
-which boots the binary and runs the contract's own conformance harness.
+Browser login is a PocketID OIDC relying party. RepLog does not serve an MCP HTTP server or an MCP OAuth authorization server.
 
 ### Frontend
 - **React 19 + TypeScript** with **Vite** — component-based SPA
@@ -162,7 +158,7 @@ All configuration is via environment variables:
 | `REPLOG_OIDC_CLIENT_SECRET` | | OIDC client secret |
 | `REPLOG_OIDC_REDIRECT_URL` | `<base URL>/auth/oidc/callback` | OIDC redirect/callback URL; defaults to the base URL plus the callback path |
 
-When OIDC is configured, RepLog also acts as its own MCP OAuth Authorization Server (ADR 019): it serves the native MCP endpoint at `/api/mcp` and federates MCP login to PocketID. This requires **two** redirect URIs registered in PocketID — the webui callback (`<base URL>/auth/oidc/callback`) **and** the MCP AS callback (`<base URL>/oauth/callback`). No extra environment variables are needed; the AS reuses the `REPLOG_OIDC_*` credentials and `REPLOG_BASE_URL`.
+Register that one redirect URI in PocketID. OIDC reuses `REPLOG_OIDC_*` and `REPLOG_BASE_URL`; it does not add an `/oauth/callback` client.
 
 LLM provider/model settings and notification configuration are managed through the admin settings UI (`/admin/settings`), not environment variables.
 

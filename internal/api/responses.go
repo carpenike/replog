@@ -47,9 +47,10 @@ type User struct {
 	AthleteID *int64  `json:"athlete_id,omitempty"`
 	IsCoach   bool    `json:"is_coach"`
 	IsAdmin   bool    `json:"is_admin"`
-	// MCPEnabled mirrors models.User.MCPEnabled (HOF-004): when true,
-	// the bearer middleware on /api-mcp/* accepts JWTs that resolve to
-	// this user; the webui's scs cookie auth ignores the flag entirely.
+	// MCPEnabled mirrors the stored users.mcp_enabled column. The in-process
+	// MCP server that authorized on this flag has been removed, and there is
+	// no writer left. The field stays so existing rows still scan and the
+	// user payload shape is unchanged.
 	MCPEnabled    bool   `json:"mcp_enabled"`
 	AvatarURL     string `json:"avatar_url,omitempty"`
 	Impersonating bool   `json:"impersonating,omitempty"`
