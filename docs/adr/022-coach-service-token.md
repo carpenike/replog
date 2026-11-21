@@ -44,7 +44,7 @@ accepts only an `rlcst_` bearer.
   lives only in the process environment and in the connector's secret store.
 - The connector can log work. It cannot approve a draft, change a training
   max, assign a program, or promote.
-- No new HTTP route. OpenAPI is unchanged.
+- No new HTTP route. OpenAPI is unchanged. Superseded by the amendment below: an admin browser session can issue and revoke per-user tokens, and the coach read routes are part of the API.
 
 ## Amendment 2026-11-21 — Program drafts (ADR 023)
 
@@ -53,3 +53,13 @@ The row is a proposal with provenance. `POST /programs/{id}/approve` and
 `POST /programs` (which inserts an approved template) return 403 for the
 token. A browser session of the same coach can approve. Approval does
 not assign the program.
+
+## Amendment 2026-11-21 — Per-user tokens and coach reads
+
+- Each `rlcst_` token is still stored as a SHA-256 hash and binds to one user. An admin browser session issues and revokes them:
+  `GET` and `POST /users/{userID}/service-tokens`, and
+  `DELETE /users/{userID}/service-tokens/{tokenID}`. The plaintext is returned once, at issue. A service token cannot call those routes, even when its user is an admin. The label `coach-service` stays reserved for the env-installed row.
+- `REPLOG_SERVICE_TOKEN` is unchanged. Startup still hashes it onto `REPLOG_SERVICE_USER`, or `REPLOG_ADMIN_USER` when that is unset. That row remains Ryan's token during the transition to issued tokens.
+- A service token does not inherit the admin-wide athlete list. A coach token sees athletes whose `coach_id` is that user, and the athlete linked on the user account. An athlete user's token sees only that linked athlete.
+- Read routes, all scoped to that visibility: session history, week plan versus done, progress, program position, and the last session for one exercise. They do not create a session or change a program or a training max. `block`, `started_at`, `duration`, `rir`, and `set_type` are null because those columns are not stored. Estimated 1RM is the existing Epley formula, computed on read.
+- `POST .../notes/preview` does not write. `POST .../notes/confirm` writes only `workouts.notes` for a session the coach owns, and only the note bound to a one-time token (15 minutes). A mismatched note does not consume the token.

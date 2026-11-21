@@ -86,7 +86,8 @@ openapi:
         --output ./internal/api/openapi \
         --outputTypes yaml \
         --parseInternal \
-        --parseDependency
+        --parseDependency \
+        --parseGoList=false
     @echo "→ Regenerated internal/api/openapi/swagger.yaml"
 
 # Verify the committed spec matches what swag would generate now (used by CI).

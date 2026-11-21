@@ -822,10 +822,10 @@ erDiagram
 | `last_used_at` | TIMESTAMP | NULL                                             |
 | `created_at`   | TIMESTAMP | NOT NULL DEFAULT CURRENT_TIMESTAMP               |
 
-- One hashed bearer for the coach account a service connector uses (ADR 022). Added in migration `0017`.
+- One hashed bearer per row, bound to one user (ADR 022). Added in migration `0017`. A user may have more than one row.
 - `token_hash` is the lowercase-hex SHA-256 of the full presented secret, including the `rlcst_` prefix. The plaintext is returned only when a token is minted, or it lives in `REPLOG_SERVICE_TOKEN` and is hashed at startup. It is never stored.
-- The row identifies the user and nothing else. Handlers refuse this credential on program assign, program-draft approve, creating an approved template, generation execute, training-max writes, and promote. The same credential may `POST /programs/drafts`. A browser session of the same user can still approve.
-- Startup installs at most one `label = 'coach-service'` row per user from `REPLOG_SERVICE_TOKEN`. Replacing the env value replaces that row.
+- The row identifies the user and nothing else. A coach token sees athletes with `athletes.coach_id` equal to that user. An athlete user's token sees only `users.athlete_id`. The token does not inherit an admin's view of every athlete. Handlers refuse this credential on program assign, program-draft approve, creating an approved template, generation execute, training-max writes, promote, and on issuing or revoking service tokens. The same credential may `POST /programs/drafts` and may confirm a session note on a session that coach owns. A browser session of an admin issues and revokes tokens.
+- Startup installs at most one `label = 'coach-service'` row per user from `REPLOG_SERVICE_TOKEN`. Replacing the env value replaces that row. That label is reserved; issued tokens use a different label so a restart does not delete them.
 
 ### `webauthn_credentials`
 

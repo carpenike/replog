@@ -45,6 +45,11 @@ type Handlers struct {
 	// can wait for them to finish (and tests can sync on them) without
 	// leaking work or losing token spend across a restart.
 	genWG sync.WaitGroup
+
+	// noteGrants holds one-time session-note confirm tokens. They are
+	// process-local, hashed, and discarded on use or expiry.
+	noteGrantOnce  sync.Once
+	noteGrantStore *noteGrantStore
 }
 
 // llmProvider returns the configured LLM provider, falling back to the
@@ -183,7 +188,7 @@ func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 	resp := DashboardResponse{}
 
 	// Load athlete cards.
-	coachFilter := middleware.CoachAthleteFilter(user)
+	coachFilter := coachFilterForRequest(r, user)
 	athletes, err := models.ListAthleteCards(r.Context(), h.DB, coachFilter)
 	if err != nil {
 		log.Printf("api: dashboard athlete cards: %v", err)
@@ -236,7 +241,7 @@ func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 //	@Router       /athletes [get]
 func (h *Handlers) ListAthletes(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
-	coachFilter := middleware.CoachAthleteFilter(user)
+	coachFilter := coachFilterForRequest(r, user)
 
 	athletes, err := models.ListAthleteCards(r.Context(), h.DB, coachFilter)
 	if err != nil {

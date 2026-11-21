@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
@@ -841,9 +842,26 @@ func (h *Handlers) athleteAccess(w http.ResponseWriter, r *http.Request) (int64,
 		WriteError(w, http.StatusBadRequest, "invalid athlete ID")
 		return 0, false
 	}
+	if middleware.IsServiceCredential(r.Context()) {
+		if !middleware.ServiceCanAccessAthlete(r.Context(), h.DB, user, athleteID) {
+			WriteError(w, http.StatusForbidden, "access denied")
+			return 0, false
+		}
+		return athleteID, true
+	}
 	if !middleware.CanAccessAthlete(r.Context(), h.DB, user, athleteID) {
 		WriteError(w, http.StatusForbidden, "access denied")
 		return 0, false
 	}
 	return athleteID, true
+}
+
+// coachFilterForRequest is the athlete-list filter for this caller.
+// A service token does not inherit the admin-wide list: it is limited to
+// athletes.coach_id equal to the bound user. A browser admin still sees all.
+func coachFilterForRequest(r *http.Request, user *models.User) sql.NullInt64 {
+	if middleware.IsServiceCredential(r.Context()) {
+		return sql.NullInt64{Int64: user.ID, Valid: true}
+	}
+	return middleware.CoachAthleteFilter(user)
 }

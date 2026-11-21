@@ -108,10 +108,20 @@ call the API as the coach without a browser session.
 | `REPLOG_SERVICE_USER` | when the token is set | Username of the coach the token belongs to. Falls back to `REPLOG_ADMIN_USER`. The account must be a coach or an admin. |
 
 The same plaintext is what the connector sends as `Authorization: Bearer`.
-RepLog accepts it for coach reads and for logging a set. It answers 403 on
-program assign, generation execute, training-max writes, and promote. Approving
-those still requires a browser session. Unset, the app starts with no service
-token. Changing the value and restarting replaces the previous hash.
+RepLog accepts it for coach reads and for logging a set or confirming a
+session note. It answers 403 on program assign, generation execute,
+training-max writes, promote, and on issuing or revoking service tokens.
+Approving those still requires a browser session. Unset, the app starts
+with no env-installed token. Changing the value and restarting replaces
+the previous `coach-service` hash.
+
+An admin browser session can issue more tokens, one user each, at
+`POST /api/users/{userID}/service-tokens`, and revoke one at
+`DELETE /api/users/{userID}/service-tokens/{tokenID}`. Each token sees
+only that user's athletes: a coach sees `athletes.coach_id`, and an
+athlete user sees their linked athlete. `REPLOG_SERVICE_TOKEN` stays the
+env-installed token for the named coach during that transition. Do not
+commit a plaintext token.
 
 ### 4. Set the production env vars
 

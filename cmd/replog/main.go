@@ -358,6 +358,15 @@ func main() {
 			// Workout Notes.
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", apiHandlers.UpdateWorkoutNotes)
 
+			// Coach session reads. A service token sees only its user's athletes.
+			r.Get("/athletes/{id}/coach/sessions", apiHandlers.ListCoachSessions)
+			r.Get("/athletes/{id}/coach/week", apiHandlers.GetCoachWeek)
+			r.Get("/athletes/{id}/coach/progress", apiHandlers.GetCoachProgress)
+			r.Get("/athletes/{id}/coach/position", apiHandlers.GetCoachPosition)
+			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", apiHandlers.GetCoachLastSession)
+			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/preview", apiHandlers.PreviewCoachSessionNote)
+			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/confirm", apiHandlers.ConfirmCoachSessionNote)
+
 			// Body Weights.
 			r.Get("/athletes/{id}/body-weights", apiHandlers.ListBodyWeights)
 			r.Post("/athletes/{id}/body-weights", apiHandlers.CreateBodyWeight)
@@ -493,6 +502,11 @@ func main() {
 			r.Get("/users/{userID}/tokens", apiHandlers.ListLoginTokens)
 			r.Post("/users/{userID}/tokens", apiHandlers.CreateLoginToken)
 			r.Delete("/users/{userID}/tokens/{tokenID}", apiHandlers.DeleteLoginToken)
+
+			// Per-user service tokens. Admin browser session only.
+			r.Get("/users/{userID}/service-tokens", apiHandlers.ListServiceTokens)
+			r.Post("/users/{userID}/service-tokens", apiHandlers.IssueServiceToken)
+			r.Delete("/users/{userID}/service-tokens/{tokenID}", apiHandlers.RevokeServiceToken)
 
 			// Reviews (coach only — handler checks internally).
 			r.Get("/reviews/pending", apiHandlers.ListPendingReviews)

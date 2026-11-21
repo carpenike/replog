@@ -297,6 +297,19 @@ func SetExerciseMovementPatterns(ctx context.Context, db *sql.DB, exerciseID int
 	return nil
 }
 
+// Epley1RM is the estimated one-rep max used for featured lifts:
+// weight × (1 + reps/30). A single is the weight itself. ok is false when
+// there is no positive load or rep count. The result is computed, not stored.
+func Epley1RM(weight float64, reps int) (float64, bool) {
+	if weight <= 0 || reps <= 0 {
+		return 0, false
+	}
+	if reps == 1 {
+		return weight, true
+	}
+	return weight * (1 + float64(reps)/30.0), true
+}
+
 // FeaturedLift holds summary data for one featured exercise for an athlete.
 type FeaturedLift struct {
 	ExerciseID   int64
@@ -392,13 +405,9 @@ func ListFeaturedLifts(ctx context.Context, db *sql.DB, athleteID int64) ([]*Fea
 			}
 		}
 
-		// Estimated 1RM via Epley formula: weight × (1 + reps/30).
-		if lift.BestWeight.Valid && lift.BestWeight.Float64 > 0 && lift.BestReps > 0 {
-			if lift.BestReps == 1 {
-				lift.Estimated1RM = lift.BestWeight.Float64
-			} else {
-				lift.Estimated1RM = lift.BestWeight.Float64 * (1 + float64(lift.BestReps)/30.0)
-			}
+		// Estimated 1RM via the Epley formula already used for featured lifts.
+		if e1rm, ok := Epley1RM(lift.BestWeight.Float64, lift.BestReps); ok && lift.BestWeight.Valid {
+			lift.Estimated1RM = e1rm
 		}
 
 		lifts = append(lifts, lift)

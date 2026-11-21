@@ -382,6 +382,329 @@ definitions:
       mapped_id:
         type: integer
     type: object
+  api.CoachHistoryResponse:
+    properties:
+      next_cursor:
+        type: string
+      sessions:
+        items:
+          $ref: '#/definitions/api.CoachSessionResponse'
+        type: array
+    type: object
+  api.CoachLastSessionBody:
+    properties:
+      date:
+        type: string
+      session_id:
+        type: integer
+      sets:
+        items:
+          $ref: '#/definitions/api.CoachLoggedSetResponse'
+        type: array
+      started_at:
+        type: string
+    type: object
+  api.CoachLastSessionResponse:
+    properties:
+      athlete_id:
+        type: integer
+      exercise_id:
+        type: integer
+      name:
+        type: string
+      session:
+        $ref: '#/definitions/api.CoachLastSessionBody'
+    type: object
+  api.CoachLoad:
+    properties:
+      unit:
+        type: string
+      value:
+        type: number
+    type: object
+  api.CoachLoggedExerciseResponse:
+    properties:
+      exercise_id:
+        type: integer
+      name:
+        type: string
+      sets:
+        items:
+          $ref: '#/definitions/api.CoachLoggedSetResponse'
+        type: array
+    type: object
+  api.CoachLoggedSetResponse:
+    properties:
+      category:
+        type: string
+      load:
+        $ref: '#/definitions/api.CoachLoad'
+      notes:
+        type: string
+      reps:
+        type: integer
+      rir:
+        type: number
+      rpe:
+        type: number
+      set_id:
+        type: integer
+      set_number:
+        type: integer
+      set_type:
+        type: string
+    type: object
+  api.CoachNextSessionResponse:
+    properties:
+      date:
+        type: string
+      day:
+        type: integer
+      exercises:
+        items:
+          $ref: '#/definitions/api.CoachTargetExerciseResponse'
+        type: array
+      program_day_label:
+        type: string
+      week:
+        type: integer
+    type: object
+  api.CoachNoteConfirmRequest:
+    properties:
+      confirm_token:
+        type: string
+      notes:
+        type: string
+    type: object
+  api.CoachNoteConfirmResponse:
+    properties:
+      athlete_id:
+        type: integer
+      notes:
+        type: string
+      session_id:
+        type: integer
+    type: object
+  api.CoachNotePreviewRequest:
+    properties:
+      notes:
+        type: string
+    type: object
+  api.CoachNotePreviewResponse:
+    properties:
+      confirm_token:
+        type: string
+      expires_at:
+        type: string
+      would_write:
+        $ref: '#/definitions/api.CoachNoteWrite'
+    type: object
+  api.CoachNoteWrite:
+    properties:
+      athlete_id:
+        type: integer
+      notes:
+        type: string
+      session_id:
+        type: integer
+    type: object
+  api.CoachPRResponse:
+    properties:
+      date:
+        type: string
+      e1rm:
+        type: number
+      load:
+        $ref: '#/definitions/api.CoachLoad'
+      reps:
+        type: integer
+      session_id:
+        type: integer
+    type: object
+  api.CoachPositionResponse:
+    properties:
+      athlete_id:
+        type: integer
+      block:
+        type: string
+      cycle_complete:
+        type: boolean
+      cycle_number:
+        type: integer
+      day:
+        type: integer
+      next_session:
+        $ref: '#/definitions/api.CoachNextSessionResponse'
+      program_day_label:
+        type: string
+      program_id:
+        type: integer
+      program_name:
+        type: string
+      week:
+        type: integer
+    type: object
+  api.CoachProgressExerciseResponse:
+    properties:
+      exercise_id:
+        type: integer
+      last_session_top_set:
+        $ref: '#/definitions/api.CoachTopSetResponse'
+      name:
+        type: string
+      prs:
+        items:
+          $ref: '#/definitions/api.CoachPRResponse'
+        type: array
+      sessions:
+        items:
+          $ref: '#/definitions/api.CoachProgressPointResponse'
+        type: array
+    type: object
+  api.CoachProgressPointResponse:
+    properties:
+      date:
+        type: string
+      e1rm:
+        type: number
+      session_id:
+        type: integer
+      top_set:
+        $ref: '#/definitions/api.CoachTopSetResponse'
+    type: object
+  api.CoachProgressResponse:
+    properties:
+      athlete_id:
+        type: integer
+      e1rm_source:
+        type: string
+      end:
+        type: string
+      exercises:
+        items:
+          $ref: '#/definitions/api.CoachProgressExerciseResponse'
+        type: array
+      start:
+        type: string
+    type: object
+  api.CoachSessionResponse:
+    properties:
+      athlete_id:
+        type: integer
+      date:
+        type: string
+      duration:
+        type: integer
+      exercises:
+        items:
+          $ref: '#/definitions/api.CoachLoggedExerciseResponse'
+        type: array
+      notes:
+        type: string
+      program_day_label:
+        type: string
+      session_id:
+        type: integer
+      started_at:
+        type: string
+    type: object
+  api.CoachTargetExerciseResponse:
+    properties:
+      exercise_id:
+        type: integer
+      name:
+        type: string
+      sets:
+        items:
+          $ref: '#/definitions/api.CoachTargetSetResponse'
+        type: array
+    type: object
+  api.CoachTargetSetResponse:
+    properties:
+      load:
+        $ref: '#/definitions/api.CoachLoad'
+      percentage:
+        type: number
+      reps:
+        type: integer
+      rir:
+        type: number
+      rpe:
+        type: number
+      set_number:
+        type: integer
+    type: object
+  api.CoachTopSetResponse:
+    properties:
+      date:
+        type: string
+      e1rm:
+        type: number
+      load:
+        $ref: '#/definitions/api.CoachLoad'
+      reps:
+        type: integer
+      rir:
+        type: number
+      rpe:
+        type: number
+      session_id:
+        type: integer
+    type: object
+  api.CoachWeekDayResponse:
+    properties:
+      completed_on:
+        type: string
+      date:
+        type: string
+      day:
+        type: integer
+      logged_exercises:
+        type: integer
+      planned_exercises:
+        type: integer
+      program_day_label:
+        type: string
+      program_id:
+        type: integer
+      program_name:
+        type: string
+      session_id:
+        type: integer
+      status:
+        type: string
+      week:
+        type: integer
+      weekday:
+        type: integer
+    type: object
+  api.CoachWeekResponse:
+    properties:
+      athlete_id:
+        type: integer
+      days:
+        items:
+          $ref: '#/definitions/api.CoachWeekDayResponse'
+        type: array
+      done_count:
+        type: integer
+      missed_count:
+        type: integer
+      partial_count:
+        type: integer
+      planned_count:
+        type: integer
+      summary:
+        type: string
+      timezone:
+        type: string
+      upcoming_count:
+        type: integer
+      week_end:
+        type: string
+      week_start:
+        type: string
+    type: object
   api.CompatibilityResponse:
     properties:
       exercises:
@@ -1423,6 +1746,37 @@ definitions:
       start_date:
         example: "2026-03-01"
         type: string
+    type: object
+  api.ServiceTokenInfo:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      label:
+        type: string
+      last_used_at:
+        type: string
+      revoked_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  api.ServiceTokenIssueRequest:
+    properties:
+      label:
+        type: string
+    type: object
+  api.ServiceTokenIssued:
+    properties:
+      id:
+        type: integer
+      label:
+        type: string
+      token:
+        type: string
+      user_id:
+        type: integer
     type: object
   api.SettingCategoryResponse:
     properties:
@@ -3126,6 +3480,294 @@ paths:
       summary: Delete body weight
       tags:
       - Athletes
+  /athletes/{id}/coach/exercises/{exerciseID}/last-session:
+    get:
+      description: The newest resistance session in which this athlete logged the
+        exercise, and only that exercise's sets. session is null when it has not been
+        logged. started_at, rir, and set_type are null because those columns are not
+        stored.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Exercise ID
+        in: path
+        name: exerciseID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachLastSessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Last session for an exercise
+      tags:
+      - Workouts
+  /athletes/{id}/coach/position:
+    get:
+      description: Read only. Does not create or advance a session. block is null
+        because the schema has no block column. Week and day come from the existing
+        prescription count.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachPositionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Coach program position
+      tags:
+      - Workouts
+  /athletes/{id}/coach/progress:
+    get:
+      description: Read only. Estimated 1RM is computed with the Epley formula already
+        used for featured lifts and is null when that formula does not apply. It is
+        not a stored column. Loads are pounds.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Exercise ID
+        in: query
+        name: exercise
+        type: integer
+      - description: Range start, YYYY-MM-DD
+        in: query
+        name: start
+        type: string
+      - description: Range end, YYYY-MM-DD
+        in: query
+        name: end
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachProgressResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Coach exercise progress
+      tags:
+      - Workouts
+  /athletes/{id}/coach/sessions:
+    get:
+      description: Sessions the caller can see for this athlete. Loads are pounds.
+        started_at, duration, rir, and set_type are null because those columns are
+        not stored. program_day_label is derived from the assignment sequence when
+        the session is linked to a program.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Range start, YYYY-MM-DD
+        in: query
+        name: start
+        required: true
+        type: string
+      - description: Range end, YYYY-MM-DD
+        in: query
+        name: end
+        required: true
+        type: string
+      - description: Exercise ID
+        in: query
+        name: exercise
+        type: integer
+      - description: Page cursor from the previous response
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachHistoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Coach session history
+      tags:
+      - Workouts
+  /athletes/{id}/coach/sessions/{sessionID}/notes/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Writes only the note from the preview, on a session this coach
+        owns. The confirm_token works once. A different note is refused and does not
+        consume the token. This route does not change the program, training maxes,
+        or sets.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Session ID
+        in: path
+        name: sessionID
+        required: true
+        type: integer
+      - description: Previewed note and token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachNoteConfirmRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachNoteConfirmResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Confirm a session note
+      tags:
+      - Workouts
+  /athletes/{id}/coach/sessions/{sessionID}/notes/preview:
+    post:
+      consumes:
+      - application/json
+      description: Does not write. Returns a confirm_token bound to this coach, session,
+        and the exact note. The token works once, for 15 minutes. Confirm writes only
+        workouts.notes.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Session ID
+        in: path
+        name: sessionID
+        required: true
+        type: integer
+      - description: Note to preview
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachNotePreviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachNotePreviewResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Preview a session note
+      tags:
+      - Workouts
+  /athletes/{id}/coach/week:
+    get:
+      description: Planned weekdays from stored program schedules. week_start defaults
+        to the current Monday in the caller's timezone. Status is done, partial, missed,
+        or upcoming. summary is done of planned, such as "2 of 3". This route does
+        not create or change a session.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Monday of the week, YYYY-MM-DD
+        in: query
+        name: week_start
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachWeekResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Coach week plan versus done
+      tags:
+      - Workouts
   /athletes/{id}/conditioning-sessions:
     get:
       parameters:
@@ -6523,6 +7165,109 @@ paths:
       summary: Update user
       tags:
       - Users
+  /users/{userID}/service-tokens:
+    get:
+      description: Admin only. Returns ids and labels. The hash and the plaintext
+        are not included. A service token cannot call this.
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.ServiceTokenInfo'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List service tokens
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      description: Admin only. The plaintext is returned once and stored only as a
+        SHA-256 hash, bound to this user. A service token cannot call this. REPLOG_SERVICE_TOKEN
+        remains the env-installed coach-service row.
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: Optional label
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/api.ServiceTokenIssueRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.ServiceTokenIssued'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Issue a service token
+      tags:
+      - Admin
+  /users/{userID}/service-tokens/{tokenID}:
+    delete:
+      description: Admin only. The token must belong to the user in the path. A service
+        token cannot call this. Revoking the env-installed token does not clear REPLOG_SERVICE_TOKEN;
+        the next startup installs it again.
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: Token ID
+        in: path
+        name: tokenID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Revoke a service token
+      tags:
+      - Admin
   /users/{userID}/tokens:
     get:
       parameters:

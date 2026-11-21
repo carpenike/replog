@@ -209,6 +209,28 @@ func CanManageAthlete(user *models.User, athlete *models.Athlete) bool {
 	return false
 }
 
+// ServiceCanAccessAthlete is the visibility of an rlcst_ token. It is the
+// bound user's own access and does not grant the admin-wide bypass. A coach
+// sees athletes with athletes.coach_id equal to that user. Any user also
+// sees the athlete linked on their account, which is the whole of an
+// athlete user's view.
+func ServiceCanAccessAthlete(ctx context.Context, db *sql.DB, user *models.User, athleteID int64) bool {
+	if user == nil || athleteID <= 0 {
+		return false
+	}
+	if user.AthleteID.Valid && user.AthleteID.Int64 == athleteID {
+		return true
+	}
+	if !user.IsCoach {
+		return false
+	}
+	athlete, err := models.GetAthleteByID(ctx, db, athleteID)
+	if err != nil {
+		return false
+	}
+	return athlete.CoachID.Valid && athlete.CoachID.Int64 == user.ID
+}
+
 // CoachAthleteFilter returns the coach ID to use for filtering athlete lists.
 // Admins get sql.NullInt64{} (invalid = no filter, see all athletes).
 // Coaches get their own user ID as the filter.

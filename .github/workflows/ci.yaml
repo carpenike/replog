@@ -101,7 +101,8 @@ jobs:
             --output ./internal/api/openapi \
             --outputTypes yaml \
             --parseInternal \
-            --parseDependency
+            --parseDependency \
+            --parseGoList=false
 
       - name: Verify spec is committed
         run: |
