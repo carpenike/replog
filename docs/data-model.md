@@ -431,7 +431,7 @@ erDiagram
 - `avatar_path` stores the relative path to the user's uploaded avatar image. NULL if no avatar has been uploaded.
 - `COLLATE NOCASE` prevents "Admin" and "admin" or duplicate emails.
 - Bootstrap: if `COUNT(*) = 0` on startup, insert from `REPLOG_ADMIN_USER` / `REPLOG_ADMIN_PASS` / `REPLOG_ADMIN_EMAIL` env vars with `is_coach = 1`.
-- `mcp_enabled` gates whether the user may act through the MCP layer (ADR 017, ADR 019). Default-deny; an admin toggles it per user via `PUT /api/users/{userID}/mcp`. Added in migration `0005`. As of ADR 019 Phases 2+3, RepLog is its OWN MCP OAuth Authorization Server: it mints opaque `rlpat_` bearer tokens (stored SHA-256-hashed in `mcp_tokens`) after federating login to PocketID, and the native `/api/mcp` server validates them directly — no external JWKS, no `homelab-mcp` wrapper.
+- `mcp_enabled` is the stored column added in migration `0005` for the MCP access gate (ADR 017, ADR 019). The in-process MCP server that read it has been removed, and `PUT /api/users/{userID}/mcp` is gone with it. The column stays so existing rows still scan. Default 0. Nothing in the running server authorizes on it.
 - `pocketid_sub` is the PocketID OIDC subject (`sub` claim), the authoritative identity key for the webui once RepLog became a PocketID relying party (ADR 019 Phase 1, migration `0009`). Set on a user's first OIDC login — matched first; else, if the ID token carries `email_verified == true`, the existing account is matched by email and bound; else a passwordless user is JIT-created. Uniqueness is enforced by a partial index (`WHERE pocketid_sub IS NOT NULL`) because SQLite's `ALTER TABLE ADD COLUMN` cannot add an inline `UNIQUE` column. `password_hash` is retained as documented break-glass; the dormant `webauthn_credentials` table is left for a later cleanup migration.
 
 ### `user_preferences`
@@ -1230,6 +1230,9 @@ CREATE TABLE IF NOT EXISTS login_tokens (
 CREATE INDEX IF NOT EXISTS idx_login_tokens_token ON login_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_login_tokens_user_id ON login_tokens(user_id);
 
+-- mcp_tokens and dcr_clients remain from the removed MCP authorization
+-- server. No served route mints or accepts these credentials. The
+-- scheduler still deletes expired MCP tokens and orphan DCR clients.
 CREATE TABLE IF NOT EXISTS mcp_tokens (
     id              INTEGER  PRIMARY KEY AUTOINCREMENT,
     token_hash      TEXT     NOT NULL UNIQUE,

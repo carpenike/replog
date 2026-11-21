@@ -6807,6 +6807,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/programs/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve program draft
+         * @description A browser session approves a draft. A coach service token receives 403. Approval does not assign the program.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Program ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.ProgramTemplate"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/programs/{id}/copy-week": {
         parameters: {
             query?: never;
@@ -7200,6 +7278,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/programs/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Write program draft
+         * @description Creates a draft proposal. Does not assign it. A coach service token may call this; it cannot approve the draft.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Draft */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.WriteProgramDraftRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.ProgramTemplate"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reviews/pending": {
         parameters: {
             query?: never;
@@ -7505,80 +7654,6 @@ export interface paths {
                 };
             };
         };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/{userID}/mcp": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Toggle MCP access for a user
-         * @description Sets users.mcp_enabled (HOF-004). When false the bearer middleware on /api-mcp/* rejects this user with 403 mcp-not-enabled even if their JWT validates. Admin only.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description User ID */
-                    userID: number;
-                };
-                cookie?: never;
-            };
-            /** @description MCP access flag */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["api.MCPAccessRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.User"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.APIError"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.APIError"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["api.APIError"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -8039,6 +8114,29 @@ export interface components {
             marker?: string;
             unit?: string;
         };
+        "api.DraftPrescribedSetRequest": {
+            absolute_weight?: number;
+            /** @example 1 */
+            day?: number;
+            /** @example 42 */
+            exercise_id?: number;
+            /** @example T1 */
+            group_label?: string;
+            notes?: string;
+            percentage?: number;
+            /** @example 7.5 */
+            prescribed_rpe?: number;
+            /** @example reps */
+            rep_type?: string;
+            /** @example 5 */
+            reps?: number;
+            rest_seconds?: number;
+            /** @example 1 */
+            set_number?: number;
+            sort_order?: number;
+            /** @example 1 */
+            week?: number;
+        };
         "api.Equipment": {
             created_at?: string;
             description?: string;
@@ -8261,9 +8359,6 @@ export interface components {
         "api.LoginTokenRequest": {
             label?: string;
         };
-        "api.MCPAccessRequest": {
-            enabled?: boolean;
-        };
         "api.MethodologyOption": {
             applicable_tiers?: string;
             audience?: string;
@@ -8313,9 +8408,11 @@ export interface components {
             day?: number;
             exercise_id?: number;
             exercise_name?: string;
+            group_label?: string;
             id?: number;
             notes?: string;
             percentage?: number;
+            prescribed_rpe?: number;
             rep_type?: string;
             reps?: number;
             rest_seconds?: number;
@@ -8341,9 +8438,13 @@ export interface components {
             day?: number;
             /** @example 42 */
             exercise_id?: number;
+            /** @example T1 */
+            group_label?: string;
             notes?: string;
             /** @example 0.65 */
             percentage?: number;
+            /** @example 7.5 */
+            prescribed_rpe?: number;
             /** @example reps */
             rep_type?: string;
             /** @example 5 */
@@ -8360,8 +8461,12 @@ export interface components {
             absolute_weight?: number;
             /** @example 42 */
             exercise_id?: number;
+            /** @example T1 */
+            group_label?: string;
             notes?: string;
             percentage?: number;
+            /** @example 7.5 */
+            prescribed_rpe?: number;
             rep_type?: string;
             reps?: number;
             /** @example 180 */
@@ -8387,10 +8492,13 @@ export interface components {
             description?: string;
             id?: number;
             is_loop?: boolean;
+            lineage_id?: number;
             name?: string;
             num_days?: number;
             num_weeks?: number;
+            status?: string;
             updated_at?: string;
+            version?: number;
         };
         "api.ProgramTemplateRequest": {
             athlete_id?: number;
@@ -8629,9 +8737,10 @@ export interface components {
             is_admin?: boolean;
             is_coach?: boolean;
             /**
-             * @description MCPEnabled mirrors models.User.MCPEnabled (HOF-004): when true,
-             *     the bearer middleware on /api-mcp/* accepts JWTs that resolve to
-             *     this user; the webui's scs cookie auth ignores the flag entirely.
+             * @description MCPEnabled mirrors the stored users.mcp_enabled column. The in-process
+             *     MCP server that authorized on this flag has been removed, and there is
+             *     no writer left. The field stays so existing rows still scan and the
+             *     user payload shape is unchanged.
              */
             mcp_enabled?: boolean;
             name?: string;
@@ -8680,9 +8789,10 @@ export interface components {
             is_admin?: boolean;
             is_coach?: boolean;
             /**
-             * @description MCPEnabled mirrors models.User.MCPEnabled (HOF-004): when true,
-             *     the bearer middleware on /api-mcp/* accepts JWTs that resolve to
-             *     this user; the webui's scs cookie auth ignores the flag entirely.
+             * @description MCPEnabled mirrors the stored users.mcp_enabled column. The in-process
+             *     MCP server that authorized on this flag has been removed, and there is
+             *     no writer left. The field stays so existing rows still scan and the
+             *     user payload shape is unchanged.
              */
             mcp_enabled?: boolean;
             name?: string;
@@ -8792,6 +8902,25 @@ export interface components {
             rpe?: number;
             /** @example 135 */
             weight?: number;
+        };
+        "api.WriteProgramDraftRequest": {
+            athlete_id?: number;
+            /** @example adult */
+            audience?: string;
+            description?: string;
+            is_loop?: boolean;
+            lineage_id?: number;
+            /** @example Squat block */
+            name?: string;
+            /** @example 3 */
+            num_days?: number;
+            /** @example 1 */
+            num_weeks?: number;
+            sets?: components["schemas"]["api.DraftPrescribedSetRequest"][];
+            /** @example 2026-11-21 */
+            source_date?: string;
+            /** @example Wednesday session notes */
+            source_text?: string;
         };
         "models.AthleteExportJSON": {
             assignments?: components["schemas"]["models.ExportAssignment"][];

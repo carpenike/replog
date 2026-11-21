@@ -38,9 +38,10 @@ export interface User {
   is_coach: boolean;
   is_admin: boolean;
   /**
-   * MCP access gate (HOF-004). When true, this user's PocketID-minted
-   * JWTs are accepted on the /api-mcp/* surface. Admin-controlled via
-   * the user-edit form; default false (default-deny).
+   * Stored users.mcp_enabled column. The in-process MCP server that
+   * authorized on this flag has been removed, and the admin toggle is
+   * gone. The field remains on the user payload so existing rows still
+   * round-trip. Default false.
    */
   mcp_enabled: boolean;
   avatar_url?: string;

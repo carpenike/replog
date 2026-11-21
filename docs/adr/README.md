@@ -20,9 +20,9 @@ Architecture Decision Records for RepLog.
 | [014](014-login-lockout.md) | Per-Account Login Lockout | Accepted | 2026-05-12 |
 | [015](015-async-ai-coach.md) | Async AI Coach Generation | Accepted | 2026-05-26 |
 | [016](016-training-methodology.md) | First-Class Training Methodology | Accepted | 2026-05-27 |
-| [017](017-mcp-layer.md) | MCP Layer: RepLog as an OAuth Resource Server | Accepted | 2026-05-27 |
+| [017](017-mcp-layer.md) | MCP Layer: RepLog as an OAuth Resource Server | Superseded | 2026-05-27 |
 | [018](018-multi-modal-logbook.md) | Multi-Modal Athletic Logbook | Accepted | 2026-05-29 |
-| [019](019-self-hosted-identity-native-mcp.md) | Self-Hosted Identity + Native MCP Server (supersedes 017) | Proposed | 2026-06-01 |
+| [019](019-self-hosted-identity-native-mcp.md) | Self-Hosted Identity + Native MCP Server (supersedes 017) | OIDC kept; MCP server removed | 2026-06-01 |
 | [020](020-ad-hoc-wod.md) | Ad-hoc WOD Generation | Accepted | 2026-06-27 |
 | [021](021-hardening-pass.md) | Comprehensive Hardening Pass | Accepted | 2026-07-07 |
 | [022](022-coach-service-token.md) | Coach Service Token | Accepted | 2026-11-21 |

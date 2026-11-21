@@ -48,6 +48,22 @@ func writeUnauthorizedJSON(w http.ResponseWriter, msg string) {
 	writeAuthJSON(w, http.StatusUnauthorized, msg)
 }
 
+// extractBearer returns the token from an Authorization: Bearer header, or
+// empty when the header is absent or not a bearer credential. REST auth
+// uses this to accept rlcst_ service tokens and to reject any other bearer,
+// including a leftover rlpat_ MCP token, before falling through to a cookie.
+func extractBearer(r *http.Request) string {
+	h := r.Header.Get("Authorization")
+	if h == "" {
+		return ""
+	}
+	const prefix = "Bearer "
+	if len(h) <= len(prefix) || !strings.EqualFold(h[:len(prefix)], prefix) {
+		return ""
+	}
+	return strings.TrimSpace(h[len(prefix):])
+}
+
 // RequireAuth gates a handler chain on a browser session or a coach service
 // token. Unauthenticated requests get a 401 JSON response — every route this
 // guards lives under /api/*, so an XHR-friendly response is the right answer.

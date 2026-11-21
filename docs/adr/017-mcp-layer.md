@@ -1,6 +1,10 @@
 # ADR 017 — MCP Layer: RepLog as an OAuth Resource Server
 
-> Status: **Accepted** · Date: 2026-05-27
+> Status: **Superseded** · Date: 2026-05-27
+>
+> Superseded by ADR 019. The embedded MCP HTTP server and MCP OAuth
+> authorization server described there were removed on 2026-11-21.
+> RepLog does not serve `/api/mcp`. The webui session path is unchanged.
 
 ## Context
 

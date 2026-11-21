@@ -5,9 +5,8 @@
 // flow with PKCE. This package owns the two browser-facing endpoints — Start
 // (build PKCE + state + nonce, 302 to PocketID) and Callback (exchange the
 // code, verify the ID token against PocketID's JWKS, resolve the user, and
-// establish the existing scs session) — and nothing else. It does NOT mint
-// tokens, run a consent UI, or touch the MCP bearer path; those are the AS
-// (Phase 2) and the native MCP server (Phase 3).
+// establish the existing scs session) — and nothing else. It does not mint
+// tokens or run a consent UI.
 //
 // Identity resolution is delegated to models.UpsertUserFromOIDC, which keys on
 // the PocketID `sub`, falls back to a verified-email bind for the one-time
@@ -113,18 +112,14 @@ func discoverProvider(ctx context.Context, issuer string) (*gooidc.Provider, err
 }
 
 // BuildConfig discovers the PocketID provider and returns an ID-token verifier
-// plus an oauth2.Config. It is the single shared constructor for both OIDC
-// consumers so the webui relying party (Phase 1) and the MCP OAuth
-// Authorization Server's PocketID hop (Phase 2/3) cannot drift on issuer,
-// client credentials, or scopes — each caller supplies only its own
-// redirectURL and the scopes it needs.
+// plus an oauth2.Config for the webui relying party. The caller supplies the
+// redirect URL and scopes.
 //
 // Discovery performs a network call to the issuer's well-known document, so
-// BuildConfig should be called once at startup per consumer (oidc.New and
-// mcpoauth.New). Each attempt uses a bounded context and is retried with
-// backoff so a black-holed dial cannot stall process startup. Token exchange
-// and ID-token verification on the request path do not go through BuildConfig;
-// those keep using the request context.
+// BuildConfig should be called once at startup. Each attempt uses a bounded
+// context and is retried with backoff so a black-holed dial cannot stall
+// process startup. Token exchange and ID-token verification on the request
+// path do not go through BuildConfig; those keep using the request context.
 func BuildConfig(ctx context.Context, issuer, clientID, clientSecret, redirectURL string, scopes []string) (*gooidc.IDTokenVerifier, *oauth2.Config, error) {
 	if issuer == "" || clientID == "" || clientSecret == "" || redirectURL == "" {
 		return nil, nil, errors.New("oidc: issuer, client id, client secret, and redirect url are all required")
