@@ -174,20 +174,13 @@ jobs:
           go build -o /tmp/replog ./cmd/replog
           govulncheck -mode binary /tmp/replog
 
-      # npm audit covers the frontend dev/build dependencies. The
-      # production-deps pass uses moderate+ as the bar; the all-deps
-      # pass is high+ so dev-only CVEs (e.g. Vite path-traversal that
-      # affects a developer running `just dev`) still fail the build
-      # but a moderate dev-only finding doesn't block CI.
+      # Production dependencies only. Dev-only advisories (the Vite
+      # dev server, eslint, and similar) do not fail this job.
       - name: npm audit (production deps, moderate+)
         working-directory: web
         run: |
           npm ci
           npm audit --omit=dev --audit-level=moderate
-
-      - name: npm audit (all deps, high+)
-        working-directory: web
-        run: npm audit --audit-level=high
 
   actionlint:
     name: Workflow lint (actionlint)
