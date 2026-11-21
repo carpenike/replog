@@ -135,6 +135,12 @@ func main() {
 		log.Fatalf("Failed to bootstrap admin: %v", err)
 	}
 
+	// Hash the coach service token onto that coach, if one was provided.
+	// The plaintext stays in the environment; the database stores the hash.
+	if err := bootstrapServiceToken(db); err != nil {
+		log.Fatalf("Failed to install coach service token: %v", err)
+	}
+
 	// Bootstrap seed catalog (equipment, exercises, programs) on first run.
 	if err := bootstrapCatalog(db); err != nil {
 		log.Fatalf("Failed to bootstrap seed catalog: %v", err)
@@ -783,6 +789,37 @@ func bootstrapAdmin(db *sql.DB) error {
 	}
 
 	log.Printf("Bootstrapped admin user: %s (id=%d)", user.Username, user.ID)
+	return nil
+}
+
+// bootstrapServiceToken hashes REPLOG_SERVICE_TOKEN and stores that hash
+// for the coach named by REPLOG_SERVICE_USER (or REPLOG_ADMIN_USER when
+// the service user is unset). The plaintext is never written to the
+// database and is not logged. Unset means no token is installed.
+func bootstrapServiceToken(db *sql.DB) error {
+	plaintext := os.Getenv("REPLOG_SERVICE_TOKEN")
+	if plaintext == "" {
+		return nil
+	}
+	username := os.Getenv("REPLOG_SERVICE_USER")
+	if username == "" {
+		username = os.Getenv("REPLOG_ADMIN_USER")
+	}
+	if username == "" {
+		return fmt.Errorf("REPLOG_SERVICE_TOKEN is set but REPLOG_SERVICE_USER and REPLOG_ADMIN_USER are empty")
+	}
+
+	user, err := models.GetUserByUsername(context.Background(), db, username)
+	if err != nil {
+		return fmt.Errorf("service token user %q: %w", username, err)
+	}
+	if !user.IsCoach && !user.IsAdmin {
+		return fmt.Errorf("service token user %q is not a coach", username)
+	}
+	if err := models.InstallCoachServiceToken(context.Background(), db, user.ID, plaintext); err != nil {
+		return err
+	}
+	log.Printf("Coach service token installed for %s (id=%d); only the SHA-256 hash is stored", user.Username, user.ID)
 	return nil
 }
 

@@ -77,6 +77,9 @@ func (h *Handlers) ListMissingTMs(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/batch-tms [post]
 func (h *Handlers) BatchSetTMs(w http.ResponseWriter, r *http.Request) {
+	if refuseServiceCoaching(w, r) {
+		return
+	}
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
 		WriteError(w, http.StatusForbidden, "coach access required")

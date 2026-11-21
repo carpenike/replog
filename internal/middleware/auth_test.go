@@ -335,3 +335,79 @@ func TestCoachAthleteFilter(t *testing.T) {
 		})
 	}
 }
+
+func TestRequireAuth_ServiceTokenSetsCredential(t *testing.T) {
+	db := testDB(t)
+	sm := testSessionManager()
+	user, err := models.CreateUser(context.Background(), db, "coach", "", "password123", "coach@example.com", true, false, sql.NullInt64{})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	token, err := models.CreateServiceToken(context.Background(), db, user.ID, "agent")
+	if err != nil {
+		t.Fatalf("create token: %v", err)
+	}
+	mcpToken, _, err := models.CreateMCPToken(context.Background(), db, user.ID, "", "mcp")
+	if err != nil {
+		t.Fatalf("create mcp token: %v", err)
+	}
+
+	var service bool
+	var gotID int64
+	handler := RequireAuth(sm, db, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		service = IsServiceCredential(r.Context())
+		if u := UserFromContext(r.Context()); u != nil {
+			gotID = u.ID
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest("GET", "/api/dashboard", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("service token status = %d, body %s", rr.Code, rr.Body.String())
+	}
+	if !service || gotID != user.ID {
+		t.Fatalf("service=%v user=%d, want true and %d", service, gotID, user.ID)
+	}
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == "session" && c.Value != "" {
+			t.Fatal("service token minted a session cookie")
+		}
+	}
+
+	// A browser session of the same user is not a service credential.
+	service = true
+	setup := sm.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sm.Put(r.Context(), "userID", user.ID)
+		w.WriteHeader(http.StatusOK)
+	}))
+	setupRR := httptest.NewRecorder()
+	setup.ServeHTTP(setupRR, httptest.NewRequest("GET", "/setup", nil))
+	sessionReq := httptest.NewRequest("GET", "/api/dashboard", nil)
+	for _, c := range setupRR.Result().Cookies() {
+		sessionReq.AddCookie(c)
+	}
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, sessionReq)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("session status = %d", rr.Code)
+	}
+	if service {
+		t.Fatal("browser session was marked as a service credential")
+	}
+
+	// An MCP bearer is not a REST service token, even with a session cookie.
+	mcpReq := httptest.NewRequest("GET", "/api/dashboard", nil)
+	mcpReq.Header.Set("Authorization", "Bearer "+mcpToken)
+	for _, c := range setupRR.Result().Cookies() {
+		mcpReq.AddCookie(c)
+	}
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, mcpReq)
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("mcp token on REST status = %d, want 401", rr.Code)
+	}
+}

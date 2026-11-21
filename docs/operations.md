@@ -97,6 +97,22 @@ These are read **only when the `users` table is empty**. After the first
 successful boot they are ignored — feel free to remove them from the
 service environment.
 
+### 3a. Coach service token
+
+Optional. Set this when a service connector (the homelab coach tools) should
+call the API as the coach without a browser session.
+
+| Var | Required | Notes |
+|-----|----------|-------|
+| `REPLOG_SERVICE_TOKEN` | no | Plaintext bearer. Must start with `rlcst_`. Hashed with SHA-256 at startup; the hash is what the database stores. Never commit it. |
+| `REPLOG_SERVICE_USER` | when the token is set | Username of the coach the token belongs to. Falls back to `REPLOG_ADMIN_USER`. The account must be a coach or an admin. |
+
+The same plaintext is what the connector sends as `Authorization: Bearer`.
+RepLog accepts it for coach reads and for logging a set. It answers 403 on
+program assign, generation execute, training-max writes, and promote. Approving
+those still requires a browser session. Unset, the app starts with no service
+token. Changing the value and restarting replaces the previous hash.
+
 ### 4. Set the production env vars
 
 Minimum useful production set:

@@ -128,7 +128,7 @@ replog/
 │   └── src/{api,components,pages}/
 ├── avatars/                   ← runtime avatar storage (not embedded)
 └── docs/
-    ├── data-model.md          ← schema source of truth (27 tables, DDL, ERD)
+    ├── data-model.md          ← schema source of truth (28 tables, DDL, ERD)
     ├── requirements.md        ← v1.0 user stories + acceptance criteria
     ├── ui-design.md           ← design system + component patterns
     ├── operations.md          ← deploy, backups, secret-key handling, upgrades
@@ -160,7 +160,7 @@ load-bearing ones:
 
 ## Database schema
 
-27 tables; full DDL, constraints, indexes, and triggers live in
+28 tables; full DDL, constraints, indexes, and triggers live in
 [`docs/data-model.md`](docs/data-model.md) — **that file is the source of
 truth**, not this one. Key patterns:
 
@@ -254,7 +254,7 @@ truth**, not this one. Key patterns:
 - **Dates.** Default "today" and validate incoming dates via the helpers in
   `internal/api/dates.go` (`todayInUserTZ`, `validDate`) — never
   `time.Now()` server-local.
-- **Secrets at rest.** Tokens (login, MCP) are stored as SHA-256 hashes; never
+- **Secrets at rest.** Tokens (login, MCP, coach service) are stored as SHA-256 hashes; never
   persist a usable token or magic link in a row.
 - **LLM output is linted.** `llm.LintCatalog` checks generated programs against
   the catalog + youth rules; the system-prompt override is compositional

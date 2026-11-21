@@ -24,6 +24,9 @@ import (
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/training-maxes [post]
 func (h *Handlers) CreateTrainingMax(w http.ResponseWriter, r *http.Request) {
+	if refuseServiceCoaching(w, r) {
+		return
+	}
 	athleteID, ok := h.athleteAccess(w, r)
 	if !ok {
 		return

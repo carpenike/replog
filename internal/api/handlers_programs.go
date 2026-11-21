@@ -418,6 +418,9 @@ func (h *Handlers) DeleteProgressionRule(w http.ResponseWriter, r *http.Request)
 //	@Failure      404  {object}  api.APIError
 //	@Router       /athletes/{id}/promote [post]
 func (h *Handlers) PromoteAthlete(w http.ResponseWriter, r *http.Request) {
+	if refuseServiceCoaching(w, r) {
+		return
+	}
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
 		WriteError(w, http.StatusForbidden, "coach access required")

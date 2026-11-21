@@ -105,6 +105,9 @@ func (h *Handlers) SubmitReview(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/programs [post]
 func (h *Handlers) AssignProgramToAthlete(w http.ResponseWriter, r *http.Request) {
+	if refuseServiceCoaching(w, r) {
+		return
+	}
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
 		WriteError(w, http.StatusForbidden, "coach access required")

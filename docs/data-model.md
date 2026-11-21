@@ -179,6 +179,7 @@ erDiagram
     program_templates ||--o{ progression_rules : "has rules"
     exercises ||--o{ progression_rules : "incremented by"
     users ||--o{ login_tokens : "has"
+    users ||--o{ service_tokens : "authenticates"
     users ||--o{ webauthn_credentials : "has"
     equipment ||--o{ exercise_equipment : "required by"
     exercises ||--o{ exercise_equipment : "requires"
@@ -217,6 +218,16 @@ erDiagram
         TEXT label "nullable"
         DATETIME expires_at "nullable"
         DATETIME created_at
+    }
+
+    service_tokens {
+        INTEGER id PK
+        TEXT token_hash UK "SHA-256 hex, never the plaintext"
+        INTEGER user_id FK
+        TEXT label "nullable"
+        TIMESTAMP revoked_at "nullable"
+        TIMESTAMP last_used_at "nullable"
+        TIMESTAMP created_at
     }
 
     webauthn_credentials {
@@ -757,6 +768,23 @@ erDiagram
 - `expires_at` is optional — NULL means the token never expires.
 - Deleting a user cascades to their login tokens.
 
+### `service_tokens`
+
+| Column         | Type      | Constraints                                      |
+|----------------|-----------|--------------------------------------------------|
+| `id`           | INTEGER   | PRIMARY KEY AUTOINCREMENT                        |
+| `token_hash`   | TEXT      | NOT NULL UNIQUE                                  |
+| `user_id`      | INTEGER   | NOT NULL, FK → users(id) ON DELETE CASCADE       |
+| `label`        | TEXT      | NULL                                             |
+| `revoked_at`   | TIMESTAMP | NULL                                             |
+| `last_used_at` | TIMESTAMP | NULL                                             |
+| `created_at`   | TIMESTAMP | NOT NULL DEFAULT CURRENT_TIMESTAMP               |
+
+- One hashed bearer for the coach account a service connector uses (ADR 022). Added in migration `0017`.
+- `token_hash` is the lowercase-hex SHA-256 of the full presented secret, including the `rlcst_` prefix. The plaintext is returned only when a token is minted, or it lives in `REPLOG_SERVICE_TOKEN` and is hashed at startup. It is never stored.
+- The row identifies the user and nothing else. Handlers refuse this credential on program assign, generation execute, training-max writes, and promote. A browser session of the same user can still approve.
+- Startup installs at most one `label = 'coach-service'` row per user from `REPLOG_SERVICE_TOKEN`. Replacing the env value replaces that row.
+
 ### `webauthn_credentials`
 
 > **Retired (ADR 019).** Passkeys/WebAuthn were retired in favor of PocketID OIDC. This table may still exist for historical rows but is no longer written or read by the application. It is documented here for completeness only.
@@ -1149,6 +1177,18 @@ CREATE TABLE IF NOT EXISTS mcp_tokens (
 );
 
 CREATE INDEX IF NOT EXISTS idx_mcp_tokens_user ON mcp_tokens(user_id);
+
+CREATE TABLE IF NOT EXISTS service_tokens (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    token_hash   TEXT NOT NULL UNIQUE,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    label        TEXT,
+    revoked_at   TIMESTAMP,
+    last_used_at TIMESTAMP,
+    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_tokens_user ON service_tokens(user_id);
 
 CREATE TABLE IF NOT EXISTS dcr_clients (
     client_id                  TEXT PRIMARY KEY,
