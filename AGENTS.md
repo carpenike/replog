@@ -52,10 +52,9 @@ responding, and no secret in the image. It does not push. A push to `main`
 pushes `sha-<full sha>` and `main`.
 
 Merging does not deploy. The pin format is `sha-<full>@sha256:<digest>`.
-`.github/workflows/notify-nix-config.yml` is not the deploy: it only tells
-nix-config to bump this repo's flake input.
+Pushes to `main` do not ask nix-config to bump the replog flake input.
 
-The workflow runs on `ubuntu-latest`. This repo is public, so GitHub-hosted
+The image workflow runs on `ubuntu-latest`. This repo is public, so GitHub-hosted
 runners are free, and it does not use a homelab runner. A pull request has
 read permissions only. `packages: write` is used only to push from
 `carpenike/replog` `main`.
