@@ -132,6 +132,9 @@ export interface ProgramTemplate {
   num_days: number;
   is_loop: boolean;
   audience?: string | null;
+  status: string;
+  lineage_id?: number | null;
+  version: number;
   created_at: string;
   updated_at: string;
   athlete_count?: number;

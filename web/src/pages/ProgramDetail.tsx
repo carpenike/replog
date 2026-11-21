@@ -23,6 +23,8 @@ interface PrescribedSetData {
   percentage: number | null
   absolute_weight: number | null
   rest_seconds: number | null
+  prescribed_rpe?: number | null
+  group_label?: string | null
   rep_type: string
   notes: string | null
 }

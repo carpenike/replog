@@ -569,6 +569,43 @@ definitions:
       unit:
         type: string
     type: object
+  api.DraftPrescribedSetRequest:
+    properties:
+      absolute_weight:
+        type: number
+      day:
+        example: 1
+        type: integer
+      exercise_id:
+        example: 42
+        type: integer
+      group_label:
+        example: T1
+        type: string
+      notes:
+        type: string
+      percentage:
+        type: number
+      prescribed_rpe:
+        example: 7.5
+        type: number
+      rep_type:
+        example: reps
+        type: string
+      reps:
+        example: 5
+        type: integer
+      rest_seconds:
+        type: integer
+      set_number:
+        example: 1
+        type: integer
+      sort_order:
+        type: integer
+      week:
+        example: 1
+        type: integer
+    type: object
   api.Equipment:
     properties:
       created_at:
@@ -1064,11 +1101,15 @@ definitions:
         type: integer
       exercise_name:
         type: string
+      group_label:
+        type: string
       id:
         type: integer
       notes:
         type: string
       percentage:
+        type: number
+      prescribed_rpe:
         type: number
       rep_type:
         type: string
@@ -1116,10 +1157,16 @@ definitions:
       exercise_id:
         example: 42
         type: integer
+      group_label:
+        example: T1
+        type: string
       notes:
         type: string
       percentage:
         example: 0.65
+        type: number
+      prescribed_rpe:
+        example: 7.5
         type: number
       rep_type:
         example: reps
@@ -1146,9 +1193,15 @@ definitions:
       exercise_id:
         example: 42
         type: integer
+      group_label:
+        example: T1
+        type: string
       notes:
         type: string
       percentage:
+        type: number
+      prescribed_rpe:
+        example: 7.5
         type: number
       rep_type:
         type: string
@@ -1198,14 +1251,20 @@ definitions:
         type: integer
       is_loop:
         type: boolean
+      lineage_id:
+        type: integer
       name:
         type: string
       num_days:
         type: integer
       num_weeks:
         type: integer
+      status:
+        type: string
       updated_at:
         type: string
+      version:
+        type: integer
     type: object
   api.ProgramTemplateRequest:
     properties:
@@ -1908,6 +1967,39 @@ definitions:
       weight:
         example: 135
         type: number
+    type: object
+  api.WriteProgramDraftRequest:
+    properties:
+      athlete_id:
+        type: integer
+      audience:
+        example: adult
+        type: string
+      description:
+        type: string
+      is_loop:
+        type: boolean
+      lineage_id:
+        type: integer
+      name:
+        example: Squat block
+        type: string
+      num_days:
+        example: 3
+        type: integer
+      num_weeks:
+        example: 1
+        type: integer
+      sets:
+        items:
+          $ref: '#/definitions/api.DraftPrescribedSetRequest'
+        type: array
+      source_date:
+        example: "2026-11-21"
+        type: string
+      source_text:
+        example: Wednesday session notes
+        type: string
     type: object
   models.AthleteExportJSON:
     properties:
@@ -5971,6 +6063,42 @@ paths:
       summary: Update program template
       tags:
       - Programs
+  /programs/{id}/approve:
+    post:
+      description: A browser session approves a draft. A coach service token receives
+        403. Approval does not assign the program.
+      parameters:
+      - description: Program ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ProgramTemplate'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Approve program draft
+      tags:
+      - Programs
   /programs/{id}/copy-week:
     post:
       consumes:
@@ -6198,6 +6326,41 @@ paths:
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Update prescribed set
+      tags:
+      - Programs
+  /programs/drafts:
+    post:
+      consumes:
+      - application/json
+      description: Creates a draft proposal. Does not assign it. A coach service token
+        may call this; it cannot approve the draft.
+      parameters:
+      - description: Draft
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.WriteProgramDraftRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.ProgramTemplate'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Write program draft
       tags:
       - Programs
   /reviews/pending:

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 // PrescribedSet represents one prescribed set within a program template.
@@ -18,6 +19,8 @@ type PrescribedSet struct {
 	Percentage     sql.NullFloat64 // of training max, NULL for bodyweight/accessories
 	AbsoluteWeight sql.NullFloat64 // fixed weight (lbs/kg), NULL when using percentage
 	RestSeconds    sql.NullInt64   // per-set timer override, NULL uses the exercise default
+	PrescribedRPE  sql.NullFloat64 // target RPE, NULL when the set has no prescribed effort
+	GroupLabel     sql.NullString  // optional grouping label (for example "T1")
 	SortOrder      int             // display order within a day (lower = first)
 	RepType        string          // "reps", "each_side", "seconds", or "distance"
 	Notes          sql.NullString
@@ -49,12 +52,25 @@ func (ps *PrescribedSet) RepsLabel() string {
 
 // CreatePrescribedSet inserts a new prescribed set into a program template.
 func CreatePrescribedSet(ctx context.Context, db *sql.DB, templateID, exerciseID int64, week, day, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, sortOrder int, repType, notes string) (*PrescribedSet, error) {
-	return CreatePrescribedSetWithRest(ctx, db, templateID, exerciseID, week, day, setNumber, reps, percentage, absoluteWeight, nil, sortOrder, repType, notes)
+	return CreatePrescribedSetWithRest(ctx, db, templateID, exerciseID, week, day, setNumber, reps, percentage, absoluteWeight, nil, sortOrder, repType, notes, nil, "")
 }
 
 // CreatePrescribedSetWithRest inserts a new prescribed set with an optional
-// per-set rest timer override.
-func CreatePrescribedSetWithRest(ctx context.Context, db *sql.DB, templateID, exerciseID int64, week, day, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, restSeconds *int, sortOrder int, repType, notes string) (*PrescribedSet, error) {
+// per-set rest timer override, prescribed RPE, and group label.
+func CreatePrescribedSetWithRest(ctx context.Context, db *sql.DB, templateID, exerciseID int64, week, day, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, restSeconds *int, sortOrder int, repType, notes string, prescribedRPE *float64, groupLabel string) (*PrescribedSet, error) {
+	id, err := insertPrescribedSetRow(ctx, db, templateID, exerciseID, week, day, setNumber, reps, percentage, absoluteWeight, restSeconds, sortOrder, repType, notes, prescribedRPE, groupLabel)
+	if err != nil {
+		return nil, err
+	}
+	return GetPrescribedSetByID(ctx, db, id)
+}
+
+// setWriter is the subset of *sql.DB and *sql.Tx used to insert a set.
+type setWriter interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+func insertPrescribedSetRow(ctx context.Context, q setWriter, templateID, exerciseID int64, week, day, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, restSeconds *int, sortOrder int, repType, notes string, prescribedRPE *float64, groupLabel string) (int64, error) {
 	var repsVal sql.NullInt64
 	if reps != nil {
 		repsVal = sql.NullInt64{Int64: int64(*reps), Valid: true}
@@ -71,6 +87,14 @@ func CreatePrescribedSetWithRest(ctx context.Context, db *sql.DB, templateID, ex
 	if restSeconds != nil {
 		restSecondsVal = sql.NullInt64{Int64: int64(*restSeconds), Valid: true}
 	}
+	var rpeVal sql.NullFloat64
+	if prescribedRPE != nil {
+		rpeVal = sql.NullFloat64{Float64: *prescribedRPE, Valid: true}
+	}
+	var groupVal sql.NullString
+	if strings.TrimSpace(groupLabel) != "" {
+		groupVal = sql.NullString{String: strings.TrimSpace(groupLabel), Valid: true}
+	}
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
@@ -80,19 +104,19 @@ func CreatePrescribedSetWithRest(ctx context.Context, db *sql.DB, templateID, ex
 	}
 
 	var id int64
-	err := db.QueryRowContext(ctx,
-		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, rest_seconds, sort_order, rep_type, notes)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-		templateID, exerciseID, week, day, setNumber, repsVal, pctVal, absWeightVal, restSecondsVal, sortOrder, repType, notesVal,
+	err := q.QueryRowContext(ctx,
+		`INSERT INTO prescribed_sets
+		    (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, rest_seconds, prescribed_rpe, group_label, sort_order, rep_type, notes)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+		templateID, exerciseID, week, day, setNumber, repsVal, pctVal, absWeightVal, restSecondsVal, rpeVal, groupVal, sortOrder, repType, notesVal,
 	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
-			return nil, fmt.Errorf("models: prescribed set already exists for week %d day %d set %d", week, day, setNumber)
+			return 0, fmt.Errorf("models: prescribed set already exists for week %d day %d set %d", week, day, setNumber)
 		}
-		return nil, fmt.Errorf("models: create prescribed set: %w", err)
+		return 0, fmt.Errorf("models: create prescribed set: %w", err)
 	}
-
-	return GetPrescribedSetByID(ctx, db, id)
+	return id, nil
 }
 
 // GetPrescribedSetByID retrieves a prescribed set by primary key.
@@ -100,13 +124,13 @@ func GetPrescribedSetByID(ctx context.Context, db *sql.DB, id int64) (*Prescribe
 	ps := &PrescribedSet{}
 	err := db.QueryRowContext(ctx,
 		`SELECT ps.id, ps.template_id, ps.exercise_id, ps.week, ps.day, ps.set_number,
-		        ps.reps, ps.percentage, ps.absolute_weight, ps.rest_seconds, ps.sort_order, ps.rep_type, ps.notes, e.name
+		        ps.reps, ps.percentage, ps.absolute_weight, ps.rest_seconds, ps.prescribed_rpe, ps.group_label, ps.sort_order, ps.rep_type, ps.notes, e.name
 		 FROM prescribed_sets ps
 		 JOIN exercises e ON e.id = ps.exercise_id
 		 WHERE ps.id = ?`,
 		id,
 	).Scan(&ps.ID, &ps.TemplateID, &ps.ExerciseID, &ps.Week, &ps.Day, &ps.SetNumber,
-		&ps.Reps, &ps.Percentage, &ps.AbsoluteWeight, &ps.RestSeconds, &ps.SortOrder, &ps.RepType, &ps.Notes, &ps.ExerciseName)
+		&ps.Reps, &ps.Percentage, &ps.AbsoluteWeight, &ps.RestSeconds, &ps.PrescribedRPE, &ps.GroupLabel, &ps.SortOrder, &ps.RepType, &ps.Notes, &ps.ExerciseName)
 	if err != nil {
 		return nil, fmt.Errorf("models: get prescribed set %d: %w", id, err)
 	}
@@ -117,7 +141,7 @@ func GetPrescribedSetByID(ctx context.Context, db *sql.DB, id int64) (*Prescribe
 func ListPrescribedSets(ctx context.Context, db *sql.DB, templateID int64) ([]*PrescribedSet, error) {
 	rows, err := db.QueryContext(ctx,
 		`SELECT ps.id, ps.template_id, ps.exercise_id, ps.week, ps.day, ps.set_number,
-		        ps.reps, ps.percentage, ps.absolute_weight, ps.rest_seconds, ps.sort_order, ps.rep_type, ps.notes, e.name
+		        ps.reps, ps.percentage, ps.absolute_weight, ps.rest_seconds, ps.prescribed_rpe, ps.group_label, ps.sort_order, ps.rep_type, ps.notes, e.name
 		 FROM prescribed_sets ps
 		 JOIN exercises e ON e.id = ps.exercise_id
 		 WHERE ps.template_id = ?
@@ -133,7 +157,7 @@ func ListPrescribedSets(ctx context.Context, db *sql.DB, templateID int64) ([]*P
 	for rows.Next() {
 		ps := &PrescribedSet{}
 		if err := rows.Scan(&ps.ID, &ps.TemplateID, &ps.ExerciseID, &ps.Week, &ps.Day, &ps.SetNumber,
-			&ps.Reps, &ps.Percentage, &ps.AbsoluteWeight, &ps.RestSeconds, &ps.SortOrder, &ps.RepType, &ps.Notes, &ps.ExerciseName); err != nil {
+			&ps.Reps, &ps.Percentage, &ps.AbsoluteWeight, &ps.RestSeconds, &ps.PrescribedRPE, &ps.GroupLabel, &ps.SortOrder, &ps.RepType, &ps.Notes, &ps.ExerciseName); err != nil {
 			return nil, fmt.Errorf("models: scan prescribed set: %w", err)
 		}
 		sets = append(sets, ps)
@@ -148,7 +172,7 @@ func ListPrescribedSets(ctx context.Context, db *sql.DB, templateID int64) ([]*P
 func ListPrescribedSetsForDay(ctx context.Context, db *sql.DB, templateID int64, week, day int) ([]*PrescribedSet, error) {
 	rows, err := db.QueryContext(ctx,
 		`SELECT ps.id, ps.template_id, ps.exercise_id, ps.week, ps.day, ps.set_number,
-		        ps.reps, ps.percentage, ps.absolute_weight, ps.rest_seconds, ps.sort_order, ps.rep_type, ps.notes, e.name
+		        ps.reps, ps.percentage, ps.absolute_weight, ps.rest_seconds, ps.prescribed_rpe, ps.group_label, ps.sort_order, ps.rep_type, ps.notes, e.name
 		 FROM prescribed_sets ps
 		 JOIN exercises e ON e.id = ps.exercise_id
 		 WHERE ps.template_id = ? AND ps.week = ? AND ps.day = ?
@@ -164,7 +188,7 @@ func ListPrescribedSetsForDay(ctx context.Context, db *sql.DB, templateID int64,
 	for rows.Next() {
 		ps := &PrescribedSet{}
 		if err := rows.Scan(&ps.ID, &ps.TemplateID, &ps.ExerciseID, &ps.Week, &ps.Day, &ps.SetNumber,
-			&ps.Reps, &ps.Percentage, &ps.AbsoluteWeight, &ps.RestSeconds, &ps.SortOrder, &ps.RepType, &ps.Notes, &ps.ExerciseName); err != nil {
+			&ps.Reps, &ps.Percentage, &ps.AbsoluteWeight, &ps.RestSeconds, &ps.PrescribedRPE, &ps.GroupLabel, &ps.SortOrder, &ps.RepType, &ps.Notes, &ps.ExerciseName); err != nil {
 			return nil, fmt.Errorf("models: scan prescribed set: %w", err)
 		}
 		sets = append(sets, ps)
@@ -189,7 +213,7 @@ func DeletePrescribedSet(ctx context.Context, db *sql.DB, id int64) error {
 }
 
 // UpdatePrescribedSet updates an existing prescribed set's fields.
-func UpdatePrescribedSet(ctx context.Context, db *sql.DB, id int64, exerciseID int64, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, restSeconds *int, sortOrder int, repType, notes string) (*PrescribedSet, error) {
+func UpdatePrescribedSet(ctx context.Context, db *sql.DB, id int64, exerciseID int64, setNumber int, reps *int, percentage *float64, absoluteWeight *float64, restSeconds *int, sortOrder int, repType, notes string, prescribedRPE *float64, groupLabel string) (*PrescribedSet, error) {
 	var repsVal sql.NullInt64
 	if reps != nil {
 		repsVal = sql.NullInt64{Int64: int64(*reps), Valid: true}
@@ -206,6 +230,14 @@ func UpdatePrescribedSet(ctx context.Context, db *sql.DB, id int64, exerciseID i
 	if restSeconds != nil {
 		restSecondsVal = sql.NullInt64{Int64: int64(*restSeconds), Valid: true}
 	}
+	var rpeVal sql.NullFloat64
+	if prescribedRPE != nil {
+		rpeVal = sql.NullFloat64{Float64: *prescribedRPE, Valid: true}
+	}
+	var groupVal sql.NullString
+	if strings.TrimSpace(groupLabel) != "" {
+		groupVal = sql.NullString{String: strings.TrimSpace(groupLabel), Valid: true}
+	}
 	var notesVal sql.NullString
 	if notes != "" {
 		notesVal = sql.NullString{String: notes, Valid: true}
@@ -216,9 +248,9 @@ func UpdatePrescribedSet(ctx context.Context, db *sql.DB, id int64, exerciseID i
 
 	_, err := db.ExecContext(ctx,
 		`UPDATE prescribed_sets
-		 SET exercise_id = ?, set_number = ?, reps = ?, percentage = ?, absolute_weight = ?, rest_seconds = ?, sort_order = ?, rep_type = ?, notes = ?
+		 SET exercise_id = ?, set_number = ?, reps = ?, percentage = ?, absolute_weight = ?, rest_seconds = ?, prescribed_rpe = ?, group_label = ?, sort_order = ?, rep_type = ?, notes = ?
 		 WHERE id = ?`,
-		exerciseID, setNumber, repsVal, pctVal, absWeightVal, restSecondsVal, sortOrder, repType, notesVal, id,
+		exerciseID, setNumber, repsVal, pctVal, absWeightVal, restSecondsVal, rpeVal, groupVal, sortOrder, repType, notesVal, id,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -251,7 +283,7 @@ func CopyWeek(ctx context.Context, db *sql.DB, templateID int64, sourceWeek, tar
 
 	rows, err := tx.QueryContext(ctx,
 		`SELECT day, exercise_id, set_number, reps, percentage,
-		        absolute_weight, rest_seconds, sort_order, rep_type, notes
+		        absolute_weight, rest_seconds, prescribed_rpe, group_label, sort_order, rep_type, notes
 		   FROM prescribed_sets
 		  WHERE template_id = ? AND week = ?
 		  ORDER BY day, sort_order`,
@@ -270,6 +302,8 @@ func CopyWeek(ctx context.Context, db *sql.DB, templateID int64, sourceWeek, tar
 		percentage     sql.NullFloat64
 		absoluteWeight sql.NullFloat64
 		restSeconds    sql.NullInt64
+		prescribedRPE  sql.NullFloat64
+		groupLabel     sql.NullString
 		sortOrder      int
 		repType        string
 		notes          sql.NullString
@@ -279,7 +313,7 @@ func CopyWeek(ctx context.Context, db *sql.DB, templateID int64, sourceWeek, tar
 		var s setRow
 		if err := rows.Scan(&s.day, &s.exerciseID, &s.setNumber,
 			&s.reps, &s.percentage, &s.absoluteWeight,
-			&s.restSeconds, &s.sortOrder, &s.repType, &s.notes); err != nil {
+			&s.restSeconds, &s.prescribedRPE, &s.groupLabel, &s.sortOrder, &s.repType, &s.notes); err != nil {
 			return 0, fmt.Errorf("models: copy week scan: %w", err)
 		}
 		sets = append(sets, s)
@@ -293,10 +327,10 @@ func CopyWeek(ctx context.Context, db *sql.DB, templateID int64, sourceWeek, tar
 		_, err := tx.ExecContext(ctx,
 			`INSERT INTO prescribed_sets
 			   (template_id, week, day, exercise_id, set_number,
-			    reps, percentage, absolute_weight, rest_seconds, sort_order, rep_type, notes)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			    reps, percentage, absolute_weight, rest_seconds, prescribed_rpe, group_label, sort_order, rep_type, notes)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			templateID, targetWeek, s.day, s.exerciseID, s.setNumber,
-			s.reps, s.percentage, s.absoluteWeight, s.restSeconds, s.sortOrder, s.repType, s.notes,
+			s.reps, s.percentage, s.absoluteWeight, s.restSeconds, s.prescribedRPE, s.groupLabel, s.sortOrder, s.repType, s.notes,
 		)
 		if err != nil {
 			return 0, fmt.Errorf("models: copy week insert: %w", err)

@@ -42,6 +42,8 @@ These were resolved interactively before schema design:
 
 18. **Coach notes have public/private visibility.** The `is_private` flag on `athlete_notes` controls whether non-coach athletes can see a note. Private notes (`is_private = 1`) are coach-only; public notes (`is_private = 0`) appear on the athlete's journal view. This lets coaches keep internal observations (e.g., "watch for overtraining signs") separate from athlete-facing notes (e.g., "great progress on squat form").
 
+19. **A program draft is a proposal, not a plan.** `program_templates.status` is `draft` or `approved` (migration `0018`). Existing rows stay `approved`. `program_sources` records the coach, the date, and the source text for a proposal. `lineage_id` is NULL on the first version; a later version points it at that root and increments `version`. Prescribed sets may carry a nullable `prescribed_rpe` and `group_label`. Reference context and assignment use approved programs only. A coach service token may write a draft. Approving it is a browser session (ADR 007, ADR 022, ADR 023) and does not assign the program.
+
 ## Entity Relationship Diagram
 
 ```mermaid
@@ -172,6 +174,8 @@ erDiagram
     workouts ||--o| workout_reviews : "reviewed via"
     users ||--o{ workout_reviews : "reviews"
     athletes ||--o{ program_templates : "owns (optional)"
+    program_templates ||--o{ program_sources : "proposed via"
+    users ||--o{ program_sources : "proposed by"
     program_templates ||--o{ prescribed_sets : "defines"
     exercises ||--o{ prescribed_sets : "used in"
     athletes ||--o{ athlete_programs : "follows"
@@ -345,8 +349,20 @@ erDiagram
         INTEGER num_days
         INTEGER is_loop "0 or 1, default 0"
         TEXT audience "nullable, 'youth' or 'adult'"
+        TEXT status "draft or approved, default approved"
+        INTEGER lineage_id FK "nullable, first version is NULL"
+        INTEGER version "default 1"
         DATETIME created_at
         DATETIME updated_at
+    }
+
+    program_sources {
+        INTEGER id PK
+        INTEGER template_id FK
+        INTEGER coach_id FK "nullable"
+        DATE source_date
+        TEXT source_text
+        DATETIME created_at
     }
 
     prescribed_sets {
@@ -360,6 +376,8 @@ erDiagram
         TEXT rep_type "reps, each_side, seconds, or distance"
         REAL percentage "nullable"
         REAL absolute_weight "nullable, fixed weight"
+        REAL prescribed_rpe "nullable, 1 to 10"
+        TEXT group_label "nullable"
         INTEGER sort_order "display order within day"
         TEXT notes "nullable"
     }
@@ -671,6 +689,9 @@ erDiagram
 | `num_days`  | INTEGER      | NOT NULL                             |
 | `is_loop`   | INTEGER      | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
 | `audience`  | TEXT         | NULL, CHECK('youth' or 'adult')      |
+| `status`    | TEXT         | NOT NULL DEFAULT 'approved', CHECK('draft' or 'approved') |
+| `lineage_id`| INTEGER      | NULL, FK → program_templates(id) ON DELETE SET NULL |
+| `version`   | INTEGER      | NOT NULL DEFAULT 1, CHECK(version >= 1) |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
@@ -679,8 +700,25 @@ erDiagram
 - `is_loop = 1` marks indefinite cycling programs (e.g. Yessis 1×20 foundational) that repeat until the coach advances the athlete. `is_loop = 0` (default) for standard programs that still cycle but show completion progress.
 - `athlete_id` NULL = global/shared template (coach-created, assignable to any athlete). Non-NULL = athlete-specific template (e.g. AI-generated), visible only to that athlete.
 - `audience` classifies the program as `'youth'` or `'adult'`. NULL means unclassified (e.g. athlete-scoped AI-generated programs inherit audience from the athlete's tier). Used to filter reference programs in LLM context: youth athletes only see youth reference programs, adults only see adult programs.
-- Uniqueness is enforced via two partial unique indexes: global template names are unique (`WHERE athlete_id IS NULL`), and per-athlete template names are unique within that athlete (`WHERE athlete_id IS NOT NULL`).
+- `status` is `approved` or `draft` (migration `0018`). Existing rows and coach-created templates default to `approved`. A `draft` is a proposal: `buildReferencePrograms` skips it, and assignment refuses it. The coach's program list still returns it. Approving sets `status` to `approved` and does not assign the program.
+- `lineage_id` is NULL on the first version. A later version stores the root id and the next `version`. The row does not point `lineage_id` at itself.
+- Uniqueness of names applies to approved programs: global approved names are unique (`WHERE athlete_id IS NULL AND status = 'approved'`), and per-athlete approved names are unique (`WHERE athlete_id IS NOT NULL AND status = 'approved'`). A draft may reuse a name. `(COALESCE(lineage_id, id), version)` is unique. Approving a draft whose name is already approved in that scope is refused.
 - Assignment to athletes is tracked via `athlete_programs`.
+
+### `program_sources`
+
+| Column        | Type     | Constraints                                              |
+|---------------|----------|----------------------------------------------------------|
+| `id`          | INTEGER  | PRIMARY KEY AUTOINCREMENT                                |
+| `template_id` | INTEGER  | NOT NULL, FK → program_templates(id) ON DELETE CASCADE   |
+| `coach_id`    | INTEGER  | NULL, FK → users(id) ON DELETE SET NULL                  |
+| `source_date` | DATE     | NOT NULL                                                 |
+| `source_text` | TEXT     | NOT NULL                                                 |
+| `created_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                       |
+
+- Provenance for a program proposal (migration `0018`): the coach who wrote it, the date, and the source text the coach reviews with the draft.
+- One template may have more than one row. Deleting the template cascades. Deleting the coach keeps the text and sets `coach_id` to NULL.
+- A coach service token may insert a draft and its source row. It cannot approve the draft. A browser session of that coach can.
 
 ### `prescribed_sets`
 
@@ -697,6 +735,8 @@ erDiagram
 | `percentage`| REAL         | NULL (% of training max)             |
 | `absolute_weight`| REAL    | NULL (fixed weight in lbs/kg)        |
 | `rest_seconds`| INTEGER    | NULL, CHECK(NULL or >= 0)            |
+| `prescribed_rpe`| REAL   | NULL, CHECK(NULL or 1 through 10)    |
+| `group_label`| TEXT      | NULL                                 |
 | `sort_order`| INTEGER      | NOT NULL DEFAULT 0                   |
 | `notes`     | TEXT         | NULL                                 |
 
@@ -706,6 +746,8 @@ erDiagram
 - `percentage` is a decimal (e.g. 65.0 for 65%) used to calculate target weight from the athlete's training max.
 - `absolute_weight` is a fixed weight for programs that don't use percentage-of-TM (e.g. Yessis foundational, accessories). When both `percentage` and `absolute_weight` are set, percentage takes priority.
 - `rest_seconds` is an optional per-set rest-timer override. When NULL, the active workout uses the exercise-level rest setting, then the 90-second application default.
+- `prescribed_rpe` is an optional target effort for the set (1 through 10). NULL means the prescription does not name an RPE. It is not a logged set.
+- `group_label` is an optional free-text grouping on the set (for example `T1`). NULL when the set has no group.
 - `sort_order` controls exercise display order within a day. All sets for the same exercise share the same sort_order. Lower values appear first. Critical for methodologies where exercise sequence matters.
 - `UNIQUE(template_id, week, day, exercise_id, set_number)` prevents duplicate sets.
 
@@ -782,7 +824,7 @@ erDiagram
 
 - One hashed bearer for the coach account a service connector uses (ADR 022). Added in migration `0017`.
 - `token_hash` is the lowercase-hex SHA-256 of the full presented secret, including the `rlcst_` prefix. The plaintext is returned only when a token is minted, or it lives in `REPLOG_SERVICE_TOKEN` and is hashed at startup. It is never stored.
-- The row identifies the user and nothing else. Handlers refuse this credential on program assign, generation execute, training-max writes, and promote. A browser session of the same user can still approve.
+- The row identifies the user and nothing else. Handlers refuse this credential on program assign, program-draft approve, creating an approved template, generation execute, training-max writes, and promote. The same credential may `POST /programs/drafts`. A browser session of the same user can still approve.
 - Startup installs at most one `label = 'coach-service'` row per user from `REPLOG_SERVICE_TOKEN`. Replacing the env value replaces that row.
 
 ### `webauthn_credentials`
@@ -1075,20 +1117,42 @@ CREATE TABLE IF NOT EXISTS program_templates (
     num_days    INTEGER NOT NULL DEFAULT 1,
     is_loop     INTEGER NOT NULL DEFAULT 0 CHECK(is_loop IN (0, 1)),
     audience    TEXT CHECK(audience IN ('youth', 'adult')),
+    status      TEXT NOT NULL DEFAULT 'approved' CHECK(status IN ('draft', 'approved')),
+    lineage_id  INTEGER REFERENCES program_templates(id) ON DELETE SET NULL,
+    version     INTEGER NOT NULL DEFAULT 1 CHECK(version >= 1),
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Global templates (athlete_id IS NULL) must have unique names.
+-- Approved global templates must have unique names. Drafts may reuse a name.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_program_templates_name_global
-    ON program_templates(name) WHERE athlete_id IS NULL;
+    ON program_templates(name) WHERE athlete_id IS NULL AND status = 'approved';
 
--- Per-athlete templates must have unique names within that athlete.
+-- Approved per-athlete templates must have unique names within that athlete.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_program_templates_name_athlete
-    ON program_templates(athlete_id, name) WHERE athlete_id IS NOT NULL;
+    ON program_templates(athlete_id, name) WHERE athlete_id IS NOT NULL AND status = 'approved';
+
+-- First version stores lineage_id NULL; later versions point at that root.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_program_templates_lineage_version
+    ON program_templates(COALESCE(lineage_id, id), version);
 
 CREATE INDEX IF NOT EXISTS idx_program_templates_athlete
     ON program_templates(athlete_id);
+
+CREATE INDEX IF NOT EXISTS idx_program_templates_status
+    ON program_templates(status);
+
+CREATE TABLE IF NOT EXISTS program_sources (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id INTEGER NOT NULL REFERENCES program_templates(id) ON DELETE CASCADE,
+    coach_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    source_date DATE    NOT NULL,
+    source_text TEXT    NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_program_sources_template
+    ON program_sources(template_id);
 
 CREATE TABLE IF NOT EXISTS prescribed_sets (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1102,6 +1166,8 @@ CREATE TABLE IF NOT EXISTS prescribed_sets (
     percentage      REAL,
     absolute_weight REAL,
     rest_seconds    INTEGER CHECK(rest_seconds IS NULL OR rest_seconds >= 0),
+    prescribed_rpe  REAL CHECK(prescribed_rpe IS NULL OR (prescribed_rpe >= 1 AND prescribed_rpe <= 10)),
+    group_label     TEXT,
     sort_order      INTEGER NOT NULL DEFAULT 0,
     notes           TEXT,
     UNIQUE(template_id, week, day, exercise_id, set_number)

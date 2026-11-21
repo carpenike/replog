@@ -254,6 +254,8 @@ type PrescribedSetSummary struct {
 	Percentage     *float64 `json:"percentage,omitempty"`
 	AbsoluteWeight *float64 `json:"absolute_weight,omitempty"`
 	RestSeconds    *int     `json:"rest_seconds,omitempty"`
+	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty"`
+	GroupLabel     string   `json:"group_label,omitempty"`
 	SortOrder      int      `json:"sort_order"`
 	Notes          string   `json:"notes,omitempty"`
 }
@@ -1142,7 +1144,7 @@ func buildReferencePrograms(ctx context.Context, db *sql.DB, audience string) ([
 	if err != nil {
 		return nil, err
 	}
-	return templatesToReferenceSummaries(ctx, db, templates)
+	return templatesToReferenceSummaries(ctx, db, skipDraftPrograms(templates))
 }
 
 // buildReferenceProgramsByIDs loads specific program templates by their IDs
@@ -1153,7 +1155,22 @@ func buildReferenceProgramsByIDs(ctx context.Context, db *sql.DB, ids []int64) (
 	if err != nil {
 		return nil, err
 	}
-	return templatesToReferenceSummaries(ctx, db, templates)
+	return templatesToReferenceSummaries(ctx, db, skipDraftPrograms(templates))
+}
+
+// skipDraftPrograms drops proposals. Reference context is built from
+// approved programs only. A draft is not an example until a coach approves it.
+func skipDraftPrograms(templates []*models.ProgramTemplate) []*models.ProgramTemplate {
+	if len(templates) == 0 {
+		return templates
+	}
+	approved := make([]*models.ProgramTemplate, 0, len(templates))
+	for _, t := range templates {
+		if t != nil && t.Status == models.ProgramStatusApproved {
+			approved = append(approved, t)
+		}
+	}
+	return approved
 }
 
 // templatesToReferenceSummaries converts a slice of program templates into
@@ -1203,6 +1220,13 @@ func templatesToReferenceSummaries(ctx context.Context, db *sql.DB, templates []
 			if ps.RestSeconds.Valid {
 				rest := int(ps.RestSeconds.Int64)
 				pss.RestSeconds = &rest
+			}
+			if ps.PrescribedRPE.Valid {
+				rpe := ps.PrescribedRPE.Float64
+				pss.PrescribedRPE = &rpe
+			}
+			if ps.GroupLabel.Valid {
+				pss.GroupLabel = ps.GroupLabel.String
 			}
 			if ps.Notes.Valid {
 				pss.Notes = ps.Notes.String

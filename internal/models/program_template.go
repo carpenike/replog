@@ -23,6 +23,9 @@ type ProgramTemplate struct {
 	NumDays     int            // training days per week
 	IsLoop      bool           // true = indefinite cycling (e.g. Yessis 1x20)
 	Audience    sql.NullString // "youth" or "adult"; NULL = unclassified
+	Status      string         // "draft" or "approved"
+	LineageID   *int64         // NULL on the first version; later versions point at that root
+	Version     int
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 
@@ -69,14 +72,14 @@ func CreateProgramTemplate(ctx context.Context, db *sql.DB, athleteID *int64, na
 func GetProgramTemplateByID(ctx context.Context, db *sql.DB, id int64) (*ProgramTemplate, error) {
 	t := &ProgramTemplate{}
 	err := db.QueryRowContext(ctx,
-		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.status, pt.lineage_id, pt.version, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
 		 WHERE pt.id = ?
 		 GROUP BY pt.id`,
 		id,
-	).Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount)
+	).Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.Status, &t.LineageID, &t.Version, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -89,7 +92,7 @@ func GetProgramTemplateByID(ctx context.Context, db *sql.DB, id int64) (*Program
 // ListProgramTemplates returns all program templates ordered by name.
 func ListProgramTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemplate, error) {
 	rows, err := db.QueryContext(ctx,
-		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.status, pt.lineage_id, pt.version, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
@@ -104,7 +107,7 @@ func ListProgramTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemplate, 
 	var templates []*ProgramTemplate
 	for rows.Next() {
 		t := &ProgramTemplate{}
-		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.Status, &t.LineageID, &t.Version, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
 			return nil, fmt.Errorf("models: scan program template: %w", err)
 		}
 		templates = append(templates, t)
@@ -120,7 +123,7 @@ func ListProgramTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemplate, 
 // (e.g. AI-generated) are excluded — they are managed from the athlete page.
 func ListGlobalProgramTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemplate, error) {
 	rows, err := db.QueryContext(ctx,
-		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.status, pt.lineage_id, pt.version, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
@@ -136,7 +139,7 @@ func ListGlobalProgramTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemp
 	var templates []*ProgramTemplate
 	for rows.Next() {
 		t := &ProgramTemplate{}
-		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.Status, &t.LineageID, &t.Version, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
 			return nil, fmt.Errorf("models: scan global program template: %w", err)
 		}
 		templates = append(templates, t)
@@ -181,7 +184,7 @@ func AthleteTemplateNameExists(ctx context.Context, db *sql.DB, athleteID int64,
 // section for athlete-specific programs.
 func ListAthleteScopedTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemplate, error) {
 	rows, err := db.QueryContext(ctx,
-		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.status, pt.lineage_id, pt.version, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count, a.name AS athlete_name
 		 FROM program_templates pt
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
@@ -198,7 +201,7 @@ func ListAthleteScopedTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemp
 	var templates []*ProgramTemplate
 	for rows.Next() {
 		t := &ProgramTemplate{}
-		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount, &t.AthleteName); err != nil {
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.Status, &t.LineageID, &t.Version, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount, &t.AthleteName); err != nil {
 			return nil, fmt.Errorf("models: scan athlete-scoped template: %w", err)
 		}
 		templates = append(templates, t)
@@ -209,17 +212,17 @@ func ListAthleteScopedTemplates(ctx context.Context, db *sql.DB) ([]*ProgramTemp
 	return templates, nil
 }
 
-// ListProgramTemplatesForAthlete returns global templates plus templates scoped
-// to the given athlete. Athlete-specific programs sort first, then global,
-// alphabetically within each group. This is the appropriate listing for
-// athlete-facing views and program assignment forms.
+// ListProgramTemplatesForAthlete returns approved global templates plus
+// approved templates scoped to the given athlete. Drafts are skipped —
+// assignment does not offer a proposal. Athlete-specific programs sort
+// first, then global, alphabetically within each group.
 func ListProgramTemplatesForAthlete(ctx context.Context, db *sql.DB, athleteID int64) ([]*ProgramTemplate, error) {
 	rows, err := db.QueryContext(ctx,
-		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.status, pt.lineage_id, pt.version, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
-		 WHERE pt.athlete_id IS NULL OR pt.athlete_id = ?
+		 WHERE (pt.athlete_id IS NULL OR pt.athlete_id = ?) AND pt.status = 'approved'
 		 GROUP BY pt.id
 		 ORDER BY (pt.athlete_id IS NOT NULL) DESC, pt.name COLLATE NOCASE`,
 		athleteID,
@@ -232,7 +235,7 @@ func ListProgramTemplatesForAthlete(ctx context.Context, db *sql.DB, athleteID i
 	var templates []*ProgramTemplate
 	for rows.Next() {
 		t := &ProgramTemplate{}
-		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.Status, &t.LineageID, &t.Version, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
 			return nil, fmt.Errorf("models: scan program template for athlete: %w", err)
 		}
 		templates = append(templates, t)
@@ -243,16 +246,16 @@ func ListProgramTemplatesForAthlete(ctx context.Context, db *sql.DB, athleteID i
 	return templates, nil
 }
 
-// ListReferenceTemplatesByAudience returns global templates (athlete_id IS NULL)
-// filtered by audience. Pass "youth" or "adult" to get matching programs.
-// Returns templates ordered by name.
+// ListReferenceTemplatesByAudience returns approved global templates
+// (athlete_id IS NULL) filtered by audience. Drafts are skipped. Pass
+// "youth" or "adult". Returns templates ordered by name.
 func ListReferenceTemplatesByAudience(ctx context.Context, db *sql.DB, audience string) ([]*ProgramTemplate, error) {
 	rows, err := db.QueryContext(ctx,
-		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+		`SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.status, pt.lineage_id, pt.version, pt.created_at, pt.updated_at,
 		        COUNT(ap.id) AS athlete_count
 		 FROM program_templates pt
 		 LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
-		 WHERE pt.athlete_id IS NULL AND pt.audience = ?
+		 WHERE pt.athlete_id IS NULL AND pt.audience = ? AND pt.status = 'approved'
 		 GROUP BY pt.id
 		 ORDER BY pt.name COLLATE NOCASE`,
 		audience,
@@ -265,7 +268,7 @@ func ListReferenceTemplatesByAudience(ctx context.Context, db *sql.DB, audience 
 	var templates []*ProgramTemplate
 	for rows.Next() {
 		t := &ProgramTemplate{}
-		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.Status, &t.LineageID, &t.Version, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
 			return nil, fmt.Errorf("models: scan reference template: %w", err)
 		}
 		templates = append(templates, t)
@@ -276,9 +279,10 @@ func ListReferenceTemplatesByAudience(ctx context.Context, db *sql.DB, audience 
 	return templates, nil
 }
 
-// ListProgramTemplatesByIDs returns program templates matching the given IDs.
-// Used when the coach explicitly selects which reference programs to provide
-// to the LLM. Returns templates ordered by name.
+// ListProgramTemplatesByIDs returns approved program templates matching the
+// given IDs. Drafts are skipped, including when a caller names one by id.
+// Used when the coach selects which reference programs to provide to the
+// LLM. Returns templates ordered by name.
 func ListProgramTemplatesByIDs(ctx context.Context, db *sql.DB, ids []int64) ([]*ProgramTemplate, error) {
 	if len(ids) == 0 {
 		return nil, nil
@@ -292,11 +296,11 @@ func ListProgramTemplatesByIDs(ctx context.Context, db *sql.DB, ids []int64) ([]
 		args[i] = id
 	}
 
-	query := `SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.created_at, pt.updated_at,
+	query := `SELECT pt.id, pt.athlete_id, pt.name, pt.description, pt.num_weeks, pt.num_days, pt.is_loop, pt.audience, pt.status, pt.lineage_id, pt.version, pt.created_at, pt.updated_at,
 	                  COUNT(ap.id) AS athlete_count
 	           FROM program_templates pt
 	           LEFT JOIN athlete_programs ap ON ap.template_id = pt.id AND ap.active = 1
-	           WHERE pt.id IN (` + strings.Join(placeholders, ", ") + `)
+	           WHERE pt.status = 'approved' AND pt.id IN (` + strings.Join(placeholders, ", ") + `)
 	           GROUP BY pt.id
 	           ORDER BY pt.name COLLATE NOCASE`
 
@@ -309,7 +313,7 @@ func ListProgramTemplatesByIDs(ctx context.Context, db *sql.DB, ids []int64) ([]
 	var templates []*ProgramTemplate
 	for rows.Next() {
 		t := &ProgramTemplate{}
-		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
+		if err := rows.Scan(&t.ID, &t.AthleteID, &t.Name, &t.Description, &t.NumWeeks, &t.NumDays, &t.IsLoop, &t.Audience, &t.Status, &t.LineageID, &t.Version, &t.CreatedAt, &t.UpdatedAt, &t.AthleteCount); err != nil {
 			return nil, fmt.Errorf("models: scan program template by ID: %w", err)
 		}
 		templates = append(templates, t)

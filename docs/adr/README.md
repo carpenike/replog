@@ -26,3 +26,4 @@ Architecture Decision Records for RepLog.
 | [020](020-ad-hoc-wod.md) | Ad-hoc WOD Generation | Accepted | 2026-06-27 |
 | [021](021-hardening-pass.md) | Comprehensive Hardening Pass | Accepted | 2026-07-07 |
 | [022](022-coach-service-token.md) | Coach Service Token | Accepted | 2026-11-21 |
+| [023](023-program-drafts.md) | Program Drafts | Accepted | 2026-11-21 |

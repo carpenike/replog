@@ -503,6 +503,8 @@ func main() {
 			// Program Templates.
 			r.Get("/programs", apiHandlers.ListProgramTemplates)
 			r.Post("/programs", apiHandlers.CreateProgramTemplate)
+			r.Post("/programs/drafts", apiHandlers.WriteProgramDraft)
+			r.Post("/programs/{id}/approve", apiHandlers.ApproveProgramDraft)
 			r.Get("/programs/{id}", apiHandlers.GetProgramTemplate)
 			r.Put("/programs/{id}", apiHandlers.UpdateProgramTemplate)
 			r.Delete("/programs/{id}", apiHandlers.DeleteProgramTemplate)

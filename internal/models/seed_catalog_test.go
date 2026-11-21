@@ -145,7 +145,7 @@ func TestCatalogExportImport_RoundTripsPrescribedSetRestSeconds(t *testing.T) {
 	}
 	reps := 5
 	restSeconds := 180
-	if _, err := CreatePrescribedSetWithRest(context.Background(), source, template.ID, exercise.ID, 1, 1, 1, &reps, nil, nil, &restSeconds, 0, "reps", ""); err != nil {
+	if _, err := CreatePrescribedSetWithRest(context.Background(), source, template.ID, exercise.ID, 1, 1, 1, &reps, nil, nil, &restSeconds, 0, "reps", "", nil, ""); err != nil {
 		t.Fatalf("create prescribed set: %v", err)
 	}
 

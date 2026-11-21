@@ -384,6 +384,16 @@ func LoadSummaryFromModel(m *models.LoadSummary) *LoadSummary {
 	}
 }
 
+// lineageID reports the program's root. A first version stores NULL and
+// the row's own id is the lineage.
+func lineageID(m *models.ProgramTemplate) *int64 {
+	id := m.ID
+	if m.LineageID != nil {
+		id = *m.LineageID
+	}
+	return &id
+}
+
 // ProgramTemplateFromModel converts a models.ProgramTemplate to an API ProgramTemplate.
 func ProgramTemplateFromModel(m *models.ProgramTemplate) *ProgramTemplate {
 	return &ProgramTemplate{
@@ -395,6 +405,9 @@ func ProgramTemplateFromModel(m *models.ProgramTemplate) *ProgramTemplate {
 		NumDays:      m.NumDays,
 		IsLoop:       m.IsLoop,
 		Audience:     nullStr(m.Audience),
+		Status:       m.Status,
+		LineageID:    lineageID(m),
+		Version:      m.Version,
 		CreatedAt:    fmtTime(m.CreatedAt),
 		UpdatedAt:    fmtTime(m.UpdatedAt),
 		AthleteCount: m.AthleteCount,
@@ -415,6 +428,8 @@ func PrescribedSetFromModel(m *models.PrescribedSet) *PrescribedSet {
 		Percentage:     nullFloat(m.Percentage),
 		AbsoluteWeight: nullFloat(m.AbsoluteWeight),
 		RestSeconds:    nullInt(m.RestSeconds),
+		PrescribedRPE:  nullFloat(m.PrescribedRPE),
+		GroupLabel:     nullStr(m.GroupLabel),
 		SortOrder:      m.SortOrder,
 		RepType:        m.RepType,
 		Notes:          nullStr(m.Notes),
