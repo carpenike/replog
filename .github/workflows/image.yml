@@ -1,12 +1,15 @@
 # Builds ghcr.io/carpenike/replog, smoke-tests it, and pushes from main
 # only. Pull requests build and test but push nothing.
 #
-# Runs on replog-k8s when the head repository is carpenike/replog (a
-# same-repo pull request or a push). That ARC scale set is the same idea
-# as va-acr-app-k8s. It is added in carpenike/k8s-gitops#5950 and is not
-# in this repo. carpenike/replog is public: a fork pull request that
-# selected replog-k8s would run the fork's workflow on the homelab
-# network, so any other head repository uses ubuntu-latest.
+# carpenike/replog is public, so this runs on ubuntu-latest. GitHub-hosted
+# minutes are free for a public repo. The replog-k8s ARC scale set was for
+# a private repo's Actions spending limit, which does not apply here, and
+# a public repo must not get a privileged homelab Docker runner.
+#
+# A fork pull request runs this file. The build job has contents: read
+# only. packages: write is on the push job, and that job runs only for a
+# push to carpenike/replog main — never for a pull_request, and never for
+# a fork.
 #
 # Action pins match carpenike/mcp .github/workflows/image.yml.
 name: image
@@ -18,9 +21,6 @@ on:
 
 permissions:
   contents: read
-  # Push steps are gated on a push to carpenike/replog main. Fork pull
-  # requests do not receive a write token.
-  packages: write
 
 concurrency:
   group: image-${{ github.ref }}
@@ -28,18 +28,8 @@ concurrency:
 
 jobs:
   image:
-    name: build, smoke test, push
-    # && / || return the last value, and || stops on the first truthy
-    # one. A pull_request never evaluates github.repository for the
-    # runner choice; a push never reads pull_request.head.
-    runs-on: >-
-      ${{ github.event_name == 'pull_request'
-      && github.event.pull_request.head.repo.full_name == 'carpenike/replog'
-      && 'replog-k8s'
-      || github.event_name != 'pull_request'
-      && github.repository == 'carpenike/replog'
-      && 'replog-k8s'
-      || 'ubuntu-latest' }}
+    name: build and smoke test
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,8 +51,26 @@ jobs:
       - name: No secret in the image filesystem or history
         run: bash scripts/image-smoke.sh secrets replog:ci
 
+  push:
+    name: push
+    needs: image
+    # Fork pull requests never reach this job. A fork's own push to its
+    # main has a different github.repository, so it does not either.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'carpenike/replog'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
       - name: Log in to GHCR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'carpenike/replog'
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
@@ -70,7 +78,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Image metadata
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'carpenike/replog'
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
@@ -85,7 +92,6 @@ jobs:
             org.opencontainers.image.description=RepLog workout logbook
 
       - name: Push
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'carpenike/replog'
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |

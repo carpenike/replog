@@ -55,8 +55,10 @@ Merging does not deploy. The pin format is `sha-<full>@sha256:<digest>`.
 `.github/workflows/notify-nix-config.yml` is not the deploy: it only tells
 nix-config to bump this repo's flake input.
 
-The job uses the `replog-k8s` runner only when the head repository is
-`carpenike/replog`. That scale set is not in this repo.
+The workflow runs on `ubuntu-latest`. This repo is public, so GitHub-hosted
+runners are free, and it does not use a homelab runner. A pull request has
+read permissions only. `packages: write` is used only to push from
+`carpenike/replog` `main`.
 
 ## Cross-agent comms (basic-memory)
 
