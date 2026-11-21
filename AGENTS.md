@@ -39,8 +39,24 @@ matching files — honor them.
 - **Deployment:** Nix flake builds the Vite frontend, then `go build`s the
   binary with `web/dist` embedded. Single binary runs as a systemd service
   on NixOS behind a reverse proxy. Module path `github.com/carpenike/replog`.
+  The container image is covered in [Deploy](#deploy).
 - **State of the project:** Working and in active use. **Don't break what
   works.** Read existing code patterns before adding features.
+
+## Deploy
+
+The image name is `ghcr.io/carpenike/replog`. `.github/workflows/image.yml`
+builds it on a pull request and on a push to `main`. A pull request runs
+`scripts/image-smoke.sh`: a read-only root, a writable `/data`, `/healthz`
+responding, and no secret in the image. It does not push. A push to `main`
+pushes `sha-<full sha>` and `main`.
+
+Merging does not deploy. The pin format is `sha-<full>@sha256:<digest>`.
+`.github/workflows/notify-nix-config.yml` is not the deploy: it only tells
+nix-config to bump this repo's flake input.
+
+The job uses the `replog-k8s` runner only when the head repository is
+`carpenike/replog`. That scale set is not in this repo.
 
 ## Cross-agent comms (basic-memory)
 
@@ -105,7 +121,7 @@ replog/
 ├── .github/
 │   ├── copilot-instructions.md  ← Copilot pointer to this file
 │   ├── instructions/            ← path-scoped Copilot rules (go, sql)
-│   └── workflows/               ← CI (ci.yaml) + release (release.yaml)
+│   └── workflows/               ← CI, image, release, conformance
 ├── cmd/replog/
 │   └── main.go                ← entrypoint: DB init, migrations, router, serve
 ├── internal/                  ← all app code (not importable outside module)

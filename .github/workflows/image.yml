@@ -1,0 +1,102 @@
+# Builds ghcr.io/carpenike/replog, smoke-tests it, and pushes from main
+# only. Pull requests build and test but push nothing.
+#
+# Runs on replog-k8s when the head repository is carpenike/replog (a
+# same-repo pull request or a push). That ARC scale set is the same idea
+# as va-acr-app-k8s. It is added in carpenike/k8s-gitops#5950 and is not
+# in this repo. carpenike/replog is public: a fork pull request that
+# selected replog-k8s would run the fork's workflow on the homelab
+# network, so any other head repository uses ubuntu-latest.
+#
+# Action pins match carpenike/mcp .github/workflows/image.yml.
+name: image
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  # Push steps are gated on a push to carpenike/replog main. Fork pull
+  # requests do not receive a write token.
+  packages: write
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: build, smoke test, push
+    # && / || return the last value, and || stops on the first truthy
+    # one. A pull_request never evaluates github.repository for the
+    # runner choice; a push never reads pull_request.head.
+    runs-on: >-
+      ${{ github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == 'carpenike/replog'
+      && 'replog-k8s'
+      || github.event_name != 'pull_request'
+      && github.repository == 'carpenike/replog'
+      && 'replog-k8s'
+      || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build for test
+        run: |
+          docker buildx build --load --platform linux/amd64 \
+            --build-arg COMMIT="$GITHUB_SHA" \
+            -t replog:ci .
+
+      - name: Smoke test (read-only root, writable /data, healthz)
+        run: bash scripts/image-smoke.sh runtime replog:ci
+
+      - name: No secret in the image filesystem or history
+        run: bash scripts/image-smoke.sh secrets replog:ci
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'carpenike/replog'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'carpenike/replog'
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/carpenike/replog
+          # type=sha,format=long → sha-<full sha>
+          # type=raw,value=main → main
+          tags: |
+            type=sha,format=long
+            type=raw,value=main
+          labels: |
+            org.opencontainers.image.title=replog
+            org.opencontainers.image.description=RepLog workout logbook
+
+      - name: Push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'carpenike/replog'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          args=()
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && args+=(-t "$tag")
+          done <<< "$TAGS"
+          if [ "${#args[@]}" -eq 0 ]; then
+            echo "no image tags to push" >&2
+            exit 1
+          fi
+          docker buildx build --push --provenance=false --platform linux/amd64 \
+            --build-arg COMMIT="$GITHUB_SHA" \
+            "${args[@]}" .
