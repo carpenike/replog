@@ -122,18 +122,12 @@ func main() {
 		})
 	}
 
-	// Bootstrap secret key for encrypting sensitive settings.
-	if _, source, err := models.GetOrCreateSecretKey(context.Background(), db); err != nil {
-		log.Printf("Warning: secret key not available — sensitive settings will not be encrypted: %v", err)
+	// Encryption key for sensitive settings. Environment only — never
+	// read from or written to app_settings._internal.secret_key.
+	if _, err := models.SecretKeyFromEnv(); err != nil {
+		log.Printf("Warning: REPLOG_SECRET_KEY is not set — sensitive settings will not be encrypted")
 	} else {
-		switch source {
-		case "generated":
-			log.Printf("Secret key generated and stored in database")
-		case "database":
-			log.Printf("Secret key loaded from database")
-		case "env":
-			log.Printf("Secret key loaded from REPLOG_SECRET_KEY environment variable")
-		}
+		log.Printf("Secret key loaded from REPLOG_SECRET_KEY environment variable")
 	}
 
 	// Bootstrap admin user if no users exist.

@@ -28,7 +28,7 @@ Self-hosted workout tracking for kids' resistance training progression and perso
 ## Tech Stack
 
 ### Backend
-- **Go** (1.25+) — single static binary serving a JSON REST API
+- **Go** (1.27+) — single static binary serving a JSON REST API
 - **chi** — HTTP router with group-based middleware (`github.com/go-chi/chi/v5`)
 - **SQLite** (WAL mode) via `modernc.org/sqlite` — pure-Go driver, no CGO
 - **OIDC** — PocketID relying-party login via `coreos/go-oidc` + `golang.org/x/oauth2` (PKCE)
@@ -77,7 +77,7 @@ On first launch the backend bootstraps the admin user and seeds the exercise cat
 
 ### Without Nix / direnv
 
-You need Go 1.25+, Node.js 22+, and (optionally) [`just`](https://github.com/casey/just). Then:
+You need Go 1.27+, Node.js 22+, and (optionally) [`just`](https://github.com/casey/just). Then:
 
 ```bash
 just install              # cd web && npm install
@@ -122,7 +122,7 @@ just build-nix      # nix build
 
 ### LLM API keys
 
-LLM provider keys (Anthropic, OpenAI) are **not** environment variables. Log in as admin, go to Settings, and configure them there. They're stored encrypted in the database using `REPLOG_SECRET_KEY` (auto-generated on first run if unset).
+LLM provider keys (Anthropic, OpenAI) are **not** environment variables. Log in as admin, go to Settings, and configure them there. They're stored encrypted in the database. Encryption uses `REPLOG_SECRET_KEY`, which must be set in the environment and is never written to the database.
 
 ### Custom env overrides
 
@@ -150,7 +150,7 @@ All configuration is via environment variables:
 | `REPLOG_DB_PATH` | `replog.db` | Path to SQLite database file |
 | `REPLOG_BASE_URL` | *(inferred)* | External base URL (e.g. `https://replog.example.com`). Used for generating absolute URLs and auto-enables secure cookies when scheme is `https` |
 | `REPLOG_SECURE_COOKIES` | *(auto)* | Override cookie `Secure` flag (`true`/`false`). Auto-derived from `REPLOG_BASE_URL` scheme if not set |
-| `REPLOG_SECRET_KEY` | *(auto-generated)* | Encryption key for sensitive settings stored in DB (LLM API keys, etc.). Auto-generated and persisted if not set |
+| `REPLOG_SECRET_KEY` | *(unset)* | Encryption key for sensitive settings stored in the DB (LLM API keys, etc.). Required to encrypt or decrypt those settings. Read from the environment only; never stored in `app_settings` |
 | `REPLOG_AVATAR_DIR` | `avatars/` (sibling of DB) | Directory for avatar file storage |
 | `REPLOG_SEED_CATALOG` | *(embedded)* | Path to a custom seed catalog JSON file (overrides the built-in exercise catalog) |
 | `REPLOG_ADMIN_USER` | | Initial admin username (required on first run) |

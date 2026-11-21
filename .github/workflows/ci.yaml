@@ -67,10 +67,12 @@ jobs:
           go-version-file: go.mod
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        # v9.3.0 — pinned by commit because this step's linter version changed.
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a
         with:
           # renovate: datasource=github-releases depName=golangci/golangci-lint
-          version: v2.6.2
+          # v2.13+ is required to typecheck a go 1.27 module (v2.6 cannot).
+          version: v2.15.0
 
   openapi:
     name: OpenAPI spec is up to date
@@ -157,10 +159,20 @@ jobs:
       # actually reachable from our code. Keeps signal high; toolchain
       # bumps in go.mod will be enforced here too.
       - name: govulncheck (Go)
+        env:
+          # setup-go installed the go.mod toolchain (1.27.4). Stay on it.
+          # golang.org/x/vuln@v1.10.0 declares go 1.26, and an older `go`
+          # binary would download Go 1.26 to compile govulncheck.
+          GOTOOLCHAIN: local
         run: |
           # renovate: datasource=go depName=golang.org/x/vuln
-          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
-          govulncheck ./...
+          # v1.1.4 is built with Go 1.22 and cannot load this module.
+          # v1.10.0 (latest as of 2026-11-17) still cannot typecheck the
+          # Go 1.27 stdlib in source mode (`govulncheck ./...`). Scan the
+          # built binary instead; that mode reports reachable symbols.
+          go install golang.org/x/vuln/cmd/govulncheck@v1.10.0
+          go build -o /tmp/replog ./cmd/replog
+          govulncheck -mode binary /tmp/replog
 
       # npm audit covers the frontend dev/build dependencies. The
       # production-deps pass uses moderate+ as the bar; the all-deps

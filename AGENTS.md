@@ -20,7 +20,7 @@ matching files — honor them.
 
 ## Quick orientation
 
-- **What it is:** Go (1.25+) single static binary serving a JSON REST API
+- **What it is:** Go (1.27+) single static binary serving a JSON REST API
   and an embedded React SPA from one process. SQLite (WAL) for storage.
 - **Backend stack:** `chi` router (group-based middleware) · `modernc.org/sqlite`
   (pure-Go driver, **no CGO**) · `pressly/goose` migrations embedded via

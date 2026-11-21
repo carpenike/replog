@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"testing"
 )
@@ -277,55 +278,80 @@ func TestGetAppName(t *testing.T) {
 	}
 }
 
-func TestGetOrCreateSecretKey(t *testing.T) {
+func countSecretKeyRows(t *testing.T, db *sql.DB) int {
+	t.Helper()
+	var n int
+	err := db.QueryRow(`SELECT COUNT(*) FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&n)
+	if err != nil {
+		t.Fatalf("count secret key rows: %v", err)
+	}
+	return n
+}
+
+// TestNewDatabaseHasNoSecretKeyRow proves a migrated database does not
+// contain app_settings._internal.secret_key, and that resolving the env
+// key — set or unset — neither inserts that row nor reads a legacy one.
+func TestNewDatabaseHasNoSecretKeyRow(t *testing.T) {
 	db := testDB(t)
 
-	// Clear any env var.
+	if n := countSecretKeyRows(t, db); n != 0 {
+		t.Fatalf("fresh database has %d _internal.secret_key rows, want 0", n)
+	}
+
 	t.Setenv("REPLOG_SECRET_KEY", "")
-
-	// First call should generate and store a key.
-	key1, source, err := GetOrCreateSecretKey(context.Background(), db)
-	if err != nil {
-		t.Fatalf("first call: %v", err)
+	if _, err := SecretKeyFromEnv(); err == nil {
+		t.Fatal("expected error when REPLOG_SECRET_KEY is unset")
 	}
-	if key1 == "" {
-		t.Fatal("expected non-empty key")
-	}
-	if source != "generated" {
-		t.Errorf("expected source 'generated', got %q", source)
+	if n := countSecretKeyRows(t, db); n != 0 {
+		t.Fatalf("unset env wrote %d _internal.secret_key rows, want 0", n)
 	}
 
-	// Verify it was set as env var.
-	if got := os.Getenv("REPLOG_SECRET_KEY"); got != key1 {
-		t.Errorf("expected env var set to %q, got %q", key1, got)
-	}
-
-	// Clear the env var again to test DB retrieval.
-	t.Setenv("REPLOG_SECRET_KEY", "")
-
-	// Second call should retrieve the same key from DB.
-	key2, source, err := GetOrCreateSecretKey(context.Background(), db)
-	if err != nil {
-		t.Fatalf("second call: %v", err)
-	}
-	if key2 != key1 {
-		t.Errorf("expected same key %q, got %q", key1, key2)
-	}
-	if source != "database" {
-		t.Errorf("expected source 'database', got %q", source)
-	}
-
-	// With env var set, should prefer env var.
-	t.Setenv("REPLOG_SECRET_KEY", "explicit-key")
-	key3, source, err := GetOrCreateSecretKey(context.Background(), db)
+	const explicit = "explicit-key"
+	t.Setenv("REPLOG_SECRET_KEY", explicit)
+	got, err := SecretKeyFromEnv()
 	if err != nil {
 		t.Fatalf("env var call: %v", err)
 	}
-	if key3 != "explicit-key" {
-		t.Errorf("expected 'explicit-key', got %q", key3)
+	if got != explicit {
+		t.Errorf("expected %q, got %q", explicit, got)
 	}
-	if source != "env" {
-		t.Errorf("expected source 'env', got %q", source)
+	if n := countSecretKeyRows(t, db); n != 0 {
+		t.Fatalf("env key was persisted (%d rows), want 0", n)
+	}
+
+	// A legacy row is left unread and unmodified.
+	const legacy = "legacy-db-key-do-not-load"
+	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('_internal.secret_key', ?)`, legacy); err != nil {
+		t.Fatalf("insert legacy row: %v", err)
+	}
+	t.Setenv("REPLOG_SECRET_KEY", "")
+	if _, err := SecretKeyFromEnv(); err == nil {
+		t.Fatal("expected error when env is unset even if a legacy row exists")
+	}
+	if got := os.Getenv("REPLOG_SECRET_KEY"); got != "" {
+		t.Errorf("legacy row was loaded into the environment as %q", got)
+	}
+	var stored string
+	if err := db.QueryRow(`SELECT value FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&stored); err != nil {
+		t.Fatalf("read legacy row: %v", err)
+	}
+	if stored != legacy {
+		t.Errorf("legacy row changed to %q, want %q", stored, legacy)
+	}
+
+	t.Setenv("REPLOG_SECRET_KEY", explicit)
+	got, err = SecretKeyFromEnv()
+	if err != nil {
+		t.Fatalf("env var with legacy row: %v", err)
+	}
+	if got != explicit {
+		t.Errorf("expected env key %q, got %q", explicit, got)
+	}
+	if err := db.QueryRow(`SELECT value FROM app_settings WHERE key = '_internal.secret_key'`).Scan(&stored); err != nil {
+		t.Fatalf("re-read legacy row: %v", err)
+	}
+	if stored != legacy {
+		t.Errorf("env resolution overwrote legacy row with %q", stored)
 	}
 }
 

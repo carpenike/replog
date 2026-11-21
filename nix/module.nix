@@ -28,12 +28,10 @@
 #       #   REPLOG_ADMIN_PASS=...       safe to remove after the first
 #       #   REPLOG_ADMIN_EMAIL=...      successful login)
 #       #
-#       # Optional:
-#       #   REPLOG_SECRET_KEY=...      (auto-generated and persisted to
-#       #                               the DB on first boot if absent;
-#       #                               only set if you want to control
-#       #                               the value yourself, e.g. for
-#       #                               cross-host DB restores)
+#       # Required to encrypt sensitive settings (not persisted):
+#       #   REPLOG_SECRET_KEY=...      (env only; the binary never
+#       #                               writes or reads
+#       #                               app_settings._internal.secret_key)
 #       environmentFile = config.sops.templates."replog-env".path;
 #     };
 #   }
@@ -41,10 +39,10 @@
 # Design notes — where this module deliberately differs from the sister
 # `whiskey-whiskey-whiskey` module:
 #
-# * `environmentFile` is OPTIONAL. RepLog's only true secret
-#   (`REPLOG_SECRET_KEY`) auto-generates on first boot and persists into
-#   the SQLite DB itself, so a minimal "run it on a NixOS VM" smoke test
-#   doesn't need any sops/agenix plumbing at all.
+# * `environmentFile` is OPTIONAL for a password-only smoke test.
+#   `REPLOG_SECRET_KEY` is env-only and is not written to SQLite. Set it
+#   here before storing LLM keys or other sensitive settings; without
+#   it those settings cannot be encrypted.
 # * `baseUrl` is a convenience option that sets `REPLOG_BASE_URL`, used
 #   for absolute-URL generation (login-token magic links, OIDC redirect
 #   default) and to auto-derive whether the session cookie is flagged
@@ -187,16 +185,16 @@ in
           REPLOG_SECRET_KEY=<32+ random bytes, base64 or hex>
 
             Encrypts sensitive settings stored in the DB (LLM API
-            keys, etc.). Auto-generated and persisted to the DB on
-            first boot if absent. Only set this if you want to
-            control the value yourself — e.g. you're restoring a
-            DB backup onto a fresh host and the original key lived
-            elsewhere.
+            keys, etc.). Read from the environment only — never
+            written to app_settings, and a legacy
+            `_internal.secret_key` row is not read. Required before
+            any sensitive setting can be saved. Use the same value
+            when restoring a DB onto a new host.
 
-        Leaving this option `null` is fine for greenfield deploys:
-        the very first run will auto-generate the secret key and you
-        can bootstrap admin via `settings` if you don't mind the
+        Leaving this option `null` is fine for a password-only smoke
+        test. Bootstrap admin via `settings` only if you accept the
         plaintext-in-Nix-store trade-off for first-boot credentials.
+        Do not put `REPLOG_SECRET_KEY` in `settings`.
       '';
     };
 
