@@ -67,6 +67,32 @@ func doJSON(t *testing.T, r chi.Router, method, target string, body string) (*ht
 	return rr, out
 }
 
+// TestNew_HungDiscoveryRespectsCallerContext guards the startup path: New
+// must pass its context into oidc.BuildConfig, which bounds each discovery
+// attempt. A caller deadline therefore ends a black-holed issuer dial
+// instead of stalling process startup. The per-attempt 10s budget and the
+// retry log are covered in the oidc package tests.
+func TestNew_HungDiscoveryRespectsCallerContext(t *testing.T) {
+	_, db := newTestServer(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	t.Cleanup(cancel)
+
+	start := time.Now()
+	_, err := New(ctx, db, testOrigin, srv.URL, "test-client", "test-secret")
+	elapsed := time.Since(start)
+	if err == nil {
+		t.Fatal("New succeeded against a hung issuer")
+	}
+	if elapsed > 3*time.Second {
+		t.Fatalf("discovery hung for %s; caller context was not applied", elapsed)
+	}
+}
+
 func TestASMetadata_OmitsJWKS(t *testing.T) {
 	s, _ := newTestServer(t)
 	r := newTestRouter(s)
