@@ -405,6 +405,9 @@ func (h *Handlers) GetCycleReview(w http.ResponseWriter, r *http.Request) {
 //	@Failure      403  {object}  api.APIError
 //	@Router       /athletes/{id}/cycle-review [post]
 func (h *Handlers) ApplyTMBumps(w http.ResponseWriter, r *http.Request) {
+	if refuseServiceCoaching(w, r) {
+		return
+	}
 	user := middleware.UserFromContext(r.Context())
 	if !user.IsCoach && !user.IsAdmin {
 		WriteError(w, http.StatusForbidden, "coach access required")

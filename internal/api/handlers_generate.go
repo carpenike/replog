@@ -762,6 +762,9 @@ func (h *Handlers) GenerationCancel(w http.ResponseWriter, r *http.Request) {
 //	@Failure      404  {object}  api.APIError
 //	@Router       /athletes/{id}/generations/{genID}/execute [post]
 func (h *Handlers) GenerationExecute(w http.ResponseWriter, r *http.Request) {
+	if refuseServiceCoaching(w, r) {
+		return
+	}
 	gen, ok := h.loadOwnedGeneration(w, r)
 	if !ok {
 		return
