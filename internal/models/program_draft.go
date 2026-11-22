@@ -40,6 +40,7 @@ type ProgramDraftSet struct {
 	Notes          string
 	PrescribedRPE  *float64
 	GroupLabel     string
+	Detail         PrescribedSetDetail
 }
 
 // ProgramDraftInput is a proposal a coach (or the coach's service token)
@@ -76,6 +77,9 @@ func CreateProgramDraft(ctx context.Context, db *sql.DB, in ProgramDraftInput) (
 	for _, set := range in.Sets {
 		if set.PrescribedRPE != nil && (*set.PrescribedRPE < 1 || *set.PrescribedRPE > 10) {
 			return nil, fmt.Errorf("%w: prescribed RPE must be between 1 and 10", ErrInvalidInput)
+		}
+		if field, msg := ValidatePrescribedSetDetail(set.Reps, set.Detail); field != "" {
+			return nil, fmt.Errorf("%w: %s %s", ErrInvalidInput, field, msg)
 		}
 	}
 
@@ -125,7 +129,7 @@ func CreateProgramDraft(ctx context.Context, db *sql.DB, in ProgramDraftInput) (
 	for _, set := range in.Sets {
 		if _, err := insertPrescribedSetRow(ctx, tx, id, set.ExerciseID, set.Week, set.Day, set.SetNumber,
 			set.Reps, set.Percentage, set.AbsoluteWeight, set.RestSeconds, set.SortOrder, set.RepType, set.Notes,
-			set.PrescribedRPE, set.GroupLabel); err != nil {
+			set.PrescribedRPE, set.GroupLabel, set.Detail); err != nil {
 			return nil, err
 		}
 	}

@@ -157,6 +157,7 @@ func (h *Handlers) ListExerciseHistory(w http.ResponseWriter, r *http.Request) {
 				Reps:        s.Reps,
 				Weight:      nullFloat(s.Weight),
 				RPE:         nullFloat(s.RPE),
+				SetType:     s.SetType,
 				Notes:       nullStr(s.Notes),
 			}
 		}

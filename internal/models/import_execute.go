@@ -65,6 +65,13 @@ func ValidateImportData(pf *importers.ParsedFile) []ValidationWarning {
 					Message: fmt.Sprintf("Unknown rep type %q for %s on %s", s.RepType, s.Exercise, date),
 				})
 			}
+			if s.SetType != "" && !ValidSetType(s.SetType) {
+				warnings = append(warnings, ValidationWarning{
+					Entity:  "set",
+					Field:   "set_type",
+					Message: fmt.Sprintf("Unknown set type %q for %s on %s; it imports as a working set", s.SetType, s.Exercise, date),
+				})
+			}
 		}
 	}
 
@@ -300,7 +307,11 @@ func ExecuteImport(ctx context.Context, db *sql.DB, athleteID, coachID int64, ms
 			if repType == "" {
 				repType = "reps"
 			}
-			if err := insertSet(ctx, tx, workoutID, exID, s.SetNumber, s.Reps, weight, rpe, repType, s.Category, sNotes); err != nil {
+			setType := s.SetType
+			if !ValidSetType(setType) {
+				setType = SetTypeWorking
+			}
+			if err := insertSet(ctx, tx, workoutID, exID, s.SetNumber, s.Reps, weight, rpe, repType, s.Category, sNotes, setType); err != nil {
 				return nil, fmt.Errorf("models: import set: %w", err)
 			}
 			result.SetsCreated++
@@ -542,7 +553,7 @@ func getWorkoutByAthleteDateTx(ctx context.Context, tx *sql.Tx, athleteID int64,
 	return id, err
 }
 
-func insertSet(ctx context.Context, tx *sql.Tx, workoutID, exerciseID int64, setNumber, reps int, weight, rpe float64, repType, category, notes string) error {
+func insertSet(ctx context.Context, tx *sql.Tx, workoutID, exerciseID int64, setNumber, reps int, weight, rpe float64, repType, category, notes, setType string) error {
 	var weightVal sql.NullFloat64
 	if weight > 0 {
 		weightVal = sql.NullFloat64{Float64: weight, Valid: true}
@@ -559,8 +570,8 @@ func insertSet(ctx context.Context, tx *sql.Tx, workoutID, exerciseID int64, set
 		category = "main"
 	}
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		workoutID, exerciseID, setNumber, reps, weightVal, rpeVal, repType, category, notesVal,
+		`INSERT INTO workout_sets (workout_id, exercise_id, set_number, reps, weight, rpe, rep_type, category, notes, set_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		workoutID, exerciseID, setNumber, reps, weightVal, rpeVal, repType, category, notesVal, setType,
 	)
 	return err
 }
@@ -626,9 +637,36 @@ func insertPrescribedSet(ctx context.Context, tx *sql.Tx, templateID, exerciseID
 	if repType == "" {
 		repType = "reps"
 	}
+	var rpeVal sql.NullFloat64
+	if ps.PrescribedRPE != nil && *ps.PrescribedRPE >= 1 && *ps.PrescribedRPE <= 10 {
+		rpeVal = sql.NullFloat64{Float64: *ps.PrescribedRPE, Valid: true}
+	}
+	var labelVal sql.NullString
+	if ps.GroupLabel != nil && strings.TrimSpace(*ps.GroupLabel) != "" {
+		labelVal = sql.NullString{String: strings.TrimSpace(*ps.GroupLabel), Valid: true}
+	}
+	var groupKeyVal sql.NullString
+	if ps.GroupKey != nil {
+		if key := NormalizeGroupKey(*ps.GroupKey); key != "" && ValidGroupKey(key) {
+			groupKeyVal = sql.NullString{String: key, Valid: true}
+		}
+	}
+	// Out-of-range detail is dropped rather than failing the whole import.
+	repsMax := ps.RepsMax
+	if repsMax != nil && (*repsMax < 0 || (ps.Reps != nil && *repsMax < *ps.Reps)) {
+		repsMax = nil
+	}
+	rirMin, rirMax := ps.RIRMin, ps.RIRMax
+	if field, _ := validRIR(rirMin, rirMax); field != "" {
+		rirMin, rirMax = nil, nil
+	}
 	_, err := tx.ExecContext(ctx,
-		`INSERT INTO prescribed_sets (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, rest_seconds, sort_order, rep_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO prescribed_sets
+		    (template_id, exercise_id, week, day, set_number, reps, percentage, absolute_weight, rest_seconds, sort_order, rep_type, notes,
+		     prescribed_rpe, group_label, reps_max, rir_min, rir_max, non_working, group_key)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		templateID, exerciseID, ps.Week, ps.Day, ps.SetNumber, repsVal, pctVal, absWeightVal, restSecondsVal, ps.SortOrder, repType, notesVal,
+		rpeVal, labelVal, sqlInt(repsMax), sqlInt(rirMin), sqlInt(rirMax), boolToInt(ps.NonWorking), groupKeyVal,
 	)
 	return err
 }

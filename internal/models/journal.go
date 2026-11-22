@@ -52,7 +52,7 @@ func ListJournalEntries(ctx context.Context, db *sql.DB, athleteID int64, includ
 			               ORDER BY e.name
 			           )),
 			           'Workout'
-			       ) || ' (' || (SELECT COUNT(*) FROM workout_sets WHERE workout_id = w.id) || ' sets)' AS summary,
+			       ) || ' (' || (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id AND `+countedSet+`) || ' sets)' AS summary,
 			       w.id AS id,
 			       COALESCE(w.notes, '') AS detail,
 			       0 AS is_private,

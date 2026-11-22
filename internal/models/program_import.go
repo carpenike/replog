@@ -870,7 +870,13 @@ func insertProgramDays(ctx context.Context, tx *sql.Tx, templateID int64, progra
 			return fmt.Errorf("models: import program day: %w", err)
 		}
 		sort := 0
+		grouped := 0
 		for _, block := range day.Blocks {
+			groupKey := ""
+			if block.Type == BlockSuperset || block.Type == BlockCircuit {
+				groupKey = GroupKeyForIndex(grouped)
+				grouped++
+			}
 			var blockID int64
 			err = tx.QueryRowContext(ctx,
 				`INSERT INTO program_blocks
@@ -896,7 +902,7 @@ func insertProgramDays(ctx context.Context, tx *sql.Tx, templateID int64, progra
 				if err != nil {
 					return fmt.Errorf("models: import program exercise: %w", err)
 				}
-				if err := expandPrescribedSets(ctx, tx, templateID, exerciseID, day, block, exercise, sort); err != nil {
+				if err := expandPrescribedSets(ctx, tx, templateID, exerciseID, day, block, exercise, sort, groupKey); err != nil {
 					return err
 				}
 				sort += 10
@@ -906,7 +912,12 @@ func insertProgramDays(ctx context.Context, tx *sql.Tx, templateID int64, progra
 	return nil
 }
 
-func expandPrescribedSets(ctx context.Context, tx *sql.Tx, templateID, exerciseID int64, day CoachDay, block CoachBlock, exercise CoachBlockExercise, sort int) error {
+// expandPrescribedSets writes one prescribed_sets row per set of an
+// imported exercise line. reps is the bottom of the coach's rep range and
+// reps_max the top (when it differs); the RIR range, the warm-up flag,
+// and the block's group key (A, B, ... for supersets and circuits) carry
+// over so the prescription read shows what the coach wrote.
+func expandPrescribedSets(ctx context.Context, tx *sql.Tx, templateID, exerciseID int64, day CoachDay, block CoachBlock, exercise CoachBlockExercise, sort int, groupKey string) error {
 	n := 1
 	switch {
 	case exercise.Sets != nil:
@@ -925,6 +936,16 @@ func expandPrescribedSets(ctx context.Context, tx *sql.Tx, templateID, exerciseI
 		value := *exercise.RepsMin
 		reps = &value
 	}
+	detail := PrescribedSetDetail{
+		RIRMin:     exercise.RIRMin,
+		RIRMax:     exercise.RIRMax,
+		NonWorking: exercise.NonWorking,
+		GroupKey:   groupKey,
+	}
+	if exercise.RepsMax != nil && (reps == nil || *exercise.RepsMax > *reps) {
+		value := *exercise.RepsMax
+		detail.RepsMax = &value
+	}
 	rest := exercise.RestSeconds
 	if rest == nil {
 		rest = block.RestSeconds
@@ -934,7 +955,7 @@ func expandPrescribedSets(ctx context.Context, tx *sql.Tx, templateID, exerciseI
 		notes = *exercise.Notes
 	}
 	for setNumber := 1; setNumber <= n; setNumber++ {
-		if _, err := insertPrescribedSetRow(ctx, tx, templateID, exerciseID, day.Week, day.Number, setNumber, reps, nil, nil, rest, sort, repType, notes, nil, block.Type); err != nil {
+		if _, err := insertPrescribedSetRow(ctx, tx, templateID, exerciseID, day.Week, day.Number, setNumber, reps, nil, nil, rest, sort, repType, notes, nil, block.Type, detail); err != nil {
 			return err
 		}
 	}

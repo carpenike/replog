@@ -142,8 +142,14 @@ func ParseHevyCSV(r io.Reader) (*ParsedFile, error) {
 		exerciseNotes := colVal(row, idx, hevyColExerciseNotes)
 
 		var noteParts []string
-		if setType == "warmup" {
+		switch setType {
+		case "warmup":
+			set.SetType = "warmup"
 			noteParts = append(noteParts, "[warmup]")
+		case "dropset":
+			set.SetType = "drop"
+		case "failure":
+			set.SetType = "failure"
 		}
 		if exerciseNotes != "" {
 			noteParts = append(noteParts, exerciseNotes)

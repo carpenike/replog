@@ -454,6 +454,12 @@ func main() {
 			r.Post("/athletes/{id}/equipment", apiHandlers.AddAthleteEquipment)
 			r.Delete("/athletes/{id}/equipment/{equipmentID}", apiHandlers.RemoveAthleteEquipment)
 
+			// Plate setup (bar, collars, plate inventory per athlete gym).
+			r.Get("/athletes/{id}/plate-setup", apiHandlers.GetPlateSetup)
+			r.Put("/athletes/{id}/plate-setup", apiHandlers.UpdatePlateSetup)
+			r.Delete("/athletes/{id}/plate-setup", apiHandlers.ResetPlateSetup)
+			r.Get("/plate-setup/presets", apiHandlers.ListPlateSetupPresets)
+
 			// Exercise Assignments.
 			r.Get("/athletes/{id}/assignments", apiHandlers.ListAssignments)
 			r.Post("/athletes/{id}/assignments", apiHandlers.AssignExercise)

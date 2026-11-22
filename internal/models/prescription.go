@@ -65,6 +65,9 @@ type PrescriptionLine struct {
 	TrainingMax  *float64 // nil if no TM set
 	TargetWeight *float64 // calculated from percentage * TM
 	Percentage   *float64 // from the prescribed set
+	// GroupKey is the superset/circuit group of the line's first grouped
+	// set (A, B, ...); empty when the exercise is not grouped.
+	GroupKey sql.NullString
 }
 
 // PercentageLabel returns a formatted string like "75%" or empty if nil.
@@ -95,9 +98,9 @@ func (pl *PrescriptionLine) SetsSummary() string {
 
 	// Check if all sets have the same reps.
 	allSame := true
-	firstReps := pl.Sets[0].Reps
+	firstReps := pl.Sets[0].RepsLabel()
 	for _, s := range pl.Sets[1:] {
-		if s.Reps != firstReps {
+		if s.RepsLabel() != firstReps {
 			allSame = false
 			break
 		}
@@ -233,6 +236,9 @@ func GetPrescription(ctx context.Context, db *sql.DB, program *AthleteProgram, t
 			lineOrder = append(lineOrder, s.ExerciseID)
 		}
 		line.Sets = append(line.Sets, s)
+		if !line.GroupKey.Valid && s.GroupKey.Valid {
+			line.GroupKey = s.GroupKey
+		}
 
 		// Set line-level percentage and target weight from the first set that has them.
 		if s.Percentage.Valid && line.Percentage == nil {

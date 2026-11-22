@@ -102,6 +102,7 @@ type ExportSet struct {
 	Weight    *float64 `json:"weight"`
 	RPE       *float64 `json:"rpe"`
 	Category  string   `json:"category"`
+	SetType   string   `json:"set_type"`
 	Notes     *string  `json:"notes"`
 }
 
@@ -415,6 +416,7 @@ func BuildAthleteExportJSON(ctx context.Context, db *sql.DB, athleteID int64) (*
 				rest := int(ps.RestSeconds.Int64)
 				eps.RestSeconds = &rest
 			}
+			applyPrescribedSetDetail(&eps, ps)
 			tmpl.PrescribedSets = append(tmpl.PrescribedSets, eps)
 		}
 
@@ -546,6 +548,7 @@ func buildExportWorkouts(ctx context.Context, db *sql.DB, athleteID int64, out *
 					Weight:    nullFloatPtr(s.Weight),
 					RPE:       nullFloatPtr(s.RPE),
 					Category:  s.Category,
+					SetType:   s.SetType,
 					Notes:     nullStringPtr(s.Notes),
 				})
 			}

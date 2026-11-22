@@ -98,7 +98,7 @@ func TestCoachReads_HistoryWeekProgressPositionAndNote(t *testing.T) {
 		t.Fatalf("exercises = %+v", older.Exercises)
 	}
 	top := older.Exercises[0].Sets[1]
-	if top.Reps != 3 || top.Load.Value == nil || *top.Load.Value != 245 || top.Load.Unit != "lb" || top.RPE == nil || *top.RPE != 8 || top.RIR != nil || top.SetType != nil || top.Category != "main" {
+	if top.Reps != 3 || top.Load.Value == nil || *top.Load.Value != 245 || top.Load.Unit != "lb" || top.RPE == nil || *top.RPE != 8 || top.RIR != nil || top.SetType == nil || *top.SetType != "working" || top.Category != "main" {
 		t.Fatalf("top set = %+v", top)
 	}
 
@@ -182,7 +182,7 @@ func TestCoachReads_HistoryWeekProgressPositionAndNote(t *testing.T) {
 	if last.Session == nil || last.Session.SessionID != wedSession.ID || last.Session.StartedAt != nil || len(last.Session.Sets) != 1 {
 		t.Fatalf("last squat session = %+v", last)
 	}
-	if last.Session.Sets[0].RIR != nil || last.Session.Sets[0].SetType != nil || last.Session.Sets[0].Load.Unit != "lb" {
+	if last.Session.Sets[0].RIR != nil || last.Session.Sets[0].SetType == nil || *last.Session.Sets[0].SetType != "working" || last.Session.Sets[0].Load.Unit != "lb" {
 		t.Fatalf("last set = %+v", last.Session.Sets[0])
 	}
 

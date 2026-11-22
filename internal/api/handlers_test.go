@@ -209,6 +209,10 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/equipment", h.ListAthleteEquipment)
 			r.Post("/athletes/{id}/equipment", h.AddAthleteEquipment)
 			r.Delete("/athletes/{id}/equipment/{equipmentID}", h.RemoveAthleteEquipment)
+			r.Get("/athletes/{id}/plate-setup", h.GetPlateSetup)
+			r.Put("/athletes/{id}/plate-setup", h.UpdatePlateSetup)
+			r.Delete("/athletes/{id}/plate-setup", h.ResetPlateSetup)
+			r.Get("/plate-setup/presets", h.ListPlateSetupPresets)
 
 			// Exercise equipment.
 			r.Get("/exercises/{id}/equipment", h.ListExerciseEquipment)

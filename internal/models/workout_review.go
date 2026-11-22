@@ -153,7 +153,7 @@ func DeleteWorkoutReview(ctx context.Context, db *sql.DB, id int64) error {
 func ListUnreviewedWorkouts(ctx context.Context, db *sql.DB) ([]*UnreviewedWorkout, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT w.id, w.athlete_id, a.name, w.date, w.notes,
-		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
+		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id AND `+countedSet+`)
 		FROM workouts w
 		JOIN athletes a ON a.id = w.athlete_id
 		LEFT JOIN workout_reviews wr ON wr.workout_id = w.id

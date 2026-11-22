@@ -111,6 +111,7 @@ type WorkoutSet struct {
 	RPE          *float64 `json:"rpe,omitempty"`
 	RepType      string   `json:"rep_type"`
 	Category     string   `json:"category"`
+	SetType      string   `json:"set_type"`
 	Notes        *string  `json:"notes,omitempty"`
 	CreatedAt    string   `json:"created_at"`
 	UpdatedAt    string   `json:"updated_at"`
@@ -306,6 +307,12 @@ type ProgramTemplate struct {
 	UpdatedAt    string  `json:"updated_at"`
 	AthleteCount int     `json:"athlete_count,omitempty"`
 	AthleteName  string  `json:"athlete_name,omitempty"`
+	// Locked is true for a coach-imported template. Edit and delete return
+	// 409; the coach re-imports a new version instead.
+	Locked bool `json:"locked"`
+	// ImportVersion is the import version of a coach-imported template
+	// (the same number as version). Omitted for hand-built templates.
+	ImportVersion *int `json:"import_version,omitempty"`
 }
 
 // PrescribedSet is the JSON representation of models.PrescribedSet.
@@ -322,6 +329,11 @@ type PrescribedSet struct {
 	RestSeconds    *int64   `json:"rest_seconds,omitempty"`
 	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty"`
 	GroupLabel     *string  `json:"group_label,omitempty"`
+	RepsMax        *int64   `json:"reps_max,omitempty"`
+	RIRMin         *int64   `json:"rir_min,omitempty"`
+	RIRMax         *int64   `json:"rir_max,omitempty"`
+	NonWorking     bool     `json:"non_working"`
+	GroupKey       *string  `json:"group_key,omitempty"`
 	SortOrder      int      `json:"sort_order"`
 	RepType        string   `json:"rep_type"`
 	Notes          *string  `json:"notes,omitempty"`
@@ -442,6 +454,7 @@ type AccessoryPlan struct {
 	TargetWeight *float64 `json:"target_weight,omitempty"`
 	Notes        *string  `json:"notes,omitempty"`
 	SortOrder    int      `json:"sort_order"`
+	GroupKey     *string  `json:"group_key,omitempty"`
 	Active       bool     `json:"active"`
 	CreatedAt    string   `json:"created_at"`
 	UpdatedAt    string   `json:"updated_at"`
@@ -485,6 +498,7 @@ type ExerciseHistoryEntry struct {
 	Reps        int      `json:"reps"`
 	Weight      *float64 `json:"weight,omitempty"`
 	RPE         *float64 `json:"rpe,omitempty"`
+	SetType     string   `json:"set_type"`
 	Notes       *string  `json:"notes,omitempty"`
 }
 

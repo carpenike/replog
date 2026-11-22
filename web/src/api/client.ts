@@ -1,5 +1,5 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, ServiceTokenData, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
-import type { AthleteProgram } from './schemas';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AthleteProgram, PlateSetup, PlateSetupPreset, PlateSetupRequest } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
 // *Request structs in internal/api/requests.go.
@@ -284,14 +284,14 @@ class ApiClient {
   }
 
   // Workout Sets
-  async addSet(athleteId: number, workoutId: number, data: { exercise_id: number; reps: number; weight?: number; rpe?: number; rep_type?: string; category?: string; notes?: string }): Promise<WorkoutSet> {
+  async addSet(athleteId: number, workoutId: number, data: { exercise_id: number; reps: number; weight?: number; rpe?: number; rep_type?: string; category?: string; notes?: string; set_type?: SetType }): Promise<WorkoutSet> {
     return this.request<WorkoutSet>(`/api/athletes/${athleteId}/workouts/${workoutId}/sets`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateSet(athleteId: number, workoutId: number, setId: number, data: { reps: number; weight?: number; rpe?: number; notes?: string }): Promise<WorkoutSet> {
+  async updateSet(athleteId: number, workoutId: number, setId: number, data: { reps: number; weight?: number; rpe?: number; notes?: string; set_type?: SetType }): Promise<WorkoutSet> {
     return this.request<WorkoutSet>(`/api/athletes/${athleteId}/workouts/${workoutId}/sets/${setId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -450,11 +450,11 @@ class ApiClient {
   }
 
   // Prescribed Sets
-  async addPrescribedSet(programId: number, data: { exercise_id: number; week: number; day: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
+  async addPrescribedSet(programId: number, data: { exercise_id: number; week: number; day: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string; reps_max?: number | null; rir_min?: number | null; rir_max?: number | null; non_working?: boolean; group_key?: string; prescribed_rpe?: number | null; group_label?: string }): Promise<void> {
     await this.request(`/api/programs/${programId}/sets`, { method: 'POST', body: JSON.stringify(data) });
   }
 
-  async updatePrescribedSet(programId: number, setId: number, data: { exercise_id: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
+  async updatePrescribedSet(programId: number, setId: number, data: { exercise_id: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string; /** 0 clears */ reps_max?: number; /** negative clears the RIR range */ rir_min?: number; rir_max?: number; non_working?: boolean; /** "" ungroups; omit to keep */ group_key?: string; prescribed_rpe?: number | null; group_label?: string }): Promise<void> {
     await this.request(`/api/programs/${programId}/sets/${setId}`, { method: 'PUT', body: JSON.stringify(data) });
   }
 
@@ -683,19 +683,39 @@ class ApiClient {
     await this.request(`/api/athletes/${athleteId}/programs/${programId}`, { method: 'DELETE' });
   }
 
+  // Plate setup (bar, collars, plate inventory per athlete gym)
+  async getPlateSetup(athleteId: number): Promise<PlateSetup> {
+    return this.request<PlateSetup>(`/api/athletes/${athleteId}/plate-setup`);
+  }
+
+  async updatePlateSetup(athleteId: number, data: PlateSetupRequest): Promise<PlateSetup> {
+    return this.request<PlateSetup>(`/api/athletes/${athleteId}/plate-setup`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async resetPlateSetup(athleteId: number): Promise<PlateSetup> {
+    return this.request<PlateSetup>(`/api/athletes/${athleteId}/plate-setup`, { method: 'DELETE' });
+  }
+
+  async listPlateSetupPresets(): Promise<PlateSetupPreset[]> {
+    return this.request<PlateSetupPreset[]>('/api/plate-setup/presets');
+  }
+
   // Accessory Plans
   async listAccessoryPlans(athleteId: number): Promise<AccessoryPlanData[]> {
     return this.request(`/api/athletes/${athleteId}/accessories`);
   }
 
-  async createAccessoryPlan(athleteId: number, data: { day: number; exercise_id: number; target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string }): Promise<void> {
+  async createAccessoryPlan(athleteId: number, data: { day: number; exercise_id: number; target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string; group_key?: string }): Promise<void> {
     await this.request(`/api/athletes/${athleteId}/accessories`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateAccessoryPlan(athleteId: number, planId: number, data: { target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string; sort_order?: number }): Promise<void> {
+  async updateAccessoryPlan(athleteId: number, planId: number, data: { target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string; sort_order?: number; /** "" ungroups; omit to keep */ group_key?: string }): Promise<void> {
     await this.request(`/api/athletes/${athleteId}/accessories/${planId}`, {
       method: 'PUT',
       body: JSON.stringify(data),

@@ -178,9 +178,8 @@ ingress network as the only control. The secret is not stored and is not
 written to the audit log. A successful call records the acting user with
 action `on_behalf` and details `proof=shared` or `proof=signed`.
 
-Set the address on the user in the admin UI. Migration `0020` fills
-`ryan@ryanholt.net` only when a user named `ryan` exists and that email
-is still empty.
+Set the address on the user in the admin UI. Migration `0020` is a
+retired no-op and does not fill any address.
 
 ### 4. Set the production env vars
 

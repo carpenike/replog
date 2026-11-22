@@ -276,8 +276,15 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		WriteValidationError(w, "rpe", "must be between 1 and 10")
 		return
 	}
+	if req.SetType == "" {
+		req.SetType = models.SetTypeWorking
+	}
+	if !models.ValidSetType(req.SetType) {
+		WriteValidationError(w, "set_type", "must be one of working, warmup, drop, failure")
+		return
+	}
 
-	set, err := models.AddSet(r.Context(), h.DB, workoutID, req.ExerciseID, req.Reps, req.Weight, req.RPE, req.RepType, req.Category, req.Notes)
+	set, err := models.AddSetWithType(r.Context(), h.DB, workoutID, req.ExerciseID, req.Reps, req.Weight, req.RPE, req.RepType, req.Category, req.Notes, req.SetType)
 	if err != nil {
 		log.Printf("api: add set to workout %d: %v", workoutID, err)
 		WriteDBError(w, err, "failed to add set")
@@ -334,7 +341,12 @@ func (h *Handlers) UpdateWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	set, err := models.UpdateSet(r.Context(), h.DB, setID, athleteID, req.Reps, req.Weight, req.RPE, req.Notes)
+	if req.SetType != nil && !models.ValidSetType(*req.SetType) {
+		WriteValidationError(w, "set_type", "must be one of working, warmup, drop, failure")
+		return
+	}
+
+	set, err := models.UpdateSetWithType(r.Context(), h.DB, setID, athleteID, req.Reps, req.Weight, req.RPE, req.Notes, req.SetType)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "set not found")
 		return

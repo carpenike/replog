@@ -195,7 +195,19 @@ func (h *Handlers) AddPrescribedSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	set, err := models.CreatePrescribedSetWithRest(r.Context(), h.DB, templateID, req.ExerciseID, req.Week, req.Day, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes, req.PrescribedRPE, req.GroupLabel)
+	detail := models.PrescribedSetDetail{
+		RepsMax:    req.RepsMax,
+		RIRMin:     req.RIRMin,
+		RIRMax:     req.RIRMax,
+		NonWorking: req.NonWorking,
+		GroupKey:   req.GroupKey,
+	}
+	if field, msg := models.ValidatePrescribedSetDetail(req.Reps, detail); field != "" {
+		WriteValidationError(w, field, msg)
+		return
+	}
+
+	set, err := models.CreatePrescribedSetDetailed(r.Context(), h.DB, templateID, req.ExerciseID, req.Week, req.Day, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes, req.PrescribedRPE, req.GroupLabel, detail)
 	if err != nil {
 		log.Printf("api: add prescribed set to template %d: %v", templateID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to add set")
@@ -252,7 +264,13 @@ func (h *Handlers) UpdatePrescribedSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	set, err := models.UpdatePrescribedSet(r.Context(), h.DB, setID, req.ExerciseID, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes, req.PrescribedRPE, req.GroupLabel)
+	patch, field, msg := prescribedSetPatch(req)
+	if field != "" {
+		WriteValidationError(w, field, msg)
+		return
+	}
+
+	set, err := models.UpdatePrescribedSet(r.Context(), h.DB, setID, req.ExerciseID, req.SetNumber, req.Reps, req.Percentage, req.AbsoluteWeight, req.RestSeconds, req.SortOrder, req.RepType, req.Notes, req.PrescribedRPE, req.GroupLabel, patch)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "set not found")
 		return
@@ -540,7 +558,7 @@ func (h *Handlers) ListProgramTemplates(w http.ResponseWriter, r *http.Request) 
 //	@Tags         Programs
 //	@Produce      json
 //	@Param        id   path      int  true  "Program ID"
-//	@Success      200  {object}  map[string]interface{}
+//	@Success      200  {object}  api.ProgramTemplateDetailResponse
 //	@Failure      400  {object}  api.APIError
 //	@Failure      404  {object}  api.APIError
 //	@Router       /programs/{id} [get]
@@ -585,10 +603,18 @@ func (h *Handlers) GetProgramTemplate(w http.ResponseWriter, r *http.Request) {
 		apiSets[i] = PrescribedSetFromModel(s)
 	}
 
-	WriteJSON(w, http.StatusOK, map[string]any{
-		"program": ProgramTemplateFromModel(program),
-		"sets":    apiSets,
+	WriteJSON(w, http.StatusOK, ProgramTemplateDetailResponse{
+		Program: ProgramTemplateFromModel(program),
+		Sets:    apiSets,
 	})
+}
+
+// ProgramTemplateDetailResponse is a template with its prescribed sets.
+// program.locked is true for a coach-imported template, which cannot be
+// edited in place; the coach re-imports a new version instead.
+type ProgramTemplateDetailResponse struct {
+	Program *ProgramTemplate `json:"program"`
+	Sets    []*PrescribedSet `json:"sets"`
 }
 
 // ListAthletePrograms returns programs assigned to an athlete.//
@@ -665,4 +691,45 @@ func (h *Handlers) CopyWeek(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]int{"sets_copied": int(inserted)})
+}
+
+// prescribedSetPatch turns the optional detail fields of an update into a
+// patch. Omitted fields stay unchanged; reps_max 0 clears the range top, a
+// negative rir_min or rir_max clears the RIR range, and group_key "" ungroups.
+func prescribedSetPatch(req PrescribedSetUpdateRequest) (models.PrescribedSetDetailPatch, string, string) {
+	var patch models.PrescribedSetDetailPatch
+	if req.RepsMax != nil {
+		if *req.RepsMax <= 0 {
+			patch.ClearRepsMax = true
+		} else {
+			if req.Reps != nil && *req.RepsMax < *req.Reps {
+				return patch, "reps_max", "must be at least reps"
+			}
+			patch.RepsMax = req.RepsMax
+		}
+	}
+	if (req.RIRMin != nil && *req.RIRMin < 0) || (req.RIRMax != nil && *req.RIRMax < 0) {
+		patch.ClearRIR = true
+	} else {
+		if req.RIRMin != nil && *req.RIRMin > 10 {
+			return patch, "rir_min", "must be between 0 and 10"
+		}
+		if req.RIRMax != nil && *req.RIRMax > 10 {
+			return patch, "rir_max", "must be between 0 and 10"
+		}
+		if req.RIRMin != nil && req.RIRMax != nil && *req.RIRMin > *req.RIRMax {
+			return patch, "rir_max", "must be at least rir_min"
+		}
+		patch.RIRMin = req.RIRMin
+		patch.RIRMax = req.RIRMax
+	}
+	patch.NonWorking = req.NonWorking
+	if req.GroupKey != nil {
+		key := models.NormalizeGroupKey(*req.GroupKey)
+		if !models.ValidGroupKey(key) {
+			return patch, "group_key", "must be 1-4 letters or digits starting with a letter"
+		}
+		patch.GroupKey = &key
+	}
+	return patch, "", ""
 }

@@ -25,6 +25,8 @@ definitions:
         type: integer
       exercise_name:
         type: string
+      group_key:
+        type: string
       id:
         type: integer
       notes:
@@ -50,6 +52,11 @@ definitions:
       exercise_id:
         example: 42
         type: integer
+      group_key:
+        description: GroupKey links accessory lines into a superset/circuit (A, B,
+          ...).
+        example: A
+        type: string
       notes:
         type: string
       sort_order:
@@ -68,6 +75,12 @@ definitions:
     type: object
   api.AccessoryPlanUpdateRequest:
     properties:
+      group_key:
+        description: |-
+          GroupKey links accessory lines into a superset/circuit (A, B, ...).
+          Omit it to leave the group unchanged; send "" to ungroup.
+        example: A
+        type: string
       notes:
         type: string
       sort_order:
@@ -1329,9 +1342,14 @@ definitions:
       exercise_id:
         example: 42
         type: integer
+      group_key:
+        example: A
+        type: string
       group_label:
         example: T1
         type: string
+      non_working:
+        type: boolean
       notes:
         type: string
       percentage:
@@ -1345,7 +1363,16 @@ definitions:
       reps:
         example: 5
         type: integer
+      reps_max:
+        example: 12
+        type: integer
       rest_seconds:
+        type: integer
+      rir_max:
+        example: 3
+        type: integer
+      rir_min:
+        example: 2
         type: integer
       set_number:
         example: 1
@@ -1449,6 +1476,8 @@ definitions:
         type: number
       set_number:
         type: integer
+      set_type:
+        type: string
       weight:
         type: number
       workout_date:
@@ -1824,6 +1853,69 @@ definitions:
       rest_days_required:
         type: integer
     type: object
+  api.PlatePairResponse:
+    properties:
+      pairs:
+        example: 4
+        type: integer
+      unit:
+        example: kg
+        type: string
+      weight:
+        example: 25
+        type: number
+    type: object
+  api.PlateSetupPresetResponse:
+    properties:
+      key:
+        example: kg_competition
+        type: string
+      name:
+        type: string
+      setup:
+        $ref: '#/definitions/api.PlateSetupResponse'
+    type: object
+  api.PlateSetupRequest:
+    properties:
+      bar:
+        $ref: '#/definitions/api.PlateWeight'
+      collar:
+        $ref: '#/definitions/api.PlateWeight'
+      plates:
+        items:
+          $ref: '#/definitions/api.PlatePairResponse'
+        type: array
+      use_collars:
+        type: boolean
+    type: object
+  api.PlateSetupResponse:
+    properties:
+      athlete_id:
+        type: integer
+      bar:
+        $ref: '#/definitions/api.PlateWeight'
+      collar:
+        $ref: '#/definitions/api.PlateWeight'
+      is_default:
+        type: boolean
+      plates:
+        items:
+          $ref: '#/definitions/api.PlatePairResponse'
+        type: array
+      updated_at:
+        type: string
+      use_collars:
+        type: boolean
+    type: object
+  api.PlateWeight:
+    properties:
+      unit:
+        example: kg
+        type: string
+      weight:
+        example: 20
+        type: number
+    type: object
   api.PreferencesRequest:
     properties:
       date_format:
@@ -1846,10 +1938,14 @@ definitions:
         type: integer
       exercise_name:
         type: string
+      group_key:
+        type: string
       group_label:
         type: string
       id:
         type: integer
+      non_working:
+        type: boolean
       notes:
         type: string
       percentage:
@@ -1860,7 +1956,13 @@ definitions:
         type: string
       reps:
         type: integer
+      reps_max:
+        type: integer
       rest_seconds:
+        type: integer
+      rir_max:
+        type: integer
+      rir_min:
         type: integer
       set_number:
         type: integer
@@ -1902,9 +2004,14 @@ definitions:
       exercise_id:
         example: 42
         type: integer
+      group_key:
+        example: A
+        type: string
       group_label:
         example: T1
         type: string
+      non_working:
+        type: boolean
       notes:
         type: string
       percentage:
@@ -1919,8 +2026,17 @@ definitions:
       reps:
         example: 5
         type: integer
+      reps_max:
+        example: 12
+        type: integer
       rest_seconds:
         example: 180
+        type: integer
+      rir_max:
+        example: 3
+        type: integer
+      rir_min:
+        example: 2
         type: integer
       set_number:
         example: 1
@@ -1938,9 +2054,14 @@ definitions:
       exercise_id:
         example: 42
         type: integer
+      group_key:
+        example: A
+        type: string
       group_label:
         example: T1
         type: string
+      non_working:
+        type: boolean
       notes:
         type: string
       percentage:
@@ -1952,14 +2073,97 @@ definitions:
         type: string
       reps:
         type: integer
+      reps_max:
+        description: |-
+          Detail fields are optional on update: omit one to leave it unchanged.
+          reps_max 0 clears the rep range; a negative rir_min or rir_max clears
+          the RIR range; group_key "" ungroups the set.
+        example: 12
+        type: integer
       rest_seconds:
         example: 180
+        type: integer
+      rir_max:
+        example: 3
+        type: integer
+      rir_min:
+        example: 2
         type: integer
       set_number:
         example: 1
         type: integer
       sort_order:
         type: integer
+    type: object
+  api.PrescriptionLineResponse:
+    properties:
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      group_key:
+        description: |-
+          GroupKey is the superset/circuit group (A, B, ...) this exercise
+          belongs to; lines that share a key are done as one linked group.
+        type: string
+      sets:
+        items:
+          $ref: '#/definitions/api.PrescriptionSetResponse'
+        type: array
+      training_max:
+        type: number
+    type: object
+  api.PrescriptionResponse:
+    properties:
+      current_day:
+        type: integer
+      current_week:
+        type: integer
+      cycle_number:
+        type: integer
+      lines:
+        items:
+          $ref: '#/definitions/api.PrescriptionLineResponse'
+        type: array
+      program_name:
+        type: string
+    type: object
+  api.PrescriptionSetResponse:
+    properties:
+      absolute_weight:
+        type: number
+      group_key:
+        type: string
+      group_label:
+        type: string
+      non_working:
+        description: |-
+          NonWorking marks a warm-up set: shown, but not counted toward
+          progress or PRs.
+        type: boolean
+      notes:
+        type: string
+      percentage:
+        type: number
+      prescribed_rpe:
+        type: number
+      rep_type:
+        type: string
+      reps:
+        type: integer
+      reps_max:
+        description: RepsMax is the top of a rep range; reps is the bottom ("8–12").
+        type: integer
+      rest_seconds:
+        type: integer
+      rir_max:
+        type: integer
+      rir_min:
+        type: integer
+      set_number:
+        type: integer
+      target_weight:
+        type: number
     type: object
   api.ProgramPreview:
     properties:
@@ -1994,10 +2198,20 @@ definitions:
         type: string
       id:
         type: integer
+      import_version:
+        description: |-
+          ImportVersion is the import version of a coach-imported template
+          (the same number as version). Omitted for hand-built templates.
+        type: integer
       is_loop:
         type: boolean
       lineage_id:
         type: integer
+      locked:
+        description: |-
+          Locked is true for a coach-imported template. Edit and delete return
+          409; the coach re-imports a new version instead.
+        type: boolean
       name:
         type: string
       num_days:
@@ -2010,6 +2224,15 @@ definitions:
         type: string
       version:
         type: integer
+    type: object
+  api.ProgramTemplateDetailResponse:
+    properties:
+      program:
+        $ref: '#/definitions/api.ProgramTemplate'
+      sets:
+        items:
+          $ref: '#/definitions/api.PrescribedSet'
+        type: array
     type: object
   api.ProgramTemplateRequest:
     properties:
@@ -2702,6 +2925,8 @@ definitions:
         type: number
       set_number:
         type: integer
+      set_type:
+        type: string
       updated_at:
         type: string
       weight:
@@ -2728,6 +2953,9 @@ definitions:
       rpe:
         example: 7
         type: number
+      set_type:
+        example: working
+        type: string
       weight:
         example: 135
         type: number
@@ -2742,6 +2970,9 @@ definitions:
       rpe:
         example: 7
         type: number
+      set_type:
+        example: warmup
+        type: string
       weight:
         example: 135
         type: number
@@ -2936,15 +3167,29 @@ definitions:
         type: integer
       exercise:
         type: string
+      group_key:
+        type: string
+      group_label:
+        type: string
+      non_working:
+        type: boolean
       notes:
         type: string
       percentage:
+        type: number
+      prescribed_rpe:
         type: number
       rep_type:
         type: string
       reps:
         type: integer
+      reps_max:
+        type: integer
       rest_seconds:
+        type: integer
+      rir_max:
+        type: integer
+      rir_min:
         type: integer
       set_number:
         type: integer
@@ -3053,6 +3298,8 @@ definitions:
         type: number
       set_number:
         type: integer
+      set_type:
+        type: string
       weight:
         type: number
     type: object
@@ -5599,6 +5846,97 @@ paths:
       summary: Pitch Smart advisory
       tags:
       - Athletes
+  /athletes/{id}/plate-setup:
+    delete:
+      description: Removes the saved setup. Reads then return the default kg competition
+        setup.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PlateSetupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Reset plate setup
+      tags:
+      - Equipment
+    get:
+      description: Bar, collars, and plate inventory for the athlete's gym. Each part
+        has its own unit. When nothing is saved, the default kg competition setup
+        is returned with is_default true.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PlateSetupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Get plate setup
+      tags:
+      - Equipment
+    put:
+      consumes:
+      - application/json
+      description: Replaces the bar, collars, and whole plate inventory. A coach can
+        set it for an athlete they coach; the athlete can set their own.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Setup
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.PlateSetupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PlateSetupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Save plate setup
+      tags:
+      - Equipment
   /athletes/{id}/prescription:
     get:
       description: Returns the day's prescribed sets from the athlete's active program
@@ -5615,8 +5953,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.PrescriptionResponse'
         "400":
           description: Bad Request
           schema:
@@ -7456,6 +7793,21 @@ paths:
       summary: Mark all notifications read
       tags:
       - Notifications
+  /plate-setup/presets:
+    get:
+      description: The kg competition setup (the default) and a standard lb setup.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.PlateSetupPresetResponse'
+            type: array
+      summary: List plate setup presets
+      tags:
+      - Equipment
   /preferences:
     get:
       produces:
@@ -7587,8 +7939,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.ProgramTemplateDetailResponse'
         "400":
           description: Bad Request
           schema:

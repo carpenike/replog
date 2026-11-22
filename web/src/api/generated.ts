@@ -1394,6 +1394,1351 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/coach/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List exercises
+         * @description Case-insensitive match on name or alias for an athlete this caller can see. Does not create rows. An admin service token does not see every athlete.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Name or alias */
+                    q?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachExerciseResponse"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create exercise
+         * @description Creates a catalog exercise for a coach of this athlete. A case-insensitive name or alias match returns the existing row and does not update it. A service token cannot create an exercise for an athlete it does not coach.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            /** @description Exercise */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachExerciseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachExerciseResponse"];
+                    };
+                };
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachExerciseResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/exercises/{exerciseID}/aliases/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an exercise alias
+         * @description confirm must be true. Re-checks the previewed alias and adds it. Changes only the alias list; logged sets and programs are not touched.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Exercise ID */
+                    exerciseID: number;
+                };
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["api.CoachExerciseConfirmRequest"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachExerciseResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/exercises/{exerciseID}/aliases/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview an exercise alias
+         * @description Checks that alias can be added: it must not match, ignoring case, spaces, and punctuation, any other exercise's name or alias, or this exercise's name. Does not write. The token lasts 15 minutes and works once.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Exercise ID */
+                    exerciseID: number;
+                };
+                cookie?: never;
+            };
+            /** @description Alias */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachExerciseAliasPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachExerciseChangePreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/exercises/{exerciseID}/last-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Last session for an exercise
+         * @description The newest resistance session in which this athlete logged the exercise, and only that exercise's sets. session is null when it has not been logged. started_at, rir, and set_type are null because those columns are not stored.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Exercise ID */
+                    exerciseID: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachLastSessionResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/exercises/{exerciseID}/rename/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rename an exercise
+         * @description confirm must be true. Re-checks the previewed rename and applies it by exercise id. Changes only the exercise name and its aliases; logged sets, PRs, and programs keep their exercise id.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Exercise ID */
+                    exerciseID: number;
+                };
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["api.CoachExerciseConfirmRequest"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachExerciseResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/exercises/{exerciseID}/rename/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview an exercise rename
+         * @description Checks renaming the exercise by id. The new name must not match, ignoring case, spaces, and punctuation, another exercise's name or alias. The old name is kept as an alias unless it differs only in case or punctuation. Does not write. The token lasts 15 minutes and works once.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Exercise ID */
+                    exerciseID: number;
+                };
+                cookie?: never;
+            };
+            /** @description New name */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachExerciseRenamePreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachExerciseChangePreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Coach program position
+         * @description Read only. Does not create or advance a session, and does not change the program or a training max. block stays null: it is a mesocycle name, and that column is not stored. program_day is the imported day when this assignment has one. Week and day come from the existing prescription count.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachPositionResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/programs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List coach programs
+         * @description Imported versions for this athlete, including days. Does not change a program or a training max. An admin service token does not see every athlete.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachProgramSummaryResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/programs/{templateID}/gap-fill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gap-fill a coach program
+         * @description Writes only fields the coach left empty, marked as AI suggestions. A request that would change coach-set sets, reps, exercises, notes, or any other coach value is refused and writes nothing.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Template ID */
+                    templateID: number;
+                };
+                cookie?: never;
+            };
+            /** @description Blank fields */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachGapFillRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachLineResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/programs/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assign a coach program
+         * @description Assigns the locked version named by template_id and version. The stored weekdays become the assignment schedule. Replaces an active primary. Does not change the template. A service token may call this for an athlete it coaches.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            /** @description Assignment */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachProgramAssignRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachProgramAssignResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/programs/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import a coach program
+         * @description confirm must be true. Saves the previewed program as a new locked version and creates missing exercises in that transaction. The same name creates the next version and does not change the previous one. A service token may call this for an athlete it coaches. The saved sets, reps, exercises, and notes are read-only to that token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            /** @description Preview token */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachProgramImportRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachProgramImportResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/programs/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a coach program
+         * @description Normalizes the program, matches exercises by name or alias ignoring case, spaces, and punctuation, suggests existing exercises for names that would be created, and lists fields that would not be stored. Does not write. The preview token lasts 15 minutes and works once. athlete_id must match the path.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            /** @description Program */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachProgramPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachProgramPreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Coach exercise progress
+         * @description Read only. Estimated 1RM is computed with the Epley formula already used for featured lifts and is null when that formula does not apply. It is not a stored column. Loads are pounds.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Exercise ID */
+                    exercise?: number;
+                    /** @description Range start, YYYY-MM-DD */
+                    start?: string;
+                    /** @description Range end, YYYY-MM-DD */
+                    end?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachProgressResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Coach session history
+         * @description Sessions the caller can see for this athlete. Loads are pounds. started_at, duration, rir, and set_type are null because those columns are not stored. program_day_label is derived from the assignment sequence when the session is linked to a program.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Range start, YYYY-MM-DD */
+                    start: string;
+                    /** @description Range end, YYYY-MM-DD */
+                    end: string;
+                    /** @description Exercise ID */
+                    exercise?: number;
+                    /** @description Page cursor from the previous response */
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachHistoryResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/sessions/{sessionID}/notes/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a session note
+         * @description Writes only the note from the preview, on a session this coach owns. The confirm_token works once. A different note is refused and does not consume the token. This route does not change the program, training maxes, or sets.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Session ID */
+                    sessionID: number;
+                };
+                cookie?: never;
+            };
+            /** @description Previewed note and token */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachNoteConfirmRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachNoteConfirmResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/sessions/{sessionID}/notes/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a session note
+         * @description Does not write. Returns a confirm_token bound to this coach, session, and the exact note. The token works once, for 15 minutes. Confirm writes only workouts.notes.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Session ID */
+                    sessionID: number;
+                };
+                cookie?: never;
+            };
+            /** @description Note to preview */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachNotePreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachNotePreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/week": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Coach week plan versus done
+         * @description Planned weekdays from stored program schedules. week_start defaults to the current Monday in the caller's timezone. Status is done, partial, missed, or upcoming. summary is done of planned, such as "2 of 3". This route does not create or change a session.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Monday of the week, YYYY-MM-DD */
+                    week_start?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachWeekResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/conditioning-sessions": {
         parameters: {
             query?: never;
@@ -3045,6 +4390,159 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/plate-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get plate setup
+         * @description Bar, collars, and plate inventory for the athlete's gym. Each part has its own unit. When nothing is saved, the default kg competition setup is returned with is_default true.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.PlateSetupResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        /**
+         * Save plate setup
+         * @description Replaces the bar, collars, and whole plate inventory. A coach can set it for an athlete they coach; the athlete can set their own.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            /** @description Setup */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.PlateSetupRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.PlateSetupResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Reset plate setup
+         * @description Removes the saved setup. Reads then return the default kg competition setup.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.PlateSetupResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/prescription": {
         parameters: {
             query?: never;
@@ -3074,9 +4572,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
+                        "application/json": components["schemas"]["api.PrescriptionResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -5763,6 +7259,15 @@ export interface paths {
                         "application/json": components["schemas"]["api.APIError"];
                     };
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -5862,6 +7367,15 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -6479,6 +7993,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/plate-setup/presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List plate setup presets
+         * @description The kg competition setup (the default) and a standard lb setup.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.PlateSetupPresetResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/preferences": {
         parameters: {
             query?: never;
@@ -6678,9 +8231,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
+                        "application/json": components["schemas"]["api.ProgramTemplateDetailResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -7659,6 +9210,186 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{userID}/service-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List service tokens
+         * @description Admin only. Returns ids and labels. The hash and the plaintext are not included. A service token cannot call this.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User ID */
+                    userID: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.ServiceTokenInfo"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Issue a service token
+         * @description Admin only. The plaintext is returned once and stored only as a SHA-256 hash, bound to this user. A service token cannot call this. REPLOG_SERVICE_TOKEN remains the env-installed coach-service row.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User ID */
+                    userID: number;
+                };
+                cookie?: never;
+            };
+            /** @description Optional label */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["api.ServiceTokenIssueRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.ServiceTokenIssued"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userID}/service-tokens/{tokenID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a service token
+         * @description Admin only. The token must belong to the user in the path. A service token cannot call this. Revoking the env-installed token does not clear REPLOG_SERVICE_TOKEN; the next startup installs it again.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User ID */
+                    userID: number;
+                    /** @description Token ID */
+                    tokenID: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.StatusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/{userID}/tokens": {
         parameters: {
             query?: never;
@@ -7815,6 +9546,7 @@ export interface components {
             day?: number;
             exercise_id?: number;
             exercise_name?: string;
+            group_key?: string;
             id?: number;
             notes?: string;
             sort_order?: number;
@@ -7829,6 +9561,11 @@ export interface components {
             day?: number;
             /** @example 42 */
             exercise_id?: number;
+            /**
+             * @description GroupKey links accessory lines into a superset/circuit (A, B, ...).
+             * @example A
+             */
+            group_key?: string;
             notes?: string;
             sort_order?: number;
             /** @example 12 */
@@ -7840,6 +9577,12 @@ export interface components {
             target_weight?: number;
         };
         "api.AccessoryPlanUpdateRequest": {
+            /**
+             * @description GroupKey links accessory lines into a superset/circuit (A, B, ...).
+             *     Omit it to leave the group unchanged; send "" to ungroup.
+             * @example A
+             */
+            group_key?: string;
             notes?: string;
             sort_order?: number;
             target_rep_max?: number;
@@ -8014,6 +9757,375 @@ export interface components {
             create?: boolean;
             mapped_id?: number;
         };
+        "api.CoachAIResponse": {
+            load?: components["schemas"]["api.CoachLoad"];
+            notes?: string;
+            reps_max?: number;
+            reps_min?: number;
+            rest_seconds?: number;
+            rir_max?: number;
+            rir_min?: number;
+            sets?: number;
+        };
+        "api.CoachBlockResponse": {
+            exercises?: components["schemas"]["api.CoachLineResponse"][];
+            non_working?: boolean;
+            order?: number;
+            rest?: string;
+            rest_seconds?: number;
+            rounds?: number;
+            sets?: number;
+            type?: string;
+        };
+        "api.CoachCycleResponse": {
+            repeat?: string;
+            upcoming?: number;
+            weekdays?: number[];
+        };
+        "api.CoachDayResponse": {
+            blocks?: components["schemas"]["api.CoachBlockResponse"][];
+            day?: number;
+            equipment?: string[];
+            estimated_minutes?: number;
+            exercise_count?: number;
+            instructions?: string;
+            kind?: string;
+            label?: string;
+            order?: number;
+            schedule?: components["schemas"]["api.CoachCycleResponse"];
+            week?: number;
+            weekday?: number;
+        };
+        "api.CoachExerciseAliasPreviewRequest": {
+            alias?: string;
+        };
+        "api.CoachExerciseAmbiguousResponse": {
+            candidates?: components["schemas"]["api.CoachExerciseRefResponse"][];
+            name?: string;
+        };
+        "api.CoachExerciseChangePreviewResponse": {
+            /** @description add_alias or rename */
+            action?: string;
+            alias?: string;
+            aliases_after?: string[];
+            current_name?: string;
+            exercise_id?: number;
+            expires_at?: string;
+            kept_alias?: string;
+            new_name?: string;
+            preview_token?: string;
+            removed_alias?: string;
+        };
+        "api.CoachExerciseConfirmRequest": {
+            confirm?: boolean;
+            preview_token?: string;
+        };
+        "api.CoachExerciseCreateResponse": {
+            name?: string;
+            suggestions?: components["schemas"]["api.CoachExerciseSuggestionResponse"][];
+        };
+        "api.CoachExerciseMatchResponse": {
+            exercise_id?: number;
+            exercise_name?: string;
+            /**
+             * @description name, alias, normalized_name, or normalized_alias (case, spaces, and
+             *     punctuation ignored).
+             */
+            matched_on?: string;
+            name?: string;
+        };
+        "api.CoachExerciseRefResponse": {
+            exercise_id?: number;
+            name?: string;
+        };
+        "api.CoachExerciseRenamePreviewRequest": {
+            name?: string;
+        };
+        "api.CoachExerciseRequest": {
+            aliases?: string[];
+            equipment?: string[];
+            name?: string;
+            notes?: string;
+            primary_muscles?: string[];
+            unilateral?: boolean;
+        };
+        "api.CoachExerciseResponse": {
+            aliases?: string[];
+            created?: boolean;
+            equipment?: string[];
+            id?: number;
+            name?: string;
+            notes?: string;
+            primary_muscles?: string[];
+            unilateral?: boolean;
+        };
+        "api.CoachExerciseSuggestionResponse": {
+            exercise_id?: number;
+            name?: string;
+            reason?: string;
+        };
+        "api.CoachGapFillRequest": {
+            block_order?: number;
+            day_order?: number;
+            exercise?: string;
+            exercise_order?: number;
+            load?: number;
+            notes?: string;
+            reps_max?: number;
+            reps_min?: number;
+            rest_seconds?: number;
+            rir_max?: number;
+            rir_min?: number;
+            sets?: number;
+        };
+        "api.CoachHistoryResponse": {
+            next_cursor?: string;
+            sessions?: components["schemas"]["api.CoachSessionResponse"][];
+        };
+        "api.CoachLastSessionBody": {
+            date?: string;
+            session_id?: number;
+            sets?: components["schemas"]["api.CoachLoggedSetResponse"][];
+            started_at?: string;
+        };
+        "api.CoachLastSessionResponse": {
+            athlete_id?: number;
+            exercise_id?: number;
+            name?: string;
+            session?: components["schemas"]["api.CoachLastSessionBody"];
+        };
+        "api.CoachLineResponse": {
+            ai?: components["schemas"]["api.CoachAIResponse"];
+            exercise_id?: number;
+            name?: string;
+            non_working?: boolean;
+            notes?: string;
+            order?: number;
+            per_side?: boolean;
+            reps_max?: number;
+            reps_min?: number;
+            rest?: string;
+            rest_seconds?: number;
+            rir_max?: number;
+            rir_min?: number;
+            sets?: number;
+        };
+        "api.CoachLoad": {
+            unit?: string;
+            value?: number;
+        };
+        "api.CoachLoggedExerciseResponse": {
+            exercise_id?: number;
+            name?: string;
+            sets?: components["schemas"]["api.CoachLoggedSetResponse"][];
+        };
+        "api.CoachLoggedSetResponse": {
+            category?: string;
+            load?: components["schemas"]["api.CoachLoad"];
+            notes?: string;
+            reps?: number;
+            rir?: number;
+            rpe?: number;
+            set_id?: number;
+            set_number?: number;
+            set_type?: string;
+        };
+        "api.CoachNextSessionResponse": {
+            date?: string;
+            day?: number;
+            exercises?: components["schemas"]["api.CoachTargetExerciseResponse"][];
+            program_day?: components["schemas"]["api.CoachDayResponse"];
+            program_day_label?: string;
+            week?: number;
+        };
+        "api.CoachNoteConfirmRequest": {
+            confirm_token?: string;
+            notes?: string;
+        };
+        "api.CoachNoteConfirmResponse": {
+            athlete_id?: number;
+            notes?: string;
+            session_id?: number;
+        };
+        "api.CoachNotePreviewRequest": {
+            notes?: string;
+        };
+        "api.CoachNotePreviewResponse": {
+            confirm_token?: string;
+            expires_at?: string;
+            would_write?: components["schemas"]["api.CoachNoteWrite"];
+        };
+        "api.CoachNoteWrite": {
+            athlete_id?: number;
+            notes?: string;
+            session_id?: number;
+        };
+        "api.CoachPRResponse": {
+            date?: string;
+            e1rm?: number;
+            load?: components["schemas"]["api.CoachLoad"];
+            reps?: number;
+            session_id?: number;
+        };
+        "api.CoachPositionResponse": {
+            athlete_id?: number;
+            block?: string;
+            cycle_complete?: boolean;
+            cycle_number?: number;
+            day?: number;
+            next_session?: components["schemas"]["api.CoachNextSessionResponse"];
+            program_day?: components["schemas"]["api.CoachDayResponse"];
+            program_day_label?: string;
+            program_id?: number;
+            program_name?: string;
+            week?: number;
+        };
+        "api.CoachProgramAssignRequest": {
+            start_date?: string;
+            template_id?: number;
+            version?: number;
+        };
+        "api.CoachProgramAssignResponse": {
+            assignment_id?: number;
+            athlete_id?: number;
+            schedule_weekdays?: number[];
+            start_date?: string;
+            template_id?: number;
+            version?: number;
+        };
+        "api.CoachProgramImportRequest": {
+            confirm?: boolean;
+            preview_token?: string;
+        };
+        "api.CoachProgramImportResponse": {
+            created_exercises?: string[];
+            lineage_id?: number;
+            locked?: boolean;
+            program?: components["schemas"]["api.CoachProgramResponse"];
+            template_id?: number;
+            version?: number;
+        };
+        "api.CoachProgramPreviewRequest": {
+            athlete_id?: number;
+            program?: number[];
+        };
+        "api.CoachProgramPreviewResponse": {
+            /** @description Ambiguous names match more than one exercise; the import refuses them. */
+            ambiguous?: components["schemas"]["api.CoachExerciseAmbiguousResponse"][];
+            expires_at?: string;
+            matched_exercises?: components["schemas"]["api.CoachExerciseMatchResponse"][];
+            normalized?: components["schemas"]["api.CoachProgramResponse"];
+            preview_token?: string;
+            /** @description Suggestions lists likely existing exercises for each would_create name. */
+            suggestions?: components["schemas"]["api.CoachExerciseCreateResponse"][];
+            unmapped?: string[];
+            would_create?: string[];
+        };
+        "api.CoachProgramResponse": {
+            author?: string;
+            cycle?: components["schemas"]["api.CoachCycleResponse"];
+            days?: components["schemas"]["api.CoachDayResponse"][];
+            name?: string;
+            source?: string;
+            start_date?: string;
+            weeks?: number;
+        };
+        "api.CoachProgramSummaryResponse": {
+            assignment_id?: number;
+            assignment_start?: string;
+            author?: string;
+            days?: components["schemas"]["api.CoachDayResponse"][];
+            lineage_id?: number;
+            locked?: boolean;
+            name?: string;
+            schedule?: components["schemas"]["api.CoachCycleResponse"];
+            source?: string;
+            start_date?: string;
+            template_id?: number;
+            version?: number;
+        };
+        "api.CoachProgressExerciseResponse": {
+            exercise_id?: number;
+            last_session_top_set?: components["schemas"]["api.CoachTopSetResponse"];
+            name?: string;
+            prs?: components["schemas"]["api.CoachPRResponse"][];
+            sessions?: components["schemas"]["api.CoachProgressPointResponse"][];
+        };
+        "api.CoachProgressPointResponse": {
+            date?: string;
+            e1rm?: number;
+            session_id?: number;
+            top_set?: components["schemas"]["api.CoachTopSetResponse"];
+        };
+        "api.CoachProgressResponse": {
+            athlete_id?: number;
+            e1rm_source?: string;
+            end?: string;
+            exercises?: components["schemas"]["api.CoachProgressExerciseResponse"][];
+            start?: string;
+        };
+        "api.CoachSessionResponse": {
+            athlete_id?: number;
+            date?: string;
+            duration?: number;
+            exercises?: components["schemas"]["api.CoachLoggedExerciseResponse"][];
+            notes?: string;
+            program_day?: components["schemas"]["api.CoachDayResponse"];
+            program_day_label?: string;
+            session_id?: number;
+            started_at?: string;
+        };
+        "api.CoachTargetExerciseResponse": {
+            exercise_id?: number;
+            name?: string;
+            prescription?: components["schemas"]["api.CoachLineResponse"];
+            sets?: components["schemas"]["api.CoachTargetSetResponse"][];
+        };
+        "api.CoachTargetSetResponse": {
+            load?: components["schemas"]["api.CoachLoad"];
+            percentage?: number;
+            reps?: number;
+            rir?: number;
+            rpe?: number;
+            set_number?: number;
+        };
+        "api.CoachTopSetResponse": {
+            date?: string;
+            e1rm?: number;
+            load?: components["schemas"]["api.CoachLoad"];
+            reps?: number;
+            rir?: number;
+            rpe?: number;
+            session_id?: number;
+        };
+        "api.CoachWeekDayResponse": {
+            completed_on?: string;
+            date?: string;
+            day?: number;
+            logged_exercises?: number;
+            planned_exercises?: number;
+            program_day?: components["schemas"]["api.CoachDayResponse"];
+            program_day_label?: string;
+            program_id?: number;
+            program_name?: string;
+            session_id?: number;
+            status?: string;
+            week?: number;
+            weekday?: number;
+        };
+        "api.CoachWeekResponse": {
+            athlete_id?: number;
+            days?: components["schemas"]["api.CoachWeekDayResponse"][];
+            done_count?: number;
+            missed_count?: number;
+            partial_count?: number;
+            planned_count?: number;
+            summary?: string;
+            timezone?: string;
+            upcoming_count?: number;
+            week_end?: string;
+            week_start?: string;
+        };
         "api.CompatibilityResponse": {
             exercises?: components["schemas"]["api.ExerciseCompatibilityResponse"][];
             ready?: boolean;
@@ -8120,8 +10232,11 @@ export interface components {
             day?: number;
             /** @example 42 */
             exercise_id?: number;
+            /** @example A */
+            group_key?: string;
             /** @example T1 */
             group_label?: string;
+            non_working?: boolean;
             notes?: string;
             percentage?: number;
             /** @example 7.5 */
@@ -8130,7 +10245,13 @@ export interface components {
             rep_type?: string;
             /** @example 5 */
             reps?: number;
+            /** @example 12 */
+            reps_max?: number;
             rest_seconds?: number;
+            /** @example 3 */
+            rir_max?: number;
+            /** @example 2 */
+            rir_min?: number;
             /** @example 1 */
             set_number?: number;
             sort_order?: number;
@@ -8187,6 +10308,7 @@ export interface components {
             reps?: number;
             rpe?: number;
             set_number?: number;
+            set_type?: string;
             weight?: number;
             workout_date?: string;
             workout_id?: number;
@@ -8395,6 +10517,41 @@ export interface components {
             rest_days_owed?: number;
             rest_days_required?: number;
         };
+        "api.PlatePairResponse": {
+            /** @example 4 */
+            pairs?: number;
+            /** @example kg */
+            unit?: string;
+            /** @example 25 */
+            weight?: number;
+        };
+        "api.PlateSetupPresetResponse": {
+            /** @example kg_competition */
+            key?: string;
+            name?: string;
+            setup?: components["schemas"]["api.PlateSetupResponse"];
+        };
+        "api.PlateSetupRequest": {
+            bar?: components["schemas"]["api.PlateWeight"];
+            collar?: components["schemas"]["api.PlateWeight"];
+            plates?: components["schemas"]["api.PlatePairResponse"][];
+            use_collars?: boolean;
+        };
+        "api.PlateSetupResponse": {
+            athlete_id?: number;
+            bar?: components["schemas"]["api.PlateWeight"];
+            collar?: components["schemas"]["api.PlateWeight"];
+            is_default?: boolean;
+            plates?: components["schemas"]["api.PlatePairResponse"][];
+            updated_at?: string;
+            use_collars?: boolean;
+        };
+        "api.PlateWeight": {
+            /** @example kg */
+            unit?: string;
+            /** @example 20 */
+            weight?: number;
+        };
         "api.PreferencesRequest": {
             /** @example Jan 2, 2006 */
             date_format?: string;
@@ -8408,14 +10565,19 @@ export interface components {
             day?: number;
             exercise_id?: number;
             exercise_name?: string;
+            group_key?: string;
             group_label?: string;
             id?: number;
+            non_working?: boolean;
             notes?: string;
             percentage?: number;
             prescribed_rpe?: number;
             rep_type?: string;
             reps?: number;
+            reps_max?: number;
             rest_seconds?: number;
+            rir_max?: number;
+            rir_min?: number;
             set_number?: number;
             sort_order?: number;
             target_weight?: number;
@@ -8438,8 +10600,11 @@ export interface components {
             day?: number;
             /** @example 42 */
             exercise_id?: number;
+            /** @example A */
+            group_key?: string;
             /** @example T1 */
             group_label?: string;
+            non_working?: boolean;
             notes?: string;
             /** @example 0.65 */
             percentage?: number;
@@ -8449,8 +10614,14 @@ export interface components {
             rep_type?: string;
             /** @example 5 */
             reps?: number;
+            /** @example 12 */
+            reps_max?: number;
             /** @example 180 */
             rest_seconds?: number;
+            /** @example 3 */
+            rir_max?: number;
+            /** @example 2 */
+            rir_min?: number;
             /** @example 1 */
             set_number?: number;
             sort_order?: number;
@@ -8461,19 +10632,73 @@ export interface components {
             absolute_weight?: number;
             /** @example 42 */
             exercise_id?: number;
+            /** @example A */
+            group_key?: string;
             /** @example T1 */
             group_label?: string;
+            non_working?: boolean;
             notes?: string;
             percentage?: number;
             /** @example 7.5 */
             prescribed_rpe?: number;
             rep_type?: string;
             reps?: number;
+            /**
+             * @description Detail fields are optional on update: omit one to leave it unchanged.
+             *     reps_max 0 clears the rep range; a negative rir_min or rir_max clears
+             *     the RIR range; group_key "" ungroups the set.
+             * @example 12
+             */
+            reps_max?: number;
             /** @example 180 */
             rest_seconds?: number;
+            /** @example 3 */
+            rir_max?: number;
+            /** @example 2 */
+            rir_min?: number;
             /** @example 1 */
             set_number?: number;
             sort_order?: number;
+        };
+        "api.PrescriptionLineResponse": {
+            exercise_id?: number;
+            exercise_name?: string;
+            /**
+             * @description GroupKey is the superset/circuit group (A, B, ...) this exercise
+             *     belongs to; lines that share a key are done as one linked group.
+             */
+            group_key?: string;
+            sets?: components["schemas"]["api.PrescriptionSetResponse"][];
+            training_max?: number;
+        };
+        "api.PrescriptionResponse": {
+            current_day?: number;
+            current_week?: number;
+            cycle_number?: number;
+            lines?: components["schemas"]["api.PrescriptionLineResponse"][];
+            program_name?: string;
+        };
+        "api.PrescriptionSetResponse": {
+            absolute_weight?: number;
+            group_key?: string;
+            group_label?: string;
+            /**
+             * @description NonWorking marks a warm-up set: shown, but not counted toward
+             *     progress or PRs.
+             */
+            non_working?: boolean;
+            notes?: string;
+            percentage?: number;
+            prescribed_rpe?: number;
+            rep_type?: string;
+            reps?: number;
+            /** @description RepsMax is the top of a rep range; reps is the bottom ("8–12"). */
+            reps_max?: number;
+            rest_seconds?: number;
+            rir_max?: number;
+            rir_min?: number;
+            set_number?: number;
+            target_weight?: number;
         };
         "api.ProgramPreview": {
             description?: string;
@@ -8491,14 +10716,28 @@ export interface components {
             created_at?: string;
             description?: string;
             id?: number;
+            /**
+             * @description ImportVersion is the import version of a coach-imported template
+             *     (the same number as version). Omitted for hand-built templates.
+             */
+            import_version?: number;
             is_loop?: boolean;
             lineage_id?: number;
+            /**
+             * @description Locked is true for a coach-imported template. Edit and delete return
+             *     409; the coach re-imports a new version instead.
+             */
+            locked?: boolean;
             name?: string;
             num_days?: number;
             num_weeks?: number;
             status?: string;
             updated_at?: string;
             version?: number;
+        };
+        "api.ProgramTemplateDetailResponse": {
+            program?: components["schemas"]["api.ProgramTemplate"];
+            sets?: components["schemas"]["api.PrescribedSet"][];
         };
         "api.ProgramTemplateRequest": {
             athlete_id?: number;
@@ -8595,6 +10834,23 @@ export interface components {
             sport?: string;
             /** @example 2026-03-01 */
             start_date?: string;
+        };
+        "api.ServiceTokenInfo": {
+            created_at?: string;
+            id?: number;
+            label?: string;
+            last_used_at?: string;
+            revoked_at?: string;
+            user_id?: number;
+        };
+        "api.ServiceTokenIssueRequest": {
+            label?: string;
+        };
+        "api.ServiceTokenIssued": {
+            id?: number;
+            label?: string;
+            token?: string;
+            user_id?: number;
         };
         "api.SettingCategoryResponse": {
             category?: string;
@@ -8875,6 +11131,7 @@ export interface components {
             reps_label?: string;
             rpe?: number;
             set_number?: number;
+            set_type?: string;
             updated_at?: string;
             weight?: number;
             workout_id?: number;
@@ -8891,6 +11148,8 @@ export interface components {
             reps?: number;
             /** @example 7 */
             rpe?: number;
+            /** @example working */
+            set_type?: string;
             /** @example 135 */
             weight?: number;
         };
@@ -8900,6 +11159,8 @@ export interface components {
             reps?: number;
             /** @example 7 */
             rpe?: number;
+            /** @example warmup */
+            set_type?: string;
             /** @example 135 */
             weight?: number;
         };
@@ -8996,11 +11257,18 @@ export interface components {
             absolute_weight?: number;
             day?: number;
             exercise?: string;
+            group_key?: string;
+            group_label?: string;
+            non_working?: boolean;
             notes?: string;
             percentage?: number;
+            prescribed_rpe?: number;
             rep_type?: string;
             reps?: number;
+            reps_max?: number;
             rest_seconds?: number;
+            rir_max?: number;
+            rir_min?: number;
             set_number?: number;
             sort_order?: number;
             week?: number;
@@ -9052,6 +11320,7 @@ export interface components {
             reps?: number;
             rpe?: number;
             set_number?: number;
+            set_type?: string;
             weight?: number;
         };
         "models.ExportSkillSession": {
@@ -9108,6 +11377,12 @@ export interface components {
         "api.AssignExerciseRequest": {
             content: {
                 "application/json": components["schemas"]["api.AssignExerciseRequest"];
+            };
+        };
+        /** @description Preview token */
+        "api.CoachExerciseConfirmRequest": {
+            content: {
+                "application/json": components["schemas"]["api.CoachExerciseConfirmRequest"];
             };
         };
         /** @description Note */

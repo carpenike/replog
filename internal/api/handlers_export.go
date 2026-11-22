@@ -94,7 +94,7 @@ func (h *Handlers) ExportAthleteCSV(w http.ResponseWriter, r *http.Request) {
 	cw := csv.NewWriter(w)
 	defer cw.Flush()
 
-	_ = cw.Write([]string{"date", "exercise", "set_number", "reps", "weight", "rpe", "rep_type", "category", "notes"})
+	_ = cw.Write([]string{"date", "exercise", "set_number", "reps", "weight", "rpe", "rep_type", "category", "notes", "set_type"})
 
 	for _, workout := range export.Workouts {
 		// CSV carries the tabular resistance log only; multimodal sessions and
@@ -113,6 +113,7 @@ func (h *Handlers) ExportAthleteCSV(w http.ResponseWriter, r *http.Request) {
 				s.RepType,
 				s.Category,
 				stringOrEmpty(s.Notes),
+				s.SetType,
 			}
 			if err := cw.Write(row); err != nil {
 				log.Printf("api: write csv row for athlete %d: %v", athleteID, err)

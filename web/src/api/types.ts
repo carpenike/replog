@@ -92,12 +92,16 @@ export interface WorkoutSet {
   rpe?: number | null;
   rep_type: string;
   category: string;
+  /** working | warmup | drop | failure. Warm-ups are excluded from volume, PRs, and counts server-side. */
+  set_type?: SetType;
   notes?: string | null;
   created_at: string;
   updated_at: string;
   exercise_name?: string;
   reps_label?: string;
 }
+
+export type SetType = 'working' | 'warmup' | 'drop' | 'failure';
 
 export interface TrainingMax {
   id: number;
@@ -140,6 +144,10 @@ export interface ProgramTemplate {
   updated_at: string;
   athlete_count?: number;
   athlete_name?: string;
+  /** True for a coach-imported template: edit/delete return 409; re-import a new version instead. */
+  locked?: boolean;
+  /** Import version of a coach-imported template; absent for hand-built templates. */
+  import_version?: number | null;
 }
 
 export interface Notification {
@@ -254,6 +262,7 @@ export interface AccessoryPlanData {
   target_weight?: number | null;
   notes?: string | null;
   sort_order: number;
+  group_key?: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -286,6 +295,7 @@ export interface ExerciseHistoryEntryData {
   reps: number;
   weight?: number | null;
   rpe?: number | null;
+  set_type?: SetType;
   notes?: string | null;
 }
 
@@ -385,12 +395,23 @@ export interface PrescriptionSetData {
   rest_seconds?: number | null;
   rep_type: string;
   notes?: string | null;
+  /** Top of a rep range; reps is the bottom ("8–12"). */
+  reps_max?: number | null;
+  rir_min?: number | null;
+  rir_max?: number | null;
+  prescribed_rpe?: number | null;
+  /** Warm-up set: shown, but not counted toward progress or PRs. */
+  non_working?: boolean;
+  /** Superset/circuit group (A, B, ...). */
+  group_key?: string | null;
+  group_label?: string | null;
 }
 
 export interface PrescriptionLineData {
   exercise_name: string;
   exercise_id: number;
   training_max?: number | null;
+  group_key?: string | null;
   sets: PrescriptionSetData[];
 }
 

@@ -337,6 +337,7 @@ func AccessoryPlanFromModel(m *models.AccessoryPlan) *AccessoryPlan {
 		TargetWeight: nullFloat(m.TargetWeight),
 		Notes:        nullStr(m.Notes),
 		SortOrder:    m.SortOrder,
+		GroupKey:     nullStr(m.GroupKey),
 		Active:       m.Active,
 		CreatedAt:    fmtTime(m.CreatedAt),
 		UpdatedAt:    fmtTime(m.UpdatedAt),
@@ -410,7 +411,12 @@ func (h *Handlers) CreateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plan, err := models.CreateAccessoryPlan(r.Context(), h.DB, athleteID, req.Day, req.ExerciseID, req.TargetSets, req.TargetRepMin, req.TargetRepMax, req.TargetWeight, req.Notes, req.SortOrder)
+	if !models.ValidGroupKey(models.NormalizeGroupKey(req.GroupKey)) {
+		WriteValidationError(w, "group_key", "must be 1-4 letters or digits starting with a letter")
+		return
+	}
+
+	plan, err := models.CreateAccessoryPlanGrouped(r.Context(), h.DB, athleteID, req.Day, req.ExerciseID, req.TargetSets, req.TargetRepMin, req.TargetRepMax, req.TargetWeight, req.Notes, req.SortOrder, req.GroupKey)
 	if err != nil {
 		log.Printf("api: create accessory plan for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to create accessory plan")
@@ -502,7 +508,12 @@ func (h *Handlers) UpdateAccessoryPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.UpdateAccessoryPlan(r.Context(), h.DB, planID, athleteID, req.TargetSets, req.TargetRepMin, req.TargetRepMax, req.TargetWeight, req.Notes, req.SortOrder); err != nil {
+	if req.GroupKey != nil && !models.ValidGroupKey(models.NormalizeGroupKey(*req.GroupKey)) {
+		WriteValidationError(w, "group_key", "must be 1-4 letters or digits starting with a letter")
+		return
+	}
+
+	if err := models.UpdateAccessoryPlanGrouped(r.Context(), h.DB, planID, athleteID, req.TargetSets, req.TargetRepMin, req.TargetRepMax, req.TargetWeight, req.Notes, req.SortOrder, req.GroupKey); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "accessory plan not found")
 			return

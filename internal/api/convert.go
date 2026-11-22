@@ -181,6 +181,7 @@ func WorkoutSetFromModel(m *models.WorkoutSet) *WorkoutSet {
 		RPE:          nullFloat(m.RPE),
 		RepType:      m.RepType,
 		Category:     m.Category,
+		SetType:      m.SetType,
 		Notes:        nullStr(m.Notes),
 		CreatedAt:    fmtTime(m.CreatedAt),
 		UpdatedAt:    fmtTime(m.UpdatedAt),
@@ -396,7 +397,7 @@ func lineageID(m *models.ProgramTemplate) *int64 {
 
 // ProgramTemplateFromModel converts a models.ProgramTemplate to an API ProgramTemplate.
 func ProgramTemplateFromModel(m *models.ProgramTemplate) *ProgramTemplate {
-	return &ProgramTemplate{
+	out := &ProgramTemplate{
 		ID:           m.ID,
 		AthleteID:    m.AthleteID,
 		Name:         m.Name,
@@ -412,7 +413,13 @@ func ProgramTemplateFromModel(m *models.ProgramTemplate) *ProgramTemplate {
 		UpdatedAt:    fmtTime(m.UpdatedAt),
 		AthleteCount: m.AthleteCount,
 		AthleteName:  m.AthleteName,
+		Locked:       m.Locked,
 	}
+	if m.Imported {
+		v := m.Version
+		out.ImportVersion = &v
+	}
+	return out
 }
 
 // PrescribedSetFromModel converts a models.PrescribedSet to an API PrescribedSet.
@@ -430,6 +437,11 @@ func PrescribedSetFromModel(m *models.PrescribedSet) *PrescribedSet {
 		RestSeconds:    nullInt(m.RestSeconds),
 		PrescribedRPE:  nullFloat(m.PrescribedRPE),
 		GroupLabel:     nullStr(m.GroupLabel),
+		RepsMax:        nullInt(m.RepsMax),
+		RIRMin:         nullInt(m.RIRMin),
+		RIRMax:         nullInt(m.RIRMax),
+		NonWorking:     m.NonWorking,
+		GroupKey:       nullStr(m.GroupKey),
 		SortOrder:      m.SortOrder,
 		RepType:        m.RepType,
 		Notes:          nullStr(m.Notes),

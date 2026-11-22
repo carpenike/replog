@@ -61,7 +61,7 @@ func GetLoadSummary(ctx context.Context, db *sql.DB, athleteID int64) (*LoadSumm
 		`SELECT COALESCE(SUM(ws.reps * ws.weight), 0)
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id
-		 WHERE w.athlete_id = ? AND w.discipline = 'resistance' AND w.date >= ?`,
+		 WHERE w.athlete_id = ? AND w.discipline = 'resistance' AND w.date >= ? AND `+countedSet,
 		athleteID, acuteStart)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func GetLoadSummary(ctx context.Context, db *sql.DB, athleteID int64) (*LoadSumm
 		`SELECT COALESCE(SUM(ws.reps * ws.weight), 0)
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id
-		 WHERE w.athlete_id = ? AND w.discipline = 'resistance' AND w.date >= ?`,
+		 WHERE w.athlete_id = ? AND w.discipline = 'resistance' AND w.date >= ? AND `+countedSet,
 		athleteID, chronicStart)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func GetLoadSummary(ctx context.Context, db *sql.DB, athleteID int64) (*LoadSumm
 		`SELECT MIN(w.date)
 		 FROM workout_sets ws
 		 JOIN workouts w ON w.id = ws.workout_id
-		 WHERE w.athlete_id = ? AND w.discipline = 'resistance'`,
+		 WHERE w.athlete_id = ? AND w.discipline = 'resistance' AND `+countedSet,
 		athleteID)
 	if err != nil {
 		return nil, err
