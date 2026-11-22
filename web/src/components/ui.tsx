@@ -38,7 +38,8 @@ export function EmptyState({
   actionTo,
   onAction,
 }: {
-  icon?: string
+  /** Emoji or icon node. Emoji are fine here: empty states are content, not chrome. */
+  icon?: ReactNode
   title: string
   description?: string
   /** Optional call-to-action label. Renders a link when actionTo is set, else a button when onAction is set. */

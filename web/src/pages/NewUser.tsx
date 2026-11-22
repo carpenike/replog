@@ -5,6 +5,7 @@ import { api, ApiError } from '@/api/client'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { PageHeader } from '@/components/PageHeader'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -65,10 +66,7 @@ export function NewUser() {
 
   return (
     <div className="max-w-lg">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to="/users" className="hover:text-foreground">Users</Link> / New
-      </p>
-      <h1 className="text-2xl font-bold mb-6">New User</h1>
+      <PageHeader title="New User" back={{ to: '/users', label: 'Users' }} />
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
@@ -76,7 +74,7 @@ export function NewUser() {
         )}
 
         <div>
-          <Label htmlFor="username">Username *</Label>
+          <Label htmlFor="username">Username <span aria-hidden="true" className="text-destructive">*</span></Label>
           <Input id="username" type="text" value={username} onChange={e => setUsername(e.target.value)} required autoComplete="off" />
         </div>
 
@@ -106,8 +104,8 @@ export function NewUser() {
           </div>
         </div>
 
-        <div>
-          <Label>Linked Athlete</Label>
+        <fieldset>
+          <legend className="text-sm font-medium mb-2">Linked Athlete</legend>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Checkbox id="createAthlete" checked={createAthlete} onCheckedChange={(checked) => { setCreateAthlete(checked); if (checked) setAthleteId('') }} />
@@ -115,7 +113,7 @@ export function NewUser() {
             </div>
             {!createAthlete && (
               <Select value={athleteId || null} onValueChange={(val) => setAthleteId(val ?? '')}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Existing athlete" className="w-full">
                   <SelectValue placeholder="None — link later">
                     {(value: string | null) => {
                       if (!value) return 'None — link later'
@@ -132,7 +130,7 @@ export function NewUser() {
               </Select>
             )}
           </div>
-        </div>
+        </fieldset>
 
         <div className="flex gap-3 pt-2">
           <Button type="submit" disabled={mutation.isPending}>

@@ -1,12 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Check, CheckCheck } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { useFriendlyDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 
 export function NotificationsList() {
   const queryClient = useQueryClient()
-  const { data: notifications, isLoading, error } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const query = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.listNotifications(),
   })
@@ -24,26 +28,27 @@ export function NotificationsList() {
       queryClient.invalidateQueries({ queryKey: ['unread-count'] })
     },
   })
-  const hasUnread = notifications?.some(n => !n.read) ?? false
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load notifications.</p>
+  const hasUnread = query.data?.some(n => !n.read) ?? false
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Notifications</h1>
-        {hasUnread && (
+      <PageHeader
+        title="Notifications"
+        actions={hasUnread && (
           <Button variant="ghost" onClick={() => markAllMutation.mutate()}
             disabled={markAllMutation.isPending}
-            className="text-sm text-primary hover:text-primary/80 disabled:opacity-50">
-            Mark all read
+            className="text-primary hover:text-primary/80">
+            <CheckCheck aria-hidden="true" /> Mark all read
           </Button>
         )}
-      </div>
-      {notifications && notifications.length === 0 ? (
-        <p className="text-muted-foreground">No notifications.</p>
-      ) : (
+      />
+      <QueryState
+        query={query}
+        resource="notifications"
+        empty={{ icon: '🔔', title: "You're all caught up", description: 'Reviews, notes and program updates show up here.' }}
+      >
+        {notifications => (
         <div className="space-y-2">
-          {notifications?.map(n => (
+          {notifications.map(n => (
             <div
               key={n.id}
               className={`rounded-lg border bg-card p-4 ${
@@ -78,16 +83,17 @@ export function NotificationsList() {
                 )}
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(n.created_at).toLocaleDateString()}
+                    {friendlyDate(n.created_at, { timestamp: true })}
                   </span>
                   {!n.read && (
                     <Button
                       variant="ghost"
+                      size="icon"
                       aria-label={`Mark ${n.title} as read`}
                       onClick={() => markReadMutation.mutate(n.id)}
                       disabled={markReadMutation.isPending}
                     >
-                      ✓
+                      <Check aria-hidden="true" />
                     </Button>
                   )}
                 </div>
@@ -95,7 +101,8 @@ export function NotificationsList() {
             </div>
           ))}
         </div>
-      )}
+        )}
+      </QueryState>
     </div>
   )
 }

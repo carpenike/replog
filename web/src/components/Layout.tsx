@@ -1,7 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, Menu, Sun, Moon, Settings, LogOut } from 'lucide-react'
+import {
+  Bell, BookOpen, Boxes, CheckSquare, ClipboardList, Dumbbell, Eye, House, Library, ListOrdered, LogOut, Menu,
+  Moon, NotebookPen, Settings, Sun, User as UserIcon, Users,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import type { User } from '@/api/types'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -18,7 +22,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 
-interface NavItemData { href: string; label: string; icon: string }
+interface NavItemData { href: string; label: string; icon: LucideIcon }
 
 /** A single sidebar nav link — single source of truth for the link markup/classes. */
 function NavItem({
@@ -36,7 +40,7 @@ function NavItem({
           : 'text-muted-foreground hover:text-foreground hover:bg-accent',
       )}
     >
-      <span aria-hidden="true">{item.icon}</span>
+      <item.icon className="size-4 shrink-0" aria-hidden="true" />
       {item.label}
       {children}
     </Link>
@@ -44,22 +48,22 @@ function NavItem({
 }
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: '🏠' },
-  { href: '/notifications', label: 'Notifications', icon: '🔔' },
+  { href: '/', label: 'Dashboard', icon: House },
+  { href: '/notifications', label: 'Notifications', icon: Bell },
 ]
 
 const coachItems = [
-  { href: '/athletes', label: 'Athletes', icon: '🏋️' },
-  { href: '/exercises', label: 'Exercises', icon: '📋' },
-  { href: '/programs', label: 'Programs', icon: '📊' },
-  { href: '/equipment', label: 'Equipment', icon: '🏗️' },
-  { href: '/reviews/pending', label: 'Reviews', icon: '✅' },
+  { href: '/athletes', label: 'Athletes', icon: Dumbbell },
+  { href: '/exercises', label: 'Exercises', icon: ListOrdered },
+  { href: '/programs', label: 'Programs', icon: ClipboardList },
+  { href: '/equipment', label: 'Equipment', icon: Boxes },
+  { href: '/reviews/pending', label: 'Reviews', icon: CheckSquare },
 ]
 
 const adminItems = [
-  { href: '/users', label: 'Users', icon: '👥' },
-  { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
-  { href: '/admin/catalog', label: 'Catalog', icon: '📚' },
+  { href: '/users', label: 'Users', icon: Users },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/catalog', label: 'Catalog', icon: Library },
 ]
 
 interface LayoutProps {
@@ -104,10 +108,10 @@ function NavLinks({ user, pathname, unreadCount, onNavigate }: NavLinksProps) {
             My Training
           </p>
           {[
-            { href: `/athletes/${user.athlete_id}/prescription`, label: "Today's Workout", icon: '📋' },
-            { href: `/athletes/${user.athlete_id}/workouts`, label: 'My Workouts', icon: '📝' },
-            { href: `/athletes/${user.athlete_id}/journal`, label: 'My Journal', icon: '📖' },
-            { href: `/athletes/${user.athlete_id}`, label: 'My Profile', icon: '👤' },
+            { href: `/athletes/${user.athlete_id}/prescription`, label: "Today's Workout", icon: ClipboardList },
+            { href: `/athletes/${user.athlete_id}/workouts`, label: 'My Workouts', icon: NotebookPen },
+            { href: `/athletes/${user.athlete_id}/journal`, label: 'My Journal', icon: BookOpen },
+            { href: `/athletes/${user.athlete_id}`, label: 'My Profile', icon: UserIcon },
           ].map(item => (
             <NavItem key={item.href} item={item} active={isActive(user, pathname, item.href)} onNavigate={onNavigate} />
           ))}
@@ -338,13 +342,14 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
         {user.impersonating && (
           <div className="mb-4 flex items-center justify-between rounded-lg bg-warning/20 border border-warning/40 px-4 py-2 text-sm">
             <span className="font-medium text-warning-strong">
-              👁️ Viewing as <strong>{displayName}</strong>
+              <Eye className="mr-1 inline size-4 align-text-bottom" aria-hidden="true" />
+              Viewing as <strong>{displayName}</strong>
             </span>
             <button
               type="button"
               onClick={() => stopImpersonation.mutate()}
               disabled={stopImpersonation.isPending}
-              className="rounded-md bg-warning px-3 py-1 text-xs font-medium text-warning-foreground hover:bg-warning/90 transition-colors disabled:opacity-50"
+              className="min-h-11 rounded-md bg-warning px-3 py-1 text-xs font-medium text-warning-foreground hover:bg-warning/90 transition-colors disabled:opacity-50 md:min-h-0"
             >
               Exit Impersonation
             </button>

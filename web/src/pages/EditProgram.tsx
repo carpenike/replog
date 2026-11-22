@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Field } from '@/components/Field'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -16,11 +18,12 @@ export function EditProgram() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const query = useQuery({
     queryKey: ['program', programId],
     queryFn: () => api.getProgramTemplate(programId),
     enabled: !isNaN(programId),
   })
+  const data = query.data
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -55,40 +58,36 @@ export function EditProgram() {
     },
   })
 
-  if (isLoading) return <Spinner />
-
   return (
     <div className="max-w-lg">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/programs/${programId}`} className="hover:text-foreground">{data?.program.name ?? 'Program'}</Link> / Edit
-      </p>
-      <h1 className="text-2xl font-bold mb-6">Edit Program</h1>
+      <PageHeader title="Edit Program" back={{ to: `/programs/${programId}`, label: data?.program.name ?? 'Program' }} />
 
+      <QueryState query={query} resource="program" skeleton="form">
+      {({ program }) => program.locked ? (
+        <Alert>
+          This template was imported and is locked (v{program.import_version ?? program.version}). To change it, re-import a new version.
+        </Alert>
+      ) : (
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
           <Alert variant="destructive">{error}</Alert>
         )}
 
-        <div>
-          <Label htmlFor="name" >Name *</Label>
+        <Field label="Name" id="name" required>
           <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
-        </div>
+        </Field>
 
-        <div>
-          <Label htmlFor="desc" >Description</Label>
-          <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} 
-            />
-        </div>
+        <Field label="Description" id="desc">
+          <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} />
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="weeks" >Weeks</Label>
-            <Input id="weeks" type="number" min={1} value={numWeeks} onChange={e => setNumWeeks(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="days" >Days/Week</Label>
-            <Input id="days" type="number" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} />
-          </div>
+          <Field label="Weeks" id="weeks" required>
+            <Input id="weeks" type="number" inputMode="numeric" min={1} value={numWeeks} onChange={e => setNumWeeks(e.target.value)} required />
+          </Field>
+          <Field label="Days/Week" id="days" required>
+            <Input id="days" type="number" inputMode="numeric" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} required />
+          </Field>
         </div>
 
         <div className="flex items-center gap-2">
@@ -107,6 +106,8 @@ export function EditProgram() {
           </Link>
         </div>
       </form>
+      )}
+      </QueryState>
     </div>
   )
 }

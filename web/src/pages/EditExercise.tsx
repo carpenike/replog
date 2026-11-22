@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { X } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -19,11 +22,12 @@ export function EditExercise() {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
-  const { data: exercise, isLoading } = useQuery({
+  const exerciseQuery = useQuery({
     queryKey: ['exercise', exerciseId],
     queryFn: () => api.getExercise(exerciseId),
     enabled: !isNaN(exerciseId),
   })
+  const exercise = exerciseQuery.data
 
   const [name, setName] = useState('')
   const [tier, setTier] = useState('')
@@ -70,14 +74,19 @@ export function EditExercise() {
     },
   })
 
-  if (isLoading) return <Spinner />
+  const header = <PageHeader title="Edit Exercise" back={{ to: `/exercises/${exerciseId}`, label: exercise?.name ?? 'Exercise' }} />
+  if (!exercise) {
+    return (
+      <div className="max-w-lg">
+        {header}
+        <QueryState query={exerciseQuery} resource="exercise" skeleton="form">{() => null}</QueryState>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-lg">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/exercises/${exerciseId}`} className="hover:text-foreground">{exercise?.name ?? 'Exercise'}</Link> / Edit
-      </p>
-      <h1 className="text-2xl font-bold mb-6">Edit Exercise</h1>
+      {header}
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
@@ -85,14 +94,14 @@ export function EditExercise() {
         )}
 
         <div>
-          <Label htmlFor="name" >Name *</Label>
+          <Label htmlFor="name" >Name <span aria-hidden="true" className="text-destructive">*</span></Label>
           <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
         </div>
 
         <div>
-          <Label>Tier</Label>
+          <Label htmlFor="exercise-tier">Tier</Label>
           <Select value={tier} onValueChange={(val) => setTier(val ?? "")}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="exercise-tier" className="w-full">
               <SelectValue placeholder="None" />
             </SelectTrigger>
             <SelectContent>
@@ -196,7 +205,7 @@ function ExerciseEquipmentSection({ exerciseId }: { exerciseId: number }) {
       </p>
 
       {isLoading ? (
-        <Spinner />
+        <Skeleton className="h-16 w-full mb-4" />
       ) : (
         <div className="space-y-3 mb-4">
           {required.length > 0 && (
@@ -235,7 +244,7 @@ function ExerciseEquipmentSection({ exerciseId }: { exerciseId: number }) {
             </div>
           )}
           {required.length === 0 && opt.length === 0 && (
-            <p className="text-sm text-muted-foreground">No equipment linked.</p>
+            <p className="text-sm text-muted-foreground">No equipment linked. Anyone can do this lift.</p>
           )}
         </div>
       )}
@@ -243,12 +252,12 @@ function ExerciseEquipmentSection({ exerciseId }: { exerciseId: number }) {
       {available.length > 0 && (
         <div className="flex gap-2 items-end max-w-md flex-wrap">
           <div className="flex-1 min-w-50">
-            <Label>Add equipment</Label>
+            <Label htmlFor="exercise-add-equipment">Add equipment</Label>
             <Select
               value={selectedId || null}
               onValueChange={(val) => setSelectedId(val ?? '')}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="exercise-add-equipment" className="w-full">
                 <SelectValue placeholder="Select...">
                   {(value: string | null) => {
                     if (!value) return 'Select...'
@@ -294,10 +303,10 @@ function EquipmentChip({ name, onRemove, variant }: { name: string; onRemove: ()
       <button
         type="button"
         onClick={onRemove}
-        className="ml-1 text-muted-foreground hover:text-destructive"
+        className="-my-1 -mr-2 ml-0.5 inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:text-destructive focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         aria-label={`Remove ${name}`}
       >
-        ×
+        <X className="size-3.5" aria-hidden="true" />
       </button>
     </span>
   )

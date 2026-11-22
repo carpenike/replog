@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { PageSkeleton } from '@/components/QueryState'
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatFriendlyDate } from '@/lib/dates'
+import { localDateISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Alert } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useConfirm } from '@/lib/useConfirm'
@@ -29,7 +32,6 @@ export function PreferencesPage() {
   const [weightUnit, setWeightUnit] = useState('')
   const [timezone, setTimezone] = useState('')
   const [dateFormat, setDateFormat] = useState('')
-  const [saved, setSaved] = useState(false)
   const [uploading, setUploading] = useState(false)
 
   // Initialize form when data loads
@@ -43,28 +45,24 @@ export function PreferencesPage() {
     mutationFn: () => api.updatePreferences({ weight_unit: weightUnit, timezone, date_format: dateFormat }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['preferences'] })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      toast.success('Preferences saved')
     },
   })
 
-  if (isLoading) return <Spinner />
+  const today = localDateISO()
+  const lastWeek = localDateISO(new Date(Date.now() - 5 * 86_400_000))
 
   return (
     <div className="max-w-lg">
-      <h1 className="text-2xl font-bold mb-6">Preferences</h1>
+      <PageHeader title="Preferences" />
 
+      {isLoading ? <PageSkeleton kind="form" rows={3} /> : (
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
-        {saved && (
-          <Alert variant="success">
-            Preferences saved
-          </Alert>
-        )}
 
         <div>
-          <Label>Weight Unit</Label>
+          <Label htmlFor="pref-weight-unit">Weight Unit</Label>
           <Select value={weightUnit} onValueChange={(val) => setWeightUnit(val ?? "lbs")}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="pref-weight-unit" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -75,9 +73,9 @@ export function PreferencesPage() {
         </div>
 
         <div>
-          <Label>Timezone</Label>
+          <Label htmlFor="pref-timezone">Timezone</Label>
           <Select value={timezone} onValueChange={(val) => setTimezone(val ?? "America/New_York")}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="pref-timezone" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -92,9 +90,9 @@ export function PreferencesPage() {
         </div>
 
         <div>
-          <Label>Date Format</Label>
+          <Label htmlFor="pref-date-format">Date Format</Label>
           <Select value={dateFormat} onValueChange={(val) => setDateFormat(val ?? "Jan 2, 2006")}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="pref-date-format" aria-describedby="pref-date-format-hint" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -104,12 +102,16 @@ export function PreferencesPage() {
               <SelectItem value="02/01/2006">02/01/2006</SelectItem>
             </SelectContent>
           </Select>
+          <p id="pref-date-format-hint" className="mt-1 text-xs text-muted-foreground">
+            Lists show {formatFriendlyDate(today, { layout: dateFormat })}, {formatFriendlyDate(lastWeek, { layout: dateFormat })}.
+          </p>
         </div>
 
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? 'Saving...' : 'Save Preferences'}
         </Button>
       </form>
+      )}
 
       {/* Avatar */}
       {me && (
@@ -225,7 +227,7 @@ function NotificationPreferencesCard() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <Spinner />
+          <Skeleton className="h-40 w-full" />
         ) : prefs && prefs.length > 0 ? (
           <Table>
             <TableHeader>
@@ -248,6 +250,7 @@ function NotificationPreferencesCard() {
                     </TableCell>
                     <TableCell className="text-center">
                       <Checkbox
+                        aria-label={`${meta.label}: in-app`}
                         checked={p.in_app}
                         onCheckedChange={(checked) =>
                           updateMutation.mutate({ type: p.type, in_app: checked, external: p.external })
@@ -256,6 +259,7 @@ function NotificationPreferencesCard() {
                     </TableCell>
                     <TableCell className="text-center">
                       <Checkbox
+                        aria-label={`${meta.label}: external`}
                         checked={p.external}
                         onCheckedChange={(checked) =>
                           updateMutation.mutate({ type: p.type, in_app: p.in_app, external: checked })

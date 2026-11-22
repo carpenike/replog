@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Loader2 } from 'lucide-react'
+import { usePageTitle } from '@/lib/usePageTitle'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 
 export function TokenLoginPage() {
+  usePageTitle('Signing in')
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -49,9 +51,9 @@ export function TokenLoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
-      <div className="text-center">
-        <Spinner />
-        <p className="text-sm text-muted-foreground mt-2">Signing you in...</p>
+      <div role="status" className="flex flex-col items-center text-center">
+        <Loader2 className="size-6 animate-spin text-primary" aria-hidden="true" />
+        <h1 className="text-sm text-muted-foreground mt-2">Signing you in...</h1>
       </div>
     </div>
   )

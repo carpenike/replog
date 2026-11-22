@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArchiveX, Pencil, X } from 'lucide-react'
+import { ArchiveX, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { api } from '@/api/client'
 import type { AccessoryPlanData } from '@/api/types'
-import { Spinner } from '@/components/ui'
+import { EmptyState } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -25,7 +27,12 @@ export function AccessoryPlans() {
   const [repMax, setRepMax] = useState('')
   const [weight, setWeight] = useState('')
   const [notes, setNotes] = useState('')
-  const { data: plans, isLoading } = useQuery({
+  const { data: athlete } = useQuery({
+    queryKey: ['athlete', athleteId],
+    queryFn: () => api.getAthlete(athleteId),
+    enabled: !isNaN(athleteId),
+  })
+  const query = useQuery({
     queryKey: ['accessories', athleteId],
     queryFn: () => api.listAccessoryPlans(athleteId),
     enabled: !isNaN(athleteId),
@@ -64,36 +71,25 @@ export function AccessoryPlans() {
     mutationFn: (planId: number) => api.deactivateAccessoryPlan(athleteId, planId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['accessories', athleteId] }),
   })
-  // Group plans by day (active only — inactive split out into history)
-  const activePlans = (plans ?? []).filter(p => p.active)
-  const inactivePlans = (plans ?? []).filter(p => !p.active)
-  const byDay = new Map<number, AccessoryPlanData[]>()
-  for (const p of activePlans) {
-    if (!byDay.has(p.day)) byDay.set(p.day, [])
-    byDay.get(p.day)!.push(p)
-  }
-  if (isLoading) return <Spinner />
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">Athlete</Link>
-        {' / Accessories'}
-      </p>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Accessory Plans</h1>
-        <Button variant="ghost" onClick={() => setShowForm(!showForm)}
-          >
-          {showForm ? 'Cancel' : '+ Add'}
-        </Button>
-      </div>
+      <PageHeader
+        title="Accessory Plans"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={
+          <Button variant={showForm ? 'ghost' : 'default'} onClick={() => setShowForm(!showForm)} aria-expanded={showForm}>
+            {showForm ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Add</>}
+          </Button>
+        }
+      />
       {showForm && (
         <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }}
           className="rounded-lg border border-border bg-card p-4 mb-6 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <Label >Day</Label>
+              <Label htmlFor="acc-day">Day</Label>
               <Select value={day} onValueChange={(val) => setDay(val ?? "1")}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="acc-day" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -104,9 +100,9 @@ export function AccessoryPlans() {
               </Select>
             </div>
             <div className="col-span-2 md:col-span-3">
-              <Label >Exercise</Label>
+              <Label htmlFor="acc-exercise">Exercise <span aria-hidden="true" className="text-destructive">*</span></Label>
               <Select value={exerciseId || null} onValueChange={(val) => setExerciseId(val ?? "")} required>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="acc-exercise" className="w-full">
                   <SelectValue placeholder="Select exercise...">
                     {(value: string | null) => {
                       if (!value) return 'Select exercise...'
@@ -122,25 +118,25 @@ export function AccessoryPlans() {
               </Select>
             </div>
             <div>
-              <Label >Sets</Label>
-              <Input type="number" value={sets} onChange={e => setSets(e.target.value)} min={1} />
+              <Label htmlFor="acc-sets">Sets</Label>
+              <Input id="acc-sets" type="number" value={sets} onChange={e => setSets(e.target.value)} min={1} />
             </div>
             <div>
-              <Label >Min Reps</Label>
-              <Input type="number" value={repMin} onChange={e => setRepMin(e.target.value)} min={1} />
+              <Label htmlFor="acc-min-reps">Min Reps</Label>
+              <Input id="acc-min-reps" type="number" value={repMin} onChange={e => setRepMin(e.target.value)} min={1} />
             </div>
             <div>
-              <Label >Max Reps</Label>
-              <Input type="number" value={repMax} onChange={e => setRepMax(e.target.value)} min={1} />
+              <Label htmlFor="acc-max-reps">Max Reps</Label>
+              <Input id="acc-max-reps" type="number" value={repMax} onChange={e => setRepMax(e.target.value)} min={1} />
             </div>
             <div>
-              <Label >Weight</Label>
-              <Input type="number" step="0.5" value={weight} onChange={e => setWeight(e.target.value)} />
+              <Label htmlFor="acc-weight">Weight</Label>
+              <Input id="acc-weight" type="number" step="0.5" value={weight} onChange={e => setWeight(e.target.value)} />
             </div>
           </div>
           <div>
-            <Label >Notes</Label>
-            <Input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional" />
+            <Label htmlFor="acc-notes">Notes</Label>
+            <Input id="acc-notes" type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional" />
           </div>
           <Button type="submit" disabled={createMutation.isPending || !exerciseId}
             >
@@ -148,10 +144,25 @@ export function AccessoryPlans() {
           </Button>
         </form>
       )}
-      {plans && plans.length === 0 ? (
-        <p className="text-muted-foreground">No accessory plans configured.</p>
-      ) : (
+      <QueryState
+        query={query}
+        resource="accessory plans"
+        empty={{ icon: '🧩', title: 'No accessory plans yet', description: 'Add accessories to show up on the athlete\'s training days.', action: showForm ? undefined : 'Add accessory', onAction: () => setShowForm(true) }}
+      >
+        {plans => {
+          // Group plans by day (active only — inactive split out into history)
+          const activePlans = plans.filter(p => p.active)
+          const inactivePlans = plans.filter(p => !p.active)
+          const byDay = new Map<number, AccessoryPlanData[]>()
+          for (const p of activePlans) {
+            if (!byDay.has(p.day)) byDay.set(p.day, [])
+            byDay.get(p.day)!.push(p)
+          }
+          return (
         <>
+          {activePlans.length === 0 && (
+            <EmptyState icon="🧩" title="No active accessory plans" />
+          )}
           <div className="space-y-6">
             {Array.from(byDay.entries()).sort((a, b) => a[0] - b[0]).map(([dayNum, dayPlans]) => (
               <div key={dayNum}>
@@ -191,13 +202,15 @@ export function AccessoryPlans() {
                     </span>
                     <Button
                       variant="ghost"
-                      size="xs"
+                      size="icon-sm"
+                      aria-label={`Delete inactive ${plan.exercise_name} plan`}
+                      className="hover:text-destructive"
                       onClick={async () => {
                         if (await confirm({ title: 'Delete Plan', description: 'Permanently remove this inactive plan from history?', confirmLabel: 'Delete', variant: 'danger' }))
                           deleteMutation.mutate(plan.id)
                       }}
                     >
-                      ×
+                      <Trash2 aria-hidden="true" />
                     </Button>
                   </div>
                 ))}
@@ -205,7 +218,9 @@ export function AccessoryPlans() {
             </details>
           )}
         </>
-      )}
+          )
+        }}
+      </QueryState>
       {confirmDialog()}
     </div>
   )
@@ -252,31 +267,31 @@ function AccessoryPlanRow({
           <p className="text-sm font-medium">{plan.exercise_name}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <div>
-              <Label className="text-xs">Sets</Label>
-              <Input type="number" min={0} value={editSets} onChange={e => setEditSets(e.target.value)} />
+              <Label htmlFor={`acc-${plan.id}-edit-sets`} className="text-xs">Sets</Label>
+              <Input id={`acc-${plan.id}-edit-sets`} type="number" min={0} value={editSets} onChange={e => setEditSets(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Min</Label>
-              <Input type="number" min={0} value={editMin} onChange={e => setEditMin(e.target.value)} />
+              <Label htmlFor={`acc-${plan.id}-edit-min`} className="text-xs">Min</Label>
+              <Input id={`acc-${plan.id}-edit-min`} type="number" min={0} value={editMin} onChange={e => setEditMin(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Max</Label>
-              <Input type="number" min={0} value={editMax} onChange={e => setEditMax(e.target.value)} />
+              <Label htmlFor={`acc-${plan.id}-edit-max`} className="text-xs">Max</Label>
+              <Input id={`acc-${plan.id}-edit-max`} type="number" min={0} value={editMax} onChange={e => setEditMax(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Weight</Label>
-              <Input type="number" step="0.5" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
+              <Label htmlFor={`acc-${plan.id}-edit-weight`} className="text-xs">Weight</Label>
+              <Input id={`acc-${plan.id}-edit-weight`} type="number" step="0.5" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
             </div>
           </div>
           <div>
-            <Label className="text-xs">Notes</Label>
-            <Input type="text" value={editNotes} onChange={e => setEditNotes(e.target.value)} />
+            <Label htmlFor={`acc-${plan.id}-edit-notes`} className="text-xs">Notes</Label>
+            <Input id={`acc-${plan.id}-edit-notes`} type="text" value={editNotes} onChange={e => setEditNotes(e.target.value)} />
           </div>
           <div className="flex gap-2">
-            <Button type="button" size="xs" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate()}>
+            <Button type="button" size="sm" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate()}>
               {updateMutation.isPending ? 'Saving…' : 'Save'}
             </Button>
-            <Button type="button" size="xs" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
           </div>
         </CardContent>
       </Card>
@@ -284,8 +299,8 @@ function AccessoryPlanRow({
   }
 
   return (
-    <Card size="sm" className="flex items-center justify-between">
-      <CardContent>
+    <Card size="sm">
+      <CardContent className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium">{plan.exercise_name}</p>
           <p className="text-xs text-muted-foreground">

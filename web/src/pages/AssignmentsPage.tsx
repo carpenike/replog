@@ -1,14 +1,18 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Plus, RotateCcw, X } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { useFriendlyDate } from '@/lib/dates'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui'
 export function AssignmentsPage() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
@@ -22,7 +26,8 @@ export function AssignmentsPage() {
     queryFn: () => api.getAthlete(athleteId),
     enabled: !isNaN(athleteId),
   })
-  const { data: assignments, isLoading } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const query = useQuery({
     queryKey: ['assignments', athleteId, 'all'],
     queryFn: () => api.listAssignments(athleteId, true),
     enabled: !isNaN(athleteId),
@@ -50,29 +55,24 @@ export function AssignmentsPage() {
       api.reactivateAssignment(athleteId, vars.exerciseId, vars.targetReps),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assignments', athleteId, 'all'] }),
   })
-  if (isLoading) return <Spinner />
-  const active = (assignments ?? []).filter(a => a.active)
-  const inactive = (assignments ?? []).filter(a => !a.active)
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / Assignments'}
-      </p>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Exercise Assignments</h1>
-        <Button variant="ghost" onClick={() => setShowAdd(!showAdd)}
-          >
-          {showAdd ? 'Cancel' : '+ Assign'}
-        </Button>
-      </div>
+      <PageHeader
+        title="Exercise Assignments"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={
+          <Button variant={showAdd ? 'ghost' : 'default'} onClick={() => setShowAdd(!showAdd)} aria-expanded={showAdd}>
+            {showAdd ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Assign</>}
+          </Button>
+        }
+      />
       {showAdd && (
         <form onSubmit={(e) => { e.preventDefault(); assignMutation.mutate() }}
           className="rounded-lg border border-border bg-card p-4 mb-6 flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-50">
-            <Label >Exercise</Label>
+            <Label htmlFor="assign-exercise">Exercise <span aria-hidden="true" className="text-destructive">*</span></Label>
             <Select value={exerciseId || null} onValueChange={(val) => setExerciseId(val ?? "")} required>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="assign-exercise" className="w-full">
                 <SelectValue placeholder="Select...">
                   {(value: string | null) => {
                     if (!value) return 'Select...'
@@ -86,8 +86,8 @@ export function AssignmentsPage() {
             </Select>
           </div>
           <div className="w-28">
-            <Label >Target Reps</Label>
-            <Input type="number" min={0} value={targetReps} onChange={e => setTargetReps(e.target.value)} placeholder="Optional" />
+            <Label htmlFor="assign-reps">Target Reps</Label>
+            <Input id="assign-reps" type="number" inputMode="numeric" min={0} value={targetReps} onChange={e => setTargetReps(e.target.value)} placeholder="Optional" />
           </div>
           <Button type="submit" disabled={assignMutation.isPending || !exerciseId}
             >
@@ -95,13 +95,25 @@ export function AssignmentsPage() {
           </Button>
         </form>
       )}
+      <QueryState query={query} resource="assignments">
+      {assignments => {
+        const active = assignments.filter(a => a.active)
+        const inactive = assignments.filter(a => !a.active)
+        return (
+        <>
       {active.length === 0 ? (
-        <p className="text-muted-foreground">No active exercise assignments.</p>
+        <EmptyState
+          icon="📋"
+          title="No active exercise assignments"
+          description="Assign exercises this athlete should work on outside a program."
+          action={showAdd ? undefined : 'Assign an exercise'}
+          onAction={() => setShowAdd(true)}
+        />
       ) : (
         <div className="space-y-2">
           {active.map(a => (
-            <Card key={a.id} size="sm" className="flex items-center justify-between">
-              <CardContent>
+            <Card key={a.id} size="sm">
+              <CardContent className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">{a.exercise_name}</p>
                 <p className="text-xs text-muted-foreground">
@@ -112,7 +124,7 @@ export function AssignmentsPage() {
               <Button variant="ghost" onClick={async () => {
                 if (await confirm({ title: 'Deactivate Assignment', description: `Remove ${a.exercise_name} from assignments?`, confirmLabel: 'Deactivate', variant: 'danger' }))
                   deactivateMutation.mutate(a.id)
-              }} className="text-xs text-muted-foreground hover:text-destructive">
+              }} className="text-muted-foreground hover:text-destructive">
                 Deactivate
               </Button>
               </CardContent>
@@ -132,24 +144,28 @@ export function AssignmentsPage() {
                 <span>
                   {a.exercise_name}
                   {a.target_reps ? ` • ${a.target_reps} reps` : ''}
-                  {a.deactivated_at ? ` • ended ${new Date(a.deactivated_at).toLocaleDateString()}` : ''}
+                  {a.deactivated_at ? ` • ended ${friendlyDate(a.deactivated_at, { timestamp: true })}` : ''}
                 </span>
                 <Button
                   variant="ghost"
-                  size="xs"
+                  size="sm"
                   disabled={reactivateMutation.isPending}
                   onClick={() => reactivateMutation.mutate({
                     exerciseId: a.exercise_id,
                     targetReps: a.target_reps ?? 0,
                   })}
                 >
-                  ↩ Reactivate
+                  <RotateCcw aria-hidden="true" /> Reactivate
                 </Button>
               </div>
             ))}
           </div>
         </details>
       )}
+        </>
+        )
+      }}
+      </QueryState>
       {confirmDialog()}
     </div>
   )

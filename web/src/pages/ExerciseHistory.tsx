@@ -2,7 +2,9 @@ import { useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { useFriendlyDate } from '@/lib/dates'
 import { fullHistoryQuery } from '@/lib/fullHistory'
 import { computeBests, type ExerciseBests } from '@/lib/records'
 import { formatWeight } from '@/lib/utils'
@@ -71,7 +73,14 @@ export function ExerciseHistory() {
     enabled: !isNaN(exId),
   })
 
-  const { data: history, isLoading, error } = useQuery({
+  const { data: athlete } = useQuery({
+    queryKey: ['athlete', athleteId],
+    queryFn: () => api.getAthlete(athleteId),
+    enabled: !isNaN(athleteId),
+  })
+  const friendlyDate = useFriendlyDate()
+
+  const query = useQuery({
     queryKey: ['exercise-history', athleteId, exId],
     queryFn: () => api.listExerciseHistory(athleteId, exId),
     enabled: !isNaN(athleteId) && !isNaN(exId),
@@ -89,32 +98,34 @@ export function ExerciseHistory() {
     [fullDays],
   )
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load history.</p>
-
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">Athlete</Link>
-        {' / '}
-        <Link to={`/exercises/${exId}`} className="hover:text-foreground">{exercise?.name ?? 'Exercise'}</Link>
-        {' / History'}
-      </p>
-      <h1 className="text-2xl font-bold mb-6">{exercise?.name ?? 'Exercise'} History</h1>
+      <PageHeader
+        title={`${exercise?.name ?? 'Exercise'} History`}
+        pageTitle={exercise ? `${exercise.name} History` : null}
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={exercise && (
+          <Link to={`/exercises/${exId}`} className="text-sm text-primary hover:underline">About this exercise</Link>
+        )}
+      />
 
       {bests && <BestsCard bests={bests} />}
 
-      {history && history.days.length === 0 ? (
-        <p className="text-muted-foreground">No history for this exercise.</p>
-      ) : (
+      <QueryState
+        query={query}
+        resource="history"
+        isEmpty={h => h.days.length === 0}
+        empty={{ icon: '📈', title: 'No history for this exercise yet', description: 'Logged sets show up here, newest first.' }}
+      >
+        {history => (
         <div className="space-y-4">
-          {history?.days.map(day => (
+          {history.days.map(day => (
             <Card key={day.workout_id} size="sm">
               <CardHeader>
                 <CardTitle>
                   <Link to={`/athletes/${athleteId}/workouts/${day.workout_id}`}
                     className="hover:text-primary">
-                    {day.workout_date}
+                    {friendlyDate(day.workout_date)}
                   </Link>
                 </CardTitle>
                 <CardAction>
@@ -146,7 +157,8 @@ export function ExerciseHistory() {
             </Card>
           ))}
         </div>
-      )}
+        )}
+      </QueryState>
     </div>
   )
 }

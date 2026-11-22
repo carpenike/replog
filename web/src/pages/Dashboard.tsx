@@ -6,8 +6,10 @@ import { EmptyState, QueryError } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { fetchWeekStreak } from '@/lib/streak'
 import { openTodaySession, sessionPath, workoutOnDate } from '@/lib/todaySession'
-import { usePageTitle } from '@/lib/usePageTitle'
-import { cn, formatDate, localDateISO } from '@/lib/utils'
+import { ArrowRight } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { useFriendlyDate } from '@/lib/dates'
+import { cn, localDateISO } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -118,13 +120,9 @@ function TodaySessionCard({ athleteId }: { athleteId: number }) {
 
 /** Kid home: today's session one tap away. */
 function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
-  usePageTitle('Today')
-
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">
-        Welcome, {user.name ?? user.username}
-      </h1>
+      <PageHeader title={`Welcome, ${user.name ?? user.username}`} pageTitle="Today" className="mb-4" />
 
       <TodaySessionCard athleteId={athleteId} />
 
@@ -147,7 +145,8 @@ function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
 }
 
 function StaffHome({ user }: DashboardProps) {
-  usePageTitle('Dashboard')
+  const friendlyDate = useFriendlyDate()
+  const welcome = `Welcome, ${user.name ?? user.username}`
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.dashboard(),
@@ -156,7 +155,7 @@ function StaffHome({ user }: DashboardProps) {
   if (isLoading) {
     return (
       <div>
-        <Skeleton className="h-8 w-56 mb-6" />
+        <PageHeader title={welcome} pageTitle="Dashboard" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
         </div>
@@ -169,7 +168,7 @@ function StaffHome({ user }: DashboardProps) {
   if (error) {
     return (
       <div>
-        <h1 className="text-2xl font-bold mb-6">Welcome, {user.name ?? user.username}</h1>
+        <PageHeader title={welcome} pageTitle="Dashboard" />
         <QueryError error={error} onRetry={refetch} resource="dashboard" />
       </div>
     )
@@ -179,17 +178,14 @@ function StaffHome({ user }: DashboardProps) {
   if (!user.is_coach && !user.is_admin) {
     return (
       <div>
-        <h1 className="text-2xl font-bold mb-6">
-          Welcome, {user.name ?? user.username}
-        </h1>
+        <PageHeader title={welcome} pageTitle="Dashboard" />
         <Card className="text-center">
           <CardContent>
-          <span className="text-4xl block mb-3">👋</span>
-          <p className="font-semibold text-lg mb-2">You're all set!</p>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Your account hasn't been linked to an athlete profile yet.
-            Ask your coach to connect your account so you can start logging workouts.
-          </p>
+            <EmptyState
+              icon="👋"
+              title="You're all set!"
+              description="Your account hasn't been linked to an athlete profile yet. Ask your coach to connect your account so you can start logging workouts."
+            />
           </CardContent>
         </Card>
       </div>
@@ -198,9 +194,7 @@ function StaffHome({ user }: DashboardProps) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">
-        Welcome, {user.name ?? user.username}
-      </h1>
+      <PageHeader title={welcome} pageTitle="Dashboard" />
 
       {/* Staff who also train get their own session first. */}
       {user.athlete_id != null && (
@@ -255,9 +249,9 @@ function StaffHome({ user }: DashboardProps) {
             </div>
             <Link
               to="/reviews/pending"
-              className="text-sm font-medium text-primary hover:text-primary/80"
+              className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 md:min-h-0"
             >
-              Review now &rarr;
+              Review now <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           </div>
         </Alert>
@@ -287,20 +281,20 @@ function StaffHome({ user }: DashboardProps) {
                   {a.avatar_url ? (
                     <img src={a.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
+                    <div aria-hidden="true" className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
                       {a.name.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div>
                     <p className="font-medium">{a.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {a.last_workout_date ? `Last: ${formatDate(a.last_workout_date)}` : 'No workouts'}
+                      {a.last_workout_date ? `Last: ${friendlyDate(a.last_workout_date)}` : 'No workouts'}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   {a.week_streak > 0 && (
-                    <span className="text-sm"><span aria-hidden="true">🔥</span> {a.week_streak}w</span>
+                    <span className="text-sm"><span aria-hidden="true">🔥</span> {a.week_streak}w<span className="sr-only"> streak</span></span>
                   )}
                 </div>
               </Link>

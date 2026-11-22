@@ -1,10 +1,15 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
 import type { RecoveryCheckinInput } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Plus, Trash2, X } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { CardList, CardListItem, DesktopOnly } from '@/components/CardList'
+import { useFriendlyDate } from '@/lib/dates'
+import { localDateISO } from '@/lib/utils'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -25,7 +30,7 @@ export function RecoveryCheckins() {
   const { confirm, dialog: confirmDialog } = useConfirm()
 
   const [showForm, setShowForm] = useState(false)
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(localDateISO())
   const [sleepHours, setSleepHours] = useState('')
   const [soreness, setSoreness] = useState('')
   const [energy, setEnergy] = useState('')
@@ -37,14 +42,15 @@ export function RecoveryCheckins() {
     enabled: !isNaN(athleteId),
   })
 
-  const { data: checkins, isLoading, error } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const listQuery = useQuery({
     queryKey: ['recovery-checkins', athleteId],
     queryFn: () => api.listRecoveryCheckins(athleteId),
     enabled: !isNaN(athleteId),
   })
 
   function resetForm() {
-    setDate(new Date().toISOString().slice(0, 10))
+    setDate(localDateISO())
     setSleepHours('')
     setSoreness('')
     setEnergy('')
@@ -82,24 +88,19 @@ export function RecoveryCheckins() {
     }
   }
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load recovery check-ins.</p>
 
   return (
     <div>
       {confirmDialog()}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">
-              {athlete?.name ?? 'Athlete'}
-            </Link>
-            {' / Recovery'}
-          </p>
-          <h1 className="text-2xl font-bold">Recovery</h1>
-        </div>
-        <Button onClick={() => setShowForm(s => !s)}>{showForm ? 'Cancel' : '+ Log Check-in'}</Button>
-      </div>
+      <PageHeader
+        title="Recovery"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={
+          <Button variant={showForm ? 'ghost' : 'default'} onClick={() => setShowForm(s => !s)} aria-expanded={showForm}>
+            {showForm ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Log Check-in</>}
+          </Button>
+        }
+      />
 
       {showForm && (
         <form
@@ -107,7 +108,7 @@ export function RecoveryCheckins() {
           className="space-y-4 max-w-lg mb-8 rounded-lg border p-4"
         >
           <div>
-            <Label htmlFor="date">Date</Label>
+            <Label htmlFor="date">Date <span aria-hidden="true" className="text-destructive">*</span></Label>
             <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -134,34 +135,52 @@ export function RecoveryCheckins() {
         </form>
       )}
 
-      {checkins && checkins.length === 0 ? (
-        <p className="text-muted-foreground">No recovery check-ins logged yet.</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Sleep</TableHead>
-              <TableHead>Soreness</TableHead>
-              <TableHead>Energy</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {checkins?.map(c => (
-              <TableRow key={c.id}>
-                <TableCell className="font-medium">{c.date}</TableCell>
-                <TableCell>{c.sleep_hours ?? '—'}</TableCell>
-                <TableCell>{c.soreness ?? '—'}</TableCell>
-                <TableCell>{c.energy ?? '—'}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(c.id)}>Delete</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+      <QueryState
+        query={listQuery}
+        resource="recovery check-ins"
+        empty={{ icon: '😴', title: 'No recovery check-ins logged yet', description: 'Sleep, soreness and energy help the coach read the week. They never change the plan.', action: !showForm ? 'Log Check-in' : undefined, onAction: () => setShowForm(true) }}
+      >
+        {checkins => (
+          <>
+            <CardList label="Recovery">
+              {checkins.map(c => (
+                <CardListItem
+                  key={c.id}
+                  title={friendlyDate(c.date)}
+                  subtitle={[c.sleep_hours != null ? `Sleep ${c.sleep_hours}h` : null, c.soreness != null ? `Soreness ${c.soreness}` : null, c.energy != null ? `Energy ${c.energy}` : null].filter(Boolean).join(' · ') || 'No scores'}
+                  actions={<Button variant="ghost" size="sm" aria-label={`Delete ${'check-in ' + friendlyDate(c.date)}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(c.id)}><Trash2 aria-hidden="true" /> Delete</Button>}
+                />
+              ))}
+            </CardList>
+            <DesktopOnly>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Sleep</TableHead>
+                  <TableHead>Soreness</TableHead>
+                  <TableHead>Energy</TableHead>
+                  <TableHead><span className="sr-only">Actions</span></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {checkins.map(c => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{friendlyDate(c.date)}</TableCell>
+                    <TableCell>{c.sleep_hours ?? '—'}</TableCell>
+                    <TableCell>{c.soreness ?? '—'}</TableCell>
+                    <TableCell>{c.energy ?? '—'}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon-sm" aria-label={`Delete check-in ${friendlyDate(c.date)}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(c.id)}><Trash2 aria-hidden="true" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
         </Table>
-      )}
+            </DesktopOnly>
+          </>
+        )}
+      </QueryState>
     </div>
   )
 }

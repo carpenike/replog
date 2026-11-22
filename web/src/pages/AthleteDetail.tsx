@@ -2,10 +2,19 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Eye, Pencil, RotateCcw, TrendingUp, X } from 'lucide-react'
+import {
+  ArrowRight, Bot, BookOpen, Check, ChevronDown, ChevronUp, ClipboardList, Download, Dumbbell, Eye, Flame,
+  CalendarRange, Gauge, LineChart, ListChecks, Moon, NotebookPen, Pencil, Plus, Puzzle, RotateCcw, Scale,
+  Target, Timer, TrendingUp, Upload, Wrench, X,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { api } from '@/api/client'
 import type { AthleteProgram } from '@/api/types'
-import { Spinner } from '@/components/ui'
+import { EmptyState } from '@/components/ui'
+import { QueryState } from '@/components/QueryState'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useFriendlyDate } from '@/lib/dates'
+import { usePageTitle } from '@/lib/usePageTitle'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,7 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { cn, formatDate } from '@/lib/utils'
+import { cn, localDateISO } from '@/lib/utils'
 import { nextTier, promoteCopy, tierLabel } from '@/lib/tiers'
 
 const tierColors: Record<string, string> = {
@@ -48,6 +57,16 @@ function formatProgramSchedule(schedule?: string | null): string | null {
   }
 }
 
+/** One quick-nav link: lucide icon + label, styled as a small button. */
+function QuickLink({ to, icon: Icon, label, primary }: { to: string; icon: LucideIcon; label: string; primary?: boolean }) {
+  return (
+    <Link to={to} className={buttonVariants({ variant: primary ? 'default' : 'outline', size: 'sm' })}>
+      <Icon aria-hidden="true" />
+      {label}
+    </Link>
+  )
+}
+
 export function AthleteDetail() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -61,11 +80,14 @@ export function AthleteDetail() {
     queryFn: () => api.me(),
   })
   const isCoach = me?.is_coach || me?.is_admin
-  const { data: athlete, isLoading, error } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const athleteQuery = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
     enabled: !isNaN(athleteId),
   })
+  const athlete = athleteQuery.data
+  usePageTitle(athlete?.name)
   const { data: workouts } = useQuery({
     queryKey: ['workouts', athleteId, 'recent'],
     queryFn: () => api.listWorkouts(athleteId, 0),
@@ -88,7 +110,7 @@ export function AthleteDetail() {
   const [showMore, setShowMore] = useState(false)
   const [showAssign, setShowAssign] = useState(assignParam != null)
   const [assignTemplateId, setAssignTemplateId] = useState(assignParam ?? '')
-  const [assignDate, setAssignDate] = useState(new Date().toISOString().slice(0, 10))
+  const [assignDate, setAssignDate] = useState(localDateISO)
   const [assignRole, setAssignRole] = useState('primary')
   const [assignWeekdays, setAssignWeekdays] = useState<number[]>([])
   // Consume the deep-link param once so a refresh doesn't re-trigger it.
@@ -177,18 +199,27 @@ export function AthleteDetail() {
       window.location.href = '/'
     },
   })
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load athlete.</p>
-  if (!athlete) return <p className="text-muted-foreground">Athlete not found.</p>
+  if (!athlete) {
+    return (
+      <QueryState
+        query={athleteQuery}
+        resource="athlete"
+        skeleton="detail"
+        notFound={<EmptyState icon="🔍" title="Athlete not found" action="All athletes" actionTo="/athletes" />}
+      >
+        {() => null}
+      </QueryState>
+    )
+  }
   const recentWorkouts = workouts?.workouts.slice(0, 5) ?? []
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           {athlete.avatar_url ? (
-            <img src={athlete.avatar_url} alt={athlete.name} className="h-16 w-16 rounded-full object-cover ring-2 ring-border" />
+            <img src={athlete.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-border" />
           ) : (
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">
+            <div aria-hidden="true" className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">
               {athlete.name.charAt(0).toUpperCase()}
             </div>
           )}
@@ -232,62 +263,34 @@ export function AthleteDetail() {
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Train</p>
           <div className="flex flex-wrap gap-2">
-            <Link to={`/athletes/${athleteId}/prescription`} className={buttonVariants({ variant: "default", size: "sm" })}>
-              📋 Today's Workout
-            </Link>
-            <Link to={`/athletes/${athleteId}/workouts`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              📝 Workouts
-            </Link>
-            <Link to={`/athletes/${athleteId}/body-weights`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              ⚖️ Body Weight
-            </Link>
+            <QuickLink to={`/athletes/${athleteId}/prescription`} icon={ClipboardList} label="Today's Workout" primary />
+            <QuickLink to={`/athletes/${athleteId}/workouts`} icon={NotebookPen} label="Workouts" />
+            <QuickLink to={`/athletes/${athleteId}/body-weights`} icon={Scale} label="Body Weight" />
           </div>
         </div>
         {/* Sessions */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Sessions</p>
           <div className="flex flex-wrap gap-2">
-            <Link to={`/athletes/${athleteId}/throwing-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              ⚾ Throwing
-            </Link>
-            <Link to={`/athletes/${athleteId}/conditioning-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              🏃 Conditioning
-            </Link>
-            <Link to={`/athletes/${athleteId}/skill-sessions`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              🎯 Skill
-            </Link>
-            <Link to={`/athletes/${athleteId}/recovery-checkins`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              😴 Recovery
-            </Link>
-            <Link to={`/athletes/${athleteId}/load`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              📊 Load
-            </Link>
+            <QuickLink to={`/athletes/${athleteId}/throwing-sessions`} icon={Target} label="Throwing" />
+            <QuickLink to={`/athletes/${athleteId}/conditioning-sessions`} icon={Timer} label="Conditioning" />
+            <QuickLink to={`/athletes/${athleteId}/skill-sessions`} icon={Puzzle} label="Skill" />
+            <QuickLink to={`/athletes/${athleteId}/recovery-checkins`} icon={Moon} label="Recovery" />
+            <QuickLink to={`/athletes/${athleteId}/load`} icon={Gauge} label="Load" />
           </div>
         </div>
         {/* Program */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Program</p>
           <div className="flex flex-wrap gap-2">
-            <Link to={`/athletes/${athleteId}/training-maxes`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              💪 Training Maxes
-            </Link>
-            <Link to={`/athletes/${athleteId}/accessories`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              🔧 Accessories
-            </Link>
+            <QuickLink to={`/athletes/${athleteId}/training-maxes`} icon={Dumbbell} label="Training Maxes" />
+            <QuickLink to={`/athletes/${athleteId}/accessories`} icon={Wrench} label="Accessories" />
             {isCoach && (
               <>
-                <Link to={`/athletes/${athleteId}/assignments`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  🎯 Assignments
-                </Link>
-                <Link to={`/athletes/${athleteId}/cycle-review`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  📈 Cycle Review
-                </Link>
-                <Link to={`/athletes/${athleteId}/season-phases`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  📅 Season Phases
-                </Link>
-                <Link to={`/athletes/${athleteId}/tm-setup`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  🔧 TM Setup
-                </Link>
+                <QuickLink to={`/athletes/${athleteId}/assignments`} icon={ListChecks} label="Assignments" />
+                <QuickLink to={`/athletes/${athleteId}/cycle-review`} icon={LineChart} label="Cycle Review" />
+                <QuickLink to={`/athletes/${athleteId}/season-phases`} icon={CalendarRange} label="Season Phases" />
+                <QuickLink to={`/athletes/${athleteId}/tm-setup`} icon={Wrench} label="TM Setup" />
               </>
             )}
           </div>
@@ -297,34 +300,24 @@ export function AthleteDetail() {
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2">Coach Tools</p>
             <div className="flex flex-wrap gap-2">
-              <Link to={`/athletes/${athleteId}/generate`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                🤖 AI Coach
-              </Link>
-              <Link to={`/athletes/${athleteId}/wod`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                🔥 WOD
-              </Link>
-              <Link to={`/athletes/${athleteId}/import`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                📥 Import
-              </Link>
-              <Link to={`/athletes/${athleteId}/export`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                📦 Export
-              </Link>
+              <QuickLink to={`/athletes/${athleteId}/generate`} icon={Bot} label="AI Coach" />
+              <QuickLink to={`/athletes/${athleteId}/wod`} icon={Flame} label="WOD" />
+              <QuickLink to={`/athletes/${athleteId}/import`} icon={Upload} label="Import" />
+              <QuickLink to={`/athletes/${athleteId}/export`} icon={Download} label="Export" />
             </div>
           </div>
         )}
         {/* More */}
         <div>
-          <Button variant="ghost" size="sm" onClick={() => setShowMore(!showMore)}
+          <Button variant="ghost" size="sm" aria-expanded={showMore} onClick={() => setShowMore(!showMore)}
             className="text-xs text-muted-foreground">
-            {showMore ? 'Less ▲' : 'More ▼'}
+            {showMore ? <>Less <ChevronUp aria-hidden="true" /></> : <>More <ChevronDown aria-hidden="true" /></>}
           </Button>
           {showMore && (
             <div className="mt-2">
               <p className="text-xs font-medium text-muted-foreground mb-2">More</p>
               <div className="flex flex-wrap gap-2">
-                <Link to={`/athletes/${athleteId}/journal`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  📖 Journal
-                </Link>
+                <QuickLink to={`/athletes/${athleteId}/journal`} icon={BookOpen} label="Journal" />
               </div>
             </div>
           )}
@@ -332,24 +325,28 @@ export function AthleteDetail() {
       </div>
       {/* Info cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="rounded-lg border border-border bg-card p-4"
-          onClick={() => { if (!editingGoal) { setGoalText(athlete.goal ?? ''); setEditingGoal(true) } }}>
-          <h2 className="text-sm font-medium text-muted-foreground mb-1">Goal</h2>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h2 id="athlete-goal-heading" className="text-sm font-medium text-muted-foreground mb-1">Goal</h2>
           {editingGoal ? (
-            <div onClick={e => e.stopPropagation()}>
-              <Textarea value={goalText} onChange={e => setGoalText(e.target.value)}
+            <div>
+              <Textarea aria-labelledby="athlete-goal-heading" value={goalText} onChange={e => setGoalText(e.target.value)}
                 className="mb-2" />
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => goalMutation.mutate()} disabled={goalMutation.isPending}
+                <Button onClick={() => goalMutation.mutate()} disabled={goalMutation.isPending}
                   >Save</Button>
                 <Button variant="ghost" onClick={() => setEditingGoal(false)}
                   >Cancel</Button>
               </div>
             </div>
           ) : (
-            <p className="text-foreground cursor-pointer hover:text-primary/80">
-              {athlete.goal || <span className="text-muted-foreground italic">Click to set goal...</span>}
-            </p>
+            <button
+              type="button"
+              aria-label={athlete.goal ? `Edit goal: ${athlete.goal}` : 'Set goal'}
+              onClick={() => { setGoalText(athlete.goal ?? ''); setEditingGoal(true) }}
+              className="w-full min-h-11 rounded-md text-left text-foreground hover:text-primary/80 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:min-h-0"
+            >
+              {athlete.goal || <span className="text-muted-foreground italic">Tap to set goal...</span>}
+            </button>
           )}
         </div>
         {athlete.notes && (
@@ -364,7 +361,7 @@ export function AthleteDetail() {
           <Card>
             <CardContent>
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Date of Birth</h2>
-            <p className="text-foreground">{formatDate(athlete.date_of_birth)}</p>
+            <p className="text-foreground">{friendlyDate(athlete.date_of_birth, { absolute: true })}</p>
             </CardContent>
           </Card>
         )}
@@ -376,7 +373,7 @@ export function AthleteDetail() {
           {isCoach && (
             <Button variant="ghost" onClick={() => setShowAssign(!showAssign)}
               className="text-sm text-primary hover:text-primary/80">
-              {showAssign ? 'Cancel' : '+ Assign'}
+              {showAssign ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Assign</>}
             </Button>
           )}
         </div>
@@ -398,9 +395,9 @@ export function AthleteDetail() {
             className="rounded-lg border border-border bg-card p-4 mb-3 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="col-span-2 md:col-span-1">
-                <Label >Program</Label>
+                <Label htmlFor="assign-program">Program <span aria-hidden="true" className="text-destructive">*</span></Label>
                 <Select value={assignTemplateId || null} onValueChange={(val) => setAssignTemplateId(val ?? "")} required>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="assign-program" className="w-full">
                     <SelectValue placeholder="Select...">
                       {(value: string | null) => {
                         if (!value) return 'Select...'
@@ -419,13 +416,13 @@ export function AthleteDetail() {
                 </Select>
               </div>
               <div>
-                <Label >Start Date</Label>
-                <Input type="date" value={assignDate} onChange={e => setAssignDate(e.target.value)} required />
+                <Label htmlFor="assign-start-date">Start Date <span aria-hidden="true" className="text-destructive">*</span></Label>
+                <Input id="assign-start-date" type="date" value={assignDate} onChange={e => setAssignDate(e.target.value)} required />
               </div>
               <div>
-                <Label >Role</Label>
+                <Label htmlFor="assign-role">Role</Label>
                 <Select value={assignRole} onValueChange={(val) => setAssignRole(val ?? "primary")}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="assign-role" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -435,11 +432,11 @@ export function AthleteDetail() {
                 </Select>
               </div>
             </div>
-      <div>
-        <Label className="mb-2 block">Training Days</Label>
+      <fieldset>
+        <legend className="mb-2 text-sm font-medium">Training Days</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {assignmentWeekdays.map(weekday => (
-            <label key={weekday.value} htmlFor={`assignment-day-${weekday.value}`} className="flex items-center gap-2 text-sm">
+            <label key={weekday.value} htmlFor={`assignment-day-${weekday.value}`} className="flex min-h-11 items-center gap-2 text-sm md:min-h-0">
               <Checkbox
                 id={`assignment-day-${weekday.value}`}
                 checked={assignWeekdays.includes(weekday.value)}
@@ -449,7 +446,7 @@ export function AthleteDetail() {
             </label>
           ))}
         </div>
-      </div>
+      </fieldset>
             <Button type="submit" disabled={assignMutation.isPending || !assignTemplateId}
               >
               Assign Program
@@ -464,12 +461,12 @@ export function AthleteDetail() {
                   <Link to={`/programs/${p.template_id}`} className="flex-1 hover:text-primary transition-colors">
                     <p className="font-medium">{p.template_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      Started {formatDate(p.start_date)} • {p.role}
+                      Started {friendlyDate(p.start_date)} • {p.role}
                       {p.num_weeks ? ` • ${p.num_weeks}w` : ''}
                       {p.schedule ? ` • ${formatProgramSchedule(p.schedule) ?? 'Scheduled'}` : ''}
                     </p>
                   </Link>
-                  <Button variant="ghost" size="xs" onClick={async () => { if (await confirm({ title: 'Deactivate Program', description: 'Deactivate this program assignment?', confirmLabel: 'Deactivate', variant: 'danger' })) deactivateMutation.mutate(p.id) }}
+                  <Button variant="ghost" size="sm" onClick={async () => { if (await confirm({ title: 'Deactivate Program', description: 'Deactivate this program assignment?', confirmLabel: 'Deactivate', variant: 'danger' })) deactivateMutation.mutate(p.id) }}
                     className="text-muted-foreground hover:text-destructive ml-3">
                     Deactivate
                   </Button>
@@ -478,7 +475,7 @@ export function AthleteDetail() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No active programs.</p>
+          <p className="text-sm text-muted-foreground">No active programs.{isCoach && ' Assign one to start prescribing sessions.'}</p>
         )}
 
         {/* Deactivated Programs */}
@@ -494,7 +491,7 @@ export function AthleteDetail() {
                     {p.template_name}
                   </Link>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs">{formatDate(p.start_date)} – {p.deactivated_at ? formatDate(p.deactivated_at) : '?'}</span>
+                    <span className="text-xs">{friendlyDate(p.start_date, { absolute: true })} – {p.deactivated_at ? friendlyDate(p.deactivated_at, { absolute: true, timestamp: true }) : '?'}</span>
                     {isCoach && (
                       <>
                         <Button variant="ghost" size="icon-sm"
@@ -535,13 +532,13 @@ export function AthleteDetail() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold">Current Training Maxes</h2>
-            <Link to={`/athletes/${athleteId}/training-maxes`} className="text-sm text-primary hover:text-primary/80">
-              View all &rarr;
+            <Link to={`/athletes/${athleteId}/training-maxes`} className="inline-flex min-h-11 items-center gap-1 text-sm text-primary hover:text-primary/80 md:min-h-0">
+              View all <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {trainingMaxes.map(tm => (
-              <Card size="sm">
+              <Card key={tm.id} size="sm">
                 <CardContent>
                 <p className="text-sm text-muted-foreground">{tm.exercise_name}</p>
                 <p className="text-lg font-bold">{tm.weight}</p>
@@ -560,7 +557,7 @@ export function AthleteDetail() {
           </Link>
         </div>
         {recentWorkouts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No workouts logged yet.</p>
+          <EmptyState icon="🏋️" title="No workouts logged yet" action="Today's workout" actionTo={`/athletes/${athleteId}/prescription`} />
         ) : (
           <div className="space-y-2">
             {recentWorkouts.map(w => (
@@ -570,7 +567,7 @@ export function AthleteDetail() {
                 className="flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:border-primary/50 transition-colors"
               >
                 <div>
-                  <p className="text-sm font-medium">{w.date}</p>
+                  <p className="text-sm font-medium">{friendlyDate(w.date)}</p>
                   {w.program_name && <p className="text-xs text-muted-foreground">{w.program_name}</p>}
                 </div>
                 <span className="text-xs text-muted-foreground">{w.set_count} sets</span>
@@ -621,9 +618,9 @@ function AthleteEquipmentSection({ athleteId }: { athleteId: number }) {
         Tap to toggle what this athlete has access to. Used by the program compatibility check.
       </p>
       {isLoading ? (
-        <Spinner />
+        <Skeleton className="h-8 w-full" />
       ) : !all || all.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No equipment defined yet.</p>
+        <p className="text-sm text-muted-foreground">No equipment defined yet. <Link to="/equipment" className="text-primary hover:underline">Add equipment</Link></p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {all.map(e => {
@@ -652,13 +649,13 @@ function AthleteEquipmentSection({ athleteId }: { athleteId: number }) {
                   }
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors disabled:opacity-50',
+                  'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors disabled:opacity-50 md:min-h-0',
                   isOwned
                     ? 'border-primary bg-primary/15 text-primary hover:bg-primary/25'
                     : 'border-border text-muted-foreground hover:bg-muted',
                 )}
               >
-                <span aria-hidden className="text-xs leading-none">{isOwned ? '✓' : '+'}</span>
+                {isOwned ? <Check className="size-3.5" aria-hidden="true" /> : <Plus className="size-3.5" aria-hidden="true" />}
                 {e.name}
               </button>
             )

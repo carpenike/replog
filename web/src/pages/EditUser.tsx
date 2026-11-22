@@ -6,7 +6,10 @@ import { X } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import type { AthleteCard, User } from '@/api/types'
 import { serviceTokenScope, visibleServiceTokens } from '@/lib/serviceTokens'
-import { Spinner } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useFriendlyDate } from '@/lib/dates'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -23,11 +26,12 @@ export function EditUser() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data: user, isLoading } = useQuery({
+  const userQuery = useQuery({
     queryKey: ['user', id],
     queryFn: () => api.getUser(id),
     enabled: !isNaN(id),
   })
+  const user = userQuery.data
 
   const { data: athletes } = useQuery({
     queryKey: ['athletes'],
@@ -73,14 +77,19 @@ export function EditUser() {
     },
   })
 
-  if (isLoading) return <Spinner />
+  const header = <PageHeader title="Edit User" pageTitle={user ? `Edit ${user.username}` : 'Edit User'} back={{ to: '/users', label: 'Users' }} />
+  if (!user) {
+    return (
+      <div className="max-w-lg">
+        {header}
+        <QueryState query={userQuery} resource="user" skeleton="form">{() => null}</QueryState>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-lg">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to="/users" className="hover:text-foreground">Users</Link> / Edit
-      </p>
-      <h1 className="text-2xl font-bold mb-6">Edit User</h1>
+      {header}
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
@@ -88,7 +97,7 @@ export function EditUser() {
         )}
 
         <div>
-          <Label htmlFor="username">Username *</Label>
+          <Label htmlFor="username">Username <span aria-hidden="true" className="text-destructive">*</span></Label>
           <Input id="username" type="text" value={username} onChange={e => setUsername(e.target.value)} required />
         </div>
 
@@ -108,9 +117,9 @@ export function EditUser() {
         </div>
 
         <div>
-          <Label>Linked Athlete</Label>
+          <Label htmlFor="user-linked-athlete">Linked Athlete</Label>
           <Select value={athleteId || null} onValueChange={(val) => setAthleteId(val ?? '')}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="user-linked-athlete" className="w-full">
               <SelectValue placeholder="None">
                 {(value: string | null) => {
                   if (!value) return 'None'
@@ -129,11 +138,11 @@ export function EditUser() {
         </div>
 
         <div className="flex gap-4">
-          <Label>
+          <Label className="min-h-11 md:min-h-0">
             <Checkbox checked={isCoach} onCheckedChange={(checked) => setIsCoach(checked)} />
             Coach
           </Label>
-          <Label>
+          <Label className="min-h-11 md:min-h-0">
             <Checkbox checked={isAdmin} onCheckedChange={(checked) => setIsAdmin(checked)} />
             Admin
           </Label>
@@ -161,6 +170,7 @@ function LoginTokensSection({ userId }: { userId: number }) {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const [label, setLabel] = useState('')
   const [issuedToken, setIssuedToken] = useState<{ url: string; label: string } | null>(null)
+  const friendlyDate = useFriendlyDate()
 
   const { data: tokens, isLoading } = useQuery({
     queryKey: ['login-tokens', userId],
@@ -199,7 +209,7 @@ function LoginTokensSection({ userId }: { userId: number }) {
               Copy this now — the token will not be shown again. The user can sign in once via this URL.
             </p>
             <div className="flex gap-2 items-center">
-              <Input readOnly value={issuedToken.url} onFocus={(e) => e.currentTarget.select()} />
+              <Input readOnly aria-label="Login link URL" value={issuedToken.url} onFocus={(e) => e.currentTarget.select()} />
               <Button
                 type="button"
                 variant="outline"
@@ -240,7 +250,7 @@ function LoginTokensSection({ userId }: { userId: number }) {
       </form>
 
       {isLoading ? (
-        <Spinner />
+        <Skeleton className="h-24 w-full" />
       ) : tokens && tokens.length > 0 ? (
         <Table>
           <TableHeader>
@@ -249,15 +259,15 @@ function LoginTokensSection({ userId }: { userId: number }) {
               <TableHead>Created</TableHead>
               <TableHead>Expires</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12"><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {tokens.map(t => (
               <TableRow key={t.id}>
                 <TableCell className="font-medium">{t.label ?? '—'}</TableCell>
-                <TableCell className="text-muted-foreground">{new Date(t.created_at).toLocaleDateString()}</TableCell>
-                <TableCell className="text-muted-foreground">{t.expires_at ? new Date(t.expires_at).toLocaleDateString() : 'Never'}</TableCell>
+                <TableCell className="text-muted-foreground">{friendlyDate(t.created_at, { timestamp: true })}</TableCell>
+                <TableCell className="text-muted-foreground">{t.expires_at ? friendlyDate(t.expires_at, { timestamp: true }) : 'Never'}</TableCell>
                 <TableCell>
                   {t.expired
                     ? <Badge variant="secondary">Expired</Badge>
@@ -303,6 +313,7 @@ function ServiceTokensSection({ userId, owner, athletes }: {
   const [label, setLabel] = useState('')
   const [issuedToken, setIssuedToken] = useState<string | null>(null)
   const [showRevoked, setShowRevoked] = useState(false)
+  const friendlyDate = useFriendlyDate()
 
   const { data: tokens, isLoading } = useQuery({
     queryKey: ['service-tokens', userId],
@@ -400,7 +411,7 @@ function ServiceTokensSection({ userId, owner, athletes }: {
       </form>
 
       {isLoading ? (
-        <Spinner />
+        <Skeleton className="h-24 w-full" />
       ) : shown.length > 0 ? (
         <Table>
           <TableHeader>
@@ -416,11 +427,11 @@ function ServiceTokensSection({ userId, owner, athletes }: {
             {shown.map(t => (
               <TableRow key={t.id}>
                 <TableCell className="font-medium">{t.label ?? '—'}</TableCell>
-                <TableCell className="text-muted-foreground">{new Date(t.created_at).toLocaleDateString()}</TableCell>
-                <TableCell className="text-muted-foreground">{t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'Never'}</TableCell>
+                <TableCell className="text-muted-foreground">{friendlyDate(t.created_at, { timestamp: true })}</TableCell>
+                <TableCell className="text-muted-foreground">{t.last_used_at ? friendlyDate(t.last_used_at, { timestamp: true }) : 'Never'}</TableCell>
                 <TableCell>
                   {t.revoked_at
-                    ? <Badge variant="secondary">Revoked {new Date(t.revoked_at).toLocaleDateString()}</Badge>
+                    ? <Badge variant="secondary">Revoked {friendlyDate(t.revoked_at, { timestamp: true })}</Badge>
                     : <Badge>Active</Badge>}
                 </TableCell>
                 <TableCell>

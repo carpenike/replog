@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Pencil, X } from 'lucide-react'
+import { Check, Lock, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { api } from '@/api/client'
 import type { ProgramTemplate } from '@/api/types'
-import { Spinner } from '@/components/ui'
+import { EmptyState } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { Badge } from '@/components/ui/badge'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -64,7 +67,7 @@ export function ProgramDetail() {
   const [editAbsWeight, setEditAbsWeight] = useState('')
   const [editRestSeconds, setEditRestSeconds] = useState('')
   const [editNotes, setEditNotes] = useState('')
-  const { data, isLoading, error } = useQuery({
+  const programQuery = useQuery({
     queryKey: ['program', programId],
     queryFn: () => api.getProgramTemplate(programId),
     enabled: !isNaN(programId),
@@ -164,9 +167,22 @@ export function ProgramDetail() {
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to copy week'),
   })
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load program.</p>
-  if (!data) return <p className="text-muted-foreground">Program not found.</p>
+  const data = programQuery.data
+  if (!data) {
+    return (
+      <div>
+        <PageHeader title="Program" pageTitle={null} back={{ to: '/programs', label: 'Programs' }} />
+        <QueryState
+          query={programQuery}
+          resource="program"
+          skeleton="detail"
+          notFound={<EmptyState icon="🔍" title="Program not found" action="All programs" actionTo="/programs" />}
+        >
+          {() => null}
+        </QueryState>
+      </div>
+    )
+  }
   const program = data.program as ProgramTemplate
   const sets = data.sets as PrescribedSetData[]
   // Group sets by week → day → exercise
@@ -182,44 +198,51 @@ export function ProgramDetail() {
   }
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to="/programs" className="hover:text-foreground">Programs</Link>
-        {' / '}
-        {program.name}
-      </p>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold mb-2">{program.name}</h1>
-        <div className="flex gap-2">
-          <Button variant={editing ? 'default' : 'outline'} size="sm" onClick={() => { setEditing(!editing); setShowAddSet(false); setShowAddRule(false) }}>
-            {editing ? '✓ Done' : '✏️ Edit'}
-          </Button>
-          {editing && (
-            <>
-              <Link to={`/programs/${programId}/edit`}
-                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors">
-                Edit Details
-              </Link>
-              <Button variant="ghost" size="sm" onClick={async () => {
-                if (await confirm({ title: 'Delete Program', description: `Delete ${program.name}? This will remove all prescribed sets.`, confirmLabel: 'Delete', variant: 'danger' }))
-                  deleteProgramMutation.mutate()
-              }} className="text-destructive">
-                Delete
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-      {program.description && (
-        <p className="text-muted-foreground mb-4">{program.description}</p>
-      )}
-      <div className="flex gap-3 mb-6 text-sm text-muted-foreground">
-        <span>{program.num_weeks} week{program.num_weeks !== 1 ? 's' : ''}</span>
-        <span>•</span>
-        <span>{program.num_days} day{program.num_days !== 1 ? 's' : ''}/week</span>
-        {program.is_loop && <><span>•</span><span className="text-primary">Looping</span></>}
-      </div>
+      <PageHeader
+        title={program.name}
+        back={{ to: '/programs', label: 'Programs' }}
+        meta={program.locked && (
+          <Badge variant="outline"><Lock aria-hidden="true" className="size-3" /> Locked · v{program.import_version ?? program.version}</Badge>
+        )}
+        description={
+          <>
+            {program.description && <p className="mb-1">{program.description}</p>}
+            <p>
+              {program.num_weeks} week{program.num_weeks !== 1 ? 's' : ''} · {program.num_days} day{program.num_days !== 1 ? 's' : ''}/week
+              {program.is_loop && <> · <span className="text-primary">Looping</span></>}
+            </p>
+            {program.locked && <p className="mt-1">Imported templates are read-only. To change it, re-import a new version.</p>}
+          </>
+        }
+        actions={!program.locked && (
+          <>
+            <Button variant={editing ? 'default' : 'outline'} onClick={() => { setEditing(!editing); setShowAddSet(false); setShowAddRule(false) }} aria-pressed={editing}>
+              {editing ? <><Check aria-hidden="true" /> Done</> : <><Pencil aria-hidden="true" /> Edit</>}
+            </Button>
+            {editing && (
+              <>
+                <Button variant="outline" render={<Link to={`/programs/${programId}/edit`} />}>
+                  Edit Details
+                </Button>
+                <Button variant="destructive" onClick={async () => {
+                  if (await confirm({ title: 'Delete Program', description: `Delete ${program.name}? This will remove all prescribed sets.`, confirmLabel: 'Delete', variant: 'danger' }))
+                    deleteProgramMutation.mutate()
+                }}>
+                  <Trash2 aria-hidden="true" /> Delete
+                </Button>
+              </>
+            )}
+          </>
+        )}
+      />
       {sets.length === 0 ? (
-        <p className="text-muted-foreground">No prescribed sets defined.</p>
+        <EmptyState
+          icon="📊"
+          title="No prescribed sets yet"
+          description={program.locked ? undefined : 'Turn on editing to add the sets this program prescribes.'}
+          action={!program.locked && !editing ? 'Start editing' : undefined}
+          onAction={() => { setEditing(true); setShowAddSet(true) }}
+        />
       ) : (
         <div className="space-y-8">
           {Array.from(weeks.entries()).sort((a, b) => a[0] - b[0]).map(([week, days]) => (
@@ -240,36 +263,36 @@ export function ProgramDetail() {
                                   <div key={s.id} className="rounded-md border border-border bg-background p-2 my-1 space-y-2">
                                     <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                                       <div>
-                                        <Label className="text-xs">Reps</Label>
-                                        <Input type="number" min={1} value={editReps} onChange={e => setEditReps(e.target.value)} placeholder="AMRAP" />
+                                        <Label htmlFor="prog-edit-reps" className="text-xs">Reps</Label>
+                                        <Input id="prog-edit-reps" type="number" min={1} value={editReps} onChange={e => setEditReps(e.target.value)} placeholder="AMRAP" />
                                       </div>
                                       <div>
-                                        <Label className="text-xs">%</Label>
-                                        <Input type="number" step="0.5" value={editPercent} onChange={e => setEditPercent(e.target.value)} />
+                                        <Label htmlFor="prog-edit-percent" className="text-xs">%</Label>
+                                        <Input id="prog-edit-percent" type="number" step="0.5" value={editPercent} onChange={e => setEditPercent(e.target.value)} />
                                       </div>
                                       <div>
-                                        <Label className="text-xs">Weight</Label>
-                                        <Input type="number" step="0.5" value={editAbsWeight} onChange={e => setEditAbsWeight(e.target.value)} />
+                                        <Label htmlFor="prog-edit-weight" className="text-xs">Weight</Label>
+                                        <Input id="prog-edit-weight" type="number" step="0.5" value={editAbsWeight} onChange={e => setEditAbsWeight(e.target.value)} />
                                       </div>
                                       <div>
-                                        <Label className="text-xs">Rest (sec)</Label>
-                                        <Input type="number" min={0} value={editRestSeconds} onChange={e => setEditRestSeconds(e.target.value)} />
+                                        <Label htmlFor="prog-edit-rest" className="text-xs">Rest (sec)</Label>
+                                        <Input id="prog-edit-rest" type="number" min={0} value={editRestSeconds} onChange={e => setEditRestSeconds(e.target.value)} />
                                       </div>
                                     </div>
                                     <div>
-                                      <Label className="text-xs">Notes</Label>
-                                      <Input type="text" value={editNotes} onChange={e => setEditNotes(e.target.value)} />
+                                      <Label htmlFor="prog-edit-notes" className="text-xs">Notes</Label>
+                                      <Input id="prog-edit-notes" type="text" value={editNotes} onChange={e => setEditNotes(e.target.value)} />
                                     </div>
                                     <div className="flex gap-2">
                                       <Button
                                         type="button"
-                                        size="xs"
+                                        size="sm"
                                         disabled={updateSetMutation.isPending}
                                         onClick={() => updateSetMutation.mutate({ setId: s.id, data: s })}
                                       >
                                         {updateSetMutation.isPending ? 'Saving…' : 'Save'}
                                       </Button>
-                                      <Button type="button" size="xs" variant="ghost" onClick={() => setEditingSetId(null)}>
+                                      <Button type="button" size="sm" variant="ghost" onClick={() => setEditingSetId(null)}>
                                         Cancel
                                       </Button>
                                     </div>
@@ -315,7 +338,7 @@ export function ProgramDetail() {
         {!showAddSet ? (
           <Button variant="ghost" onClick={() => setShowAddSet(true)}
             className="rounded-md border border-dashed border-border px-4 py-2 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors w-full">
-            + Add Prescribed Set
+            <Plus aria-hidden="true" /> Add Prescribed Set
           </Button>
         ) : (
           <form onSubmit={(e) => { e.preventDefault(); addSetMutation.mutate() }}
@@ -323,9 +346,9 @@ export function ProgramDetail() {
             <h3 className="text-sm font-medium">Add Prescribed Set</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
-                <Label >Exercise</Label>
+                <Label htmlFor="prog-exercise">Exercise <span aria-hidden="true" className="text-destructive">*</span></Label>
                 <Select value={setExId || null} onValueChange={(val) => setSetExId(val ?? "")} required>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="prog-exercise" className="w-full">
                     <SelectValue placeholder="Select...">
                       {(value: string | null) => {
                         if (!value) return 'Select...'
@@ -339,28 +362,28 @@ export function ProgramDetail() {
                 </Select>
               </div>
               <div>
-                <Label >Week</Label>
-                <Input type="number" min={1} value={setWeek} onChange={e => setSetWeek(e.target.value)} />
+                <Label htmlFor="prog-week">Week</Label>
+                <Input id="prog-week" type="number" min={1} value={setWeek} onChange={e => setSetWeek(e.target.value)} />
               </div>
               <div>
-                <Label >Day</Label>
-                <Input type="number" min={1} value={setDay} onChange={e => setSetDay(e.target.value)} />
+                <Label htmlFor="prog-day">Day</Label>
+                <Input id="prog-day" type="number" min={1} value={setDay} onChange={e => setSetDay(e.target.value)} />
               </div>
               <div>
-                <Label >Reps</Label>
-                <Input type="number" min={1} value={setReps} onChange={e => setSetReps(e.target.value)} placeholder="empty=AMRAP" />
+                <Label htmlFor="prog-reps">Reps</Label>
+                <Input id="prog-reps" type="number" min={1} value={setReps} onChange={e => setSetReps(e.target.value)} placeholder="empty=AMRAP" />
               </div>
               <div>
-                <Label >% of TM</Label>
-                <Input type="number" step="0.5" value={setPercent} onChange={e => setSetPercent(e.target.value)} placeholder="e.g. 75" />
+                <Label htmlFor="prog-percent">% of TM</Label>
+                <Input id="prog-percent" type="number" step="0.5" value={setPercent} onChange={e => setSetPercent(e.target.value)} placeholder="e.g. 75" />
               </div>
               <div>
-                <Label >Abs. Weight</Label>
-                <Input type="number" step="0.5" value={setAbsWeight} onChange={e => setSetAbsWeight(e.target.value)} />
+                <Label htmlFor="prog-abs-weight">Abs. Weight</Label>
+                <Input id="prog-abs-weight" type="number" step="0.5" value={setAbsWeight} onChange={e => setSetAbsWeight(e.target.value)} />
               </div>
               <div>
-                <Label >Rest (sec)</Label>
-                <Input type="number" min={0} value={setRestSeconds} onChange={e => setSetRestSeconds(e.target.value)} />
+                <Label htmlFor="prog-rest">Rest (sec)</Label>
+                <Input id="prog-rest" type="number" min={0} value={setRestSeconds} onChange={e => setSetRestSeconds(e.target.value)} />
               </div>
             </div>
             <div className="flex gap-2">
@@ -397,9 +420,9 @@ export function ProgramDetail() {
             className="rounded-lg border border-border bg-card p-4 flex flex-wrap gap-3 items-end"
           >
             <div>
-              <Label>Copy from week</Label>
+              <Label htmlFor="prog-copy-from-week">Copy from week</Label>
               <Select value={copySourceWeek || null} onValueChange={(val) => setCopySourceWeek(val ?? '')}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger id="prog-copy-from-week" className="w-32">
                   <SelectValue placeholder="Source" />
                 </SelectTrigger>
                 <SelectContent>
@@ -410,9 +433,9 @@ export function ProgramDetail() {
               </Select>
             </div>
             <div>
-              <Label>To week</Label>
+              <Label htmlFor="prog-to-week">To week</Label>
               <Select value={copyTargetWeek || null} onValueChange={(val) => setCopyTargetWeek(val ?? '')}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger id="prog-to-week" className="w-32">
                   <SelectValue placeholder="Target" />
                 </SelectTrigger>
                 <SelectContent>
@@ -441,7 +464,7 @@ export function ProgramDetail() {
           {editing && (
             <Button variant="ghost" onClick={() => setShowAddRule(!showAddRule)}
               className="text-sm text-primary hover:text-primary/80">
-              {showAddRule ? 'Cancel' : '+ Add Rule'}
+              {showAddRule ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Add Rule</>}
             </Button>
           )}
         </div>
@@ -449,9 +472,9 @@ export function ProgramDetail() {
           <form onSubmit={(e) => { e.preventDefault(); addRuleMutation.mutate() }}
             className="rounded-lg border border-border bg-card p-4 mb-3 flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-50">
-              <Label >Exercise</Label>
+              <Label htmlFor="prog-rule-exercise">Exercise <span aria-hidden="true" className="text-destructive">*</span></Label>
               <Select value={ruleExId || null} onValueChange={(val) => setRuleExId(val ?? "")} required>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="prog-rule-exercise" className="w-full">
                   <SelectValue placeholder="Select...">
                     {(value: string | null) => {
                       if (!value) return 'Select...'
@@ -465,8 +488,8 @@ export function ProgramDetail() {
               </Select>
             </div>
             <div className="w-24">
-              <Label >Increment</Label>
-              <Input type="number" step="0.5" min={0.5} value={ruleIncrement} onChange={e => setRuleIncrement(e.target.value)} required placeholder="5" />
+              <Label htmlFor="prog-increment">Increment <span aria-hidden="true" className="text-destructive">*</span></Label>
+              <Input id="prog-increment" type="number" step="0.5" min={0.5} value={ruleIncrement} onChange={e => setRuleIncrement(e.target.value)} required placeholder="5" />
             </div>
             <Button type="submit" disabled={addRuleMutation.isPending || !ruleExId || !ruleIncrement}
               >
@@ -480,7 +503,7 @@ export function ProgramDetail() {
               <TableRow>
                 <TableHead>Exercise</TableHead>
                 <TableHead>Increment</TableHead>
-                {editing && <TableHead className="w-12"></TableHead>}
+                {editing && <TableHead className="w-12"><span className="sr-only">Actions</span></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -503,7 +526,7 @@ export function ProgramDetail() {
             </TableBody>
           </Table>
         ) : (
-          <p className="text-sm text-muted-foreground">No progression rules defined.</p>
+          <p className="text-sm text-muted-foreground">No progression rules. Training maxes change only when the coach applies a change.</p>
         )}
       </div>
       {confirmDialog()}

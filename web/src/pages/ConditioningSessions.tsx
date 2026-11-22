@@ -1,11 +1,15 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { X } from 'lucide-react'
+import { Plus, Trash2, X } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import type { ConditioningSessionInput, ConditioningIntervalInput } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { CardList, CardListItem, DesktopOnly } from '@/components/CardList'
+import { useFriendlyDate } from '@/lib/dates'
+import { localDateISO } from '@/lib/utils'
 import { useConfirm } from '@/lib/useConfirm'
 import { EnumSelect } from '@/components/EnumSelect'
 import { Button } from '@/components/ui/button'
@@ -60,7 +64,7 @@ export function ConditioningSessions() {
   const { confirm, dialog: confirmDialog } = useConfirm()
 
   const [showForm, setShowForm] = useState(false)
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(localDateISO())
   const [modality, setModality] = useState('run')
   const [sessionType, setSessionType] = useState('steady')
   const [totalDistance, setTotalDistance] = useState('')
@@ -77,14 +81,15 @@ export function ConditioningSessions() {
     enabled: !isNaN(athleteId),
   })
 
-  const { data: sessions, isLoading, error } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const listQuery = useQuery({
     queryKey: ['conditioning-sessions', athleteId],
     queryFn: () => api.listConditioningSessions(athleteId),
     enabled: !isNaN(athleteId),
   })
 
   function resetForm() {
-    setDate(new Date().toISOString().slice(0, 10))
+    setDate(localDateISO())
     setModality('run')
     setSessionType('steady')
     setTotalDistance('')
@@ -143,24 +148,19 @@ export function ConditioningSessions() {
     setIntervals(prev => prev.map((iv, i) => (i === idx ? { ...iv, [field]: value } : iv)))
   }
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load conditioning sessions.</p>
 
   return (
     <div>
       {confirmDialog()}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">
-              {athlete?.name ?? 'Athlete'}
-            </Link>
-            {' / Conditioning'}
-          </p>
-          <h1 className="text-2xl font-bold">Conditioning</h1>
-        </div>
-        <Button onClick={() => setShowForm(s => !s)}>{showForm ? 'Cancel' : '+ Log Conditioning'}</Button>
-      </div>
+      <PageHeader
+        title="Conditioning"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={
+          <Button variant={showForm ? 'ghost' : 'default'} onClick={() => setShowForm(s => !s)} aria-expanded={showForm}>
+            {showForm ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Log Conditioning</>}
+          </Button>
+        }
+      />
 
       {showForm && (
         <form
@@ -168,17 +168,17 @@ export function ConditioningSessions() {
           className="space-y-4 max-w-lg mb-8 rounded-lg border p-4"
         >
           <div>
-            <Label htmlFor="date">Date</Label>
+            <Label htmlFor="date">Date <span aria-hidden="true" className="text-destructive">*</span></Label>
             <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Modality</Label>
-              <EnumSelect value={modality} onChange={setModality} options={MODALITIES} required />
+              <Label htmlFor="cond-modality">Modality <span aria-hidden="true" className="text-destructive">*</span></Label>
+              <EnumSelect id="cond-modality" value={modality} onChange={setModality} options={MODALITIES} required />
             </div>
             <div>
-              <Label>Session type</Label>
-              <EnumSelect value={sessionType} onChange={setSessionType} options={SESSION_TYPES} required />
+              <Label htmlFor="cond-session-type">Session type <span aria-hidden="true" className="text-destructive">*</span></Label>
+              <EnumSelect id="cond-session-type" value={sessionType} onChange={setSessionType} options={SESSION_TYPES} required />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -187,8 +187,8 @@ export function ConditioningSessions() {
               <Input id="total_distance" type="number" step="0.1" min="0" value={totalDistance} onChange={e => setTotalDistance(e.target.value)} />
             </div>
             <div>
-              <Label>Unit</Label>
-              <EnumSelect value={distanceUnit} onChange={setDistanceUnit} options={DISTANCE_UNITS} />
+              <Label htmlFor="cond-unit">Unit</Label>
+              <EnumSelect id="cond-unit" value={distanceUnit} onChange={setDistanceUnit} options={DISTANCE_UNITS} />
             </div>
             <div>
               <Label htmlFor="duration_seconds">Duration (s)</Label>
@@ -208,17 +208,17 @@ export function ConditioningSessions() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Intervals</Label>
+              <h2 id="cond-intervals" className="text-sm font-medium">Intervals</h2>
               <Button type="button" variant="outline" size="sm" onClick={() => setIntervals(prev => [...prev, { ...emptyInterval }])}>
-                + Add interval
+                <Plus aria-hidden="true" /> Add interval
               </Button>
             </div>
             {intervals.map((iv, idx) => (
               <div key={idx} className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-2">
                 <span className="text-sm text-muted-foreground w-6">#{idx + 1}</span>
-                <Input type="number" min="0" placeholder="Work s" value={iv.work_seconds} onChange={e => updateInterval(idx, 'work_seconds', e.target.value)} />
-                <Input type="number" step="0.1" min="0" placeholder="Work dist" value={iv.work_distance} onChange={e => updateInterval(idx, 'work_distance', e.target.value)} />
-                <Input type="number" min="0" placeholder="Rest s" value={iv.rest_seconds} onChange={e => updateInterval(idx, 'rest_seconds', e.target.value)} />
+                <Input type="number" inputMode="numeric" min="0" aria-label={`Interval ${idx + 1} work seconds`} placeholder="Work s" value={iv.work_seconds} onChange={e => updateInterval(idx, 'work_seconds', e.target.value)} />
+                <Input type="number" inputMode="decimal" step="0.1" min="0" aria-label={`Interval ${idx + 1} work distance`} placeholder="Work dist" value={iv.work_distance} onChange={e => updateInterval(idx, 'work_distance', e.target.value)} />
+                <Input type="number" inputMode="numeric" min="0" aria-label={`Interval ${idx + 1} rest seconds`} placeholder="Rest s" value={iv.rest_seconds} onChange={e => updateInterval(idx, 'rest_seconds', e.target.value)} />
                 <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove interval ${idx + 1}`} onClick={() => setIntervals(prev => prev.filter((_, i) => i !== idx))}>
                   <X aria-hidden="true" />
                 </Button>
@@ -236,36 +236,55 @@ export function ConditioningSessions() {
         </form>
       )}
 
-      {sessions && sessions.length === 0 ? (
-        <p className="text-muted-foreground">No conditioning sessions logged yet.</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Modality</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Distance</TableHead>
-              <TableHead>Intervals</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sessions?.map(s => (
-              <TableRow key={s.id}>
-                <TableCell className="font-medium">{s.date}</TableCell>
-                <TableCell>{s.modality}</TableCell>
-                <TableCell>{s.session_type}</TableCell>
-                <TableCell>{s.total_distance != null ? `${s.total_distance} ${s.distance_unit ?? ''}` : '—'}</TableCell>
-                <TableCell>{s.intervals.length || '—'}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}>Delete</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+      <QueryState
+        query={listQuery}
+        resource="conditioning sessions"
+        empty={{ icon: '🏃', title: 'No conditioning sessions logged yet', description: 'Runs, rows, rides and interval work show up here.', action: !showForm ? 'Log Conditioning' : undefined, onAction: () => setShowForm(true) }}
+      >
+        {sessions => (
+          <>
+            <CardList label="Conditioning">
+              {sessions.map(s => (
+                <CardListItem
+                  key={s.id}
+                  title={friendlyDate(s.date)}
+                  subtitle={`${s.modality} · ${s.session_type}`}
+                  trailing={[s.total_distance != null ? `${s.total_distance} ${s.distance_unit ?? ''}`.trim() : null, s.intervals.length ? `${s.intervals.length} intervals` : null].filter(Boolean).join(' · ') || undefined}
+                  actions={<Button variant="ghost" size="sm" aria-label={`Delete ${'conditioning session ' + friendlyDate(s.date)}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(s.id)}><Trash2 aria-hidden="true" /> Delete</Button>}
+                />
+              ))}
+            </CardList>
+            <DesktopOnly>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Modality</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Distance</TableHead>
+                  <TableHead>Intervals</TableHead>
+                  <TableHead><span className="sr-only">Actions</span></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sessions.map(s => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{friendlyDate(s.date)}</TableCell>
+                    <TableCell>{s.modality}</TableCell>
+                    <TableCell>{s.session_type}</TableCell>
+                    <TableCell>{s.total_distance != null ? `${s.total_distance} ${s.distance_unit ?? ''}` : '—'}</TableCell>
+                    <TableCell>{s.intervals.length || '—'}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon-sm" aria-label={`Delete conditioning session ${friendlyDate(s.date)}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(s.id)}><Trash2 aria-hidden="true" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
         </Table>
-      )}
+            </DesktopOnly>
+          </>
+        )}
+      </QueryState>
     </div>
   )
 }

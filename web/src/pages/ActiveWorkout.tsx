@@ -4,7 +4,9 @@ import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/rea
 import { toast } from 'sonner'
 import { Check, ChevronLeft, Plus, Timer, Trash2, X } from 'lucide-react'
 import { api } from '@/api/client'
-import { EmptyState, QueryError } from '@/components/ui'
+import { EmptyState } from '@/components/ui'
+import { PageSkeleton, QueryState } from '@/components/QueryState'
+import { useFriendlyDate } from '@/lib/dates'
 import { ExercisePicker, type PickedExercise } from '@/components/ExercisePicker'
 import { celebrate } from '@/lib/confetti'
 import { fullHistoryQuery } from '@/lib/fullHistory'
@@ -18,7 +20,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ui/skeleton'
 import type { ExerciseGroup, ExerciseHistoryDayData, PrescriptionSetData, Workout, WorkoutSet } from '@/api/types'
 
 type WorkoutData = { workout: Workout; groups: ExerciseGroup[] }
@@ -232,12 +233,14 @@ export function ActiveWorkout() {
   const [editRpe, setEditRpe] = useState('')
   const [editSetNotes, setEditSetNotes] = useState('')
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const workoutQuery = useQuery({
     queryKey,
     queryFn: () => api.getWorkout(athleteId, wId),
     enabled: !isNaN(athleteId) && !isNaN(wId),
   })
   // 404 = no program for today; the page degrades to a freeform quick-logger.
+  const data = workoutQuery.data
   const { data: prescription, isLoading: rxLoading } = useQuery({
     queryKey: ['prescription', athleteId],
     queryFn: () => api.getPrescription(athleteId),
@@ -481,17 +484,21 @@ export function ActiveWorkout() {
     setExtraPending(p => ({ ...p, [ex.id]: (p[ex.id] ?? 0) + 1 }))
   }
 
-  if (isLoading || rxLoading) {
+  if (!data || rxLoading) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
-        <Skeleton className="h-14 w-full" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
+      <div className="mx-auto max-w-2xl">
+        <h1 className="sr-only">Session</h1>
+        <QueryState
+          query={rxLoading && data ? { data: undefined, error: null } : workoutQuery}
+          resource="workout"
+          skeleton={<PageSkeleton kind="detail" />}
+          notFound={<EmptyState icon="🔍" title="Workout not found" description="It may have been deleted." action="All workouts" actionTo={`/athletes/${athleteId}/workouts`} />}
+        >
+          {() => null}
+        </QueryState>
       </div>
     )
   }
-  if (error) return <QueryError error={error} onRetry={refetch} resource="workout" />
-  if (!data) return <EmptyState title="Workout not found" description="It may have been deleted." />
 
   const { workout } = data
   // A 404 (or any prescription failure) degrades to freeform logging.
@@ -506,6 +513,7 @@ export function ActiveWorkout() {
     <div className={cn('mx-auto max-w-2xl', restTimer.running ? 'pb-36' : 'pb-8')}>
       {/* Sticky session header — sits below the fixed mobile nav and the iOS
           status bar inset (--app-header-offset). */}
+      <h1 className="sr-only">Session · {friendlyDate(workout.date)}</h1>
       <div className="sticky top-(--app-header-offset) z-20 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur md:top-0 md:-mx-6 md:px-6">
         <div className="flex items-center justify-between gap-2">
           <Link
@@ -547,7 +555,7 @@ export function ActiveWorkout() {
 
       {!noProgram && (
         <p className="mb-4 text-sm text-muted-foreground">
-          {prescription.program_name} — Week {prescription.current_week}, Day {prescription.current_day}
+          {prescription.program_name} · Week {prescription.current_week}, Day {prescription.current_day}
           {prescription.cycle_number > 1 && ` (Cycle ${prescription.cycle_number})`}
         </p>
       )}

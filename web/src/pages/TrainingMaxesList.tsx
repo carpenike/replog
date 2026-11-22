@@ -1,20 +1,22 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import { Spinner, EmptyState, QueryError } from '@/components/ui'
-import { usePageTitle } from '@/lib/usePageTitle'
+import { Plus, X } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { useFriendlyDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sparkline } from '@/components/ui/sparkline'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate, formatWeight } from '@/lib/utils'
+import { formatWeight, localDateISO } from '@/lib/utils'
 export function TrainingMaxesList() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
-  usePageTitle('Training Maxes')
+  const friendlyDate = useFriendlyDate()
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
@@ -24,7 +26,7 @@ export function TrainingMaxesList() {
   const [showForm, setShowForm] = useState(false)
   const [exerciseId, setExerciseId] = useState('')
   const [weight, setWeight] = useState('')
-  const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().slice(0, 10))
+  const [effectiveDate, setEffectiveDate] = useState(localDateISO)
   const [notes, setNotes] = useState('')
   const [selectedExercise, setSelectedExercise] = useState<{ id: number; name: string } | null>(null)
   const { data: history } = useQuery({
@@ -32,7 +34,7 @@ export function TrainingMaxesList() {
     queryFn: () => api.getTrainingMaxHistory(athleteId, selectedExercise!.id),
     enabled: !!selectedExercise,
   })
-  const { data: maxes, isLoading, error, refetch } = useQuery({
+  const query = useQuery({
     queryKey: ['training-maxes', athleteId],
     queryFn: () => api.listTrainingMaxes(athleteId),
     enabled: !isNaN(athleteId),
@@ -56,30 +58,26 @@ export function TrainingMaxesList() {
       setShowForm(false)
     },
   })
-  if (isLoading) return <Spinner />
-  if (error) return <QueryError error={error} onRetry={refetch} resource="training maxes" />
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / Training Maxes'}
-      </p>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Training Maxes</h1>
-        <Button variant="ghost" onClick={() => setShowForm(!showForm)}
-          >
-          {showForm ? 'Cancel' : '+ Set TM'}
-        </Button>
-      </div>
+      <PageHeader
+        title="Training Maxes"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={
+          <Button variant={showForm ? 'ghost' : 'default'} onClick={() => setShowForm(!showForm)} aria-expanded={showForm}>
+            {showForm ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Set TM</>}
+          </Button>
+        }
+      />
       {/* Add form */}
       {showForm && (
         <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }}
           className="rounded-lg border border-border bg-card p-4 mb-6 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="col-span-2">
-              <Label htmlFor="tm-exercise" >Exercise</Label>
+              <Label htmlFor="tm-exercise">Exercise <span aria-hidden="true" className="text-destructive">*</span></Label>
               <Select value={exerciseId || null} onValueChange={(val) => setExerciseId(val ?? "")} required>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="tm-exercise" className="w-full">
                   <SelectValue placeholder="Select exercise...">
                     {(value: string | null) => {
                       if (!value) return 'Select exercise...'
@@ -95,7 +93,7 @@ export function TrainingMaxesList() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="tm-weight" >Weight</Label>
+              <Label htmlFor="tm-weight">Weight <span aria-hidden="true" className="text-destructive">*</span></Label>
               <Input id="tm-weight" type="number" inputMode="decimal" step="0.5" value={weight} onChange={e => setWeight(e.target.value)} required min={1} />
             </div>
             <div>
@@ -113,36 +111,40 @@ export function TrainingMaxesList() {
           </Button>
         </form>
       )}
-      {maxes && maxes.length === 0 ? (
-        <EmptyState icon="💪" title="No training maxes recorded" description="Set a TM above to drive percentage-based prescriptions." />
-      ) : (
+      <QueryState
+        query={query}
+        resource="training maxes"
+        skeleton="cards"
+        empty={{ icon: '💪', title: 'No training maxes recorded', description: 'Set a TM to drive percentage-based prescriptions.', action: showForm ? undefined : 'Set TM', onAction: () => setShowForm(true) }}
+      >
+        {maxes => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {maxes?.map(tm => {
+          {maxes.map(tm => {
             const selected = selectedExercise?.id === tm.exercise_id
             const toggle = () => setSelectedExercise(selected ? null : { id: tm.exercise_id, name: tm.exercise_name ?? '' })
             return (
-            <div key={tm.id}
-              role="button"
-              tabIndex={0}
+            <button key={tm.id}
+              type="button"
               aria-pressed={selected}
+              aria-label={`${tm.exercise_name}: ${formatWeight(tm.weight)}. Show history`}
               onClick={toggle}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
-              className={`rounded-lg border bg-card p-4 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+              className={`rounded-lg border bg-card p-4 text-left cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
                 selected ? 'border-primary' : 'border-border hover:border-primary/30'
               }`}>
               <p className="text-sm text-muted-foreground">{tm.exercise_name}</p>
               <p className="text-2xl font-bold mt-1">{formatWeight(tm.weight)}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Effective: {formatDate(tm.effective_date)}
+                Effective {friendlyDate(tm.effective_date)}
               </p>
               {tm.notes && (
                 <p className="text-xs text-muted-foreground mt-1">{tm.notes}</p>
               )}
-            </div>
+            </button>
             )
           })}
         </div>
-      )}
+        )}
+      </QueryState>
       {/* TM History */}
       {selectedExercise && history && (
         <div className="mt-6">
@@ -168,7 +170,7 @@ export function TrainingMaxesList() {
             <TableBody>
               {history.map(tm => (
                 <TableRow key={tm.id}>
-                  <TableCell>{formatDate(tm.effective_date)}</TableCell>
+                  <TableCell>{friendlyDate(tm.effective_date)}</TableCell>
                   <TableCell className="font-medium">{formatWeight(tm.weight)}</TableCell>
                   <TableCell className="text-muted-foreground">{tm.notes ?? ''}</TableCell>
                 </TableRow>

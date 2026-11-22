@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, Pencil, Play, Plus, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Check, Pencil, Play, Plus, Trash2, X } from 'lucide-react'
 import { api } from '@/api/client'
-import { EmptyState, QueryError } from '@/components/ui'
+import { EmptyState } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { useFriendlyDate } from '@/lib/dates'
 import { ExercisePicker, type PickedExercise } from '@/components/ExercisePicker'
 import { useConfirm } from '@/lib/useConfirm'
-import { usePageTitle } from '@/lib/usePageTitle'
 import { formatDate, formatWeight, localDateISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -15,7 +17,6 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import type { ExerciseGroup, Workout, WorkoutSet } from '@/api/types'
 
 type WorkoutData = { workout: Workout; groups: ExerciseGroup[] }
@@ -46,7 +47,8 @@ export function WorkoutDetail() {
   const [reviewNotes, setReviewNotes] = useState('')
   const [showReviewForm, setShowReviewForm] = useState(false)
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const workoutQuery = useQuery({
     queryKey,
     queryFn: () => api.getWorkout(athleteId, wId),
     enabled: !isNaN(athleteId) && !isNaN(wId),
@@ -63,7 +65,7 @@ export function WorkoutDetail() {
     retry: false,
   })
 
-  usePageTitle(data ? `Workout · ${formatDate(data.workout.date)}` : 'Workout')
+  const data = workoutQuery.data
 
   const addSetMutation = useMutation({
     mutationFn: () => api.addSet(athleteId, wId, {
@@ -222,42 +224,41 @@ export function WorkoutDetail() {
     setEditSetNotes(set.notes ?? '')
   }
 
-  if (isLoading) {
+  if (!data) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-4 w-48" />
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-40 w-full" />
+      <div>
+        <PageHeader title="Workout" pageTitle={null} back={{ to: `/athletes/${athleteId}/workouts`, label: 'Workouts' }} />
+        <QueryState
+          query={workoutQuery}
+          resource="workout"
+          skeleton="detail"
+          notFound={<EmptyState icon="🔍" title="Workout not found" description="It may have been deleted." action="All workouts" actionTo={`/athletes/${athleteId}/workouts`} />}
+        >
+          {() => null}
+        </QueryState>
       </div>
     )
   }
-  if (error) return <QueryError error={error} onRetry={refetch} resource="workout" />
-  if (!data) return <EmptyState title="Workout not found" description="It may have been deleted." />
   const { workout, groups } = data
+  const relative = friendlyDate(workout.date)
+  const absolute = friendlyDate(workout.date, { absolute: true })
 
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{workout.athlete_name || 'Athlete'}</Link>
-        {' / '}
-        <Link to={`/athletes/${athleteId}/workouts`} className="hover:text-foreground">Workouts</Link>
-        {' / '}
-        {formatDate(workout.date)}
-      </p>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold mb-2">{formatDate(workout.date)}</h1>
-        <Button variant="ghost" onClick={async () => {
+      <PageHeader
+        title={absolute}
+        pageTitle={`Workout · ${absolute}`}
+        back={{ to: `/athletes/${athleteId}/workouts`, label: workout.athlete_name ? `${workout.athlete_name}'s workouts` : 'Workouts' }}
+        description={[relative !== absolute ? relative : null, workout.program_name].filter(Boolean).join(' · ') || undefined}
+        actions={
+          <Button variant="destructive" onClick={async () => {
             if (await confirm({ title: 'Delete Workout', description: 'Delete this workout and all its sets? This cannot be undone.', confirmLabel: 'Delete', variant: 'danger' }))
               deleteWorkoutMutation.mutate()
-          }}
-          className="text-sm text-destructive hover:text-destructive/80">
-          Delete
-        </Button>
-      </div>
-      {workout.program_name && (
-        <p className="text-sm text-muted-foreground mb-4">{workout.program_name}</p>
-      )}
+          }}>
+            <Trash2 aria-hidden="true" /> Delete
+          </Button>
+        }
+      />
       {/* Today's workout gets a fast path into the live session screen. */}
       {formatDate(workout.date) === localDateISO() && (
         <Button
@@ -272,12 +273,12 @@ export function WorkoutDetail() {
       {editingNotes ? (
         <Card size="sm" className="mb-4">
           <CardContent>
-          <Textarea value={notesText} onChange={e => setNotesText(e.target.value)}
+          <Textarea aria-label="Session notes" value={notesText} onChange={e => setNotesText(e.target.value)}
             rows={3}
             placeholder="Session notes..."
           />
           <div className="flex gap-2 mt-2">
-            <Button variant="ghost" onClick={() => updateNotesMutation.mutate()}
+            <Button onClick={() => updateNotesMutation.mutate()}
               disabled={updateNotesMutation.isPending}
               >
               Save
@@ -305,7 +306,7 @@ export function WorkoutDetail() {
           {groups.map(group => (
             <div key={group.exercise_id} className="rounded-lg border border-border overflow-hidden">
               <div className="bg-muted/50 px-4 py-2 border-b border-border flex items-center justify-between">
-                <h3 className="font-semibold">{group.exercise_name}</h3>
+                <h2 className="font-semibold">{group.exercise_name}</h2>
                 <Link to={`/athletes/${athleteId}/exercises/${group.exercise_id}/history`}
                   className="text-xs text-muted-foreground hover:text-primary">
                   History
@@ -350,18 +351,24 @@ export function WorkoutDetail() {
                         </TableCell>
                       </TableRow>
                     ) : (
+                      // Tapping anywhere on the row opens edit (pointer convenience);
+                      // the set-number button is the keyboard and screen-reader path,
+                      // so the row itself is not a fake button wrapping real ones.
                       <TableRow
                         key={set.id}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Edit set ${set.set_number}`}
-                        className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                        className="cursor-pointer"
                         onClick={() => beginEdit(set)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); beginEdit(set) }
-                        }}
                       >
-                        <TableCell className="text-muted-foreground">{set.set_number}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          <button
+                            type="button"
+                            aria-label={`Edit set ${set.set_number}`}
+                            className="min-h-11 min-w-8 rounded-md text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:min-h-0"
+                            onClick={e => { e.stopPropagation(); beginEdit(set) }}
+                          >
+                            {set.set_number}
+                          </button>
+                        </TableCell>
                         <TableCell>{set.reps_label ?? set.reps}</TableCell>
                         <TableCell>{formatWeight(set.weight)}</TableCell>
                         <TableCell>{set.rpe ?? '—'}</TableCell>
@@ -370,7 +377,7 @@ export function WorkoutDetail() {
                           <div className="flex gap-1 justify-end">
                             {/* Row tap already opens edit — the pencil is redundant at phone widths
                                 and its 44px column pushed Notes off-screen. */}
-                            <Button variant="ghost" size="icon-touch" aria-label={`Edit set ${set.set_number}`}
+                            <Button variant="ghost" size="icon-touch" aria-hidden="true" tabIndex={-1}
                               className="hidden sm:inline-flex"
                               onClick={() => beginEdit(set)}
                             ><Pencil aria-hidden="true" /></Button>
@@ -405,7 +412,7 @@ export function WorkoutDetail() {
             onSubmit={(e) => { e.preventDefault(); addSetMutation.mutate() }}
             className="rounded-lg border border-border bg-card p-4 space-y-3"
           >
-            <h3 className="text-sm font-medium">Log Set</h3>
+            <h2 className="text-sm font-medium">Log Set</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="col-span-2">
                 <Label id="exercise-picker-label">Exercise</Label>
@@ -417,7 +424,7 @@ export function WorkoutDetail() {
                 />
               </div>
               <div>
-                <Label htmlFor="set-reps">Reps</Label>
+                <Label htmlFor="set-reps">Reps <span aria-hidden="true" className="text-destructive">*</span></Label>
                 <Input id="set-reps" type="number" inputMode="numeric" enterKeyHint="done" value={reps} onChange={e => setReps(e.target.value)} required min={1} className="h-11 mt-1" />
               </div>
               <div>
@@ -445,34 +452,36 @@ export function WorkoutDetail() {
         <Card className="mt-6">
           <CardContent>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold">Coach Review</h3>
+            <h2 className="font-semibold">Coach Review</h2>
             {workout.review_status && (
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 workout.review_status === 'approved' ? 'bg-success/10 text-success-strong' : 'bg-warning/10 text-warning-strong'
               }`}>
-                {workout.review_status === 'approved' ? '✓ Approved' : '⚠ Needs Work'}
+                {workout.review_status === 'approved'
+                  ? <span className="inline-flex items-center gap-1"><Check className="size-3" aria-hidden="true" /> Approved</span>
+                  : <span className="inline-flex items-center gap-1"><AlertTriangle className="size-3" aria-hidden="true" /> Needs Work</span>}
               </span>
             )}
           </div>
           {showReviewForm ? (
             <div className="space-y-3">
-              <div className="flex gap-3">
-                <Label>
+              <div role="radiogroup" aria-label="Review outcome" className="flex gap-3">
+                <Label className="min-h-11 md:min-h-0">
                   <input type="radio" name="review" checked={reviewStatus === 'approved'}
                     onChange={() => setReviewStatus('approved')} />
                   <span className="text-sm text-success-strong">Approve</span>
                 </Label>
-                <Label>
+                <Label className="min-h-11 md:min-h-0">
                   <input type="radio" name="review" checked={reviewStatus === 'needs_work'}
                     onChange={() => setReviewStatus('needs_work')} />
                   <span className="text-sm text-warning-strong">Needs Work</span>
                 </Label>
               </div>
-              <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
+              <Textarea aria-label="Review notes" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
                 rows={2} placeholder="Review notes (optional)..."
                 />
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => submitReviewMutation.mutate()}
+                <Button onClick={() => submitReviewMutation.mutate()}
                   disabled={submitReviewMutation.isPending}
                   >
                   {submitReviewMutation.isPending ? 'Submitting...' : 'Submit Review'}

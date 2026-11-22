@@ -5,6 +5,8 @@ import { api, ApiError } from '@/api/client'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { Field } from '@/components/Field'
+import { PageHeader } from '@/components/PageHeader'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert } from '@/components/ui/alert'
@@ -37,37 +39,30 @@ export function NewProgram() {
 
   return (
     <div className="max-w-lg">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to="/programs" className="hover:text-foreground">Programs</Link> / New
-      </p>
-      <h1 className="text-2xl font-bold mb-6">New Program Template</h1>
+      <PageHeader title="New Program Template" back={{ to: '/programs', label: 'Programs' }} />
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
           <Alert variant="destructive">{error}</Alert>
         )}
 
-        <div>
-          <Label htmlFor="name" >Name *</Label>
+        <Field label="Name" id="name" required>
           <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. 5/3/1 BBB, GZCL T1/T2" />
-        </div>
+        </Field>
 
-        <div>
-          <Label htmlFor="desc" >Description</Label>
-          <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} 
+        <Field label="Description" id="desc">
+          <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)}
             placeholder="Brief description of the program..."
-            />
-        </div>
+          />
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="weeks" >Weeks *</Label>
-            <Input id="weeks" type="number" min={1} max={52} value={numWeeks} onChange={e => setNumWeeks(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="days" >Days/Week *</Label>
-            <Input id="days" type="number" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} />
-          </div>
+          <Field label="Weeks" id="weeks" required>
+            <Input id="weeks" type="number" inputMode="numeric" min={1} max={52} value={numWeeks} onChange={e => setNumWeeks(e.target.value)} required />
+          </Field>
+          <Field label="Days/Week" id="days" required>
+            <Input id="days" type="number" inputMode="numeric" min={1} max={7} value={numDays} onChange={e => setNumDays(e.target.value)} required />
+          </Field>
         </div>
 
         <div className="flex items-center gap-2">

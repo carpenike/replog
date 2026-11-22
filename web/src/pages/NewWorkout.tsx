@@ -3,7 +3,9 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+import { Field } from '@/components/Field'
+import { PageHeader } from '@/components/PageHeader'
+import { localDateISO } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert } from '@/components/ui/alert'
@@ -14,7 +16,7 @@ export function NewWorkout() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(localDateISO)
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
 
@@ -39,15 +41,10 @@ export function NewWorkout() {
 
   return (
     <div className="max-w-lg">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">
-          {athlete?.name ?? 'Athlete'}
-        </Link>
-        {' / '}
-        <Link to={`/athletes/${athleteId}/workouts`} className="hover:text-foreground">Workouts</Link>
-        {' / New'}
-      </p>
-      <h1 className="text-2xl font-bold mb-6">New Workout</h1>
+      <PageHeader
+        title="New Workout"
+        back={{ to: `/athletes/${athleteId}/workouts`, label: athlete ? `${athlete.name}'s workouts` : 'Workouts' }}
+      />
 
       <form
         onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }}
@@ -59,17 +56,15 @@ export function NewWorkout() {
           </Alert>
         )}
 
-        <div>
-          <Label htmlFor="date" >Date</Label>
-          <Input id="date" type="date" enterKeyHint="done" value={date} onChange={e => setDate(e.target.value)} required className="h-11 mt-1" />
-        </div>
+        <Field label="Date" id="date" required>
+          <Input id="date" type="date" enterKeyHint="done" value={date} onChange={e => setDate(e.target.value)} required />
+        </Field>
 
-        <div>
-          <Label htmlFor="notes" >Notes</Label>
+        <Field label="Notes" id="notes">
           <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)}
             rows={3} placeholder="Optional session notes..."
-            />
-        </div>
+          />
+        </Field>
 
         <div className="flex gap-3">
           <Button type="submit" size="touch" disabled={createMutation.isPending}

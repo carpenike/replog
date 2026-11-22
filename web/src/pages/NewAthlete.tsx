@@ -5,6 +5,7 @@ import { api, ApiError } from '@/api/client'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { PageHeader } from '@/components/PageHeader'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -43,10 +44,7 @@ export function NewAthlete() {
 
   return (
     <div className="max-w-lg">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to="/athletes" className="hover:text-foreground">Athletes</Link> / New
-      </p>
-      <h1 className="text-2xl font-bold mb-6">New Athlete</h1>
+      <PageHeader title="New Athlete" back={{ to: '/athletes', label: 'Athletes' }} />
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
@@ -54,14 +52,14 @@ export function NewAthlete() {
         )}
 
         <div>
-          <Label htmlFor="name" >Name *</Label>
+          <Label htmlFor="name" >Name <span aria-hidden="true" className="text-destructive">*</span></Label>
           <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
         </div>
 
         <div>
-          <Label>Tier</Label>
+          <Label htmlFor="athlete-tier">Tier</Label>
           <Select value={tier} onValueChange={(val) => setTier(val ?? "")}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="athlete-tier" className="w-full">
               <SelectValue placeholder="None" />
             </SelectTrigger>
             <SelectContent>
@@ -89,9 +87,9 @@ export function NewAthlete() {
             <Input id="dob" type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} />
           </div>
           <div>
-            <Label>Gender</Label>
+            <Label htmlFor="athlete-gender">Gender</Label>
             <Select value={gender} onValueChange={(val) => setGender(val ?? "")}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="athlete-gender" className="w-full">
                 <SelectValue placeholder="Not specified" />
               </SelectTrigger>
               <SelectContent>
