@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Bell, BookOpen, Boxes, CheckSquare, ClipboardList, Dumbbell, Eye, House, Library, ListOrdered, LogOut, Menu,
-  Moon, NotebookPen, Settings, Sun, User as UserIcon, Users,
+  Moon, NotebookPen, Settings, Sun, Trophy, User as UserIcon, Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
@@ -110,6 +110,7 @@ function NavLinks({ user, pathname, unreadCount, onNavigate }: NavLinksProps) {
           {[
             { href: `/athletes/${user.athlete_id}/prescription`, label: "Today's Workout", icon: ClipboardList },
             { href: `/athletes/${user.athlete_id}/workouts`, label: 'My Workouts', icon: NotebookPen },
+            { href: `/athletes/${user.athlete_id}/records`, label: 'My Records', icon: Trophy },
             { href: `/athletes/${user.athlete_id}/journal`, label: 'My Journal', icon: BookOpen },
             { href: `/athletes/${user.athlete_id}`, label: 'My Profile', icon: UserIcon },
           ].map(item => (

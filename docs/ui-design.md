@@ -111,6 +111,41 @@ spinner.
   item (`Delete check-in Sat, Nov 21`).
 - Action columns get a visually hidden header (`<span className="sr-only">Actions</span>`).
 
+### Sub-navigation tabs (`components/ui/tabs.tsx`)
+
+Deep pages with many sections use `Tabs` (Base UI) instead of a wall of
+buttons. The athlete profile has Overview, Training, Sessions, Program and
+Tools; the tab lives in `?tab=` so back and refresh keep it
+(`lib/athleteTabs.ts`). Inside a tab, links are `NavTile`s (icon, label, one
+line of description). The Sessions tab features only the session types that
+have data, plus the recovery check-in, and offers the rest as small links.
+
+### Charts
+
+Charts are inline SVG with no chart library (`components/TrendChart.tsx`,
+`components/ui/sparkline.tsx`). One series per chart, so the card title names
+it and there is no legend. The line is 2px `currentColor` (`text-primary`),
+grid lines use `stroke-border`, labels use `fill-muted-foreground`. x is
+proportional to the date. Hover, touch and the arrow keys move a crosshair
+and tooltip; the SVG carries an `aria-label` summary. PR sessions get a ringed
+marker. The data comes from the read-only progress endpoint; warm-ups are
+excluded server-side.
+
+### Groups (supersets and circuits)
+
+Exercises that share a group key on the same day render as one bordered
+block titled "Superset B" (two) or "Circuit B" (three or more), with A1/A2
+position badges (`lib/groups.ts`). Editors use `components/GroupSelect.tsx`;
+setting a group is a coach action and never changes the athlete's loads.
+
+### Milestones and records
+
+`components/Milestones.tsx` shows tier badges, firsts and consistency
+milestones from the athlete's own history, with progress bars for the next
+goal. Copy never compares one athlete with another, and there are no
+leaderboards. The records board (`/athletes/:id/records`) lists rep maxes
+(heaviest load for at least N reps), the estimated 1RM and most reps.
+
 ## Forms
 
 ### Field (`components/Field.tsx`)

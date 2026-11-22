@@ -1383,6 +1383,23 @@ definitions:
         example: 1
         type: integer
     type: object
+  api.E1RMRecordResponse:
+    properties:
+      date:
+        example: "2026-11-21"
+        type: string
+      e1rm:
+        example: 262.5
+        type: number
+      reps:
+        example: 5
+        type: integer
+      weight:
+        example: 225
+        type: number
+      workout_id:
+        type: integer
+    type: object
   api.Equipment:
     properties:
       created_at:
@@ -1493,6 +1510,27 @@ definitions:
         type: array
       has_more:
         type: boolean
+    type: object
+  api.ExerciseRecordsResponse:
+    properties:
+      best_e1rm:
+        $ref: '#/definitions/api.E1RMRecordResponse'
+      exercise_id:
+        type: integer
+      heaviest:
+        $ref: '#/definitions/api.RecordSetResponse'
+      last_date:
+        type: string
+      most_reps:
+        $ref: '#/definitions/api.RecordSetResponse'
+      name:
+        type: string
+      rep_maxes:
+        items:
+          $ref: '#/definitions/api.RepMaxResponse'
+        type: array
+      session_count:
+        type: integer
     type: object
   api.ExerciseRequest:
     properties:
@@ -1800,6 +1838,62 @@ definitions:
         type: string
       philosophy:
         type: string
+    type: object
+  api.MilestoneGoalResponse:
+    properties:
+      current:
+        example: 3
+        type: integer
+      key:
+        example: streak_4
+        type: string
+      target:
+        example: 4
+        type: integer
+      title:
+        example: 4-week streak
+        type: string
+    type: object
+  api.MilestoneResponse:
+    properties:
+      achieved_on:
+        example: "2026-11-21"
+        type: string
+      detail:
+        type: string
+      key:
+        example: sessions_10
+        type: string
+      kind:
+        enum:
+        - tier
+        - first
+        - consistency
+        type: string
+      title:
+        example: 10 sessions
+        type: string
+    type: object
+  api.MilestonesResponse:
+    properties:
+      achieved:
+        items:
+          $ref: '#/definitions/api.MilestoneResponse'
+        type: array
+      athlete_id:
+        type: integer
+      best_streak:
+        type: integer
+      current_streak:
+        type: integer
+      next:
+        items:
+          $ref: '#/definitions/api.MilestoneGoalResponse'
+        type: array
+      pr_count:
+        type: integer
+      total_sessions:
+        type: integer
     type: object
   api.Notification:
     properties:
@@ -2302,6 +2396,39 @@ definitions:
       template_id:
         type: integer
     type: object
+  api.RecordSetResponse:
+    properties:
+      date:
+        example: "2026-11-21"
+        type: string
+      reps:
+        example: 5
+        type: integer
+      weight:
+        example: 225
+        type: number
+      workout_id:
+        type: integer
+    type: object
+  api.RecordsResponse:
+    properties:
+      athlete_id:
+        type: integer
+      e1rm_max_reps:
+        example: 12
+        type: integer
+      e1rm_source:
+        example: epley
+        type: string
+      exercises:
+        items:
+          $ref: '#/definitions/api.ExerciseRecordsResponse'
+        type: array
+      rep_targets:
+        items:
+          type: integer
+        type: array
+    type: object
   api.RecoveryCheckin:
     properties:
       athlete_id:
@@ -2340,6 +2467,23 @@ definitions:
         type: number
       soreness:
         example: 3
+        type: integer
+    type: object
+  api.RepMaxResponse:
+    properties:
+      date:
+        example: "2026-11-21"
+        type: string
+      reps:
+        example: 5
+        type: integer
+      target:
+        example: 5
+        type: integer
+      weight:
+        example: 225
+        type: number
+      workout_id:
         type: integer
     type: object
   api.ReviewRequest:
@@ -5679,6 +5823,42 @@ paths:
       summary: Get training-load summary
       tags:
       - Athletes
+  /athletes/{id}/milestones:
+    get:
+      description: Read only. Tier badges (from the coach's tier changes), firsts,
+        and consistency milestones (session counts, week streaks, PR counts), computed
+        only from this athlete's own history. Never compared with or ranked against
+        other athletes. Nothing here changes a program or a tier. Streaks are Monday-based
+        weeks in the viewer's time zone; the current week extends a streak but does
+        not break it.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MilestonesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Athlete milestones
+      tags:
+      - Athletes
   /athletes/{id}/missing-tms:
     get:
       parameters:
@@ -6191,6 +6371,37 @@ paths:
       summary: Promote athlete to next tier
       tags:
       - Athletes
+  /athletes/{id}/records:
+    get:
+      description: 'Read only. Current records per exercise from the athlete''s own
+        logged sets: heaviest set, best estimated 1RM (Epley, sets of up to e1rm_max_reps
+        reps), most reps in a set, and rep maxes (heaviest load for at least N reps).
+        Warm-up, timed, and distance sets are excluded. Ties keep the earliest date.
+        Loads are pounds.'
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.RecordsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Personal records board
+      tags:
+      - Workouts
   /athletes/{id}/recovery-checkins:
     get:
       parameters:

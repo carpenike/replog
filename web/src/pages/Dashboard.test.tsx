@@ -17,6 +17,7 @@ vi.mock('@/api/client', async () => {
       dashboard: vi.fn(),
       listWorkouts: vi.fn(),
       createWorkout: vi.fn(),
+      getAthleteMilestones: vi.fn(),
     },
   }
 })
@@ -79,10 +80,29 @@ beforeEach(() => {
   vi.mocked(fetchWeekStreak).mockResolvedValue(0)
   vi.mocked(api.listWorkouts).mockResolvedValue({ workouts: [], has_more: false })
   vi.mocked(api.createWorkout).mockResolvedValue(workout(99, localDateISO()))
+  vi.mocked(api.getAthleteMilestones).mockReset()
+  vi.mocked(api.getAthleteMilestones).mockResolvedValue({
+    athlete_id: 7, total_sessions: 7, current_streak: 3, best_streak: 3, pr_count: 1,
+    achieved: [
+      { key: 'sessions_5', kind: 'consistency', title: '5 sessions', detail: 'Logged 5 training sessions.', achieved_on: '2026-11-01' },
+      { key: 'tier_foundational', kind: 'tier', title: 'Reached Foundational', detail: 'Starting tier, set by the coach.', achieved_on: '2026-10-01' },
+    ],
+    next: [{ key: 'sessions_10', title: '10 sessions', current: 7, target: 10 }],
+  })
 })
 
 describe('linked athlete home', () => {
   const kid = user({ is_coach: false, is_admin: false, athlete_id: 7, name: 'Sam' })
+
+  it('shows own-history milestones and the next goal', async () => {
+    renderHome(kid)
+
+    expect(await screen.findByText('Reached Foundational')).toBeTruthy()
+    expect(screen.getByText('5 sessions')).toBeTruthy()
+    expect(screen.getByText('Your own history')).toBeTruthy()
+    expect(screen.getByRole('progressbar', { name: '10 sessions' }).getAttribute('aria-valuenow')).toBe('7')
+    expect(api.getAthleteMilestones).toHaveBeenCalledWith(7)
+  })
 
   it('opens a new session in one tap at full phone width', async () => {
     renderHome(kid)

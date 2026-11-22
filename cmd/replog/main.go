@@ -443,6 +443,8 @@ func main() {
 
 			// Exercise History.
 			r.Get("/athletes/{id}/exercises/{exerciseID}/history", apiHandlers.ListExerciseHistory)
+			r.Get("/athletes/{id}/records", apiHandlers.GetAthleteRecords)
+			r.Get("/athletes/{id}/milestones", apiHandlers.GetAthleteMilestones)
 
 			// Exercise Equipment.
 			r.Get("/exercises/{id}/equipment", apiHandlers.ListExerciseEquipment)

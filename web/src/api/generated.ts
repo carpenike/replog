@@ -4096,6 +4096,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/milestones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Athlete milestones
+         * @description Read only. Tier badges (from the coach's tier changes), firsts, and consistency milestones (session counts, week streaks, PR counts), computed only from this athlete's own history. Never compared with or ranked against other athletes. Nothing here changes a program or a tier. Streaks are Monday-based weeks in the viewer's time zone; the current week extends a streak but does not break it.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.MilestonesResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/missing-tms": {
         parameters: {
             query?: never;
@@ -5027,6 +5096,66 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Personal records board
+         * @description Read only. Current records per exercise from the athlete's own logged sets: heaviest set, best estimated 1RM (Epley, sets of up to e1rm_max_reps reps), most reps in a set, and rep maxes (heaviest load for at least N reps). Warm-up, timed, and distance sets are excluded. Ties keep the earliest date. Loads are pounds.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.RecordsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -10258,6 +10387,17 @@ export interface components {
             /** @example 1 */
             week?: number;
         };
+        "api.E1RMRecordResponse": {
+            /** @example 2026-11-21 */
+            date?: string;
+            /** @example 262.5 */
+            e1rm?: number;
+            /** @example 5 */
+            reps?: number;
+            /** @example 225 */
+            weight?: number;
+            workout_id?: number;
+        };
         "api.Equipment": {
             created_at?: string;
             description?: string;
@@ -10316,6 +10456,16 @@ export interface components {
         "api.ExerciseHistoryPage": {
             days?: components["schemas"]["api.ExerciseHistoryDay"][];
             has_more?: boolean;
+        };
+        "api.ExerciseRecordsResponse": {
+            best_e1rm?: components["schemas"]["api.E1RMRecordResponse"];
+            exercise_id?: number;
+            heaviest?: components["schemas"]["api.RecordSetResponse"];
+            last_date?: string;
+            most_reps?: components["schemas"]["api.RecordSetResponse"];
+            name?: string;
+            rep_maxes?: components["schemas"]["api.RepMaxResponse"][];
+            session_count?: number;
         };
         "api.ExerciseRequest": {
             demo_url?: string;
@@ -10488,6 +10638,36 @@ export interface components {
             key?: string;
             name?: string;
             philosophy?: string;
+        };
+        "api.MilestoneGoalResponse": {
+            /** @example 3 */
+            current?: number;
+            /** @example streak_4 */
+            key?: string;
+            /** @example 4 */
+            target?: number;
+            /** @example 4-week streak */
+            title?: string;
+        };
+        "api.MilestoneResponse": {
+            /** @example 2026-11-21 */
+            achieved_on?: string;
+            detail?: string;
+            /** @example sessions_10 */
+            key?: string;
+            /** @enum {string} */
+            kind?: "tier" | "first" | "consistency";
+            /** @example 10 sessions */
+            title?: string;
+        };
+        "api.MilestonesResponse": {
+            achieved?: components["schemas"]["api.MilestoneResponse"][];
+            athlete_id?: number;
+            best_streak?: number;
+            current_streak?: number;
+            next?: components["schemas"]["api.MilestoneGoalResponse"][];
+            pr_count?: number;
+            total_sessions?: number;
         };
         "api.Notification": {
             athlete_id?: number;
@@ -10780,6 +10960,24 @@ export interface components {
             increment?: number;
             template_id?: number;
         };
+        "api.RecordSetResponse": {
+            /** @example 2026-11-21 */
+            date?: string;
+            /** @example 5 */
+            reps?: number;
+            /** @example 225 */
+            weight?: number;
+            workout_id?: number;
+        };
+        "api.RecordsResponse": {
+            athlete_id?: number;
+            /** @example 12 */
+            e1rm_max_reps?: number;
+            /** @example epley */
+            e1rm_source?: string;
+            exercises?: components["schemas"]["api.ExerciseRecordsResponse"][];
+            rep_targets?: number[];
+        };
         "api.RecoveryCheckin": {
             athlete_id?: number;
             created_at?: string;
@@ -10802,6 +11000,17 @@ export interface components {
             sleep_hours?: number;
             /** @example 3 */
             soreness?: number;
+        };
+        "api.RepMaxResponse": {
+            /** @example 2026-11-21 */
+            date?: string;
+            /** @example 5 */
+            reps?: number;
+            /** @example 5 */
+            target?: number;
+            /** @example 225 */
+            weight?: number;
+            workout_id?: number;
         };
         "api.ReviewRequest": {
             notes?: string;

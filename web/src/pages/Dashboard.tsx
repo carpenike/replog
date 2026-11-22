@@ -8,6 +8,7 @@ import { fetchWeekStreak } from '@/lib/streak'
 import { openTodaySession, sessionPath, workoutOnDate } from '@/lib/todaySession'
 import { ArrowRight } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
+import { MilestonesCard } from '@/components/Milestones'
 import { useFriendlyDate } from '@/lib/dates'
 import { cn, localDateISO } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -136,10 +137,15 @@ function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
         <Link to={`/athletes/${athleteId}/body-weights`} className="text-muted-foreground hover:text-foreground">
           Body weight
         </Link>
+        <Link to={`/athletes/${athleteId}/records`} className="text-muted-foreground hover:text-foreground">
+          Records
+        </Link>
         <Link to={`/athletes/${athleteId}`} className="text-muted-foreground hover:text-foreground">
           Profile
         </Link>
       </nav>
+
+      <MilestonesCard athleteId={athleteId} className="mt-6" />
     </div>
   )
 }

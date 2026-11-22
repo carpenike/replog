@@ -568,3 +568,118 @@ export interface PitchSmartStatus {
   next_eligible_date?: string;
   advisory: string;
 }
+
+// --- Records board (GET /api/athletes/{id}/records) ---
+
+export interface RecordSetData {
+  workout_id: number;
+  date: string;
+  reps: number;
+  /** null/absent for a bodyweight set */
+  weight?: number | null;
+}
+
+export interface RepMaxData extends RecordSetData {
+  /** Heaviest load lifted for at least this many reps. */
+  target: number;
+}
+
+export interface E1RMRecordData extends RecordSetData {
+  e1rm: number;
+}
+
+export interface ExerciseRecordsData {
+  exercise_id: number;
+  name: string;
+  session_count: number;
+  last_date: string;
+  heaviest?: RecordSetData | null;
+  best_e1rm?: E1RMRecordData | null;
+  most_reps?: RecordSetData | null;
+  rep_maxes: RepMaxData[];
+}
+
+export interface RecordsData {
+  athlete_id: number;
+  rep_targets: number[];
+  e1rm_source: string;
+  e1rm_max_reps: number;
+  exercises: ExerciseRecordsData[];
+}
+
+// --- Milestones (GET /api/athletes/{id}/milestones) ---
+
+export type MilestoneKind = 'tier' | 'first' | 'consistency';
+
+export interface MilestoneData {
+  key: string;
+  kind: MilestoneKind;
+  title: string;
+  detail: string;
+  achieved_on: string;
+}
+
+export interface MilestoneGoalData {
+  key: string;
+  title: string;
+  current: number;
+  target: number;
+}
+
+export interface MilestonesData {
+  athlete_id: number;
+  total_sessions: number;
+  current_streak: number;
+  best_streak: number;
+  pr_count: number;
+  /** Newest first. */
+  achieved: MilestoneData[];
+  next: MilestoneGoalData[];
+}
+
+// --- Progress read (GET /api/athletes/{id}/coach/progress) ---
+
+export interface ProgressLoad {
+  value: number | null;
+  unit: string;
+}
+
+export interface ProgressTopSet {
+  session_id: number;
+  date: string;
+  reps: number;
+  load: ProgressLoad;
+  e1rm: number | null;
+  rpe?: number | null;
+}
+
+export interface ProgressPoint {
+  session_id: number;
+  date: string;
+  e1rm: number | null;
+  top_set: ProgressTopSet;
+}
+
+export interface ProgressPR {
+  session_id: number;
+  date: string;
+  e1rm: number;
+  reps: number;
+  load: ProgressLoad;
+}
+
+export interface ProgressExercise {
+  exercise_id: number;
+  name: string;
+  sessions: ProgressPoint[];
+  prs: ProgressPR[];
+  last_session_top_set?: ProgressTopSet | null;
+}
+
+export interface ProgressData {
+  athlete_id: number;
+  start?: string | null;
+  end?: string | null;
+  e1rm_source: string;
+  exercises: ProgressExercise[];
+}

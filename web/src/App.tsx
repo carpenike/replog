@@ -62,6 +62,7 @@ const ConditioningSessions = lazy(() => import('@/pages/ConditioningSessions').t
 const SkillSessions = lazy(() => import('@/pages/SkillSessions').then(m => ({ default: m.SkillSessions })))
 const RecoveryCheckins = lazy(() => import('@/pages/RecoveryCheckins').then(m => ({ default: m.RecoveryCheckins })))
 const SeasonPhases = lazy(() => import('@/pages/SeasonPhases').then(m => ({ default: m.SeasonPhases })))
+const RecordsPage = lazy(() => import('@/pages/RecordsPage').then(m => ({ default: m.RecordsPage })))
 const LoadDashboard = lazy(() => import('@/pages/LoadDashboard').then(m => ({ default: m.LoadDashboard })))
 
 export function App() {
@@ -121,6 +122,7 @@ export function App() {
         <Route path="/athletes/:id/recovery-checkins" element={<RecoveryCheckins />} />
         <Route path="/athletes/:id/season-phases" element={<SeasonPhases />} />
         <Route path="/athletes/:id/load" element={<LoadDashboard />} />
+        <Route path="/athletes/:id/records" element={<RecordsPage />} />
         <Route path="/exercises" element={<ExercisesList user={user} />} />
         <Route path="/exercises/new" element={<RequireRole user={user} role="coach"><NewExercise /></RequireRole>} />
         <Route path="/exercises/:id" element={<ExerciseDetail />} />

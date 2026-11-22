@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
+import { GroupSelect } from '@/components/GroupSelect'
+import { groupBlocks, groupKind, memberLabel } from '@/lib/groups'
 export function AccessoryPlans() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
@@ -27,6 +29,7 @@ export function AccessoryPlans() {
   const [repMax, setRepMax] = useState('')
   const [weight, setWeight] = useState('')
   const [notes, setNotes] = useState('')
+  const [group, setGroup] = useState<string | null>(null)
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
@@ -51,6 +54,7 @@ export function AccessoryPlans() {
       target_rep_max: repMax ? parseInt(repMax) : undefined,
       target_weight: weight ? parseFloat(weight) : undefined,
       notes: notes || undefined,
+      group_key: group ?? undefined,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accessories', athleteId] })
@@ -60,6 +64,7 @@ export function AccessoryPlans() {
       setRepMax('')
       setWeight('')
       setNotes('')
+      setGroup(null)
       setShowForm(false)
     },
   })
@@ -133,7 +138,12 @@ export function AccessoryPlans() {
               <Label htmlFor="acc-weight">Weight</Label>
               <Input id="acc-weight" type="number" step="0.5" value={weight} onChange={e => setWeight(e.target.value)} />
             </div>
+            <div>
+              <Label htmlFor="acc-group">Superset group</Label>
+              <GroupSelect id="acc-group" value={group} onChange={setGroup} />
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground">Accessories on the same day with the same group letter are done together as a superset or circuit.</p>
           <div>
             <Label htmlFor="acc-notes">Notes</Label>
             <Input id="acc-notes" type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional" />
@@ -168,10 +178,13 @@ export function AccessoryPlans() {
               <div key={dayNum}>
                 <h2 className="text-sm font-semibold text-muted-foreground mb-2">Day {dayNum}</h2>
                 <div className="space-y-2">
-                  {dayPlans?.map(plan => (
+                  {groupBlocks(dayPlans, p => p.group_key).map((block, bi) => {
+                    const grouped = block.key != null && block.items.length > 1
+                    const rows = block.items.map((plan, mi) => (
                     <AccessoryPlanRow
                       key={plan.id}
                       plan={plan}
+                      label={grouped ? memberLabel(block.key!, mi) : block.key ?? undefined}
                       athleteId={athleteId}
                       onDeactivate={async () => {
                         if (await confirm({ title: 'Deactivate Plan', description: 'Mark this accessory plan as inactive? It will be hidden but kept in history.', confirmLabel: 'Deactivate' }))
@@ -182,7 +195,21 @@ export function AccessoryPlans() {
                           deleteMutation.mutate(plan.id)
                       }}
                     />
-                  ))}
+                    ))
+                    if (!grouped) return <div key={block.key ?? `solo-${bi}`} className="space-y-2">{rows}</div>
+                    return (
+                      <section
+                        key={block.key}
+                        aria-label={`${groupKind(block.items.length)} ${block.key}`}
+                        className="space-y-2 rounded-lg border-l-4 border-primary/60 bg-primary/5 p-2"
+                      >
+                        <p className="px-1 text-xs font-semibold uppercase tracking-wider text-primary">
+                          {groupKind(block.items.length)} {block.key}
+                        </p>
+                        {rows}
+                      </section>
+                    )
+                  })}
                 </div>
               </div>
             ))}
@@ -228,11 +255,14 @@ export function AccessoryPlans() {
 
 function AccessoryPlanRow({
   plan,
+  label,
   athleteId,
   onDeactivate,
   onDelete,
 }: {
   plan: AccessoryPlanData
+  /** Superset position (A1) or a lone group key. */
+  label?: string
   athleteId: number
   onDeactivate: () => void
   onDelete: () => void
@@ -244,6 +274,7 @@ function AccessoryPlanRow({
   const [editMax, setEditMax] = useState(plan.target_rep_max?.toString() ?? '')
   const [editWeight, setEditWeight] = useState(plan.target_weight?.toString() ?? '')
   const [editNotes, setEditNotes] = useState(plan.notes ?? '')
+  const [editGroup, setEditGroup] = useState<string | null>(plan.group_key ?? null)
 
   const updateMutation = useMutation({
     mutationFn: () => api.updateAccessoryPlan(athleteId, plan.id, {
@@ -252,12 +283,31 @@ function AccessoryPlanRow({
       target_rep_max: editMax ? parseInt(editMax) : 0,
       target_weight: editWeight ? parseFloat(editWeight) : 0,
       notes: editNotes,
+      sort_order: plan.sort_order,
+      group_key: editGroup ?? '',
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accessories', athleteId] })
       setEditing(false)
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to update plan'),
+  })
+
+  const groupMutation = useMutation({
+    // The update replaces the targets, so carry the current values.
+    mutationFn: (key: string | null) => api.updateAccessoryPlan(athleteId, plan.id, {
+      target_sets: plan.target_sets ?? 0,
+      target_rep_min: plan.target_rep_min ?? 0,
+      target_rep_max: plan.target_rep_max ?? 0,
+      target_weight: plan.target_weight ?? 0,
+      notes: plan.notes ?? '',
+      sort_order: plan.sort_order,
+      group_key: key ?? '',
+    }),
+    onSuccess: (_d, key) => {
+      queryClient.invalidateQueries({ queryKey: ['accessories', athleteId] })
+      toast.success(key ? `${plan.exercise_name} added to group ${key}.` : `${plan.exercise_name} ungrouped.`)
+    },
   })
 
   if (editing) {
@@ -282,6 +332,10 @@ function AccessoryPlanRow({
               <Label htmlFor={`acc-${plan.id}-edit-weight`} className="text-xs">Weight</Label>
               <Input id={`acc-${plan.id}-edit-weight`} type="number" step="0.5" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
             </div>
+            <div>
+              <Label htmlFor={`acc-${plan.id}-edit-group`} className="text-xs">Group</Label>
+              <GroupSelect id={`acc-${plan.id}-edit-group`} value={editGroup} onChange={setEditGroup} />
+            </div>
           </div>
           <div>
             <Label htmlFor={`acc-${plan.id}-edit-notes`} className="text-xs">Notes</Label>
@@ -301,8 +355,11 @@ function AccessoryPlanRow({
   return (
     <Card size="sm">
       <CardContent className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium">{plan.exercise_name}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">
+            {label && <span className="mr-1.5 rounded bg-primary/15 px-1.5 py-0.5 text-xs font-semibold text-primary">{label}</span>}
+            {plan.exercise_name}
+          </p>
           <p className="text-xs text-muted-foreground">
             {plan.target_sets && `${plan.target_sets}×`}
             {plan.target_rep_min && plan.target_rep_max
@@ -312,7 +369,11 @@ function AccessoryPlanRow({
             {plan.notes ? ` — ${plan.notes}` : ''}
           </p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          <div className="w-28">
+            <Label htmlFor={`acc-${plan.id}-group`} className="sr-only">Superset group for {plan.exercise_name}</Label>
+            <GroupSelect id={`acc-${plan.id}-group`} value={plan.group_key ?? null} disabled={groupMutation.isPending} onChange={key => groupMutation.mutate(key)} />
+          </div>
           <Button variant="ghost" size="icon-sm" aria-label={`Edit ${plan.exercise_name}`} onClick={() => setEditing(true)}>
             <Pencil aria-hidden="true" />
           </Button>

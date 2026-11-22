@@ -24,6 +24,11 @@ vi.mock('@/api/client', async () => {
       reactivateProgram: vi.fn(),
       deleteAthleteProgram: vi.fn(),
       startImpersonation: vi.fn(),
+      getAthleteMilestones: vi.fn(),
+      listThrowingSessions: vi.fn(),
+      listConditioningSessions: vi.fn(),
+      listSkillSessions: vi.fn(),
+      listRecoveryCheckins: vi.fn(),
     },
   }
 })
@@ -68,7 +73,7 @@ const oldProgram: AthleteProgram = {
   updated_at: '2026-02-01T00:00:00Z',
 }
 
-function renderPage() {
+function renderPage(path = '/athletes/7') {
   // Mirror main.tsx: failed mutations toast unless they opt out.
   const mutationCache = new MutationCache({
     onError: (error, _v, _c, mutation) => {
@@ -82,7 +87,7 @@ function renderPage() {
   })
   const router = createMemoryRouter(
     [{ path: '/athletes/:id', element: <AthleteDetail /> }],
-    { initialEntries: ['/athletes/7'] },
+    { initialEntries: [path] },
   )
   render(
     <QueryClientProvider client={queryClient}>
@@ -100,6 +105,13 @@ beforeEach(() => {
   vi.mocked(api.listAthletePrograms).mockResolvedValue([oldProgram] as unknown as Awaited<ReturnType<typeof api.listAthletePrograms>>)
   vi.mocked(api.listAthleteEquipment).mockResolvedValue([])
   vi.mocked(api.listEquipment).mockResolvedValue([])
+  vi.mocked(api.getAthleteMilestones).mockResolvedValue({
+    athlete_id: 7, total_sessions: 0, current_streak: 0, best_streak: 0, pr_count: 0, achieved: [], next: [],
+  })
+  vi.mocked(api.listThrowingSessions).mockResolvedValue([])
+  vi.mocked(api.listConditioningSessions).mockResolvedValue([])
+  vi.mocked(api.listSkillSessions).mockResolvedValue([])
+  vi.mocked(api.listRecoveryCheckins).mockResolvedValue([])
 })
 
 describe('promote', () => {
@@ -153,6 +165,7 @@ describe('previous program actions', () => {
     vi.mocked(api.reactivateProgram).mockRejectedValue(new ApiError('Role already taken', 409))
     renderPage()
 
+    await userEvent.click(await screen.findByRole('tab', { name: 'Program' }))
     await userEvent.click(await screen.findByText('1 previous program'))
     expect(screen.getByRole('button', { name: 'Delete Base Builder assignment' })).toBeTruthy()
     await userEvent.click(screen.getByRole('button', { name: 'Reactivate Base Builder' }))
@@ -160,5 +173,47 @@ describe('previous program actions', () => {
 
     await waitFor(() => expect(api.reactivateProgram).toHaveBeenCalledWith(7, 31))
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Role already taken'))
+  })
+})
+
+describe('sub-navigation', () => {
+  it('shows five tabs with Overview selected and no flat link wall', async () => {
+    renderPage()
+
+    const tabs = await screen.findAllByRole('tab')
+    expect(tabs.map(t => t.textContent)).toEqual(['Overview', 'Training', 'Sessions', 'Program', 'Tools'])
+    expect(screen.getByRole('tab', { name: 'Overview' }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('link', { name: "Today's Workout" })).toBeTruthy()
+    // Coach tools live behind their tab.
+    expect(screen.queryByRole('link', { name: /AI Coach/ })).toBeNull()
+  })
+
+  it('opens the tab named in the URL', async () => {
+    renderPage('/athletes/7?tab=tools')
+
+    expect(await screen.findByRole('link', { name: /AI Coach/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Export/ })).toBeTruthy()
+  })
+
+  it('features session types with data and offers the rest as small links', async () => {
+    vi.mocked(api.listThrowingSessions).mockResolvedValue([
+      { id: 1, workout_id: 1, athlete_id: 7, date: '2026-11-20' },
+    ] as unknown as Awaited<ReturnType<typeof api.listThrowingSessions>>)
+    renderPage('/athletes/7?tab=sessions')
+
+    const throwing = await screen.findByRole('link', { name: /Throwing.*1 session/ })
+    expect(throwing).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Recovery.*No check-ins yet/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Load/ })).toBeTruthy()
+    expect(screen.getByText('Log another session type')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Conditioning' })).toBeTruthy()
+  })
+
+  it('keeps the Journal in the Training tab', async () => {
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Training' }))
+    expect(await screen.findByRole('link', { name: /Journal/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Records/ })).toBeTruthy()
   })
 })

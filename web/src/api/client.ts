@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 import type { AthleteProgram, PlateSetup, PlateSetupPreset, PlateSetupRequest } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
@@ -636,6 +636,29 @@ class ApiClient {
   // Exercise History
   async listExerciseHistory(athleteId: number, exerciseId: number, offset = 0): Promise<ExerciseHistoryPageData> {
     return this.request(`/api/athletes/${athleteId}/exercises/${exerciseId}/history?offset=${offset}`);
+  }
+
+  /**
+   * Per-session estimated 1RM and top set for each exercise (the read-only
+   * progress read the coach tools use). Warm-ups are excluded server-side.
+   */
+  async getProgress(athleteId: number, opts: { exerciseId?: number; start?: string; end?: string } = {}): Promise<ProgressData> {
+    const q = new URLSearchParams()
+    if (opts.exerciseId) q.set('exercise', String(opts.exerciseId))
+    if (opts.start) q.set('start', opts.start)
+    if (opts.end) q.set('end', opts.end)
+    const qs = q.toString()
+    return this.request<ProgressData>(`/api/athletes/${athleteId}/coach/progress${qs ? `?${qs}` : ''}`);
+  }
+
+  /** Current personal records by lift and rep range (own history only). */
+  async getAthleteRecords(athleteId: number): Promise<RecordsData> {
+    return this.request<RecordsData>(`/api/athletes/${athleteId}/records`);
+  }
+
+  /** Tier badges, firsts and consistency milestones (own history only). */
+  async getAthleteMilestones(athleteId: number): Promise<MilestonesData> {
+    return this.request<MilestonesData>(`/api/athletes/${athleteId}/milestones`);
   }
 
   // Preferences

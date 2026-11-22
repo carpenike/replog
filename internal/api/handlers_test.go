@@ -227,6 +227,8 @@ func setupTest(t *testing.T) *testEnv {
 
 			// Exercise history (per athlete).
 			r.Get("/athletes/{id}/exercises/{exerciseID}/history", h.ListExerciseHistory)
+			r.Get("/athletes/{id}/records", h.GetAthleteRecords)
+			r.Get("/athletes/{id}/milestones", h.GetAthleteMilestones)
 
 			// Program compatibility check.
 			r.Get("/athletes/{id}/program-compatibility", h.CheckProgramCompatibility)
