@@ -41,7 +41,7 @@ export function PendingReviews() {
               </div>
               <div className="text-right">
                 <p className="text-sm">{w.set_count} set{w.set_count !== 1 ? 's' : ''}</p>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-warning/10 text-warning">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-warning/10 text-warning-strong">
                   Needs review
                 </span>
               </div>

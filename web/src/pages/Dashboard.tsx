@@ -24,8 +24,8 @@ function formatVolume(v: number): string {
 
 export function Dashboard({ user }: DashboardProps) {
   // Linked non-coach: the home screen is today's log, one tap away.
-  // Coaches and admins keep the staff dashboard even if they also have
-  // an athlete profile.
+  // Coaches and admins keep the staff dashboard; when they also train
+  // (athlete_id set) it opens with their own session button and streak.
   if (!user.is_coach && !user.is_admin && user.athlete_id != null) {
     return <AthleteHome user={user} athleteId={user.athlete_id} />
   }
@@ -33,12 +33,11 @@ export function Dashboard({ user }: DashboardProps) {
 }
 
 /**
- * Kid home. The first control opens today's resistance session — resume
- * the day's workout, or create an empty one. The screen records the log.
- * It does not choose the work.
+ * Today's session button and the week streak. The button opens today's
+ * resistance session — resume the day's workout, or create an empty one.
+ * The screen records the log. It does not choose the work.
  */
-function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
-  usePageTitle('Today')
+function TodaySessionCard({ athleteId }: { athleteId: number }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const today = localDateISO()
@@ -73,11 +72,7 @@ function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
   const sessionClass = 'h-14 w-full text-base font-semibold'
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">
-        Welcome, {user.name ?? user.username}
-      </h1>
-
+    <>
       {todayWorkout ? (
         <Button
           size="touch"
@@ -117,6 +112,21 @@ function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
           )}
         </div>
       )}
+    </>
+  )
+}
+
+/** Kid home: today's session one tap away. */
+function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
+  usePageTitle('Today')
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-4">
+        Welcome, {user.name ?? user.username}
+      </h1>
+
+      <TodaySessionCard athleteId={athleteId} />
 
       <nav aria-label="More" className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
         <Link to={`/athletes/${athleteId}/prescription`} className="text-muted-foreground hover:text-foreground">
@@ -191,6 +201,13 @@ function StaffHome({ user }: DashboardProps) {
       <h1 className="text-2xl font-bold mb-6">
         Welcome, {user.name ?? user.username}
       </h1>
+
+      {/* Staff who also train get their own session first. */}
+      {user.athlete_id != null && (
+        <section aria-label="My training" className="mb-8">
+          <TodaySessionCard athleteId={user.athlete_id} />
+        </section>
+      )}
 
       {/* Stats cards */}
       {data?.stats && (

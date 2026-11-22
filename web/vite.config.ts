@@ -24,8 +24,8 @@ export default defineConfig({
         description: 'Self-hosted workout tracking for the family',
         start_url: '/',
         display: 'standalone',
-        background_color: '#1a1a1a',
-        theme_color: '#1a1a1a',
+        background_color: '#0a0a0a',
+        theme_color: '#171717',
         categories: ['fitness', 'sports'],
         icons: [
           { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' },

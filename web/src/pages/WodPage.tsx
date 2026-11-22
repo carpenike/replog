@@ -256,7 +256,7 @@ export function WodPage() {
                   {generation.model && <span>Model: {generation.model}</span>}
                   {generation.tokens_used != null && <span>{generation.tokens_used} tokens</span>}
                   {generation.duration && <span>{generation.duration}</span>}
-                  {generation.truncated && <span className="text-warning">⚠ Output was truncated</span>}
+                  {generation.truncated && <span className="text-warning-strong">⚠ Output was truncated</span>}
                 </div>
               </CardContent>
             </Card>

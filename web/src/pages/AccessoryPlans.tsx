@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { ArchiveX, Pencil, X } from 'lucide-react'
 import { api } from '@/api/client'
 import type { AccessoryPlanData } from '@/api/types'
 import { Spinner } from '@/components/ui'
@@ -297,9 +298,15 @@ function AccessoryPlanRow({
           </p>
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="xs" onClick={() => setEditing(true)}>✎</Button>
-          <Button variant="ghost" size="xs" onClick={onDeactivate} title="Deactivate">↓</Button>
-          <Button variant="ghost" size="xs" onClick={onDelete} title="Delete">×</Button>
+          <Button variant="ghost" size="icon-sm" aria-label={`Edit ${plan.exercise_name}`} onClick={() => setEditing(true)}>
+            <Pencil aria-hidden="true" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" aria-label={`Deactivate ${plan.exercise_name}`} title="Deactivate" onClick={onDeactivate}>
+            <ArchiveX aria-hidden="true" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" aria-label={`Delete ${plan.exercise_name}`} title="Delete" className="hover:text-destructive" onClick={onDelete}>
+            <X aria-hidden="true" />
+          </Button>
         </div>
       </CardContent>
     </Card>

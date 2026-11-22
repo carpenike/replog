@@ -120,8 +120,23 @@ describe('linked athlete home', () => {
 })
 
 describe('other homes stay put', () => {
-  it('does not give a coach the one-tap session control', async () => {
+  it('gives a coach with an athlete profile the session button and streak above the staff dashboard', async () => {
+    vi.mocked(fetchWeekStreak).mockResolvedValue(3)
     renderHome(user({ is_coach: true, is_admin: false, athlete_id: 7, name: 'Coach' }))
+
+    const open = await screen.findByRole('button', { name: "Start today's session" })
+    expect(await screen.findByText(/3-week streak/)).toBeTruthy()
+    const staff = await screen.findByText('No athletes yet')
+    expect(open.compareDocumentPosition(staff)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+
+    await userEvent.click(open)
+
+    expect(await screen.findByRole('heading', { name: 'Session' })).toBeTruthy()
+    expect(api.createWorkout).toHaveBeenCalledWith(7, localDateISO(), '', false)
+  })
+
+  it('does not give a coach without an athlete profile the session control', async () => {
+    renderHome(user({ is_coach: true, is_admin: true, athlete_id: null, name: 'Coach' }))
 
     expect(await screen.findByText('No athletes yet')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /today's session/i })).toBeNull()

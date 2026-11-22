@@ -448,7 +448,7 @@ export function WorkoutDetail() {
             <h3 className="font-semibold">Coach Review</h3>
             {workout.review_status && (
               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                workout.review_status === 'approved' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                workout.review_status === 'approved' ? 'bg-success/10 text-success-strong' : 'bg-warning/10 text-warning-strong'
               }`}>
                 {workout.review_status === 'approved' ? '✓ Approved' : '⚠ Needs Work'}
               </span>
@@ -460,12 +460,12 @@ export function WorkoutDetail() {
                 <Label>
                   <input type="radio" name="review" checked={reviewStatus === 'approved'}
                     onChange={() => setReviewStatus('approved')} />
-                  <span className="text-sm text-success">Approve</span>
+                  <span className="text-sm text-success-strong">Approve</span>
                 </Label>
                 <Label>
                   <input type="radio" name="review" checked={reviewStatus === 'needs_work'}
                     onChange={() => setReviewStatus('needs_work')} />
-                  <span className="text-sm text-warning">Needs Work</span>
+                  <span className="text-sm text-warning-strong">Needs Work</span>
                 </Label>
               </div>
               <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}

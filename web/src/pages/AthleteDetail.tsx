@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { Eye, Pencil, RotateCcw, TrendingUp, X } from 'lucide-react'
 import { api } from '@/api/client'
 import type { AthleteProgram } from '@/api/types'
 import { Spinner } from '@/components/ui'
@@ -13,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn, formatDate } from '@/lib/utils'
+import { nextTier, promoteCopy, tierLabel } from '@/lib/tiers'
 
 const tierColors: Record<string, string> = {
   foundational: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
@@ -45,14 +48,6 @@ function formatProgramSchedule(schedule?: string | null): string | null {
   }
 }
 
-function tierLabel(tier: string): string {
-  switch (tier) {
-    case 'foundational': return 'Foundational'
-    case 'intermediate': return 'Intermediate'
-    case 'sport_performance': return 'Sport Performance'
-    default: return tier
-  }
-}
 export function AthleteDetail() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -143,9 +138,43 @@ export function AthleteDetail() {
   })
   const promoteMutation = useMutation({
     mutationFn: () => api.promoteAthlete(athleteId),
-    onSuccess: () => {
+    // The toast below names the athlete; skip the generic global one.
+    meta: { skipGlobalError: true },
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['athlete', athleteId] })
       queryClient.invalidateQueries({ queryKey: ['athletes'] })
+      toast.success(`${updated.name} promoted to ${tierLabel(updated.tier ?? '')}.`)
+    },
+    onError: (err) => {
+      toast.error(`Couldn't promote: ${err instanceof Error ? err.message : 'something went wrong.'}`)
+    },
+  })
+  async function handlePromote() {
+    if (!athlete?.tier) return
+    const copy = promoteCopy(athlete.name, athlete.tier)
+    if (!copy) return
+    if (await confirm(copy)) promoteMutation.mutate()
+  }
+  // Failed mutations surface through the global error toast (main.tsx).
+  const reactivateMutation = useMutation({
+    mutationFn: (programId: number) => api.reactivateProgram(athleteId, programId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] })
+      toast.success('Program reactivated.')
+    },
+  })
+  const deleteAssignmentMutation = useMutation({
+    mutationFn: (programId: number) => api.deleteAthleteProgram(athleteId, programId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] })
+      toast.success('Assignment removed.')
+    },
+  })
+  const impersonateMutation = useMutation({
+    mutationFn: (userId: number) => api.startImpersonation(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] })
+      window.location.href = '/'
     },
   })
   if (isLoading) return <Spinner />
@@ -173,25 +202,26 @@ export function AthleteDetail() {
           </div>
         </div>
         <div className="flex gap-2">
-          {isCoach && athlete.tier && athlete.tier !== 'sport_performance' && (
-            <Button variant="ghost" onClick={() => promoteMutation.mutate()}
+          {isCoach && nextTier(athlete.tier) && (
+            <Button variant="ghost" onClick={handlePromote}
               disabled={promoteMutation.isPending}
               >
-              📈 Promote
+              <TrendingUp aria-hidden="true" />
+              {promoteMutation.isPending ? 'Promoting…' : 'Promote'}
             </Button>
           )}
           {isCoach && (
             <Button variant="outline" size="sm" onClick={() => navigate(`/athletes/${athleteId}/edit`)}>
-              ✏️ Edit
+              <Pencil aria-hidden="true" />
+              Edit
             </Button>
           )}
           {isCoach && athlete.linked_user_id && (
-            <Button variant="ghost" size="sm" onClick={async () => {
-              await api.startImpersonation(athlete.linked_user_id!)
-              queryClient.invalidateQueries({ queryKey: ['me'] })
-              window.location.href = '/'
-            }}>
-              👁️ View as Athlete
+            <Button variant="ghost" size="sm"
+              disabled={impersonateMutation.isPending}
+              onClick={() => impersonateMutation.mutate(athlete.linked_user_id!)}>
+              <Eye aria-hidden="true" />
+              View as Athlete
             </Button>
           )}
         </div>
@@ -467,18 +497,27 @@ export function AthleteDetail() {
                     <span className="text-xs">{formatDate(p.start_date)} – {p.deactivated_at ? formatDate(p.deactivated_at) : '?'}</span>
                     {isCoach && (
                       <>
-                        <Button variant="ghost" size="xs" onClick={async () => {
-                          if (await confirm({ title: 'Reactivate Program', description: `Reactivate "${p.template_name}"? Any active program in the same role will be deactivated.`, confirmLabel: 'Reactivate' })) {
-                            await api.reactivateProgram(athleteId, p.id)
-                            queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] })
-                          }
-                        }}>↩️</Button>
-                        <Button variant="ghost" size="xs" onClick={async () => {
-                          if (await confirm({ title: 'Delete Assignment', description: `Remove this program assignment from history?`, confirmLabel: 'Delete', variant: 'danger' })) {
-                            await api.deleteAthleteProgram(athleteId, p.id)
-                            queryClient.invalidateQueries({ queryKey: ['athlete-programs', athleteId] })
-                          }
-                        }}>×</Button>
+                        <Button variant="ghost" size="icon-sm"
+                          aria-label={`Reactivate ${p.template_name}`}
+                          disabled={reactivateMutation.isPending}
+                          onClick={async () => {
+                            if (await confirm({ title: 'Reactivate Program', description: `Reactivate "${p.template_name}"? Any active program in the same role will be deactivated.`, confirmLabel: 'Reactivate' })) {
+                              reactivateMutation.mutate(p.id)
+                            }
+                          }}>
+                          <RotateCcw aria-hidden="true" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm"
+                          aria-label={`Delete ${p.template_name} assignment`}
+                          className="hover:text-destructive"
+                          disabled={deleteAssignmentMutation.isPending}
+                          onClick={async () => {
+                            if (await confirm({ title: 'Delete Assignment', description: `Remove this program assignment from history?`, confirmLabel: 'Delete', variant: 'danger' })) {
+                              deleteAssignmentMutation.mutate(p.id)
+                            }
+                          }}>
+                          <X aria-hidden="true" />
+                        </Button>
                       </>
                     )}
                   </div>

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Menu, Sun, Moon, Settings, LogOut } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Bell, Menu, Sun, Moon, Settings, LogOut } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import type { User } from '@/api/types'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetTrigger, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
+import { bellLabel } from '@/lib/chrome'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -151,9 +152,94 @@ function NavLinks({ user, pathname, unreadCount, onNavigate }: NavLinksProps) {
   )
 }
 
+interface AccountMenuProps {
+  user: User
+  theme: 'dark' | 'light'
+  onToggleTheme: () => void
+  onLogout: () => void
+  /** compact = avatar-only trigger for the mobile header. */
+  compact?: boolean
+}
+
+/** The account dropdown: theme, Preferences, Sign out. Shared by the desktop
+ * sidebar footer and the mobile header. */
+function AccountMenu({ user, theme, onToggleTheme, onLogout, compact }: AccountMenuProps) {
+  const navigate = useNavigate()
+  const initials = user.username.slice(0, 2).toUpperCase()
+  const displayName = user.name ?? user.username
+  const roleLabel = user.is_admin ? 'Admin' : user.is_coach ? 'Coach' : 'Athlete'
+  const avatar = (
+    <Avatar className="h-8 w-8">
+      {user.avatar_url && <AvatarImage src={user.avatar_url} alt="" />}
+      <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+        {initials}
+      </AvatarFallback>
+    </Avatar>
+  )
+  return (
+    <DropdownMenu>
+      {compact ? (
+        <DropdownMenuTrigger
+          aria-label={`Account menu for ${displayName}`}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full hover:bg-accent transition-colors"
+        >
+          {avatar}
+        </DropdownMenuTrigger>
+      ) : (
+        <DropdownMenuTrigger className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 hover:bg-accent transition-colors text-left">
+          {avatar}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{displayName}</p>
+            <p className="text-xs text-muted-foreground">{roleLabel}</p>
+          </div>
+        </DropdownMenuTrigger>
+      )}
+      <DropdownMenuContent align={compact ? 'end' : 'start'} className="w-48">
+        <div className="px-1.5 py-1 text-xs font-medium text-muted-foreground">
+          {displayName}{compact ? ` · ${roleLabel}` : ''}
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onToggleTheme}>
+          {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/preferences')}>
+          <Settings className="mr-2 h-4 w-4" />
+          Preferences
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onLogout} className="text-destructive">
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/** Header bell linking to /notifications with the unread count. */
+function NotificationBell({ unreadCount }: { unreadCount: number }) {
+  return (
+    <Link
+      to="/notifications"
+      aria-label={bellLabel(unreadCount)}
+      className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+    >
+      <Bell className="h-5 w-5" aria-hidden="true" />
+      {unreadCount > 0 && (
+        <span
+          aria-hidden="true"
+          className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground"
+        >
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </span>
+      )}
+    </Link>
+  )
+}
+
 export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
   const location = useLocation()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -173,9 +259,15 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
     window.location.href = '/'
   }
 
-  const initials = user.username.slice(0, 2).toUpperCase()
+  const stopImpersonation = useMutation({
+    mutationFn: () => api.stopImpersonation(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] })
+      window.location.href = '/'
+    },
+  })
+
   const displayName = user.name ?? user.username
-  const roleLabel = user.is_admin ? 'Admin' : user.is_coach ? 'Coach' : 'Athlete'
   const unreadCount = unread?.count ?? 0
 
   return (
@@ -183,12 +275,20 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
       <a href="#main-content" className="skip-link">Skip to content</a>
 
       {/* Mobile header */}
-      <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
+      {/* Safe-area padding keeps it clear of the iOS status bar in standalone
+          mode (black-translucent + viewport-fit=cover). */}
+      <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between border-b border-border bg-card pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:hidden">
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetTrigger className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-accent transition-colors">
-            <Menu className="h-5 w-5" />
+          <SheetTrigger
+            aria-label="Open navigation menu"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </SheetTrigger>
-          <SheetContent side="left" className="w-56 p-0">
+          <SheetContent
+            side="left"
+            className="w-56 p-0 pt-[env(safe-area-inset-top)] [&>[data-slot=sheet-close]]:top-[calc(0.75rem+env(safe-area-inset-top))]"
+          >
             <SheetTitle className="p-4 border-b border-border text-lg font-bold text-primary">
               RepLog
             </SheetTitle>
@@ -203,7 +303,16 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
           </SheetContent>
         </Sheet>
         <Link to="/" className="text-lg font-bold text-primary">RepLog</Link>
-        <div className="w-10" />
+        <div className="flex items-center gap-1">
+          <NotificationBell unreadCount={unreadCount} />
+          <AccountMenu
+            user={user}
+            theme={theme}
+            onToggleTheme={onToggleTheme}
+            onLogout={handleLogout}
+            compact
+          />
+        </div>
       </div>
 
       {/* Desktop sidebar */}
@@ -217,54 +326,25 @@ export function Layout({ user, children, theme, onToggleTheme }: LayoutProps) {
         </nav>
 
         <div className="p-3 border-t border-border">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 hover:bg-accent transition-colors text-left">
-                <Avatar className="h-8 w-8">
-                  {user.avatar_url && <AvatarImage src={user.avatar_url} alt={displayName} />}
-                  <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{displayName}</p>
-                  <p className="text-xs text-muted-foreground">{roleLabel}</p>
-                </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <div className="px-1.5 py-1 text-xs font-medium text-muted-foreground">{displayName}</div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onToggleTheme}>
-                {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/preferences')}>
-                <Settings className="mr-2 h-4 w-4" />
-                Preferences
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <AccountMenu user={user} theme={theme} onToggleTheme={onToggleTheme} onLogout={handleLogout} />
         </div>
       </aside>
 
       {/* Main content */}
-      <main id="main-content" className="flex-1 p-4 pt-16 md:p-6 md:pt-6">
+      <main
+        id="main-content"
+        className="flex-1 p-4 pt-(--app-header-offset) pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:p-6 md:pt-6"
+      >
         {user.impersonating && (
           <div className="mb-4 flex items-center justify-between rounded-lg bg-warning/20 border border-warning/40 px-4 py-2 text-sm">
-            <span className="font-medium text-warning">
+            <span className="font-medium text-warning-strong">
               👁️ Viewing as <strong>{displayName}</strong>
             </span>
             <button
-              onClick={async () => {
-                await api.stopImpersonation()
-                queryClient.invalidateQueries({ queryKey: ['me'] })
-                window.location.href = '/'
-              }}
-              className="rounded-md bg-warning px-3 py-1 text-xs font-medium text-warning-foreground hover:bg-warning/90 transition-colors"
+              type="button"
+              onClick={() => stopImpersonation.mutate()}
+              disabled={stopImpersonation.isPending}
+              className="rounded-md bg-warning px-3 py-1 text-xs font-medium text-warning-foreground hover:bg-warning/90 transition-colors disabled:opacity-50"
             >
               Exit Impersonation
             </button>

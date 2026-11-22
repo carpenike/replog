@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { Pencil, X } from 'lucide-react'
 import { api } from '@/api/client'
 import type { ProgramTemplate } from '@/api/types'
 import { Spinner } from '@/components/ui'
@@ -283,11 +284,15 @@ export function ProgramDetail() {
                                   </p>
                                   {editing && (
                                     <div className="flex gap-1">
-                                      <Button variant="ghost" size="xs" onClick={() => beginEditSet(s)}>✎</Button>
-                                      <Button variant="ghost" size="xs" onClick={async () => {
+                                      <Button variant="ghost" size="icon-sm" aria-label={`Edit set ${s.set_number}`} onClick={() => beginEditSet(s)}>
+                                        <Pencil aria-hidden="true" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon-sm" aria-label={`Delete set ${s.set_number}`} className="hover:text-destructive" onClick={async () => {
                                         if (await confirm({ title: 'Delete Set', description: 'Remove this prescribed set?', confirmLabel: 'Delete', variant: 'danger' }))
                                           deleteSetMutation.mutate(s.id)
-                                      }}>×</Button>
+                                      }}>
+                                        <X aria-hidden="true" />
+                                      </Button>
                                     </div>
                                   )}
                                 </div>
@@ -485,10 +490,12 @@ export function ProgramDetail() {
                   <TableCell className="text-muted-foreground">+{rule.increment} per cycle</TableCell>
                   {editing && (
                     <TableCell>
-                      <Button variant="ghost" size="xs" onClick={async () => {
+                      <Button variant="ghost" size="icon-sm" aria-label={`Delete ${rule.exercise_name} progression rule`} className="hover:text-destructive" onClick={async () => {
                         if (await confirm({ title: 'Delete Rule', description: 'Remove this progression rule?', confirmLabel: 'Delete', variant: 'danger' }))
                           deleteRuleMutation.mutate(rule.id)
-                      }}>×</Button>
+                      }}>
+                        <X aria-hidden="true" />
+                      </Button>
                     </TableCell>
                   )}
                 </TableRow>

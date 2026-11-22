@@ -119,7 +119,7 @@ function TargetLabel({ pset }: { pset?: PrescriptionSetData }) {
   const reps = pset.reps
   switch (pset.rep_type) {
     case 'amrap':
-      return <Badge className="bg-warning/15 text-warning">{reps != null ? `${reps}+` : 'AMRAP'}</Badge>
+      return <Badge className="bg-warning/15 text-warning-strong">{reps != null ? `${reps}+` : 'AMRAP'}</Badge>
     case 'each_side':
       return (
         <span className="flex items-center gap-1">
@@ -147,6 +147,13 @@ function TargetLabel({ pset }: { pset?: PrescriptionSetData }) {
 }
 
 function RestTimerBar({ timer }: { timer: RestTimer }) {
+  // Flag the bar on <html> so desktop toasts lift above it (index.css).
+  useEffect(() => {
+    if (!timer.running) return
+    const root = document.documentElement
+    root.setAttribute('data-rest-timer', '')
+    return () => root.removeAttribute('data-rest-timer')
+  }, [timer.running])
   if (!timer.running) return null
   const pct = timer.total > 0 ? (timer.remaining / timer.total) * 100 : 0
   const m = Math.floor(timer.remaining / 60)
@@ -497,8 +504,9 @@ export function ActiveWorkout() {
 
   return (
     <div className={cn('mx-auto max-w-2xl', restTimer.running ? 'pb-36' : 'pb-8')}>
-      {/* Sticky session header — sits below the fixed mobile nav (top-16). */}
-      <div className="sticky top-16 z-20 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur md:top-0 md:-mx-6 md:px-6">
+      {/* Sticky session header — sits below the fixed mobile nav and the iOS
+          status bar inset (--app-header-offset). */}
+      <div className="sticky top-(--app-header-offset) z-20 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur md:top-0 md:-mx-6 md:px-6">
         <div className="flex items-center justify-between gap-2">
           <Link
             to={detailPath}
@@ -639,10 +647,10 @@ export function ActiveWorkout() {
                             {set.rpe != null && <span className="text-xs text-muted-foreground"> @ RPE {set.rpe}</span>}
                             {set.notes && <span className="text-xs text-muted-foreground"> · {set.notes}</span>}
                             {prSets[set.id] && (
-                              <Badge className="ml-1.5 bg-warning/15 text-warning" aria-label="Personal record">PR</Badge>
+                              <Badge className="ml-1.5 bg-warning/15 text-warning-strong" aria-label="Personal record">PR</Badge>
                             )}
                           </span>
-                          <span className="flex size-11 items-center justify-center rounded-full bg-success/15 text-success" aria-hidden="true">
+                          <span className="flex size-11 items-center justify-center rounded-full bg-success/15 text-success-strong" aria-hidden="true">
                             <Check className="size-5" />
                           </span>
                         </button>

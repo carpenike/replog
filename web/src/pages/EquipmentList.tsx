@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { Pencil, X } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import type { EquipmentData } from '@/api/types'
 import { Spinner } from '@/components/ui'
@@ -141,8 +142,12 @@ function EquipmentRow({ item, onDelete }: { item: EquipmentData; onDelete: () =>
       <TableCell className="text-muted-foreground">{item.description ?? '—'}</TableCell>
       <TableCell>
         <div className="flex gap-1">
-          <Button variant="ghost" size="xs" onClick={() => setEditing(true)}>✎</Button>
-          <Button variant="ghost" size="xs" onClick={onDelete}>×</Button>
+          <Button variant="ghost" size="icon-sm" aria-label={`Edit ${item.name}`} onClick={() => setEditing(true)}>
+            <Pencil aria-hidden="true" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" aria-label={`Delete ${item.name}`} className="hover:text-destructive" onClick={onDelete}>
+            <X aria-hidden="true" />
+          </Button>
         </div>
       </TableCell>
     </TableRow>

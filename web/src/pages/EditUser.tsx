@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { X } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
+import type { AthleteCard, User } from '@/api/types'
+import { serviceTokenScope, visibleServiceTokens } from '@/lib/serviceTokens'
 import { Spinner } from '@/components/ui'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -148,7 +151,7 @@ export function EditUser() {
 
       {/* Magic-link login tokens */}
       <LoginTokensSection userId={id} />
-      <ServiceTokensSection userId={id} />
+      <ServiceTokensSection userId={id} owner={user} athletes={athletes ?? []} />
     </div>
   )
 }
@@ -223,8 +226,9 @@ function LoginTokensSection({ userId }: { userId: number }) {
         className="flex gap-2 items-end mb-4 max-w-md"
       >
         <div className="flex-1">
-          <Label>New token label (optional)</Label>
+          <Label htmlFor="login-token-label">New token label (optional)</Label>
           <Input
+            id="login-token-label"
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="e.g. iPad setup"
@@ -262,7 +266,9 @@ function LoginTokensSection({ userId }: { userId: number }) {
                 <TableCell>
                   <Button
                     variant="ghost"
-                    size="xs"
+                    size="icon-sm"
+                    aria-label={`Revoke login link ${t.label ?? t.id}`}
+                    className="hover:text-destructive"
                     onClick={async () => {
                       if (await confirm({
                         title: 'Revoke Token',
@@ -272,7 +278,7 @@ function LoginTokensSection({ userId }: { userId: number }) {
                       })) deleteMutation.mutate(t.id)
                     }}
                   >
-                    ×
+                    <X aria-hidden="true" />
                   </Button>
                 </TableCell>
               </TableRow>
@@ -287,11 +293,16 @@ function LoginTokensSection({ userId }: { userId: number }) {
   )
 }
 
-function ServiceTokensSection({ userId }: { userId: number }) {
+function ServiceTokensSection({ userId, owner, athletes }: {
+  userId: number
+  owner: User | undefined
+  athletes: AthleteCard[]
+}) {
   const queryClient = useQueryClient()
   const { confirm, dialog: confirmDialog } = useConfirm()
   const [label, setLabel] = useState('')
   const [issuedToken, setIssuedToken] = useState<string | null>(null)
+  const [showRevoked, setShowRevoked] = useState(false)
 
   const { data: tokens, isLoading } = useQuery({
     queryKey: ['service-tokens', userId],
@@ -306,22 +317,39 @@ function ServiceTokensSection({ userId }: { userId: number }) {
       setIssuedToken(res.token)
       setLabel('')
     },
+    meta: { skipGlobalError: true },
     onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Failed to issue token'),
   })
 
   const revokeMutation = useMutation({
     mutationFn: (tokenId: number) => api.revokeServiceToken(userId, tokenId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-tokens', userId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-tokens', userId] })
+      toast.success('Service token revoked.')
+    },
+    meta: { skipGlobalError: true },
     onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Failed to revoke token'),
   })
+
+  const all = tokens ?? []
+  const revokedCount = all.filter(t => t.revoked_at).length
+  const shown = visibleServiceTokens(all, showRevoked)
+  const linkedName = owner?.athlete_id != null ? athletes.find(a => a.id === owner.athlete_id)?.name : null
 
   return (
     <section className="mt-10 border-t pt-6">
       <h2 className="text-lg font-semibold">Service Tokens</h2>
-      <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-md">
+      <p className="text-sm text-muted-foreground mt-1 mb-3 max-w-md">
         Long-lived bearers for this user. The token is shown once, when it is
         issued. Revoke it here when it should stop working.
       </p>
+
+      <dl className="mb-4 grid max-w-md grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+        <dt className="text-muted-foreground">Expires</dt>
+        <dd>Never. A token works until it is revoked.</dd>
+        <dt className="text-muted-foreground">Scope</dt>
+        <dd>{owner ? serviceTokenScope(owner, linkedName) : '—'}</dd>
+      </dl>
 
       {issuedToken && (
         <Alert className="mb-4">
@@ -331,7 +359,7 @@ function ServiceTokensSection({ userId }: { userId: number }) {
               Copy this now. It will not be shown again.
             </p>
             <div className="flex gap-2 items-center">
-              <Input readOnly value={issuedToken} onFocus={(e) => e.currentTarget.select()} />
+              <Input readOnly aria-label="New service token" value={issuedToken} onFocus={(e) => e.currentTarget.select()} />
               <Button
                 type="button"
                 variant="outline"
@@ -358,8 +386,9 @@ function ServiceTokensSection({ userId }: { userId: number }) {
         className="flex gap-2 items-end mb-4 max-w-md"
       >
         <div className="flex-1">
-          <Label>New token label (optional)</Label>
+          <Label htmlFor="service-token-label">New token label (optional)</Label>
           <Input
+            id="service-token-label"
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="e.g. coach agent"
@@ -372,7 +401,7 @@ function ServiceTokensSection({ userId }: { userId: number }) {
 
       {isLoading ? (
         <Spinner />
-      ) : tokens && tokens.length > 0 ? (
+      ) : shown.length > 0 ? (
         <Table>
           <TableHeader>
             <TableRow>
@@ -380,35 +409,38 @@ function ServiceTokensSection({ userId }: { userId: number }) {
               <TableHead>Created</TableHead>
               <TableHead>Last used</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12"><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tokens.map(t => (
+            {shown.map(t => (
               <TableRow key={t.id}>
                 <TableCell className="font-medium">{t.label ?? '—'}</TableCell>
                 <TableCell className="text-muted-foreground">{new Date(t.created_at).toLocaleDateString()}</TableCell>
-                <TableCell className="text-muted-foreground">{t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : '—'}</TableCell>
+                <TableCell className="text-muted-foreground">{t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'Never'}</TableCell>
                 <TableCell>
                   {t.revoked_at
-                    ? <Badge variant="secondary">Revoked</Badge>
+                    ? <Badge variant="secondary">Revoked {new Date(t.revoked_at).toLocaleDateString()}</Badge>
                     : <Badge>Active</Badge>}
                 </TableCell>
                 <TableCell>
                   {!t.revoked_at && (
                     <Button
                       variant="ghost"
-                      size="xs"
+                      size="icon-sm"
+                      aria-label={`Revoke service token ${t.label ?? t.id}`}
+                      className="hover:text-destructive"
+                      disabled={revokeMutation.isPending}
                       onClick={async () => {
                         if (await confirm({
                           title: 'Revoke Token',
-                          description: 'This service token will stop working immediately.',
+                          description: `${t.label ? `"${t.label}"` : 'This service token'} will stop working immediately.`,
                           confirmLabel: 'Revoke',
                           variant: 'danger',
                         })) revokeMutation.mutate(t.id)
                       }}
                     >
-                      ×
+                      <X aria-hidden="true" />
                     </Button>
                   )}
                 </TableCell>
@@ -417,7 +449,19 @@ function ServiceTokensSection({ userId }: { userId: number }) {
           </TableBody>
         </Table>
       ) : (
-        <p className="text-sm text-muted-foreground">No service tokens.</p>
+        <p className="text-sm text-muted-foreground">No active service tokens.</p>
+      )}
+      {revokedCount > 0 && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mt-2 text-muted-foreground"
+          aria-expanded={showRevoked}
+          onClick={() => setShowRevoked(v => !v)}
+        >
+          {showRevoked ? 'Hide revoked' : `Show revoked (${revokedCount})`}
+        </Button>
       )}
       {confirmDialog()}
     </section>

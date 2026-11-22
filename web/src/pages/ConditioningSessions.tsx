@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { X } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import type { ConditioningSessionInput, ConditioningIntervalInput } from '@/api/client'
 import { Spinner } from '@/components/ui'
@@ -218,7 +219,9 @@ export function ConditioningSessions() {
                 <Input type="number" min="0" placeholder="Work s" value={iv.work_seconds} onChange={e => updateInterval(idx, 'work_seconds', e.target.value)} />
                 <Input type="number" step="0.1" min="0" placeholder="Work dist" value={iv.work_distance} onChange={e => updateInterval(idx, 'work_distance', e.target.value)} />
                 <Input type="number" min="0" placeholder="Rest s" value={iv.rest_seconds} onChange={e => updateInterval(idx, 'rest_seconds', e.target.value)} />
-                <Button type="button" variant="ghost" size="sm" onClick={() => setIntervals(prev => prev.filter((_, i) => i !== idx))}>✕</Button>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove interval ${idx + 1}`} onClick={() => setIntervals(prev => prev.filter((_, i) => i !== idx))}>
+                  <X aria-hidden="true" />
+                </Button>
               </div>
             ))}
           </div>
