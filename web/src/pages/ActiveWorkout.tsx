@@ -11,6 +11,7 @@ import { ExercisePicker, type PickedExercise } from '@/components/ExercisePicker
 import { ExerciseCuesSheet } from '@/components/ExerciseCuesSheet'
 import { PlateCalculator } from '@/components/PlateCalculator'
 import { ReadinessPrompt, type ReadinessAnswers } from '@/components/ReadinessPrompt'
+import { SetVideoControl } from '@/components/SetVideoSheet'
 import { SwapExerciseSheet } from '@/components/SwapExerciseSheet'
 import { celebrate } from '@/lib/confetti'
 import { fullHistoryQuery } from '@/lib/fullHistory'
@@ -556,7 +557,7 @@ export function ActiveWorkout() {
   }
 
   // Rendered inline (not as nested components) so inputs keep focus.
-  function renderEditRow(key: string, label: string, set: WorkoutSet) {
+  function renderEditRow(key: string, label: string, set: WorkoutSet, exercise?: string) {
     return (
       <div key={key} className="space-y-2 bg-muted/30 px-3 py-2">
         <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_4rem_3.5rem_2.75rem] items-center gap-2">
@@ -573,6 +574,16 @@ export function ActiveWorkout() {
         </div>
         <div className="flex items-center gap-2">
           <Input type="text" value={editSetNotes} onChange={e => setEditSetNotes(e.target.value)} placeholder="Notes" className="h-11 flex-1" aria-label="Set notes" />
+          {/* Form check: attach a short clip to this logged set for the coach's review. */}
+          <SetVideoControl
+            athleteId={athleteId}
+            workoutId={wId}
+            setId={set.id}
+            setNumber={set.set_number}
+            exerciseName={exercise ?? set.exercise_name ?? ''}
+            video={set.video}
+            canComment={false}
+          />
           <Button variant="ghost" size="icon-touch" aria-label="Cancel edit" onClick={() => setEditingSetId(null)}>
             <X aria-hidden="true" />
           </Button>
@@ -592,7 +603,7 @@ export function ActiveWorkout() {
   }
 
   function renderDoneRow(key: string, label: string, set: WorkoutSet, opts: { warmup?: boolean; name?: string; exercise?: string } = {}) {
-    if (editingSetId === set.id) return renderEditRow(key, label, set)
+    if (editingSetId === set.id) return renderEditRow(key, label, set, opts.exercise)
     const pr = !opts.warmup && prSets[set.id]
     return (
       <button
