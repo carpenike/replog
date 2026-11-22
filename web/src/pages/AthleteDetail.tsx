@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   ArrowRight, Bot, BookOpen, Check, ChevronRight, ClipboardList, Download, Dumbbell, Eye, Flame,
-  CalendarRange, Gauge, LineChart, ListChecks, Moon, NotebookPen, Pencil, Plus, Puzzle, RotateCcw, Scale,
+  CalendarDays, CalendarRange, Gauge, LineChart, ListChecks, Moon, NotebookPen, Pencil, Plus, Puzzle, RotateCcw, Scale,
   Target, Timer, TrendingUp, Trophy, Upload, Wrench, X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -462,6 +462,7 @@ export function AthleteDetail() {
             <NavTile to={`/athletes/${athleteId}/prescription`} icon={ClipboardList} label="Today's Workout" description="The prescribed session for today." />
             <NavTile to={`/athletes/${athleteId}/workouts`} icon={NotebookPen} label="Workouts" description="Every logged session." />
             <NavTile to={`/athletes/${athleteId}/records`} icon={Trophy} label="Records" description="Personal records by lift and rep range." />
+            <NavTile to={`/athletes/${athleteId}/calendar`} icon={CalendarDays} label="Calendar" description="Month view of scheduled days, sessions and season phases." />
             {athlete.track_body_weight && (
               <NavTile to={`/athletes/${athleteId}/body-weights`} icon={Scale} label="Body Weight" description="Weigh-ins and trend." />
             )}

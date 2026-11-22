@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
 import { PageHeader } from '@/components/PageHeader'
 import { PlateSetupCard } from '@/components/PlateSetupCard'
+import { RestAlertsCard } from '@/components/RestAlertsCard'
 import { PageSkeleton } from '@/components/QueryState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatFriendlyDate } from '@/lib/dates'
@@ -192,8 +193,11 @@ export function PreferencesPage() {
         />
       )}
 
+      {/* Rest alerts: Web Push to this device when the rest timer ends */}
+      <RestAlertsCard />
+
       {/* Notification Preferences */}
-      <NotificationPreferencesCard />
+      <NotificationPreferencesCard isCoach={Boolean(me?.is_coach || me?.is_admin)} />
       {confirmDialog()}
     </div>
   )
@@ -211,14 +215,19 @@ const NOTIFICATION_TYPE_META: Record<string, { label: string; description: strin
   magic_link_sent:     { label: 'Login Link Sent',        description: 'When a login link is generated for you' },
   generation_complete: { label: 'AI Coach Draft Ready',   description: 'When an AI Coach program draft finishes generating' },
   generation_failed:   { label: 'AI Coach Draft Failed',  description: 'When an AI Coach program draft fails to generate' },
+  weekly_digest:       { label: 'Weekly Coach Digest',    description: "Monday morning: each athlete's planned vs done, new PRs, recovery flags and Pitch Smart status" },
 }
 
-function NotificationPreferencesCard() {
+// Types that only mean something to a coach; hidden for athlete accounts.
+const COACH_ONLY_TYPES = new Set(['weekly_digest'])
+
+function NotificationPreferencesCard({ isCoach }: { isCoach: boolean }) {
   const queryClient = useQueryClient()
-  const { data: prefs, isLoading } = useQuery({
+  const { data: allPrefs, isLoading } = useQuery({
     queryKey: ['notification-preferences'],
     queryFn: () => api.listNotificationPreferences(),
   })
+  const prefs = allPrefs?.filter(p => isCoach || !COACH_ONLY_TYPES.has(p.type))
 
   const updateMutation = useMutation({
     mutationFn: (vars: { type: string; in_app: boolean; external: boolean }) =>

@@ -708,3 +708,89 @@ export interface ProgressData {
   e1rm_source: string;
   exercises: ProgressExercise[];
 }
+
+// --- Coach compliance grid (GET /api/coach/compliance) ---
+
+export type ComplianceStatus = 'rest' | 'prescribed' | 'done' | 'partial' | 'skipped' | 'extra';
+
+export interface ComplianceDay {
+  date: string;
+  /** ISO weekday: 1 = Monday … 7 = Sunday. */
+  weekday: number;
+  status: ComplianceStatus;
+  session_id: number | null;
+  program_name: string | null;
+  program_day_label: string | null;
+}
+
+export interface ComplianceAthlete {
+  athlete_id: number;
+  name: string;
+  planned_count: number;
+  done_count: number;
+  partial_count: number;
+  skipped_count: number;
+  prescribed_count: number;
+  extra_count: number;
+  summary: string;
+  days: ComplianceDay[];
+}
+
+export interface ComplianceData {
+  week_start: string;
+  week_end: string;
+  timezone: string;
+  athletes: ComplianceAthlete[];
+}
+
+// --- Athlete calendar (GET /api/athletes/{id}/calendar) ---
+
+export type CalendarDiscipline = 'resistance' | 'throwing' | 'conditioning' | 'skill' | 'recovery';
+
+export interface CalendarSession {
+  workout_id: number;
+  discipline: CalendarDiscipline | string;
+  label: string | null;
+  set_count: number;
+}
+
+export interface CalendarDay {
+  date: string;
+  scheduled: boolean;
+  program_id: number | null;
+  program_name: string | null;
+  /** done | partial | missed | upcoming for a scheduled day, else null. */
+  status: 'done' | 'partial' | 'missed' | 'upcoming' | null;
+  sessions: CalendarSession[];
+}
+
+export interface CalendarPhase {
+  id: number;
+  sport: string | null;
+  phase: 'off' | 'pre' | 'in' | string;
+  start_date: string;
+  /** null = ongoing. */
+  end_date: string | null;
+}
+
+export interface CalendarData {
+  month: string;
+  start: string;
+  end: string;
+  today: string;
+  days: CalendarDay[];
+  phases: CalendarPhase[];
+}
+
+// --- Web Push (GET /api/push/config etc.) ---
+
+export interface PushConfig {
+  enabled: boolean;
+  public_key: string;
+  subscriptions: number;
+}
+
+export interface RestAlertResult {
+  scheduled: boolean;
+  fires_at: string | null;
+}

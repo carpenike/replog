@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, CalendarData, ComplianceData, PushConfig, RestAlertResult, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
 import type { AthleteProgram, PlateSetup, PlateSetupPreset, PlateSetupRequest } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
@@ -722,6 +722,43 @@ class ApiClient {
 
   async deleteAthleteProgram(athleteId: number, programId: number): Promise<void> {
     await this.request(`/api/athletes/${athleteId}/programs/${programId}`, { method: 'DELETE' });
+  }
+
+  // Coach compliance grid and athlete calendar (read only)
+  async getCoachCompliance(weekStart?: string): Promise<ComplianceData> {
+    const qs = weekStart ? `?week_start=${encodeURIComponent(weekStart)}` : '';
+    return this.request<ComplianceData>(`/api/coach/compliance${qs}`);
+  }
+
+  async getAthleteCalendar(athleteId: number, month?: string): Promise<CalendarData> {
+    const qs = month ? `?month=${encodeURIComponent(month)}` : '';
+    return this.request<CalendarData>(`/api/athletes/${athleteId}/calendar${qs}`);
+  }
+
+  // Web Push rest alerts. These live under /api/push, outside the offline
+  // mutation queue: a rest alert replayed after reconnecting would be stale.
+  async getPushConfig(): Promise<PushConfig> {
+    return this.request<PushConfig>('/api/push/config');
+  }
+
+  async subscribePush(sub: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<void> {
+    await this.request('/api/push/subscriptions', { method: 'POST', body: JSON.stringify(sub) });
+  }
+
+  async unsubscribePush(endpoint: string): Promise<void> {
+    await this.request('/api/push/subscriptions', { method: 'DELETE', body: JSON.stringify({ endpoint }) });
+  }
+
+  async testPush(): Promise<{ sent: number }> {
+    return this.request<{ sent: number }>('/api/push/test', { method: 'POST' });
+  }
+
+  async scheduleRestAlert(data: { seconds: number; label?: string; url?: string }): Promise<RestAlertResult> {
+    return this.request<RestAlertResult>('/api/push/rest-alert', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async cancelRestAlert(): Promise<void> {
+    await this.request('/api/push/rest-alert', { method: 'DELETE' });
   }
 
   // Plate setup (bar, collars, plate inventory per athlete gym)

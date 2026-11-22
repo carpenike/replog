@@ -1394,6 +1394,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Athlete calendar month
+         * @description Every day of the month with its scheduled program day (from stored weekday schedules), each logged session of any discipline, and the season phases that overlap the month. month defaults to the current month in the caller's timezone. Read only.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Month, YYYY-MM */
+                    month?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CalendarResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/coach/exercises": {
         parameters: {
             query?: never;
@@ -7306,6 +7369,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/coach/compliance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Coach compliance grid
+         * @description Each coached athlete's Monday–Sunday from the week plan-versus-done read. Admins see every athlete. week_start defaults to the current Monday in the caller's timezone. Read only: it never changes a plan.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Monday of the week, YYYY-MM-DD */
+                    week_start?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.ComplianceResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dashboard": {
         parameters: {
             query?: never;
@@ -9254,6 +9377,340 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/push/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Web Push configuration
+         * @description enabled is false when the server has no push service, so the SPA hides the opt-in. public_key is the VAPID applicationServerKey.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.PushConfigResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/push/rest-alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schedule the rest-timer push
+         * @description Replaces this user's pending rest alert with one that fires in seconds (1–3600), so a locked phone still buzzes. Call again to extend; DELETE to skip. Alerts are held in memory and a restart drops them.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Rest alert */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.RestAlertRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.RestAlertResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        /** Cancel the rest-timer push */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.RestAlertResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subscribe this device to push
+         * @description Stores PushSubscription.toJSON(). The endpoint must be https on a known push service. Re-subscribing the same endpoint refreshes its keys.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Subscription */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.PushSubscriptionRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.StatusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        /** Unsubscribe this device from push */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Endpoint */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.PushUnsubscribeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.StatusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/push/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test push */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.PushTestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reviews/pending": {
         parameters: {
             query?: never;
@@ -10104,6 +10561,39 @@ export interface components {
             /** @example 185.5 */
             weight?: number;
         };
+        "api.CalendarDayResponse": {
+            date?: string;
+            program_id?: number;
+            program_name?: string;
+            scheduled?: boolean;
+            sessions?: components["schemas"]["api.CalendarSessionResponse"][];
+            status?: string;
+        };
+        "api.CalendarPhaseResponse": {
+            end_date?: string;
+            id?: number;
+            /** @example in */
+            phase?: string;
+            sport?: string;
+            start_date?: string;
+        };
+        "api.CalendarResponse": {
+            days?: components["schemas"]["api.CalendarDayResponse"][];
+            end?: string;
+            /** @example 2026-11 */
+            month?: string;
+            phases?: components["schemas"]["api.CalendarPhaseResponse"][];
+            start?: string;
+            today?: string;
+        };
+        "api.CalendarSessionResponse": {
+            /** @example throwing */
+            discipline?: string;
+            /** @example bullpen */
+            label?: string;
+            set_count?: number;
+            workout_id?: number;
+        };
         "api.CatalogImportExecuteRequest": {
             exercises?: components["schemas"]["api.CatalogImportMappingDecision"][];
         };
@@ -10487,6 +10977,36 @@ export interface components {
             template_id?: number;
             template_name?: string;
             total_count?: number;
+        };
+        "api.ComplianceAthleteResponse": {
+            athlete_id?: number;
+            days?: components["schemas"]["api.ComplianceDayResponse"][];
+            done_count?: number;
+            extra_count?: number;
+            name?: string;
+            partial_count?: number;
+            planned_count?: number;
+            prescribed_count?: number;
+            skipped_count?: number;
+            /** @example 2 of 3 */
+            summary?: string;
+        };
+        "api.ComplianceDayResponse": {
+            /** @example 2026-11-16 */
+            date?: string;
+            program_day_label?: string;
+            program_name?: string;
+            session_id?: number;
+            /** @example done */
+            status?: string;
+            /** @example 1 */
+            weekday?: number;
+        };
+        "api.ComplianceResponse": {
+            athletes?: components["schemas"]["api.ComplianceAthleteResponse"][];
+            timezone?: string;
+            week_end?: string;
+            week_start?: string;
         };
         "api.ConditioningInterval": {
             id?: number;
@@ -11208,6 +11728,31 @@ export interface components {
             increment?: number;
             template_id?: number;
         };
+        "api.PushConfigResponse": {
+            /** @description Enabled is false when the server has no push service configured. */
+            enabled?: boolean;
+            /**
+             * @description PublicKey is the VAPID public key (base64url) for
+             *     PushManager.subscribe's applicationServerKey. Empty when disabled.
+             */
+            public_key?: string;
+            /** @description Subscriptions is how many devices this user has subscribed. */
+            subscriptions?: number;
+        };
+        "api.PushSubscriptionKeys": {
+            auth?: string;
+            p256dh?: string;
+        };
+        "api.PushSubscriptionRequest": {
+            endpoint?: string;
+            keys?: components["schemas"]["api.PushSubscriptionKeys"];
+        };
+        "api.PushTestResponse": {
+            sent?: number;
+        };
+        "api.PushUnsubscribeRequest": {
+            endpoint?: string;
+        };
         "api.RecordSetResponse": {
             /** @example 2026-11-21 */
             date?: string;
@@ -11268,6 +11813,28 @@ export interface components {
             /** @example 225 */
             weight?: number;
             workout_id?: number;
+        };
+        "api.RestAlertRequest": {
+            /**
+             * @description Label names the next exercise in the notification (optional).
+             * @example Back Squat
+             */
+            label?: string;
+            /**
+             * @description Seconds until the rest period ends (1–3600).
+             * @example 90
+             */
+            seconds?: number;
+            /**
+             * @description URL is the in-app path a tap on the notification opens (optional,
+             *     must start with "/").
+             * @example /athletes/1/workouts/2/active
+             */
+            url?: string;
+        };
+        "api.RestAlertResponse": {
+            fires_at?: string;
+            scheduled?: boolean;
         };
         "api.ReviewRequest": {
             notes?: string;

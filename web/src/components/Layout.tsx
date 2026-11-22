@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  Bell, BookOpen, Boxes, CheckSquare, ClipboardList, Dumbbell, Eye, House, Library, ListOrdered, LogOut, Menu,
+  Bell, BookOpen, Boxes, CalendarCheck, CheckSquare, ClipboardList, Dumbbell, Eye, House, Library, ListOrdered, LogOut, Menu,
   Moon, NotebookPen, Settings, Sun, Trophy, User as UserIcon, Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -58,6 +58,7 @@ const coachItems = [
   { href: '/programs', label: 'Programs', icon: ClipboardList },
   { href: '/equipment', label: 'Equipment', icon: Boxes },
   { href: '/reviews/pending', label: 'Reviews', icon: CheckSquare },
+  { href: '/coach/compliance', label: 'Compliance', icon: CalendarCheck },
 ]
 
 const adminItems = [

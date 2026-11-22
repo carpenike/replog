@@ -35,6 +35,8 @@ import {
 import { useConfirm } from '@/lib/useConfirm'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useRestTimer, type RestTimer } from '@/lib/useRestTimer'
+import { useRestAlertSink } from '@/lib/useRestAlerts'
+import { withRestAlerts } from '@/lib/push'
 import { useWakeLock } from '@/lib/useWakeLock'
 import { generateWarmupRamp } from '@/lib/warmups'
 import { formatWeight, cn, localDateISO } from '@/lib/utils'
@@ -213,10 +215,14 @@ export function ActiveWorkout() {
 
   usePageTitle('Session')
   useWakeLock()
-  const restTimer = useRestTimer(() => {
+  const localRestTimer = useRestTimer(() => {
     navigator.vibrate?.(200)
     toast.success('Rest complete — next set!')
   })
+  // On devices that opted in, the server also pushes when the rest ends,
+  // so a locked phone still buzzes. Elsewhere this is the plain timer.
+  const restAlerts = useRestAlertSink(`/athletes/${athleteId}/workouts/${wId}/session`)
+  const restTimer = withRestAlerts(localRestTimer, restAlerts)
 
   // setId → prescribed-slot index, recorded as sets are checked this session
   // so out-of-order completion keeps each set on the row that was tapped.

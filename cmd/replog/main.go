@@ -30,6 +30,7 @@ import (
 	"github.com/carpenike/replog/internal/models"
 	"github.com/carpenike/replog/internal/notify"
 	"github.com/carpenike/replog/internal/oidc"
+	"github.com/carpenike/replog/internal/push"
 	"github.com/carpenike/replog/internal/scheduler"
 	frontend "github.com/carpenike/replog/web"
 )
@@ -223,11 +224,17 @@ func main() {
 		log.Printf("OIDC login disabled: set REPLOG_OIDC_ISSUER, REPLOG_OIDC_CLIENT_ID, and REPLOG_OIDC_CLIENT_SECRET to enable PocketID login")
 	}
 
+	// Web Push rest alerts (gap 4). VAPID keys come from the environment
+	// or are generated once and persisted, so subscriptions survive
+	// restarts. A bad key setup disables push rather than the server.
+	pushService := setupPush(db, baseURL)
+
 	// Initialize API handlers.
 	apiHandlers := &api.Handlers{
 		DB:        db,
 		Sessions:  sessionManager,
 		AvatarDir: avatarDir,
+		Push:      pushService,
 	}
 
 	// Avatar file server (public — no auth required to load avatar images).
@@ -367,6 +374,8 @@ func main() {
 			// Coach session reads. A service token sees only its user's athletes.
 			r.Get("/athletes/{id}/coach/sessions", apiHandlers.ListCoachSessions)
 			r.Get("/athletes/{id}/coach/week", apiHandlers.GetCoachWeek)
+			r.Get("/athletes/{id}/calendar", apiHandlers.GetAthleteCalendar)
+			r.Get("/coach/compliance", apiHandlers.GetCoachCompliance)
 			r.Get("/athletes/{id}/coach/progress", apiHandlers.GetCoachProgress)
 			r.Get("/athletes/{id}/coach/position", apiHandlers.GetCoachPosition)
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", apiHandlers.GetCoachLastSession)
@@ -515,6 +524,14 @@ func main() {
 			r.Get("/notifications/count", apiHandlers.UnreadNotificationCount)
 			r.Post("/notifications/{notificationID}/read", apiHandlers.MarkNotificationRead)
 			r.Post("/notifications/read-all", apiHandlers.MarkAllNotificationsRead)
+
+			// Web Push rest alerts (browser session only; handlers check).
+			r.Get("/push/config", apiHandlers.GetPushConfig)
+			r.Post("/push/subscriptions", apiHandlers.SubscribePush)
+			r.Delete("/push/subscriptions", apiHandlers.UnsubscribePush)
+			r.Post("/push/test", apiHandlers.TestPush)
+			r.Post("/push/rest-alert", apiHandlers.ScheduleRestAlert)
+			r.Delete("/push/rest-alert", apiHandlers.CancelRestAlert)
 
 			// Users (admin only — handler checks IsAdmin internally).
 			r.Get("/users", apiHandlers.ListUsers)
@@ -665,6 +682,11 @@ func main() {
 	case <-genDone:
 	case <-time.After(10 * time.Second):
 		log.Printf("Warning: AI Coach generations still running at shutdown; will reset on next start")
+	}
+
+	// Drop pending rest alerts and wait for pushes already on the wire.
+	if pushService != nil {
+		pushService.Close()
 	}
 
 	// Drain in-flight notification sends (each is a tracked goroutine bounded
@@ -979,4 +1001,37 @@ func spaFallbackHandler() http.Handler {
 		r.URL.Path = "/"
 		fileServer.ServeHTTP(w, r)
 	})
+}
+
+// setupPush builds the Web Push service from REPLOG_VAPID_* settings.
+// REPLOG_PUSH_DISABLED=true turns it off. With no keys set, a VAPID pair is
+// generated on first start and stored in the database. A misconfiguration
+// logs and leaves push off; the rest of the app runs normally.
+func setupPush(db *sql.DB, baseURL string) *push.Service {
+	if os.Getenv("REPLOG_PUSH_DISABLED") == "true" {
+		log.Printf("Web Push disabled by REPLOG_PUSH_DISABLED")
+		return nil
+	}
+	subject := os.Getenv("REPLOG_VAPID_SUBJECT")
+	if subject == "" && strings.HasPrefix(baseURL, "https://") {
+		subject = baseURL
+	}
+	var extraHosts []string
+	for _, h := range strings.Split(os.Getenv("REPLOG_PUSH_ALLOWED_HOSTS"), ",") {
+		if h = strings.TrimSpace(h); h != "" {
+			extraHosts = append(extraHosts, h)
+		}
+	}
+	svc, err := push.New(context.Background(), db, push.Config{
+		PublicKey:         strings.TrimSpace(os.Getenv("REPLOG_VAPID_PUBLIC_KEY")),
+		PrivateKey:        strings.TrimSpace(os.Getenv("REPLOG_VAPID_PRIVATE_KEY")),
+		Subject:           subject,
+		ExtraAllowedHosts: extraHosts,
+	})
+	if err != nil {
+		log.Printf("Warning: Web Push disabled: %v", err)
+		return nil
+	}
+	log.Printf("Web Push enabled (rest alerts)")
+	return svc
 }

@@ -136,7 +136,9 @@ replog/
 │   ├── models/                ← data access layer (hand-written SQL, not ORM)
 │   ├── notify/                ← in-app + external (shoutrrr) notifications
 │   ├── oidc/                  ← PocketID OIDC relying-party endpoints (ADR 019)
-│   └── scheduler/             ← background maintenance (token cleanup, etc.)
+│   ├── push/                  ← Web Push rest alerts (subscriptions, timers)
+│   ├── webpush/               ← stdlib VAPID + aes128gcm Web Push sender
+│   └── scheduler/             ← background maintenance, weekly coach digest
 ├── web/                       ← React SPA (Vite)
 │   ├── embed.go               ← //go:embed all:dist
 │   └── src/{api,components,pages}/

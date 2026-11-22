@@ -54,6 +54,8 @@ const ExportPage = lazy(() => import('@/pages/ExportPage').then(m => ({ default:
 const PendingReviews = lazy(() => import('@/pages/PendingReviews').then(m => ({ default: m.PendingReviews })))
 const AdminSettings = lazy(() => import('@/pages/AdminSettings').then(m => ({ default: m.AdminSettings })))
 const CatalogAdmin = lazy(() => import('@/pages/CatalogAdmin').then(m => ({ default: m.CatalogAdmin })))
+const CompliancePage = lazy(() => import('@/pages/CompliancePage').then(m => ({ default: m.CompliancePage })))
+const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })))
 const PreferencesPage = lazy(() => import('@/pages/PreferencesPage').then(m => ({ default: m.PreferencesPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
 const TokenLoginPage = lazy(() => import('@/pages/TokenLoginPage').then(m => ({ default: m.TokenLoginPage })))
@@ -123,6 +125,7 @@ export function App() {
         <Route path="/athletes/:id/season-phases" element={<SeasonPhases />} />
         <Route path="/athletes/:id/load" element={<LoadDashboard />} />
         <Route path="/athletes/:id/records" element={<RecordsPage />} />
+        <Route path="/athletes/:id/calendar" element={<CalendarPage />} />
         <Route path="/exercises" element={<ExercisesList user={user} />} />
         <Route path="/exercises/new" element={<RequireRole user={user} role="coach"><NewExercise /></RequireRole>} />
         <Route path="/exercises/:id" element={<ExerciseDetail />} />
@@ -135,6 +138,7 @@ export function App() {
         <Route path="/athletes/:id/cycle-review" element={<CycleReview />} />
         <Route path="/notifications" element={<NotificationsList />} />
         <Route path="/reviews/pending" element={<RequireRole user={user} role="coach"><PendingReviews /></RequireRole>} />
+        <Route path="/coach/compliance" element={<RequireRole user={user} role="coach"><CompliancePage /></RequireRole>} />
         <Route path="/users" element={<RequireRole user={user} role="admin"><UsersList /></RequireRole>} />
         <Route path="/users/new" element={<RequireRole user={user} role="admin"><NewUser /></RequireRole>} />
         <Route path="/users/:userId/edit" element={<RequireRole user={user} role="admin"><EditUser /></RequireRole>} />

@@ -2021,6 +2021,33 @@ Migrations `0012`–`0014` extend the AI-Coach `generations` table (ADR 015):
 - `prompt_version` (TEXT) — the `llm.PromptVersion` that produced the draft, so
   output-quality changes can be correlated with prompt edits across rows.
 
+### `push_subscriptions`, `vapid_keys`, `weekly_digest_log` (migration `0025`)
+
+| Column (`push_subscriptions`) | Type | Constraints |
+|----------------|-------------|--------------------------------------|
+| `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `user_id`      | INTEGER      | NOT NULL, FK → users(id) ON DELETE CASCADE |
+| `endpoint`     | TEXT         | NOT NULL UNIQUE                      |
+| `p256dh`       | TEXT         | NOT NULL (browser public key, base64url) |
+| `auth`         | TEXT         | NOT NULL (16-byte auth secret, base64url) |
+| `user_agent`   | TEXT         | NULL                                 |
+| `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `last_success_at` | DATETIME  | NULL                                 |
+
+- One row per browser Web Push subscription, used for rest alerts (a push
+  when the rest timer ends so a locked phone buzzes). Re-subscribing the same
+  endpoint refreshes the keys; a device signed in as another user moves to
+  that user. A subscription the push service reports as gone (404/410) is
+  deleted on the next send. Endpoints must be https on a known push service.
+- `vapid_keys` is a single row (`id = 1`): the VAPID application-server key
+  pair, generated on first start when `REPLOG_VAPID_PUBLIC_KEY` /
+  `REPLOG_VAPID_PRIVATE_KEY` are unset. `private_key` is stored as
+  `enc:<ciphertext>` when `REPLOG_SECRET_KEY` is set.
+- `weekly_digest_log` (`PRIMARY KEY (user_id, week_start)`) records each
+  coach digest sent, so a week goes out at most once per coach.
+- Pending rest alerts are not stored: they are in-memory timers, and a
+  restart drops the one in flight.
+
 ## Future Considerations (v2+)
 
 - **Exercise categories/tags**: Muscle group, movement pattern (push/pull/hinge/squat/carry).

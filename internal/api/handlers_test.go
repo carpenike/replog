@@ -133,6 +133,8 @@ func setupTest(t *testing.T) *testEnv {
 
 			r.Get("/athletes/{id}/coach/sessions", h.ListCoachSessions)
 			r.Get("/athletes/{id}/coach/week", h.GetCoachWeek)
+			r.Get("/athletes/{id}/calendar", h.GetAthleteCalendar)
+			r.Get("/coach/compliance", h.GetCoachCompliance)
 			r.Get("/athletes/{id}/coach/progress", h.GetCoachProgress)
 			r.Get("/athletes/{id}/coach/position", h.GetCoachPosition)
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", h.GetCoachLastSession)
@@ -247,6 +249,14 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/notifications/count", h.UnreadNotificationCount)
 			r.Post("/notifications/{notificationID}/read", h.MarkNotificationRead)
 			r.Post("/notifications/read-all", h.MarkAllNotificationsRead)
+
+			// Web Push rest alerts (browser session only; handlers check).
+			r.Get("/push/config", h.GetPushConfig)
+			r.Post("/push/subscriptions", h.SubscribePush)
+			r.Delete("/push/subscriptions", h.UnsubscribePush)
+			r.Post("/push/test", h.TestPush)
+			r.Post("/push/rest-alert", h.ScheduleRestAlert)
+			r.Delete("/push/rest-alert", h.CancelRestAlert)
 
 			// Workout reviews (coach approval flow).
 			r.Get("/reviews/pending", h.ListPendingReviews)

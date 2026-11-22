@@ -68,7 +68,7 @@ export function NotificationsList() {
                       {n.title}
                     </p>
                     {n.message && (
-                      <p className="text-sm text-muted-foreground mt-0.5">{n.message}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-line">{n.message}</p>
                     )}
                   </Link>
                 ) : (
@@ -77,7 +77,7 @@ export function NotificationsList() {
                       {n.title}
                     </p>
                     {n.message && (
-                      <p className="text-sm text-muted-foreground mt-0.5">{n.message}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-line">{n.message}</p>
                     )}
                   </div>
                 )}

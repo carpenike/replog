@@ -19,6 +19,7 @@ import (
 	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/push"
 )
 
 func init() {
@@ -35,6 +36,10 @@ type Handlers struct {
 	DB        *sql.DB
 	Sessions  *scs.SessionManager
 	AvatarDir string
+
+	// Push delivers Web Push rest alerts. Nil when push is disabled; the
+	// push routes then report it and the SPA hides the opt-in.
+	Push *push.Service
 
 	// LLMProviderFactory builds the LLM provider used by the AI Coach
 	// generation flow. Defaults to llm.NewProviderFromSettings (read from

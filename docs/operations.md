@@ -193,6 +193,32 @@ REPLOG_BASE_URL=https://replog.example.com
 REPLOG_TRUSTED_PROXIES=127.0.0.1/32   # whatever your proxy is
 ```
 
+Optional: Web Push rest alerts (a push when the rest timer ends, so a
+locked phone still buzzes). Nothing is required: with no keys set, the
+first start generates a VAPID key pair and stores it in `vapid_keys`
+(encrypted when `REPLOG_SECRET_KEY` is set), so subscriptions survive
+restarts and backups. To manage the keys yourself instead:
+
+```bash
+REPLOG_VAPID_PUBLIC_KEY=...    # base64url, 65-byte uncompressed P-256 point
+REPLOG_VAPID_PRIVATE_KEY=...   # base64url, 32-byte scalar; set both or neither
+REPLOG_VAPID_SUBJECT=mailto:coach@example.com  # default: REPLOG_BASE_URL when https
+REPLOG_PUSH_ALLOWED_HOSTS=push.example.org     # extra push-service hosts (comma list)
+REPLOG_PUSH_DISABLED=true      # turn push off entirely
+```
+
+Changing the key pair invalidates every existing subscription; users turn
+rest alerts on again in Preferences. The server only sends to the known
+browser push services (FCM, Mozilla, Apple, WNS) plus
+`REPLOG_PUSH_ALLOWED_HOSTS`, so the outbound firewall must allow https to
+them. iPhone and iPad only receive pushes when RepLog is added to the Home
+Screen (iOS 16.4+). A bad key setup logs `Web Push disabled: ...` and the
+rest of the app runs normally.
+
+The weekly coach digest goes out Monday after 07:00 in each coach's
+timezone, through the normal notification path (in-app, plus email and
+broadcast when the coach turns on "External" for Weekly Coach Digest).
+
 Setting `REPLOG_BASE_URL` to an `https://` URL automatically:
 
 - flips session cookies to `Secure`

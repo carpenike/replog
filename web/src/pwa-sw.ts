@@ -88,3 +88,118 @@ for (const method of ['POST', 'PUT', 'DELETE'] as const) {
     method,
   )
 }
+
+// --- Web Push: rest alerts --------------------------------------------------
+// The server schedules a push for the moment the rest timer ends, so a
+// locked phone still buzzes. These listeners only add notification
+// handling; they register no routes, so the caching and the offline
+// mutation queue above are untouched. (Push calls live under /api/push,
+// outside the /api/athletes mutation queue: a rest alert replayed after
+// reconnecting would be stale.)
+interface PushPayload {
+  kind?: string
+  title?: string
+  body?: string
+  tag?: string
+  url?: string
+  sent_at?: number
+}
+
+// Fields some browsers support that the TS DOM lib doesn't list yet.
+type ExtendedNotificationOptions = NotificationOptions & { renotify?: boolean; vibrate?: number[] }
+
+/** An in-app path, or "/" for anything else (never navigate off-origin). */
+function inAppURL(raw: unknown): string {
+  try {
+    const url = new URL(typeof raw === 'string' && raw ? raw : '/', self.location.origin)
+    return url.origin === self.location.origin ? url.pathname + url.search + url.hash : '/'
+  } catch {
+    return '/'
+  }
+}
+
+self.addEventListener('push', (event) => {
+  let data: PushPayload = {}
+  try {
+    data = (event.data?.json() as PushPayload | undefined) ?? {}
+  } catch {
+    data = { title: event.data?.text() || 'RepLog' }
+  }
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    // The page already toasts when it is in front; stay quiet there. A
+    // notification is still shown either way: browsers require every push
+    // to surface one or they revoke the subscription.
+    const inFront = windows.some(c => (c as WindowClient).focused && c.visibilityState === 'visible')
+    const options: ExtendedNotificationOptions = {
+      body: data.body,
+      tag: data.tag || 'replog',
+      renotify: true,
+      silent: inFront,
+      vibrate: inFront ? undefined : [200, 100, 200],
+      icon: '/pwa-192x192.png',
+      badge: '/pwa-192x192.png',
+      data: { url: inAppURL(data.url) },
+    }
+    await self.registration.showNotification(data.title || 'RepLog', options)
+  })())
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = inAppURL((event.notification.data as { url?: string } | null)?.url)
+  event.waitUntil((async () => {
+    const windows = (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })) as WindowClient[]
+    const exact = windows.find(c => new URL(c.url).pathname === new URL(target, self.location.origin).pathname)
+    if (exact) {
+      await exact.focus()
+      return
+    }
+    const any = windows[0]
+    if (any) {
+      try {
+        await any.focus()
+        await any.navigate(target)
+        return
+      } catch {
+        // Not controlled by this worker yet; open a fresh window instead.
+      }
+    }
+    await self.clients.openWindow(target)
+  })())
+})
+
+// The browser rotated the subscription (expiry, key change). Re-subscribe
+// with the server's key and store the new endpoint so alerts keep working.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  const e = event as ExtendableEvent & { oldSubscription?: PushSubscription | null }
+  e.waitUntil((async () => {
+    try {
+      const res = await fetch('/api/push/config', { credentials: 'same-origin' })
+      if (!res.ok) return
+      const cfg = (await res.json()) as { enabled?: boolean; public_key?: string }
+      if (!cfg.enabled || !cfg.public_key) return
+      const key = cfg.public_key.replace(/-/g, '+').replace(/_/g, '/')
+      const raw = atob(key + '='.repeat((4 - (key.length % 4)) % 4))
+      const bytes = new Uint8Array(new ArrayBuffer(raw.length))
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i)
+      const sub = await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes })
+      await fetch('/api/push/subscriptions', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub.toJSON()),
+      })
+      if (e.oldSubscription && e.oldSubscription.endpoint !== sub.endpoint) {
+        await fetch('/api/push/subscriptions', {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: e.oldSubscription.endpoint }),
+        })
+      }
+    } catch {
+      // Best effort: the Preferences page can re-enable alerts.
+    }
+  })())
+})

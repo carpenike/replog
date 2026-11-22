@@ -381,6 +381,70 @@ definitions:
         example: 185.5
         type: number
     type: object
+  api.CalendarDayResponse:
+    properties:
+      date:
+        type: string
+      program_id:
+        type: integer
+      program_name:
+        type: string
+      scheduled:
+        type: boolean
+      sessions:
+        items:
+          $ref: '#/definitions/api.CalendarSessionResponse'
+        type: array
+      status:
+        type: string
+    type: object
+  api.CalendarPhaseResponse:
+    properties:
+      end_date:
+        type: string
+      id:
+        type: integer
+      phase:
+        example: in
+        type: string
+      sport:
+        type: string
+      start_date:
+        type: string
+    type: object
+  api.CalendarResponse:
+    properties:
+      days:
+        items:
+          $ref: '#/definitions/api.CalendarDayResponse'
+        type: array
+      end:
+        type: string
+      month:
+        example: 2026-11
+        type: string
+      phases:
+        items:
+          $ref: '#/definitions/api.CalendarPhaseResponse'
+        type: array
+      start:
+        type: string
+      today:
+        type: string
+    type: object
+  api.CalendarSessionResponse:
+    properties:
+      discipline:
+        example: throwing
+        type: string
+      label:
+        example: bullpen
+        type: string
+      set_count:
+        type: integer
+      workout_id:
+        type: integer
+    type: object
   api.CatalogImportExecuteRequest:
     properties:
       exercises:
@@ -1161,6 +1225,63 @@ definitions:
         type: string
       total_count:
         type: integer
+    type: object
+  api.ComplianceAthleteResponse:
+    properties:
+      athlete_id:
+        type: integer
+      days:
+        items:
+          $ref: '#/definitions/api.ComplianceDayResponse'
+        type: array
+      done_count:
+        type: integer
+      extra_count:
+        type: integer
+      name:
+        type: string
+      partial_count:
+        type: integer
+      planned_count:
+        type: integer
+      prescribed_count:
+        type: integer
+      skipped_count:
+        type: integer
+      summary:
+        example: 2 of 3
+        type: string
+    type: object
+  api.ComplianceDayResponse:
+    properties:
+      date:
+        example: "2026-11-16"
+        type: string
+      program_day_label:
+        type: string
+      program_name:
+        type: string
+      session_id:
+        type: integer
+      status:
+        example: done
+        type: string
+      weekday:
+        example: 1
+        type: integer
+    type: object
+  api.ComplianceResponse:
+    properties:
+      athletes:
+        items:
+          $ref: '#/definitions/api.ComplianceAthleteResponse'
+        type: array
+      timezone:
+        type: string
+      week_end:
+        type: string
+      week_start:
+        type: string
     type: object
   api.ConditioningInterval:
     properties:
@@ -2438,6 +2559,44 @@ definitions:
       template_id:
         type: integer
     type: object
+  api.PushConfigResponse:
+    properties:
+      enabled:
+        description: Enabled is false when the server has no push service configured.
+        type: boolean
+      public_key:
+        description: |-
+          PublicKey is the VAPID public key (base64url) for
+          PushManager.subscribe's applicationServerKey. Empty when disabled.
+        type: string
+      subscriptions:
+        description: Subscriptions is how many devices this user has subscribed.
+        type: integer
+    type: object
+  api.PushSubscriptionKeys:
+    properties:
+      auth:
+        type: string
+      p256dh:
+        type: string
+    type: object
+  api.PushSubscriptionRequest:
+    properties:
+      endpoint:
+        type: string
+      keys:
+        $ref: '#/definitions/api.PushSubscriptionKeys'
+    type: object
+  api.PushTestResponse:
+    properties:
+      sent:
+        type: integer
+    type: object
+  api.PushUnsubscribeRequest:
+    properties:
+      endpoint:
+        type: string
+    type: object
   api.RecordSetResponse:
     properties:
       date:
@@ -2538,6 +2697,30 @@ definitions:
         type: number
       workout_id:
         type: integer
+    type: object
+  api.RestAlertRequest:
+    properties:
+      label:
+        description: Label names the next exercise in the notification (optional).
+        example: Back Squat
+        type: string
+      seconds:
+        description: Seconds until the rest period ends (1–3600).
+        example: 90
+        type: integer
+      url:
+        description: |-
+          URL is the in-app path a tap on the notification opens (optional,
+          must start with "/").
+        example: /athletes/1/workouts/2/active
+        type: string
+    type: object
+  api.RestAlertResponse:
+    properties:
+      fires_at:
+        type: string
+      scheduled:
+        type: boolean
     type: object
   api.ReviewRequest:
     properties:
@@ -4374,6 +4557,40 @@ paths:
       summary: Delete body weight
       tags:
       - Athletes
+  /athletes/{id}/calendar:
+    get:
+      description: Every day of the month with its scheduled program day (from stored
+        weekday schedules), each logged session of any discipline, and the season
+        phases that overlap the month. month defaults to the current month in the
+        caller's timezone. Read only.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Month, YYYY-MM
+        in: query
+        name: month
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CalendarResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Athlete calendar month
+      tags:
+      - Workouts
   /athletes/{id}/coach/exercises:
     get:
       description: Case-insensitive match on name or alias for an athlete this caller
@@ -7668,6 +7885,34 @@ paths:
       summary: Upload catalog JSON for import
       tags:
       - Admin
+  /coach/compliance:
+    get:
+      description: 'Each coached athlete''s Monday–Sunday from the week plan-versus-done
+        read. Admins see every athlete. week_start defaults to the current Monday
+        in the caller''s timezone. Read only: it never changes a plan.'
+      parameters:
+      - description: Monday of the week, YYYY-MM-DD
+        in: query
+        name: week_start
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ComplianceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Coach compliance grid
+      tags:
+      - Workouts
   /dashboard:
     get:
       description: Returns athlete cards plus aggregated stats (only available to
@@ -8702,6 +8947,166 @@ paths:
       summary: Write program draft
       tags:
       - Programs
+  /push/config:
+    get:
+      description: enabled is false when the server has no push service, so the SPA
+        hides the opt-in. public_key is the VAPID applicationServerKey.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PushConfigResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Web Push configuration
+      tags:
+      - Notifications
+  /push/rest-alert:
+    delete:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.RestAlertResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Cancel the rest-timer push
+      tags:
+      - Notifications
+    post:
+      consumes:
+      - application/json
+      description: Replaces this user's pending rest alert with one that fires in
+        seconds (1–3600), so a locked phone still buzzes. Call again to extend; DELETE
+        to skip. Alerts are held in memory and a restart drops them.
+      parameters:
+      - description: Rest alert
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.RestAlertRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.RestAlertResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Schedule the rest-timer push
+      tags:
+      - Notifications
+  /push/subscriptions:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Endpoint
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.PushUnsubscribeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Unsubscribe this device from push
+      tags:
+      - Notifications
+    post:
+      consumes:
+      - application/json
+      description: Stores PushSubscription.toJSON(). The endpoint must be https on
+        a known push service. Re-subscribing the same endpoint refreshes its keys.
+      parameters:
+      - description: Subscription
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.PushSubscriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Subscribe this device to push
+      tags:
+      - Notifications
+  /push/test:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PushTestResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Send a test push
+      tags:
+      - Notifications
   /reviews/pending:
     get:
       produces:

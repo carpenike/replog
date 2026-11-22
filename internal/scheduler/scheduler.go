@@ -32,6 +32,7 @@ type Scheduler struct {
 	db   *sql.DB
 	stop chan struct{}
 	done chan struct{}
+	wg   sync.WaitGroup // digest loop
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -53,9 +54,12 @@ func New(db *sql.DB) *Scheduler {
 }
 
 // Start begins running maintenance tasks. It runs an initial pass immediately,
-// then repeats at the configured interval. Call Stop to shut down gracefully.
+// then repeats at the configured interval. It also starts the hourly weekly
+// digest check (digest.go). Call Stop to shut down gracefully.
 func (s *Scheduler) Start() {
 	go s.run()
+	s.wg.Add(1)
+	go s.digestLoop()
 	log.Println("Background scheduler started")
 }
 
@@ -64,6 +68,7 @@ func (s *Scheduler) Stop() {
 	close(s.stop)
 	s.cancel()
 	<-s.done
+	s.wg.Wait()
 }
 
 // Status returns the result of the last maintenance run.
