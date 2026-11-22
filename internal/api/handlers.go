@@ -50,6 +50,10 @@ type Handlers struct {
 	// process-local, hashed, and discarded on use or expiry.
 	noteGrantOnce  sync.Once
 	noteGrantStore *noteGrantStore
+
+	// programGrants holds one-time coach-program import tokens.
+	programGrantOnce  sync.Once
+	programGrantStore *programGrantStore
 }
 
 // llmProvider returns the configured LLM provider, falling back to the

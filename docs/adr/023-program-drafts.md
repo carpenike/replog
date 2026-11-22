@@ -27,9 +27,11 @@ template as a plan.
   `coach_id` NULL and keeps the text.
 - `prescribed_sets.prescribed_rpe` (NULL, or 1 through 10) and
   `group_label` (NULL or text) are optional prescription fields.
-- Approved names stay unique in their scope. A draft may reuse a name.
-  Approving a draft onto a name that is already approved is refused.
-  `(COALESCE(lineage_id, id), version)` is unique.
+- Approved names stay unique per version in their scope (migration
+  `0019` includes `version` in the partial unique index, so a second
+  import of the same name can be stored). A draft may reuse a name.
+  Approving a draft onto the same name and version that is already
+  approved is refused. `(COALESCE(lineage_id, id), version)` is unique.
 - `buildReferencePrograms` and assignment skip drafts. The coach's
   program list still returns them. Approving sets `status` to
   `approved` and does not assign the program.

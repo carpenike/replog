@@ -148,6 +148,7 @@ export function EditUser() {
 
       {/* Magic-link login tokens */}
       <LoginTokensSection userId={id} />
+      <ServiceTokensSection userId={id} />
     </div>
   )
 }
@@ -280,6 +281,143 @@ function LoginTokensSection({ userId }: { userId: number }) {
         </Table>
       ) : (
         <p className="text-sm text-muted-foreground">No active login tokens.</p>
+      )}
+      {confirmDialog()}
+    </section>
+  )
+}
+
+function ServiceTokensSection({ userId }: { userId: number }) {
+  const queryClient = useQueryClient()
+  const { confirm, dialog: confirmDialog } = useConfirm()
+  const [label, setLabel] = useState('')
+  const [issuedToken, setIssuedToken] = useState<string | null>(null)
+
+  const { data: tokens, isLoading } = useQuery({
+    queryKey: ['service-tokens', userId],
+    queryFn: () => api.listServiceTokens(userId),
+    enabled: !isNaN(userId),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: () => api.issueServiceToken(userId, label || undefined),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['service-tokens', userId] })
+      setIssuedToken(res.token)
+      setLabel('')
+    },
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Failed to issue token'),
+  })
+
+  const revokeMutation = useMutation({
+    mutationFn: (tokenId: number) => api.revokeServiceToken(userId, tokenId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-tokens', userId] }),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Failed to revoke token'),
+  })
+
+  return (
+    <section className="mt-10 border-t pt-6">
+      <h2 className="text-lg font-semibold">Service Tokens</h2>
+      <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-md">
+        Long-lived bearers for this user. The token is shown once, when it is
+        issued. Revoke it here when it should stop working.
+      </p>
+
+      {issuedToken && (
+        <Alert className="mb-4">
+          <div className="space-y-2">
+            <p className="font-medium">Service token issued</p>
+            <p className="text-xs text-muted-foreground">
+              Copy this now. It will not be shown again.
+            </p>
+            <div className="flex gap-2 items-center">
+              <Input readOnly value={issuedToken} onFocus={(e) => e.currentTarget.select()} />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(issuedToken).then(
+                    () => toast.success('Copied to clipboard'),
+                    () => toast.error('Copy failed'),
+                  )
+                }}
+              >
+                Copy
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIssuedToken(null)}>
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        </Alert>
+      )}
+
+      <form
+        onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }}
+        className="flex gap-2 items-end mb-4 max-w-md"
+      >
+        <div className="flex-1">
+          <Label>New token label (optional)</Label>
+          <Input
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            placeholder="e.g. coach agent"
+          />
+        </div>
+        <Button type="submit" disabled={createMutation.isPending}>
+          {createMutation.isPending ? 'Issuing...' : 'Issue Token'}
+        </Button>
+      </form>
+
+      {isLoading ? (
+        <Spinner />
+      ) : tokens && tokens.length > 0 ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Label</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Last used</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-12"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tokens.map(t => (
+              <TableRow key={t.id}>
+                <TableCell className="font-medium">{t.label ?? '—'}</TableCell>
+                <TableCell className="text-muted-foreground">{new Date(t.created_at).toLocaleDateString()}</TableCell>
+                <TableCell className="text-muted-foreground">{t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : '—'}</TableCell>
+                <TableCell>
+                  {t.revoked_at
+                    ? <Badge variant="secondary">Revoked</Badge>
+                    : <Badge>Active</Badge>}
+                </TableCell>
+                <TableCell>
+                  {!t.revoked_at && (
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={async () => {
+                        if (await confirm({
+                          title: 'Revoke Token',
+                          description: 'This service token will stop working immediately.',
+                          confirmLabel: 'Revoke',
+                          variant: 'danger',
+                        })) revokeMutation.mutate(t.id)
+                      }}
+                    >
+                      ×
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <p className="text-sm text-muted-foreground">No service tokens.</p>
       )}
       {confirmDialog()}
     </section>

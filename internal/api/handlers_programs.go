@@ -81,6 +81,9 @@ func (h *Handlers) UpdateProgramTemplate(w http.ResponseWriter, r *http.Request)
 		WriteError(w, http.StatusBadRequest, "invalid program ID")
 		return
 	}
+	if h.refuseLockedProgram(w, r, id) {
+		return
+	}
 
 	var req ProgramTemplateUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -128,6 +131,9 @@ func (h *Handlers) DeleteProgramTemplate(w http.ResponseWriter, r *http.Request)
 		WriteError(w, http.StatusBadRequest, "invalid program ID")
 		return
 	}
+	if h.refuseLockedProgram(w, r, id) {
+		return
+	}
 
 	if err := models.DeleteProgramTemplate(r.Context(), h.DB, id); err != nil {
 		log.Printf("api: delete program template %d: %v", id, err)
@@ -162,6 +168,9 @@ func (h *Handlers) AddPrescribedSet(w http.ResponseWriter, r *http.Request) {
 	templateID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid program ID")
+		return
+	}
+	if h.refuseLockedProgram(w, r, templateID) {
 		return
 	}
 
@@ -222,6 +231,9 @@ func (h *Handlers) UpdatePrescribedSet(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, "invalid set ID")
 		return
 	}
+	if h.refuseLockedSet(w, r, setID) {
+		return
+	}
 
 	var req PrescribedSetUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -275,6 +287,9 @@ func (h *Handlers) DeletePrescribedSet(w http.ResponseWriter, r *http.Request) {
 	setID, err := strconv.ParseInt(r.PathValue("setID"), 10, 64)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid set ID")
+		return
+	}
+	if h.refuseLockedSet(w, r, setID) {
 		return
 	}
 

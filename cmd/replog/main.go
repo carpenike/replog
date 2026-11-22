@@ -366,6 +366,13 @@ func main() {
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", apiHandlers.GetCoachLastSession)
 			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/preview", apiHandlers.PreviewCoachSessionNote)
 			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/confirm", apiHandlers.ConfirmCoachSessionNote)
+			r.Get("/athletes/{id}/coach/exercises", apiHandlers.ListCoachExercises)
+			r.Post("/athletes/{id}/coach/exercises", apiHandlers.CreateCoachExercise)
+			r.Post("/athletes/{id}/coach/programs/preview", apiHandlers.PreviewCoachProgram)
+			r.Post("/athletes/{id}/coach/programs/import", apiHandlers.ImportCoachProgram)
+			r.Get("/athletes/{id}/coach/programs", apiHandlers.ListCoachPrograms)
+			r.Post("/athletes/{id}/coach/programs/assign", apiHandlers.AssignCoachProgram)
+			r.Post("/athletes/{id}/coach/programs/{templateID}/gap-fill", apiHandlers.GapFillCoachProgram)
 
 			// Body Weights.
 			r.Get("/athletes/{id}/body-weights", apiHandlers.ListBodyWeights)

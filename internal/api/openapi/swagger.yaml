@@ -382,6 +382,170 @@ definitions:
       mapped_id:
         type: integer
     type: object
+  api.CoachAIResponse:
+    properties:
+      load:
+        $ref: '#/definitions/api.CoachLoad'
+      notes:
+        type: string
+      reps_max:
+        type: integer
+      reps_min:
+        type: integer
+      rest_seconds:
+        type: integer
+      rir_max:
+        type: integer
+      rir_min:
+        type: integer
+      sets:
+        type: integer
+    type: object
+  api.CoachBlockResponse:
+    properties:
+      exercises:
+        items:
+          $ref: '#/definitions/api.CoachLineResponse'
+        type: array
+      non_working:
+        type: boolean
+      order:
+        type: integer
+      rest:
+        type: string
+      rest_seconds:
+        type: integer
+      rounds:
+        type: integer
+      sets:
+        type: integer
+      type:
+        type: string
+    type: object
+  api.CoachCycleResponse:
+    properties:
+      repeat:
+        type: string
+      upcoming:
+        type: integer
+      weekdays:
+        items:
+          type: integer
+        type: array
+    type: object
+  api.CoachDayResponse:
+    properties:
+      blocks:
+        items:
+          $ref: '#/definitions/api.CoachBlockResponse'
+        type: array
+      day:
+        type: integer
+      equipment:
+        items:
+          type: string
+        type: array
+      estimated_minutes:
+        type: integer
+      exercise_count:
+        type: integer
+      instructions:
+        type: string
+      kind:
+        type: string
+      label:
+        type: string
+      order:
+        type: integer
+      schedule:
+        $ref: '#/definitions/api.CoachCycleResponse'
+      week:
+        type: integer
+      weekday:
+        type: integer
+    type: object
+  api.CoachExerciseMatchResponse:
+    properties:
+      exercise_id:
+        type: integer
+      matched_on:
+        type: string
+      name:
+        type: string
+    type: object
+  api.CoachExerciseRequest:
+    properties:
+      aliases:
+        items:
+          type: string
+        type: array
+      equipment:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      notes:
+        type: string
+      primary_muscles:
+        items:
+          type: string
+        type: array
+      unilateral:
+        type: boolean
+    type: object
+  api.CoachExerciseResponse:
+    properties:
+      aliases:
+        items:
+          type: string
+        type: array
+      created:
+        type: boolean
+      equipment:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      name:
+        type: string
+      notes:
+        type: string
+      primary_muscles:
+        items:
+          type: string
+        type: array
+      unilateral:
+        type: boolean
+    type: object
+  api.CoachGapFillRequest:
+    properties:
+      block_order:
+        type: integer
+      day_order:
+        type: integer
+      exercise:
+        type: string
+      exercise_order:
+        type: integer
+      load:
+        type: number
+      notes:
+        type: string
+      reps_max:
+        type: integer
+      reps_min:
+        type: integer
+      rest_seconds:
+        type: integer
+      rir_max:
+        type: integer
+      rir_min:
+        type: integer
+      sets:
+        type: integer
+    type: object
   api.CoachHistoryResponse:
     properties:
       next_cursor:
@@ -414,6 +578,37 @@ definitions:
         type: string
       session:
         $ref: '#/definitions/api.CoachLastSessionBody'
+    type: object
+  api.CoachLineResponse:
+    properties:
+      ai:
+        $ref: '#/definitions/api.CoachAIResponse'
+      exercise_id:
+        type: integer
+      name:
+        type: string
+      non_working:
+        type: boolean
+      notes:
+        type: string
+      order:
+        type: integer
+      per_side:
+        type: boolean
+      reps_max:
+        type: integer
+      reps_min:
+        type: integer
+      rest:
+        type: string
+      rest_seconds:
+        type: integer
+      rir_max:
+        type: integer
+      rir_min:
+        type: integer
+      sets:
+        type: integer
     type: object
   api.CoachLoad:
     properties:
@@ -464,6 +659,8 @@ definitions:
         items:
           $ref: '#/definitions/api.CoachTargetExerciseResponse'
         type: array
+      program_day:
+        $ref: '#/definitions/api.CoachDayResponse'
       program_day_label:
         type: string
       week:
@@ -535,6 +732,8 @@ definitions:
         type: integer
       next_session:
         $ref: '#/definitions/api.CoachNextSessionResponse'
+      program_day:
+        $ref: '#/definitions/api.CoachDayResponse'
       program_day_label:
         type: string
       program_id:
@@ -542,6 +741,134 @@ definitions:
       program_name:
         type: string
       week:
+        type: integer
+    type: object
+  api.CoachProgramAssignRequest:
+    properties:
+      start_date:
+        type: string
+      template_id:
+        type: integer
+      version:
+        type: integer
+    type: object
+  api.CoachProgramAssignResponse:
+    properties:
+      assignment_id:
+        type: integer
+      athlete_id:
+        type: integer
+      schedule_weekdays:
+        items:
+          type: integer
+        type: array
+      start_date:
+        type: string
+      template_id:
+        type: integer
+      version:
+        type: integer
+    type: object
+  api.CoachProgramImportRequest:
+    properties:
+      confirm:
+        type: boolean
+      preview_token:
+        type: string
+    type: object
+  api.CoachProgramImportResponse:
+    properties:
+      created_exercises:
+        items:
+          type: string
+        type: array
+      lineage_id:
+        type: integer
+      locked:
+        type: boolean
+      program:
+        $ref: '#/definitions/api.CoachProgramResponse'
+      template_id:
+        type: integer
+      version:
+        type: integer
+    type: object
+  api.CoachProgramPreviewRequest:
+    properties:
+      athlete_id:
+        type: integer
+      program:
+        items:
+          type: integer
+        type: array
+    type: object
+  api.CoachProgramPreviewResponse:
+    properties:
+      expires_at:
+        type: string
+      matched_exercises:
+        items:
+          $ref: '#/definitions/api.CoachExerciseMatchResponse'
+        type: array
+      normalized:
+        $ref: '#/definitions/api.CoachProgramResponse'
+      preview_token:
+        type: string
+      unmapped:
+        items:
+          type: string
+        type: array
+      would_create:
+        items:
+          type: string
+        type: array
+    type: object
+  api.CoachProgramResponse:
+    properties:
+      author:
+        type: string
+      cycle:
+        $ref: '#/definitions/api.CoachCycleResponse'
+      days:
+        items:
+          $ref: '#/definitions/api.CoachDayResponse'
+        type: array
+      name:
+        type: string
+      source:
+        type: string
+      start_date:
+        type: string
+      weeks:
+        type: integer
+    type: object
+  api.CoachProgramSummaryResponse:
+    properties:
+      assignment_id:
+        type: integer
+      assignment_start:
+        type: string
+      author:
+        type: string
+      days:
+        items:
+          $ref: '#/definitions/api.CoachDayResponse'
+        type: array
+      lineage_id:
+        type: integer
+      locked:
+        type: boolean
+      name:
+        type: string
+      schedule:
+        $ref: '#/definitions/api.CoachCycleResponse'
+      source:
+        type: string
+      start_date:
+        type: string
+      template_id:
+        type: integer
+      version:
         type: integer
     type: object
   api.CoachProgressExerciseResponse:
@@ -601,6 +928,8 @@ definitions:
         type: array
       notes:
         type: string
+      program_day:
+        $ref: '#/definitions/api.CoachDayResponse'
       program_day_label:
         type: string
       session_id:
@@ -614,6 +943,8 @@ definitions:
         type: integer
       name:
         type: string
+      prescription:
+        $ref: '#/definitions/api.CoachLineResponse'
       sets:
         items:
           $ref: '#/definitions/api.CoachTargetSetResponse'
@@ -663,6 +994,8 @@ definitions:
         type: integer
       planned_exercises:
         type: integer
+      program_day:
+        $ref: '#/definitions/api.CoachDayResponse'
       program_day_label:
         type: string
       program_id:
@@ -3480,6 +3813,92 @@ paths:
       summary: Delete body weight
       tags:
       - Athletes
+  /athletes/{id}/coach/exercises:
+    get:
+      description: Case-insensitive match on name or alias for an athlete this caller
+        can see. Does not create rows. An admin service token does not see every athlete.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Name or alias
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.CoachExerciseResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List exercises
+      tags:
+      - Coach
+    post:
+      consumes:
+      - application/json
+      description: Creates a catalog exercise for a coach of this athlete. A case-insensitive
+        name or alias match returns the existing row and does not update it. A service
+        token cannot create an exercise for an athlete it does not coach.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Exercise
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachExerciseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachExerciseResponse'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.CoachExerciseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create exercise
+      tags:
+      - Coach
   /athletes/{id}/coach/exercises/{exerciseID}/last-session:
     get:
       description: The newest resistance session in which this athlete logged the
@@ -3521,9 +3940,11 @@ paths:
       - Workouts
   /athletes/{id}/coach/position:
     get:
-      description: Read only. Does not create or advance a session. block is null
-        because the schema has no block column. Week and day come from the existing
-        prescription count.
+      description: 'Read only. Does not create or advance a session, and does not
+        change the program or a training max. block stays null: it is a mesocycle
+        name, and that column is not stored. program_day is the imported day when
+        this assignment has one. Week and day come from the existing prescription
+        count.'
       parameters:
       - description: Athlete ID
         in: path
@@ -3548,6 +3969,216 @@ paths:
       summary: Coach program position
       tags:
       - Workouts
+  /athletes/{id}/coach/programs:
+    get:
+      description: Imported versions for this athlete, including days. Does not change
+        a program or a training max. An admin service token does not see every athlete.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.CoachProgramSummaryResponse'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List coach programs
+      tags:
+      - Coach
+  /athletes/{id}/coach/programs/{templateID}/gap-fill:
+    post:
+      consumes:
+      - application/json
+      description: Writes only fields the coach left empty, marked as AI suggestions.
+        A request that would change coach-set sets, reps, exercises, notes, or any
+        other coach value is refused and writes nothing.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Template ID
+        in: path
+        name: templateID
+        required: true
+        type: integer
+      - description: Blank fields
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachGapFillRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachLineResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Gap-fill a coach program
+      tags:
+      - Coach
+  /athletes/{id}/coach/programs/assign:
+    post:
+      consumes:
+      - application/json
+      description: Assigns the locked version named by template_id and version. The
+        stored weekdays become the assignment schedule. Replaces an active primary.
+        Does not change the template. A service token may call this for an athlete
+        it coaches.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assignment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachProgramAssignRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.CoachProgramAssignResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Assign a coach program
+      tags:
+      - Coach
+  /athletes/{id}/coach/programs/import:
+    post:
+      consumes:
+      - application/json
+      description: confirm must be true. Saves the previewed program as a new locked
+        version and creates missing exercises in that transaction. The same name creates
+        the next version and does not change the previous one. A service token may
+        call this for an athlete it coaches. The saved sets, reps, exercises, and
+        notes are read-only to that token.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Preview token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachProgramImportRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.CoachProgramImportResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Import a coach program
+      tags:
+      - Coach
+  /athletes/{id}/coach/programs/preview:
+    post:
+      consumes:
+      - application/json
+      description: Normalizes the program, matches exercises, and lists fields that
+        would not be stored. Does not write. The preview token lasts 15 minutes and
+        works once. athlete_id must match the path.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Program
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachProgramPreviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachProgramPreviewResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Preview a coach program
+      tags:
+      - Coach
   /athletes/{id}/coach/progress:
     get:
       description: Read only. Estimated 1RM is computed with the Epley formula already
