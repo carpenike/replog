@@ -54,6 +54,10 @@ type Handlers struct {
 	// programGrants holds one-time coach-program import tokens.
 	programGrantOnce  sync.Once
 	programGrantStore *programGrantStore
+
+	// exerciseGrants holds one-time coach exercise alias and rename tokens.
+	exerciseGrantOnce  sync.Once
+	exerciseGrantStore *exerciseGrantStore
 }
 
 // llmProvider returns the configured LLM provider, falling back to the

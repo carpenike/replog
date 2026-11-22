@@ -127,19 +127,52 @@ type CoachAIResponse struct {
 
 // CoachExerciseMatchResponse is a program name that already exists in the catalog.
 type CoachExerciseMatchResponse struct {
-	Name       string `json:"name"`
+	Name         string `json:"name"`
+	ExerciseID   int64  `json:"exercise_id"`
+	ExerciseName string `json:"exercise_name"`
+	// name, alias, normalized_name, or normalized_alias (case, spaces, and
+	// punctuation ignored).
+	MatchedOn string `json:"matched_on"`
+}
+
+// CoachExerciseRefResponse names one catalog exercise.
+type CoachExerciseRefResponse struct {
 	ExerciseID int64  `json:"exercise_id"`
-	MatchedOn  string `json:"matched_on"`
+	Name       string `json:"name"`
+}
+
+// CoachExerciseSuggestionResponse is a likely existing exercise for a name that would be created.
+type CoachExerciseSuggestionResponse struct {
+	ExerciseID int64  `json:"exercise_id"`
+	Name       string `json:"name"`
+	Reason     string `json:"reason"`
+}
+
+// CoachExerciseCreateResponse is a program name with no match and its suggestions.
+type CoachExerciseCreateResponse struct {
+	Name        string                            `json:"name"`
+	Suggestions []CoachExerciseSuggestionResponse `json:"suggestions"`
+}
+
+// CoachExerciseAmbiguousResponse is a program name that matches more than one exercise.
+// The import refuses it until an alias or rename makes it unique.
+type CoachExerciseAmbiguousResponse struct {
+	Name       string                     `json:"name"`
+	Candidates []CoachExerciseRefResponse `json:"candidates"`
 }
 
 // CoachProgramPreviewResponse is the check. Nothing is written.
 type CoachProgramPreviewResponse struct {
-	Normalized   CoachProgramResponse         `json:"normalized"`
-	Matched      []CoachExerciseMatchResponse `json:"matched_exercises"`
-	WouldCreate  []string                     `json:"would_create"`
-	Unmapped     []string                     `json:"unmapped"`
-	PreviewToken string                       `json:"preview_token"`
-	ExpiresAt    string                       `json:"expires_at"`
+	Normalized  CoachProgramResponse         `json:"normalized"`
+	Matched     []CoachExerciseMatchResponse `json:"matched_exercises"`
+	WouldCreate []string                     `json:"would_create"`
+	// Suggestions lists likely existing exercises for each would_create name.
+	Suggestions []CoachExerciseCreateResponse `json:"suggestions"`
+	// Ambiguous names match more than one exercise; the import refuses them.
+	Ambiguous    []CoachExerciseAmbiguousResponse `json:"ambiguous"`
+	Unmapped     []string                         `json:"unmapped"`
+	PreviewToken string                           `json:"preview_token"`
+	ExpiresAt    string                           `json:"expires_at"`
 }
 
 // CoachProgramImportRequest confirms a preview. The program itself is the one in the token.
@@ -285,7 +318,7 @@ func (h *Handlers) CreateCoachExercise(w http.ResponseWriter, r *http.Request) {
 // PreviewCoachProgram checks a program and returns a one-time token. It writes nothing.
 //
 //	@Summary      Preview a coach program
-//	@Description  Normalizes the program, matches exercises, and lists fields that would not be stored. Does not write. The preview token lasts 15 minutes and works once. athlete_id must match the path.
+//	@Description  Normalizes the program, matches exercises by name or alias ignoring case, spaces, and punctuation, suggests existing exercises for names that would be created, and lists fields that would not be stored. Does not write. The preview token lasts 15 minutes and works once. athlete_id must match the path.
 //	@Tags         Coach
 //	@Accept       json
 //	@Produce      json
@@ -337,7 +370,7 @@ func (h *Handlers) PreviewCoachProgram(w http.ResponseWriter, r *http.Request) {
 		writeProgramError(w, "preview program", err)
 		return
 	}
-	matched, wouldCreate, err := models.MatchProgramExercises(r.Context(), h.DB, program)
+	matches, err := models.MatchProgramExercises(r.Context(), h.DB, program)
 	if err != nil {
 		log.Printf("api: preview program athlete %d: %v", athlete.ID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to preview the program")
@@ -351,15 +384,35 @@ func (h *Handlers) PreviewCoachProgram(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Strings(unmapped)
 	ids := map[string]int64{}
-	matchOut := make([]CoachExerciseMatchResponse, 0, len(matched))
-	for _, match := range matched {
+	matchOut := make([]CoachExerciseMatchResponse, 0, len(matches.Matched))
+	for _, match := range matches.Matched {
 		ids[strings.ToLower(match.Name)] = match.ExerciseID
-		matchOut = append(matchOut, CoachExerciseMatchResponse{Name: match.Name, ExerciseID: match.ExerciseID, MatchedOn: match.MatchedOn})
+		matchOut = append(matchOut, CoachExerciseMatchResponse{Name: match.Name, ExerciseID: match.ExerciseID, ExerciseName: match.ExerciseName, MatchedOn: match.MatchedOn})
+	}
+	wouldCreate := make([]string, 0, len(matches.WouldCreate))
+	suggestions := make([]CoachExerciseCreateResponse, 0, len(matches.WouldCreate))
+	for _, create := range matches.WouldCreate {
+		wouldCreate = append(wouldCreate, create.Name)
+		list := make([]CoachExerciseSuggestionResponse, 0, len(create.Suggestions))
+		for _, sug := range create.Suggestions {
+			list = append(list, CoachExerciseSuggestionResponse{ExerciseID: sug.ExerciseID, Name: sug.Name, Reason: sug.Reason})
+		}
+		suggestions = append(suggestions, CoachExerciseCreateResponse{Name: create.Name, Suggestions: list})
+	}
+	ambiguous := make([]CoachExerciseAmbiguousResponse, 0, len(matches.Ambiguous))
+	for _, amb := range matches.Ambiguous {
+		cands := make([]CoachExerciseRefResponse, 0, len(amb.Candidates))
+		for _, c := range amb.Candidates {
+			cands = append(cands, CoachExerciseRefResponse{ExerciseID: c.ID, Name: c.Name})
+		}
+		ambiguous = append(ambiguous, CoachExerciseAmbiguousResponse{Name: amb.Name, Candidates: cands})
 	}
 	WriteJSON(w, http.StatusOK, CoachProgramPreviewResponse{
 		Normalized:   coachProgramResponse(program, ids),
 		Matched:      matchOut,
 		WouldCreate:  wouldCreate,
+		Suggestions:  suggestions,
+		Ambiguous:    ambiguous,
 		Unmapped:     unmapped,
 		PreviewToken: token,
 		ExpiresAt:    expires.In(userLocation(r)).Format(time.RFC3339),
@@ -625,11 +678,21 @@ func coachOwns(user *models.User, athlete *models.Athlete, service bool) bool {
 
 func writeProgramError(w http.ResponseWriter, action string, err error) {
 	var coachField *models.CoachFieldError
+	var ambiguous *models.AmbiguousExerciseError
+	var conflict *models.ExerciseConflictError
 	switch {
 	case errors.As(err, &coachField):
 		WriteError(w, http.StatusConflict, coachField.Error())
 	case errors.Is(err, models.ErrVersionMismatch):
 		WriteError(w, http.StatusConflict, "version does not match")
+	case errors.As(err, &ambiguous):
+		WriteError(w, http.StatusConflict, err.Error())
+	case errors.As(err, &conflict):
+		WriteError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, models.ErrExerciseChanged):
+		WriteError(w, http.StatusConflict, "the exercise changed since the preview; preview again")
+	case errors.Is(err, models.ErrDuplicateExerciseName):
+		WriteError(w, http.StatusConflict, "an exercise already uses this name")
 	case errors.Is(err, models.ErrExerciseAmbiguous):
 		WriteError(w, http.StatusConflict, "name and alias match different exercises")
 	case errors.Is(err, models.ErrNotFound):
