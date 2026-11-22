@@ -464,12 +464,85 @@ definitions:
       weekday:
         type: integer
     type: object
+  api.CoachExerciseAliasPreviewRequest:
+    properties:
+      alias:
+        type: string
+    type: object
+  api.CoachExerciseAmbiguousResponse:
+    properties:
+      candidates:
+        items:
+          $ref: '#/definitions/api.CoachExerciseRefResponse'
+        type: array
+      name:
+        type: string
+    type: object
+  api.CoachExerciseChangePreviewResponse:
+    properties:
+      action:
+        description: add_alias or rename
+        type: string
+      alias:
+        type: string
+      aliases_after:
+        items:
+          type: string
+        type: array
+      current_name:
+        type: string
+      exercise_id:
+        type: integer
+      expires_at:
+        type: string
+      kept_alias:
+        type: string
+      new_name:
+        type: string
+      preview_token:
+        type: string
+      removed_alias:
+        type: string
+    type: object
+  api.CoachExerciseConfirmRequest:
+    properties:
+      confirm:
+        type: boolean
+      preview_token:
+        type: string
+    type: object
+  api.CoachExerciseCreateResponse:
+    properties:
+      name:
+        type: string
+      suggestions:
+        items:
+          $ref: '#/definitions/api.CoachExerciseSuggestionResponse'
+        type: array
+    type: object
   api.CoachExerciseMatchResponse:
     properties:
       exercise_id:
         type: integer
-      matched_on:
+      exercise_name:
         type: string
+      matched_on:
+        description: |-
+          name, alias, normalized_name, or normalized_alias (case, spaces, and
+          punctuation ignored).
+        type: string
+      name:
+        type: string
+    type: object
+  api.CoachExerciseRefResponse:
+    properties:
+      exercise_id:
+        type: integer
+      name:
+        type: string
+    type: object
+  api.CoachExerciseRenamePreviewRequest:
+    properties:
       name:
         type: string
     type: object
@@ -518,6 +591,15 @@ definitions:
         type: array
       unilateral:
         type: boolean
+    type: object
+  api.CoachExerciseSuggestionResponse:
+    properties:
+      exercise_id:
+        type: integer
+      name:
+        type: string
+      reason:
+        type: string
     type: object
   api.CoachGapFillRequest:
     properties:
@@ -804,6 +886,12 @@ definitions:
     type: object
   api.CoachProgramPreviewResponse:
     properties:
+      ambiguous:
+        description: Ambiguous names match more than one exercise; the import refuses
+          them.
+        items:
+          $ref: '#/definitions/api.CoachExerciseAmbiguousResponse'
+        type: array
       expires_at:
         type: string
       matched_exercises:
@@ -814,6 +902,12 @@ definitions:
         $ref: '#/definitions/api.CoachProgramResponse'
       preview_token:
         type: string
+      suggestions:
+        description: Suggestions lists likely existing exercises for each would_create
+          name.
+        items:
+          $ref: '#/definitions/api.CoachExerciseCreateResponse'
+        type: array
       unmapped:
         items:
           type: string
@@ -3899,6 +3993,105 @@ paths:
       summary: Create exercise
       tags:
       - Coach
+  /athletes/{id}/coach/exercises/{exerciseID}/aliases/confirm:
+    post:
+      consumes:
+      - application/json
+      description: confirm must be true. Re-checks the previewed alias and adds it.
+        Changes only the alias list; logged sets and programs are not touched.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Exercise ID
+        in: path
+        name: exerciseID
+        required: true
+        type: integer
+      - description: Preview token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachExerciseConfirmRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachExerciseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Add an exercise alias
+      tags:
+      - Coach
+  /athletes/{id}/coach/exercises/{exerciseID}/aliases/preview:
+    post:
+      consumes:
+      - application/json
+      description: 'Checks that alias can be added: it must not match, ignoring case,
+        spaces, and punctuation, any other exercise''s name or alias, or this exercise''s
+        name. Does not write. The token lasts 15 minutes and works once.'
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Exercise ID
+        in: path
+        name: exerciseID
+        required: true
+        type: integer
+      - description: Alias
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachExerciseAliasPreviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachExerciseChangePreviewResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Preview an exercise alias
+      tags:
+      - Coach
   /athletes/{id}/coach/exercises/{exerciseID}/last-session:
     get:
       description: The newest resistance session in which this athlete logged the
@@ -3938,6 +4131,107 @@ paths:
       summary: Last session for an exercise
       tags:
       - Workouts
+  /athletes/{id}/coach/exercises/{exerciseID}/rename/confirm:
+    post:
+      consumes:
+      - application/json
+      description: confirm must be true. Re-checks the previewed rename and applies
+        it by exercise id. Changes only the exercise name and its aliases; logged
+        sets, PRs, and programs keep their exercise id.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Exercise ID
+        in: path
+        name: exerciseID
+        required: true
+        type: integer
+      - description: Preview token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachExerciseConfirmRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachExerciseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Rename an exercise
+      tags:
+      - Coach
+  /athletes/{id}/coach/exercises/{exerciseID}/rename/preview:
+    post:
+      consumes:
+      - application/json
+      description: Checks renaming the exercise by id. The new name must not match,
+        ignoring case, spaces, and punctuation, another exercise's name or alias.
+        The old name is kept as an alias unless it differs only in case or punctuation.
+        Does not write. The token lasts 15 minutes and works once.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Exercise ID
+        in: path
+        name: exerciseID
+        required: true
+        type: integer
+      - description: New name
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachExerciseRenamePreviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachExerciseChangePreviewResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Preview an exercise rename
+      tags:
+      - Coach
   /athletes/{id}/coach/position:
     get:
       description: 'Read only. Does not create or advance a session, and does not
@@ -4142,9 +4436,11 @@ paths:
     post:
       consumes:
       - application/json
-      description: Normalizes the program, matches exercises, and lists fields that
-        would not be stored. Does not write. The preview token lasts 15 minutes and
-        works once. athlete_id must match the path.
+      description: Normalizes the program, matches exercises by name or alias ignoring
+        case, spaces, and punctuation, suggests existing exercises for names that
+        would be created, and lists fields that would not be stored. Does not write.
+        The preview token lasts 15 minutes and works once. athlete_id must match the
+        path.
       parameters:
       - description: Athlete ID
         in: path
@@ -6792,6 +7088,10 @@ paths:
           description: Forbidden
           schema:
             $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
       summary: Create exercise
       tags:
       - Exercises
@@ -6878,6 +7178,10 @@ paths:
             $ref: '#/definitions/api.APIError'
         "404":
           description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Update exercise

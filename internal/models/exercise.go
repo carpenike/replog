@@ -63,6 +63,9 @@ func CreateExercise(ctx context.Context, db *sql.DB, name, tier string, formNote
 		restVal = sql.NullInt64{Int64: int64(restSeconds), Valid: true}
 	}
 
+	if err := checkNameFreeOfAliases(ctx, db, name, 0); err != nil {
+		return nil, err
+	}
 	var id int64
 	err := db.QueryRowContext(ctx,
 		`INSERT INTO exercises (name, tier, form_notes, demo_url, rest_seconds, featured) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
@@ -117,6 +120,9 @@ func UpdateExercise(ctx context.Context, db *sql.DB, id int64, name, tier string
 		restVal = sql.NullInt64{Int64: int64(restSeconds), Valid: true}
 	}
 
+	if err := checkNameFreeOfAliases(ctx, db, name, id); err != nil {
+		return nil, err
+	}
 	result, err := db.ExecContext(ctx,
 		`UPDATE exercises SET name = ?, tier = ?, form_notes = ?, demo_url = ?, rest_seconds = ?, featured = ? WHERE id = ?`,
 		name, tierVal, notesVal, demoVal, restVal, feat, id,

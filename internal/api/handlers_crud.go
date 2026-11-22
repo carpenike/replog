@@ -172,6 +172,7 @@ func (h *Handlers) DeleteAthlete(w http.ResponseWriter, r *http.Request) {
 //	@Success      201  {object}  api.Exercise
 //	@Failure      400  {object}  api.APIError
 //	@Failure      403  {object}  api.APIError
+//	@Failure      409  {object}  api.APIError
 //	@Router       /exercises [post]
 func (h *Handlers) CreateExercise(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
@@ -191,6 +192,10 @@ func (h *Handlers) CreateExercise(w http.ResponseWriter, r *http.Request) {
 	}
 
 	exercise, err := models.CreateExercise(r.Context(), h.DB, req.Name, req.Tier, req.FormNotes, req.DemoURL, req.RestSeconds, req.Featured)
+	if errors.Is(err, models.ErrDuplicateExerciseName) {
+		WriteError(w, http.StatusConflict, "an exercise already uses this name or alias")
+		return
+	}
 	if err != nil {
 		log.Printf("api: create exercise: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to create exercise")
@@ -212,6 +217,7 @@ func (h *Handlers) CreateExercise(w http.ResponseWriter, r *http.Request) {
 //	@Failure      400  {object}  api.APIError
 //	@Failure      403  {object}  api.APIError
 //	@Failure      404  {object}  api.APIError
+//	@Failure      409  {object}  api.APIError
 //	@Router       /exercises/{id} [put]
 func (h *Handlers) UpdateExercise(w http.ResponseWriter, r *http.Request) {
 	user := middleware.UserFromContext(r.Context())
@@ -239,6 +245,10 @@ func (h *Handlers) UpdateExercise(w http.ResponseWriter, r *http.Request) {
 	exercise, err := models.UpdateExercise(r.Context(), h.DB, id, req.Name, req.Tier, req.FormNotes, req.DemoURL, req.RestSeconds, req.Featured)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "exercise not found")
+		return
+	}
+	if errors.Is(err, models.ErrDuplicateExerciseName) {
+		WriteError(w, http.StatusConflict, "an exercise already uses this name or alias")
 		return
 	}
 	if err != nil {

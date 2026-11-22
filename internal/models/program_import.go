@@ -182,9 +182,24 @@ type CoachAIFields struct {
 
 // ExerciseMatch is a catalog row a program name already identifies.
 type ExerciseMatch struct {
-	Name       string
-	ExerciseID int64
-	MatchedOn  string
+	Name         string
+	ExerciseID   int64
+	ExerciseName string
+	MatchedOn    string
+}
+
+// ExerciseCreate is a program name with no match, and the likely matches
+// a coach may want to alias it to instead.
+type ExerciseCreate struct {
+	Name        string
+	Suggestions []ExerciseSuggestion
+}
+
+// ProgramExerciseMatches is what a preview reports about exercise names.
+type ProgramExerciseMatches struct {
+	Matched     []ExerciseMatch
+	WouldCreate []ExerciseCreate
+	Ambiguous   []AmbiguousExerciseError
 }
 
 // CoachExerciseDraft is a create-exercise request.
@@ -652,9 +667,15 @@ func sortExercises(exercises []CoachBlockExercise) {
 	}
 }
 
-// MatchProgramExercises reports which exercise names already exist.
-// It writes nothing.
-func MatchProgramExercises(ctx context.Context, db *sql.DB, program CoachProgram) (matched []ExerciseMatch, wouldCreate []string, err error) {
+// MatchProgramExercises reports which exercise names already exist, by
+// exact name, exact alias, or matching key (ADR 026), and suggests existing
+// exercises for names that would be created. It writes nothing.
+func MatchProgramExercises(ctx context.Context, db *sql.DB, program CoachProgram) (*ProgramExerciseMatches, error) {
+	idx, err := loadExerciseIndex(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	out := &ProgramExerciseMatches{Matched: []ExerciseMatch{}, WouldCreate: []ExerciseCreate{}, Ambiguous: []AmbiguousExerciseError{}}
 	seen := map[string]struct{}{}
 	for _, day := range program.Days {
 		for _, block := range day.Blocks {
@@ -664,25 +685,24 @@ func MatchProgramExercises(ctx context.Context, db *sql.DB, program CoachProgram
 					continue
 				}
 				seen[key] = struct{}{}
-				id, how, ok, findErr := findExercise(ctx, db, exercise.Name)
-				if findErr != nil {
-					return nil, nil, findErr
-				}
-				if ok {
-					matched = append(matched, ExerciseMatch{Name: exercise.Name, ExerciseID: id, MatchedOn: how})
+				ref, how, ok, findErr := idx.resolve(exercise.Name)
+				var ambiguous *AmbiguousExerciseError
+				if errors.As(findErr, &ambiguous) {
+					out.Ambiguous = append(out.Ambiguous, *ambiguous)
 					continue
 				}
-				wouldCreate = append(wouldCreate, exercise.Name)
+				if findErr != nil {
+					return nil, findErr
+				}
+				if ok {
+					out.Matched = append(out.Matched, ExerciseMatch{Name: exercise.Name, ExerciseID: ref.ID, ExerciseName: ref.Name, MatchedOn: how})
+					continue
+				}
+				out.WouldCreate = append(out.WouldCreate, ExerciseCreate{Name: exercise.Name, Suggestions: idx.suggest(exercise.Name)})
 			}
 		}
 	}
-	if matched == nil {
-		matched = []ExerciseMatch{}
-	}
-	if wouldCreate == nil {
-		wouldCreate = []string{}
-	}
-	return matched, wouldCreate, nil
+	return out, nil
 }
 
 // ImportCoachProgram stores program as a new locked version for athleteID.
@@ -697,6 +717,10 @@ func ImportCoachProgram(ctx context.Context, db *sql.DB, athleteID, coachUserID 
 
 	created := []string{}
 	ids := map[string]int64{}
+	idx, err := loadExerciseIndex(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
 	for _, day := range program.Days {
 		for _, block := range day.Blocks {
 			for _, exercise := range block.Exercises {
@@ -704,16 +728,18 @@ func ImportCoachProgram(ctx context.Context, db *sql.DB, athleteID, coachUserID 
 				if _, ok := ids[key]; ok {
 					continue
 				}
-				id, _, found, findErr := findExercise(ctx, tx, exercise.Name)
+				ref, _, found, findErr := idx.resolve(exercise.Name)
 				if findErr != nil {
 					return nil, findErr
 				}
+				id := ref.ID
 				if !found {
 					id, findErr = insertCatalogExercise(ctx, tx, CoachExerciseDraft{Name: exercise.Name})
 					if findErr != nil {
 						return nil, findErr
 					}
 					created = append(created, exercise.Name)
+					idx.add(indexedLabel{exercise: ExerciseRef{ID: id, Name: exercise.Name}, label: exercise.Name})
 				}
 				ids[key] = id
 			}
@@ -1489,23 +1515,27 @@ func FindOrCreateCoachExercise(ctx context.Context, db *sql.DB, draft CoachExerc
 		return nil, false, fmt.Errorf("%w: name is required", ErrInvalidInput)
 	}
 	draft.Name = name
+	idx, err := loadExerciseIndex(ctx, db)
+	if err != nil {
+		return nil, false, err
+	}
 	ids := map[int64]struct{}{}
-	if id, _, ok, err := findExercise(ctx, db, name); err != nil {
+	if ref, _, ok, err := idx.resolve(name); err != nil {
 		return nil, false, err
 	} else if ok {
-		ids[id] = struct{}{}
+		ids[ref.ID] = struct{}{}
 	}
 	for _, alias := range draft.Aliases {
 		alias = strings.TrimSpace(alias)
 		if alias == "" || strings.EqualFold(alias, name) {
 			continue
 		}
-		id, _, ok, err := findExercise(ctx, db, alias)
+		ref, _, ok, err := idx.resolve(alias)
 		if err != nil {
 			return nil, false, err
 		}
 		if ok {
-			ids[id] = struct{}{}
+			ids[ref.ID] = struct{}{}
 		}
 	}
 	if len(ids) > 1 {
@@ -1574,22 +1604,12 @@ func SearchCoachExercises(ctx context.Context, db *sql.DB, q string) ([]CoachCat
 }
 
 func findExercise(ctx context.Context, q queryer, name string) (int64, string, bool, error) {
-	var id int64
-	err := q.QueryRowContext(ctx, `SELECT id FROM exercises WHERE name = ? COLLATE NOCASE`, name).Scan(&id)
-	if err == nil {
-		return id, matchOnName, true, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return 0, "", false, fmt.Errorf("models: find exercise %q: %w", name, err)
-	}
-	err = q.QueryRowContext(ctx, `SELECT exercise_id FROM exercise_aliases WHERE alias = ? COLLATE NOCASE`, name).Scan(&id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, "", false, nil
-	}
+	idx, err := loadExerciseIndex(ctx, q)
 	if err != nil {
-		return 0, "", false, fmt.Errorf("models: find exercise alias %q: %w", name, err)
+		return 0, "", false, err
 	}
-	return id, matchOnAlias, true, nil
+	ref, how, ok, err := idx.resolve(name)
+	return ref.ID, how, ok, err
 }
 
 func insertCatalogExercise(ctx context.Context, tx *sql.Tx, draft CoachExerciseDraft) (int64, error) {
@@ -1614,10 +1634,10 @@ func insertCatalogExercise(ctx context.Context, tx *sql.Tx, draft CoachExerciseD
 		}
 		return 0, fmt.Errorf("models: create exercise %q: %w", draft.Name, err)
 	}
-	seen := map[string]struct{}{strings.ToLower(draft.Name): {}}
+	seen := map[string]struct{}{ExerciseKey(draft.Name): {}}
 	for _, alias := range draft.Aliases {
 		alias = strings.TrimSpace(alias)
-		key := strings.ToLower(alias)
+		key := ExerciseKey(alias)
 		if alias == "" {
 			continue
 		}
@@ -1625,6 +1645,13 @@ func insertCatalogExercise(ctx context.Context, tx *sql.Tx, draft CoachExerciseD
 			continue
 		}
 		seen[key] = struct{}{}
+		aliasIdx, err := loadExerciseIndex(ctx, tx)
+		if err != nil {
+			return 0, err
+		}
+		if c := aliasIdx.conflict(alias, id); c != nil {
+			return 0, c
+		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO exercise_aliases (exercise_id, alias) VALUES (?, ?)`, id, alias); err != nil {
 			return 0, fmt.Errorf("models: create exercise alias: %w", err)
 		}
