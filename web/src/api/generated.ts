@@ -1229,6 +1229,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/bio-samples/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import health samples
+         * @description Batched import of sleep, resting HR, HRV and step readings into bio_samples with source watch_import, for an iOS Shortcut or Health Auto Export automation. Idempotent per (athlete, metric, recorded_at): a reading already stored (imported or entered by hand) is counted as a duplicate, so overlapping windows can be re-sent. Accepts the generic samples array and/or Health Auto Export's data.metrics object. Invalid readings are skipped and listed; the rest are stored. Authenticate with a browser session or a service token (Authorization: Bearer rlcst_...) that can see the athlete. Readings inform the coach; they never change a plan. See docs/health-import.md.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            /** @description Readings */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.BioSampleImportRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.BioSampleImportResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Request Entity Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/body-weights": {
         parameters: {
             query?: never;
@@ -6869,6 +6943,307 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/workouts/{workoutID}/sets/{setID}/video": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream a form-check video
+         * @description Returns the clip bytes with its sniffed Content-Type. Supports HTTP Range requests, so a video element can seek. Same access as the workout read; the file is never served from a public path.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Workout ID */
+                    workoutID: number;
+                    /** @description Set ID */
+                    setID: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": string;
+                        "video/quicktime": string;
+                        "video/webm": string;
+                    };
+                };
+                /** @description Partial Content */
+                206: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": string;
+                        "video/quicktime": string;
+                        "video/webm": string;
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": components["schemas"]["api.APIError"];
+                        "video/quicktime": components["schemas"]["api.APIError"];
+                        "video/webm": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": components["schemas"]["api.APIError"];
+                        "video/quicktime": components["schemas"]["api.APIError"];
+                        "video/webm": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Upload a form-check video
+         * @description Multipart upload; field name is 'video'. The server sniffs the container and accepts only MP4, QuickTime (.mov, as an iPhone records) or WebM, up to the configured cap (REPLOG_VIDEO_MAX_MB, default 100 MiB). Uploading again replaces the set's clip and clears its coach comment. The clip is served back only through the authenticated set route. Browser session only.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Workout ID */
+                    workoutID: number;
+                    /** @description Set ID */
+                    setID: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description Video clip (MP4/MOV/WebM)
+                         */
+                        video: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.SetVideo"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Request Entity Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Unsupported Media Type */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description video storage not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        /**
+         * Delete a form-check video
+         * @description Removes the clip and its coach comment. The set itself is unchanged. Browser session only.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Workout ID */
+                    workoutID: number;
+                    /** @description Set ID */
+                    setID: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.StatusResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Comment on a form-check video
+         * @description Coach or admin only (for an athlete they can access), browser session only. The comment is review feedback shown with the clip; an empty comment clears it. It never changes the program.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Workout ID */
+                    workoutID: number;
+                    /** @description Set ID */
+                    setID: number;
+                };
+                cookie?: never;
+            };
+            /** @description Comment */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.SetVideoCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.SetVideo"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/workouts/{workoutID}/swaps": {
         parameters: {
             query?: never;
@@ -10339,6 +10714,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/whiteboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whiteboard (TV mode)
+         * @description Read-only view of today's session for one or more athletes: each athlete's prescribed lines (from their active program) and the sets logged so far today. With no athletes parameter the board shows the caller's own athlete, or for a coach every athlete they can see (up to 8). Each named athlete must be visible to the caller. Nothing is written.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Comma-separated athlete IDs (at most 8) */
+                    athletes?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.WhiteboardResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -10528,6 +10963,34 @@ export interface components {
             source?: string;
             unit?: string;
             value?: number;
+        };
+        "api.BioSampleImportError": {
+            index?: number;
+            metric?: string;
+            reason?: string;
+        };
+        "api.BioSampleImportItem": {
+            /** @example resting_hr */
+            metric?: string;
+            /** @example 2026-11-21T06:30:00-05:00 */
+            recorded_at?: string;
+            /** @example bpm */
+            unit?: string;
+            /** @example 52 */
+            value?: number;
+        };
+        "api.BioSampleImportRequest": {
+            data?: components["schemas"]["api.HealthAutoExportData"];
+            samples?: components["schemas"]["api.BioSampleImportItem"][];
+        };
+        "api.BioSampleImportResponse": {
+            duplicates?: number;
+            errors?: components["schemas"]["api.BioSampleImportError"][];
+            /** @description IgnoredMetrics names Health Auto Export series RepLog does not import. */
+            ignored_metrics?: string[];
+            inserted?: number;
+            received?: number;
+            skipped?: number;
         };
         "api.BioSampleRequest": {
             /** @example resting_hr */
@@ -11339,6 +11802,23 @@ export interface components {
         "api.GoalRequest": {
             goal?: string;
         };
+        "api.HealthAutoExportData": {
+            metrics?: components["schemas"]["api.HealthAutoExportMetric"][];
+        };
+        "api.HealthAutoExportMetric": {
+            data?: components["schemas"]["api.HealthAutoExportPoint"][];
+            /** @example resting_heart_rate */
+            name?: string;
+            /** @example count/min */
+            units?: string;
+        };
+        "api.HealthAutoExportPoint": {
+            asleep?: number;
+            /** @example 2026-11-21 00:00:00 -0500 */
+            date?: string;
+            qty?: number;
+            totalSleep?: number;
+        };
         "api.ImportExecuteRequest": {
             exercises?: components["schemas"]["api.ImportMappingDecision"][];
         };
@@ -11885,6 +12365,23 @@ export interface components {
             token?: string;
             user_id?: number;
         };
+        "api.SetVideo": {
+            coach_comment?: string;
+            commented_at?: string;
+            commented_by?: string;
+            content_type?: string;
+            created_at?: string;
+            id?: number;
+            set_id?: number;
+            size_bytes?: number;
+            uploaded_by?: string;
+            url?: string;
+            workout_id?: number;
+        };
+        "api.SetVideoCommentRequest": {
+            /** @example Knees caving on rep 3 — cue knees out. */
+            comment?: string;
+        };
         "api.SettingCategoryResponse": {
             category?: string;
             settings?: components["schemas"]["api.SettingValueResponse"][];
@@ -12021,6 +12518,8 @@ export interface components {
             set_count?: number;
             /** @description SwapCount is how many prescribed exercises the athlete swapped. */
             swap_count?: number;
+            /** @description VideoCount is how many sets carry a form-check video to review. */
+            video_count?: number;
             workout_id?: number;
         };
         "api.User": {
@@ -12117,6 +12616,48 @@ export interface components {
             days?: components["schemas"]["api.DayPreview"][];
             week?: number;
         };
+        "api.WhiteboardAthlete": {
+            athlete_id?: number;
+            current_day?: number;
+            current_week?: number;
+            lines?: components["schemas"]["api.WhiteboardLine"][];
+            name?: string;
+            program_name?: string;
+            tier?: string;
+            working_done?: number;
+            /**
+             * @description WorkingTarget / WorkingDone count prescribed and logged working sets
+             *     across the day (warm-ups excluded on both sides).
+             */
+            working_target?: number;
+            /** @description WorkoutID is today's resistance workout, when one has been started. */
+            workout_id?: number;
+        };
+        "api.WhiteboardAthleteRef": {
+            id?: number;
+            name?: string;
+        };
+        "api.WhiteboardLine": {
+            exercise_id?: number;
+            exercise_name?: string;
+            group_key?: string;
+            logged?: components["schemas"]["api.WorkoutSet"][];
+            prescribed?: components["schemas"]["api.PrescriptionSetResponse"][];
+            working_done?: number;
+            working_target?: number;
+        };
+        "api.WhiteboardResponse": {
+            athletes?: components["schemas"]["api.WhiteboardAthlete"][];
+            /**
+             * @description Available lists every athlete the caller can put on the board, for
+             *     the picker.
+             */
+            available?: components["schemas"]["api.WhiteboardAthleteRef"][];
+            /** @description Date is today (YYYY-MM-DD) in the caller's timezone. */
+            date?: string;
+            /** @description Truncated is true when the default board had more athletes than fit. */
+            truncated?: boolean;
+        };
         "api.Workout": {
             assignment_id?: number;
             athlete_id?: number;
@@ -12179,6 +12720,11 @@ export interface components {
             set_number?: number;
             set_type?: string;
             updated_at?: string;
+            /**
+             * @description Video is the form-check clip attached to this set, on the workout
+             *     read only.
+             */
+            video?: components["schemas"]["api.SetVideo"];
             weight?: number;
             workout_id?: number;
         };

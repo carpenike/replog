@@ -69,6 +69,7 @@ let
   finalEnv = {
     REPLOG_DB_PATH = "${cfg.dataDir}/replog.db";
     REPLOG_AVATAR_DIR = "${cfg.dataDir}/avatars";
+    REPLOG_VIDEO_DIR = "${cfg.dataDir}/videos";
     REPLOG_ADDR = "${cfg.host}:${toString cfg.port}";
   } // baseUrlAttrs // lib.mapAttrs (_n: v: toString v) cfg.settings;
 in

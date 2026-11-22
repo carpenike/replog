@@ -93,8 +93,22 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lines := make([]PrescriptionLineResponse, len(prescription.Lines))
-	for i, line := range prescription.Lines {
+	lines := prescriptionLinesFromModel(prescription.Lines)
+
+	WriteJSON(w, http.StatusOK, PrescriptionResponse{
+		ProgramName: prescription.Program.TemplateName,
+		CurrentWeek: prescription.CurrentWeek,
+		CurrentDay:  prescription.CurrentDay,
+		CycleNumber: prescription.CycleNumber,
+		Lines:       lines,
+	})
+}
+
+// prescriptionLinesFromModel converts a prescription's lines to the API
+// shape. Shared by the prescription read and the whiteboard.
+func prescriptionLinesFromModel(in []*models.PrescriptionLine) []PrescriptionLineResponse {
+	lines := make([]PrescriptionLineResponse, len(in))
+	for i, line := range in {
 		sets := make([]PrescriptionSetResponse, len(line.Sets))
 		for j, s := range line.Sets {
 			sets[j] = PrescriptionSetResponse{
@@ -123,12 +137,5 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 			Sets:         sets,
 		}
 	}
-
-	WriteJSON(w, http.StatusOK, PrescriptionResponse{
-		ProgramName: prescription.Program.TemplateName,
-		CurrentWeek: prescription.CurrentWeek,
-		CurrentDay:  prescription.CurrentDay,
-		CycleNumber: prescription.CycleNumber,
-		Lines:       lines,
-	})
+	return lines
 }

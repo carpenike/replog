@@ -268,6 +268,27 @@ UI rules for anything that loads a bar (plate calculator, warm-up ramps,
   fresh session for today. Skip is remembered per workout. A low answer flags
   the session for the coach; copy must say it does not change the plan.
 
+## Form-check videos
+
+`components/SetVideoSheet.tsx`, with the checks in `web/src/lib/formCheck.ts`.
+A set row in WorkoutDetail has an upload button (MP4, MOV or WebM, checked
+client-side before upload; the server sniffs and caps it). A set with a clip
+shows a film icon, with a dot once the coach has commented. The sheet plays
+the clip from its authenticated URL (never a blob or public URL, so it works
+under the CSP), shows the coach comment, and offers replace and remove.
+Coaches get the comment box; the Coach Review card counts clips to watch.
+Video routes bypass the service worker (`lib/swRoutes.ts`): never cached,
+never queued offline.
+
+## Whiteboard (TV mode)
+
+`/whiteboard` (`pages/WhiteboardPage.tsx`, rules in `lib/whiteboard.ts`)
+renders outside the app chrome: large type, one column per athlete (up to
+8, chosen with the Athletes picker and kept in `?athletes=`), prescribed
+runs ("3 × 5 @ 185 lb"), logged chips, supersets boxed with A1/A2 labels,
+and a working-set progress bar. It is read-only, refreshes every 20 s,
+holds a screen wake lock and offers full screen.
+
 ## Accessibility checklist
 
 - One `<h1>` per page (via `PageHeader`); section headings step down to `h2`.

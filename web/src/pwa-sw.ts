@@ -18,6 +18,7 @@ import { NetworkFirst, NetworkOnly } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { ExpirationPlugin } from 'workbox-expiration'
 import { BackgroundSyncPlugin } from 'workbox-background-sync'
+import { isSetVideoPath } from './lib/swRoutes'
 
 declare let self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<PrecacheEntry | string>
@@ -56,8 +57,10 @@ registerRoute(
 // A kid mid-workout on flaky gym wifi still sees today's prescription: fall
 // back to the last-known-good response if the network doesn't answer within
 // 3s. GET only (registerRoute defaults to GET); never cache errors.
+// Form-check video routes are not registered at all (see isSetVideoPath):
+// the browser fetches clips directly, uncached, with Range support.
 registerRoute(
-  ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/api/'),
+  ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/api/') && !isSetVideoPath(url.pathname),
   new NetworkFirst({
     cacheName: 'api-cache',
     networkTimeoutSeconds: 3,
@@ -79,7 +82,7 @@ const mutationQueue = new BackgroundSyncPlugin('replog-mutations', {
 })
 
 const matchAthleteMutation = ({ url, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
-  sameOrigin && url.pathname.startsWith('/api/athletes/')
+  sameOrigin && url.pathname.startsWith('/api/athletes/') && !isSetVideoPath(url.pathname)
 
 for (const method of ['POST', 'PUT', 'DELETE'] as const) {
   registerRoute(

@@ -37,6 +37,13 @@ type Handlers struct {
 	Sessions  *scs.SessionManager
 	AvatarDir string
 
+	// VideoDir holds form-check clips (gap 12). It is never served by a
+	// public file server; clips stream through the authenticated set
+	// route. Empty disables uploads. VideoMaxBytes caps one clip (zero
+	// means media.DefaultMaxVideoBytes).
+	VideoDir      string
+	VideoMaxBytes int64
+
 	// Push delivers Web Push rest alerts. Nil when push is disabled; the
 	// push routes then report it and the SPA hides the opt-in.
 	Push *push.Service

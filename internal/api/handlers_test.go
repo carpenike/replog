@@ -71,6 +71,7 @@ func setupTest(t *testing.T) *testEnv {
 		DB:        db,
 		Sessions:  sm,
 		AvatarDir: t.TempDir(),
+		VideoDir:  t.TempDir(),
 	}
 
 	withAuth := func(next http.Handler) http.Handler {
@@ -124,6 +125,11 @@ func setupTest(t *testing.T) *testEnv {
 			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}", h.UpdateWorkoutSet)
 			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}", h.DeleteWorkoutSet)
 
+			r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", h.UploadSetVideo)
+			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", h.GetSetVideoFile)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", h.DeleteSetVideo)
+			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/comment", h.CommentSetVideo)
+
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", h.UpdateWorkoutNotes)
 
 			// Exercise swaps (athlete swaps a prescribed lift; the program is unchanged).
@@ -135,6 +141,7 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/coach/week", h.GetCoachWeek)
 			r.Get("/athletes/{id}/calendar", h.GetAthleteCalendar)
 			r.Get("/coach/compliance", h.GetCoachCompliance)
+			r.Get("/whiteboard", h.GetWhiteboard)
 			r.Get("/athletes/{id}/coach/progress", h.GetCoachProgress)
 			r.Get("/athletes/{id}/coach/position", h.GetCoachPosition)
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", h.GetCoachLastSession)
@@ -164,6 +171,7 @@ func setupTest(t *testing.T) *testEnv {
 			r.Delete("/athletes/{id}/season-phases/{phaseID}", h.DeleteSeasonPhase)
 			r.Get("/athletes/{id}/bio-samples", h.ListBioSamples)
 			r.Post("/athletes/{id}/bio-samples", h.CreateBioSample)
+			r.Post("/athletes/{id}/bio-samples/import", h.ImportBioSamples)
 			r.Get("/athletes/{id}/pitch-smart", h.GetPitchSmartStatus)
 
 			r.Get("/athletes/{id}/conditioning-sessions", h.ListConditioningSessions)

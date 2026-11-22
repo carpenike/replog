@@ -48,6 +48,7 @@ func (h *Handlers) ListPendingReviews(w http.ResponseWriter, r *http.Request) {
 			Notes:        nullStr(w.Notes),
 			LowReadiness: w.LowReadiness,
 			SwapCount:    w.SwapCount,
+			VideoCount:   w.VideoCount,
 		}
 	}
 	WriteJSON(w, http.StatusOK, result)

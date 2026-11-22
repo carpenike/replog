@@ -43,6 +43,11 @@ export function PendingReviews() {
                           Low readiness
                         </span>
                       )}
+                      {(w.video_count ?? 0) > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          {w.video_count} form check{w.video_count === 1 ? '' : 's'}
+                        </span>
+                      )}
                       {(w.swap_count ?? 0) > 0 && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                           {w.swap_count} swap{w.swap_count === 1 ? '' : 's'}

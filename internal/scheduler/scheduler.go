@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/carpenike/replog/internal/media"
 	"github.com/carpenike/replog/internal/models"
 )
 
@@ -23,13 +24,19 @@ type Status struct {
 	NotificationsPruned int64
 	MCPTokensDeleted    int64
 	DCRClientsDeleted   int64
+	VideosSwept         int
 	IntervalHours       int
 	RetentionDays       int
 }
 
 // Scheduler runs periodic maintenance tasks in the background.
 type Scheduler struct {
-	db   *sql.DB
+	db *sql.DB
+	// VideoDir is the form-check clip directory swept for files no row
+	// references (left by a set, workout or athlete cascade delete). Set
+	// before Start; empty skips the sweep.
+	VideoDir string
+
 	stop chan struct{}
 	done chan struct{}
 	wg   sync.WaitGroup // digest loop
@@ -119,6 +126,7 @@ func (s *Scheduler) runMaintenance() {
 	notifsPruned := s.pruneOldNotifications()
 	mcpTokensDeleted := s.cleanExpiredMCPTokens()
 	dcrClientsDeleted := s.cleanOrphanDCRClients()
+	videosSwept := s.sweepOrphanVideos()
 
 	now := time.Now()
 	interval := s.getInterval()
@@ -131,12 +139,39 @@ func (s *Scheduler) runMaintenance() {
 		NotificationsPruned: notifsPruned,
 		MCPTokensDeleted:    mcpTokensDeleted,
 		DCRClientsDeleted:   dcrClientsDeleted,
+		VideosSwept:         videosSwept,
 		IntervalHours:       models.GetMaintenanceIntervalHours(s.ctx, s.db),
 		RetentionDays:       models.GetMaintenanceRetentionDays(s.ctx, s.db),
 	}
 	s.mu.Unlock()
 
 	log.Println("Scheduled maintenance complete")
+}
+
+// orphanVideoMinAge keeps the sweep away from an upload in progress (its
+// file is written before its row).
+const orphanVideoMinAge = time.Hour
+
+// sweepOrphanVideos removes form-check clip files that no
+// workout_set_videos row references.
+func (s *Scheduler) sweepOrphanVideos() int {
+	if s.VideoDir == "" {
+		return 0
+	}
+	keep, err := models.SetVideoFileNames(s.ctx, s.db)
+	if err != nil {
+		log.Printf("scheduler: list video files: %v", err)
+		return 0
+	}
+	store := &media.Store{Dir: s.VideoDir}
+	n, err := store.SweepOrphans(func(name string) bool { return keep[name] }, orphanVideoMinAge, time.Now())
+	if err != nil {
+		log.Printf("scheduler: sweep videos: %v", err)
+	}
+	if n > 0 {
+		log.Printf("scheduler: removed %d orphaned form-check video file(s)", n)
+	}
+	return n
 }
 
 // cleanExpiredTokens removes login tokens past their expiry date.

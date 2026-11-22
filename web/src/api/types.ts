@@ -99,6 +99,23 @@ export interface WorkoutSet {
   updated_at: string;
   exercise_name?: string;
   reps_label?: string;
+  /** Form-check clip on this set (workout read only). */
+  video?: SetVideo | null;
+}
+
+/** A form-check clip on a logged set. `url` streams it with the session cookie. */
+export interface SetVideo {
+  id: number;
+  set_id: number;
+  workout_id: number;
+  url: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by?: string | null;
+  coach_comment?: string | null;
+  commented_by?: string | null;
+  commented_at?: string | null;
+  created_at: string;
 }
 
 export type SetType = 'working' | 'warmup' | 'drop' | 'failure';
@@ -235,6 +252,8 @@ export interface UnreviewedWorkoutData {
   notes?: string | null;
   low_readiness?: boolean;
   swap_count?: number;
+  /** Sets with a form-check video to watch. */
+  video_count?: number;
 }
 
 export interface SettingValueData {
@@ -793,4 +812,35 @@ export interface PushConfig {
 export interface RestAlertResult {
   scheduled: boolean;
   fires_at: string | null;
+}
+
+// Whiteboard / TV mode: read-only board of today's session.
+export interface WhiteboardLine {
+  exercise_id: number;
+  exercise_name: string;
+  group_key?: string | null;
+  prescribed: PrescriptionSetData[];
+  logged: WorkoutSet[];
+  working_target: number;
+  working_done: number;
+}
+
+export interface WhiteboardAthlete {
+  athlete_id: number;
+  name: string;
+  tier?: string | null;
+  program_name?: string | null;
+  current_week?: number;
+  current_day?: number;
+  workout_id?: number | null;
+  lines: WhiteboardLine[];
+  working_target: number;
+  working_done: number;
+}
+
+export interface WhiteboardData {
+  date: string;
+  athletes: WhiteboardAthlete[];
+  available: { id: number; name: string }[];
+  truncated: boolean;
 }

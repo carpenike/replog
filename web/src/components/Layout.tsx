@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Bell, BookOpen, Boxes, CalendarCheck, CheckSquare, ClipboardList, Dumbbell, Eye, House, Library, ListOrdered, LogOut, Menu,
-  Moon, NotebookPen, Settings, Sun, Trophy, User as UserIcon, Users,
+  Moon, NotebookPen, Settings, Sun, Trophy, Tv, User as UserIcon, Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
@@ -50,6 +50,7 @@ function NavItem({
 const navItems = [
   { href: '/', label: 'Dashboard', icon: House },
   { href: '/notifications', label: 'Notifications', icon: Bell },
+  { href: '/whiteboard', label: 'Whiteboard', icon: Tv },
 ]
 
 const coachItems = [

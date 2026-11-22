@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/carpenike/replog/internal/models"
@@ -567,5 +568,27 @@ func UserPreferencesFromModel(m *models.UserPreferences) *UserPreferences {
 		DateFormat: m.DateFormat,
 		CreatedAt:  fmtTime(m.CreatedAt),
 		UpdatedAt:  fmtTime(m.UpdatedAt),
+	}
+}
+
+// setVideoURL is the authenticated route that streams a set's clip.
+func setVideoURL(athleteID, workoutID, setID int64) string {
+	return fmt.Sprintf("/api/athletes/%d/workouts/%d/sets/%d/video", athleteID, workoutID, setID)
+}
+
+// SetVideoFromModel converts a models.SetVideo to its API shape.
+func SetVideoFromModel(m *models.SetVideo) *SetVideo {
+	return &SetVideo{
+		ID:           m.ID,
+		SetID:        m.SetID,
+		WorkoutID:    m.WorkoutID,
+		URL:          setVideoURL(m.AthleteID, m.WorkoutID, m.SetID),
+		ContentType:  m.ContentType,
+		SizeBytes:    m.SizeBytes,
+		UploadedBy:   nullStr(m.UploaderName),
+		CoachComment: nullStr(m.CoachComment),
+		CommentedBy:  nullStr(m.CommenterName),
+		CommentedAt:  fmtNullTimeStr(m.CommentedAt),
+		CreatedAt:    fmtTime(m.CreatedAt),
 	}
 }

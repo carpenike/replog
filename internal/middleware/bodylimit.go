@@ -18,7 +18,7 @@ const DefaultMaxJSONBody int64 = 1 << 20
 // exemptFromBodyLimit): multipart uploads (avatars, imports) install their own,
 // larger MaxBytesReader in the handler — double-wrapping here with a smaller cap
 // would break them — and the bulk import-execute / catalog endpoints carry large
-// mapping JSON.
+// mapping JSON, and the batched health import sets its own 5 MiB cap.
 func MaxJSONBody(limit int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +41,9 @@ func exemptFromBodyLimit(r *http.Request) bool {
 	case strings.HasSuffix(p, "/import/upload"), strings.HasSuffix(p, "/import/execute"):
 		return true
 	case strings.HasPrefix(p, "/api/catalog/import"):
+		return true
+	case strings.HasSuffix(p, "/bio-samples/import"):
+		// Batched health import caps its own body (5 MiB) in the handler.
 		return true
 	}
 	return false

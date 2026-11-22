@@ -38,6 +38,11 @@ RepLog is a **single static binary** that owns:
   `REPLOG_AVATAR_DIR`) — small image files keyed by user ID + random
   suffix. Served from a public no-auth route, so don't put anything here
   except the binary's own writes.
+- **A form-check video directory** (default `videos/` beside the DB,
+  override with `REPLOG_VIDEO_DIR`) — short clips athletes attach to a
+  logged set for the coach's review. Never served from a public route:
+  clips stream only through the authenticated set route, scoped like the
+  rest of the athlete's data. Keep it separate from the avatar directory.
 - **An encryption key** supplied only as `REPLOG_SECRET_KEY`. It
   AES-256-GCM-encrypts sensitive settings (LLM API keys, SMTP
   password). The app never writes it to `app_settings` and never reads
@@ -45,11 +50,12 @@ RepLog is a **single static binary** that owns:
 - **Sessions** in the same SQLite DB (table `sessions`).
 - **A background scheduler** that prunes expired login tokens and old
   notifications (interval and retention controlled by app settings;
-  defaults: 24h / 90d).
+  defaults: 24h / 90d), and removes form-check video files no row
+  references any more.
 
 **There is no external service.** No Redis, no second database, no message
-queue. Backing up the DB file plus the avatar directory captures the
-app data. `REPLOG_SECRET_KEY` is separate: it lives only in the
+queue. Backing up the DB file plus the avatar and video directories
+captures the app data. `REPLOG_SECRET_KEY` is separate: it lives only in the
 environment, and a DB backup does not contain it.
 
 ---
@@ -63,7 +69,7 @@ your nix-config. The flow below is environment-agnostic.
 ### 1. Provision the data directory
 
 ```bash
-sudo mkdir -p /var/lib/replog/avatars
+sudo mkdir -p /var/lib/replog/avatars /var/lib/replog/videos
 sudo chown -R replog:replog /var/lib/replog
 sudo chmod 750 /var/lib/replog
 ```
@@ -188,6 +194,7 @@ Minimum useful production set:
 ```bash
 REPLOG_DB_PATH=/var/lib/replog/replog.db
 REPLOG_AVATAR_DIR=/var/lib/replog/avatars
+REPLOG_VIDEO_DIR=/var/lib/replog/videos   # form-check clips (not public)
 REPLOG_ADDR=127.0.0.1:8080            # bind loopback; expose via reverse proxy
 REPLOG_BASE_URL=https://replog.example.com
 REPLOG_TRUSTED_PROXIES=127.0.0.1/32   # whatever your proxy is
@@ -214,6 +221,22 @@ browser push services (FCM, Mozilla, Apple, WNS) plus
 them. iPhone and iPad only receive pushes when RepLog is added to the Home
 Screen (iOS 16.4+). A bad key setup logs `Web Push disabled: ...` and the
 rest of the app runs normally.
+
+Optional: form-check video size cap. Each clip is limited to
+`REPLOG_VIDEO_MAX_MB` MiB (default 100, allowed 1–1024). The server sniffs
+the container and accepts only MP4, QuickTime (.mov, what an iPhone
+records) and WebM. **Raise your reverse proxy's body limit to match** (see
+[Reverse proxy notes](#reverse-proxy-notes)); nginx's default of 1 MiB
+rejects every clip with a 413 before RepLog sees it.
+
+```bash
+REPLOG_VIDEO_MAX_MB=100
+```
+
+Optional: health import. Athletes (or their coach) can send sleep, resting
+HR, HRV and step counts from Apple Health with an iOS Shortcut or Health
+Auto Export. Nothing to configure server-side beyond a service token for
+the sender; see [Health import](health-import.md).
 
 The weekly coach digest goes out Monday after 07:00 in each coach's
 timezone, through the normal notification path (in-app, plus email and
@@ -342,6 +365,7 @@ source tree.
 | `$REPLOG_DB_PATH` | All user data, sessions, encrypted settings | **Yes** |
 | `REPLOG_SECRET_KEY` | Encryption key for those settings. Not stored in the DB | **Yes**, separately from the DB file |
 | `$REPLOG_AVATAR_DIR` | User avatar images | No (cosmetic) |
+| `$REPLOG_VIDEO_DIR` | Form-check clips on sets | Nice to have (large; the rows are in the DB) |
 
 ### How to take a SQLite backup safely
 
@@ -366,6 +390,17 @@ A plain copy is fine — they are immutable once written:
 rsync -a --delete /var/lib/replog/avatars/ /var/backups/replog/avatars/
 ```
 
+### How to back up form-check videos
+
+Clips are written once and never edited, so a plain copy is also fine.
+They can be large; back them up less often than the DB if space is tight.
+A restored DB whose clip files are missing shows "video file is missing"
+on those sets and nothing else breaks.
+
+```bash
+rsync -a --delete /var/lib/replog/videos/ /var/backups/replog/videos/
+```
+
 ### Suggested cron / timer
 
 ```bash
@@ -377,6 +412,7 @@ dest=/var/backups/replog
 mkdir -p "$dest"
 sqlite3 /var/lib/replog/replog.db ".backup '$dest/replog-$ts.db'"
 rsync -a --delete /var/lib/replog/avatars/ "$dest/avatars/"
+rsync -a --delete /var/lib/replog/videos/ "$dest/videos/"
 # Keep 14 daily snapshots; keep weeklies forever (or rotate as you wish).
 find "$dest" -maxdepth 1 -name 'replog-*.db' -mtime +14 -delete
 ```
@@ -413,8 +449,9 @@ sudo rm -f /var/lib/replog/replog.db-{wal,shm}    # discard live WAL sidecars
 sudo cp /var/backups/replog/replog-GOOD.db /var/lib/replog/replog.db
 sudo chown replog:replog /var/lib/replog/replog.db
 
-# (Optional) restore avatars.
+# (Optional) restore avatars and form-check videos.
 sudo rsync -a --delete /var/backups/replog/avatars/ /var/lib/replog/avatars/
+sudo rsync -a --delete /var/backups/replog/videos/ /var/lib/replog/videos/
 
 sudo systemctl start replog
 sudo journalctl -u replog -n 50
@@ -681,6 +718,13 @@ The proxy must forward (and the binary must trust) at least:
   Without that allow-list, the binary uses the direct `RemoteAddr` so
   upstream clients cannot spoof their IP to evade rate limiting.
 
+### Upload size
+
+Form-check clips (up to `REPLOG_VIDEO_MAX_MB`, default 100 MiB) and
+health imports (up to 5 MiB) are larger than most proxy defaults. Caddy
+has no default limit. nginx needs `client_max_body_size` (below). Keep
+proxy timeouts long enough for a clip to upload over gym wifi.
+
 ### Caddy example
 
 ```caddy
@@ -698,6 +742,9 @@ replog.example.com {
 server {
     listen 443 ssl http2;
     server_name replog.example.com;
+
+    # Form-check video uploads (REPLOG_VIDEO_MAX_MB plus multipart overhead).
+    client_max_body_size 110m;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -759,6 +806,9 @@ on the configured interval (default 24 h) and:
   single-use semantics).
 - Prunes notification rows older than the configured retention (default
   90 d).
+- Removes files in `REPLOG_VIDEO_DIR` that no `workout_set_videos` row
+  references (left when a set, workout or athlete is deleted) and that
+  are more than an hour old, so an upload in progress is never touched.
 
 Both interval and retention are admin-tunable in the Settings page; the
 defaults are fine.

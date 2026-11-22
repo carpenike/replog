@@ -63,11 +63,21 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	videos, err := models.ListSetVideosByWorkout(r.Context(), h.DB, workoutID)
+	if err != nil {
+		log.Printf("api: list videos for workout %d: %v", workoutID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to list sets")
+		return
+	}
+
 	apiGroups := make([]*ExerciseGroup, len(groups))
 	for i, g := range groups {
 		sets := make([]*WorkoutSet, len(g.Sets))
 		for j, s := range g.Sets {
 			sets[j] = WorkoutSetFromModel(s)
+			if v, ok := videos[s.ID]; ok {
+				sets[j].Video = SetVideoFromModel(v)
+			}
 		}
 		apiGroups[i] = &ExerciseGroup{
 			ExerciseID:   g.ExerciseID,
@@ -215,6 +225,16 @@ func (h *Handlers) DeleteWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Collect the workout's form-check clips first; the rows cascade away
+	// with the workout and the files are removed once that succeeds.
+	var videoFiles []string
+	if wk, err := models.GetWorkoutByID(r.Context(), h.DB, workoutID); err == nil && wk.AthleteID == athleteID {
+		videoFiles, err = models.ListVideoFileNamesForWorkout(r.Context(), h.DB, workoutID)
+		if err != nil {
+			log.Printf("api: list videos for workout %d: %v", workoutID, err)
+		}
+	}
+
 	if err := models.DeleteWorkout(r.Context(), h.DB, workoutID, athleteID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "workout not found")
@@ -224,6 +244,7 @@ func (h *Handlers) DeleteWorkout(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusInternalServerError, "failed to delete workout")
 		return
 	}
+	h.removeVideoFiles(videoFiles...)
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
@@ -405,6 +426,11 @@ func (h *Handlers) DeleteWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	videoFile, err := models.SetVideoFileName(r.Context(), h.DB, setID, athleteID)
+	if err != nil {
+		log.Printf("api: video for set %d: %v", setID, err)
+	}
+
 	if err := models.DeleteSet(r.Context(), h.DB, setID, athleteID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "set not found")
@@ -414,6 +440,7 @@ func (h *Handlers) DeleteWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusInternalServerError, "failed to delete set")
 		return
 	}
+	h.removeVideoFiles(videoFile)
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

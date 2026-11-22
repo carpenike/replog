@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { AlertTriangle, Check, Pencil, Play, Plus, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Check, Film, Pencil, Play, Plus, Trash2, X } from 'lucide-react'
 import { api } from '@/api/client'
 import { EmptyState } from '@/components/ui'
 import { PageHeader } from '@/components/PageHeader'
@@ -10,6 +10,7 @@ import { QueryState } from '@/components/QueryState'
 import { useFriendlyDate } from '@/lib/dates'
 import { ExercisePicker, type PickedExercise } from '@/components/ExercisePicker'
 import { SessionFlags } from '@/components/SessionFlags'
+import { SetVideoControl } from '@/components/SetVideoSheet'
 import { Badge } from '@/components/ui/badge'
 import { useConfirm } from '@/lib/useConfirm'
 import { formatDate, formatWeight, localDateISO } from '@/lib/utils'
@@ -242,6 +243,7 @@ export function WorkoutDetail() {
     )
   }
   const { workout, groups } = data
+  const videoCount = groups.reduce((n, g) => n + g.sets.filter(s => s.video).length, 0)
   const relative = friendlyDate(workout.date)
   const absolute = friendlyDate(workout.date, { absolute: true })
 
@@ -323,7 +325,7 @@ export function WorkoutDetail() {
                     <TableHead>Weight</TableHead>
                     <TableHead>RPE</TableHead>
                     <TableHead className="whitespace-normal">Notes</TableHead>
-                    <TableHead className="w-12 sm:w-24 text-right">Edit</TableHead>
+                    <TableHead className="w-24 sm:w-36 text-right">Edit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -383,6 +385,17 @@ export function WorkoutDetail() {
                         <TableCell className="text-muted-foreground text-xs whitespace-normal wrap-break-word">{set.notes ?? ''}</TableCell>
                         <TableCell onClick={e => e.stopPropagation()}>
                           <div className="flex gap-1 justify-end">
+                            {set.id > 0 && (
+                              <SetVideoControl
+                                athleteId={athleteId}
+                                workoutId={wId}
+                                setId={set.id}
+                                setNumber={set.set_number}
+                                exerciseName={group.exercise_name}
+                                video={set.video}
+                                canComment={!!me && (me.is_coach || me.is_admin)}
+                              />
+                            )}
                             {/* Row tap already opens edit — the pencil is redundant at phone widths
                                 and its 44px column pushed Notes off-screen. */}
                             <Button variant="ghost" size="icon-touch" aria-hidden="true" tabIndex={-1}
@@ -471,6 +484,12 @@ export function WorkoutDetail() {
               </span>
             )}
           </div>
+          {videoCount > 0 && (
+            <p className="mb-3 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Film className="size-4" aria-hidden="true" />
+              {videoCount} form-check video{videoCount === 1 ? '' : 's'} to watch — open one from its set above to comment.
+            </p>
+          )}
           {showReviewForm ? (
             <div className="space-y-3">
               <div role="radiogroup" aria-label="Review outcome" className="flex gap-3">

@@ -326,6 +326,60 @@ definitions:
       value:
         type: number
     type: object
+  api.BioSampleImportError:
+    properties:
+      index:
+        type: integer
+      metric:
+        type: string
+      reason:
+        type: string
+    type: object
+  api.BioSampleImportItem:
+    properties:
+      metric:
+        example: resting_hr
+        type: string
+      recorded_at:
+        example: "2026-11-21T06:30:00-05:00"
+        type: string
+      unit:
+        example: bpm
+        type: string
+      value:
+        example: 52
+        type: number
+    type: object
+  api.BioSampleImportRequest:
+    properties:
+      data:
+        $ref: '#/definitions/api.HealthAutoExportData'
+      samples:
+        items:
+          $ref: '#/definitions/api.BioSampleImportItem'
+        type: array
+    type: object
+  api.BioSampleImportResponse:
+    properties:
+      duplicates:
+        type: integer
+      errors:
+        items:
+          $ref: '#/definitions/api.BioSampleImportError'
+        type: array
+      ignored_metrics:
+        description: IgnoredMetrics names Health Auto Export series RepLog does not
+          import.
+        items:
+          type: string
+        type: array
+      inserted:
+        type: integer
+      received:
+        type: integer
+      skipped:
+        type: integer
+    type: object
   api.BioSampleRequest:
     properties:
       metric:
@@ -1869,6 +1923,38 @@ definitions:
       goal:
         type: string
     type: object
+  api.HealthAutoExportData:
+    properties:
+      metrics:
+        items:
+          $ref: '#/definitions/api.HealthAutoExportMetric'
+        type: array
+    type: object
+  api.HealthAutoExportMetric:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/api.HealthAutoExportPoint'
+        type: array
+      name:
+        example: resting_heart_rate
+        type: string
+      units:
+        example: count/min
+        type: string
+    type: object
+  api.HealthAutoExportPoint:
+    properties:
+      asleep:
+        type: number
+      date:
+        example: 2026-11-21 00:00:00 -0500
+        type: string
+      qty:
+        type: number
+      totalSleep:
+        type: number
+    type: object
   api.ImportExecuteRequest:
     properties:
       exercises:
@@ -2808,6 +2894,37 @@ definitions:
       user_id:
         type: integer
     type: object
+  api.SetVideo:
+    properties:
+      coach_comment:
+        type: string
+      commented_at:
+        type: string
+      commented_by:
+        type: string
+      content_type:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      set_id:
+        type: integer
+      size_bytes:
+        type: integer
+      uploaded_by:
+        type: string
+      url:
+        type: string
+      workout_id:
+        type: integer
+    type: object
+  api.SetVideoCommentRequest:
+    properties:
+      comment:
+        example: Knees caving on rep 3 — cue knees out.
+        type: string
+    type: object
   api.SettingCategoryResponse:
     properties:
       category:
@@ -3047,6 +3164,9 @@ definitions:
       swap_count:
         description: SwapCount is how many prescribed exercises the athlete swapped.
         type: integer
+      video_count:
+        description: VideoCount is how many sets carry a form-check video to review.
+        type: integer
       workout_id:
         type: integer
     type: object
@@ -3215,6 +3335,84 @@ definitions:
       week:
         type: integer
     type: object
+  api.WhiteboardAthlete:
+    properties:
+      athlete_id:
+        type: integer
+      current_day:
+        type: integer
+      current_week:
+        type: integer
+      lines:
+        items:
+          $ref: '#/definitions/api.WhiteboardLine'
+        type: array
+      name:
+        type: string
+      program_name:
+        type: string
+      tier:
+        type: string
+      working_done:
+        type: integer
+      working_target:
+        description: |-
+          WorkingTarget / WorkingDone count prescribed and logged working sets
+          across the day (warm-ups excluded on both sides).
+        type: integer
+      workout_id:
+        description: WorkoutID is today's resistance workout, when one has been started.
+        type: integer
+    type: object
+  api.WhiteboardAthleteRef:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  api.WhiteboardLine:
+    properties:
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      group_key:
+        type: string
+      logged:
+        items:
+          $ref: '#/definitions/api.WorkoutSet'
+        type: array
+      prescribed:
+        items:
+          $ref: '#/definitions/api.PrescriptionSetResponse'
+        type: array
+      working_done:
+        type: integer
+      working_target:
+        type: integer
+    type: object
+  api.WhiteboardResponse:
+    properties:
+      athletes:
+        items:
+          $ref: '#/definitions/api.WhiteboardAthlete'
+        type: array
+      available:
+        description: |-
+          Available lists every athlete the caller can put on the board, for
+          the picker.
+        items:
+          $ref: '#/definitions/api.WhiteboardAthleteRef'
+        type: array
+      date:
+        description: Date is today (YYYY-MM-DD) in the caller's timezone.
+        type: string
+      truncated:
+        description: Truncated is true when the default board had more athletes than
+          fit.
+        type: boolean
+    type: object
   api.Workout:
     properties:
       assignment_id:
@@ -3332,6 +3530,12 @@ definitions:
         type: string
       updated_at:
         type: string
+      video:
+        allOf:
+        - $ref: '#/definitions/api.SetVideo'
+        description: |-
+          Video is the form-check clip attached to this set, on the workout
+          read only.
       weight:
         type: number
       workout_id:
@@ -4461,6 +4665,53 @@ paths:
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Record bio sample
+      tags:
+      - Athletes
+  /athletes/{id}/bio-samples/import:
+    post:
+      consumes:
+      - application/json
+      description: 'Batched import of sleep, resting HR, HRV and step readings into
+        bio_samples with source watch_import, for an iOS Shortcut or Health Auto Export
+        automation. Idempotent per (athlete, metric, recorded_at): a reading already
+        stored (imported or entered by hand) is counted as a duplicate, so overlapping
+        windows can be re-sent. Accepts the generic samples array and/or Health Auto
+        Export''s data.metrics object. Invalid readings are skipped and listed; the
+        rest are stored. Authenticate with a browser session or a service token (Authorization:
+        Bearer rlcst_...) that can see the athlete. Readings inform the coach; they
+        never change a plan. See docs/health-import.md.'
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Readings
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.BioSampleImportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.BioSampleImportResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Import health samples
       tags:
       - Athletes
   /athletes/{id}/body-weights:
@@ -7646,6 +7897,202 @@ paths:
       summary: Update set
       tags:
       - Workouts
+  /athletes/{id}/workouts/{workoutID}/sets/{setID}/video:
+    delete:
+      description: Removes the clip and its coach comment. The set itself is unchanged.
+        Browser session only.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Set ID
+        in: path
+        name: setID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete a form-check video
+      tags:
+      - Workouts
+    get:
+      description: Returns the clip bytes with its sniffed Content-Type. Supports
+        HTTP Range requests, so a video element can seek. Same access as the workout
+        read; the file is never served from a public path.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Set ID
+        in: path
+        name: setID
+        required: true
+        type: integer
+      produces:
+      - video/mp4
+      - video/quicktime
+      - video/webm
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "206":
+          description: Partial Content
+          schema:
+            type: file
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Stream a form-check video
+      tags:
+      - Workouts
+    post:
+      consumes:
+      - multipart/form-data
+      description: Multipart upload; field name is 'video'. The server sniffs the
+        container and accepts only MP4, QuickTime (.mov, as an iPhone records) or
+        WebM, up to the configured cap (REPLOG_VIDEO_MAX_MB, default 100 MiB). Uploading
+        again replaces the set's clip and clears its coach comment. The clip is served
+        back only through the authenticated set route. Browser session only.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Set ID
+        in: path
+        name: setID
+        required: true
+        type: integer
+      - description: Video clip (MP4/MOV/WebM)
+        in: formData
+        name: video
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.SetVideo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "503":
+          description: video storage not configured
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Upload a form-check video
+      tags:
+      - Workouts
+  /athletes/{id}/workouts/{workoutID}/sets/{setID}/video/comment:
+    put:
+      consumes:
+      - application/json
+      description: Coach or admin only (for an athlete they can access), browser session
+        only. The comment is review feedback shown with the clip; an empty comment
+        clears it. It never changes the program.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Set ID
+        in: path
+        name: setID
+        required: true
+        type: integer
+      - description: Comment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.SetVideoCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SetVideo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Comment on a form-check video
+      tags:
+      - Workouts
   /athletes/{id}/workouts/{workoutID}/swaps:
     post:
       consumes:
@@ -9454,6 +9901,36 @@ paths:
       summary: Revoke login token
       tags:
       - Admin
+  /whiteboard:
+    get:
+      description: 'Read-only view of today''s session for one or more athletes: each
+        athlete''s prescribed lines (from their active program) and the sets logged
+        so far today. With no athletes parameter the board shows the caller''s own
+        athlete, or for a coach every athlete they can see (up to 8). Each named athlete
+        must be visible to the caller. Nothing is written.'
+      parameters:
+      - description: Comma-separated athlete IDs (at most 8)
+        in: query
+        name: athletes
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.WhiteboardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Whiteboard (TV mode)
+      tags:
+      - Athletes
 swagger: "2.0"
 tags:
 - description: Login, logout, current user, magic-link token, OIDC login

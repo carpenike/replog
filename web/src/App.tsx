@@ -1,5 +1,5 @@
 import { Suspense, lazy, type ReactNode } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { useTheme } from '@/lib/useTheme'
@@ -65,10 +65,12 @@ const SkillSessions = lazy(() => import('@/pages/SkillSessions').then(m => ({ de
 const RecoveryCheckins = lazy(() => import('@/pages/RecoveryCheckins').then(m => ({ default: m.RecoveryCheckins })))
 const SeasonPhases = lazy(() => import('@/pages/SeasonPhases').then(m => ({ default: m.SeasonPhases })))
 const RecordsPage = lazy(() => import('@/pages/RecordsPage').then(m => ({ default: m.RecordsPage })))
+const WhiteboardPage = lazy(() => import('@/pages/WhiteboardPage').then(m => ({ default: m.WhiteboardPage })))
 const LoadDashboard = lazy(() => import('@/pages/LoadDashboard').then(m => ({ default: m.LoadDashboard })))
 
 export function App() {
   const { theme, toggleTheme } = useTheme()
+  const location = useLocation()
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.me(),
@@ -90,6 +92,15 @@ export function App() {
           <Route path="/auth/token/:token" element={<TokenLoginPage />} />
           <Route path="*" element={<Login />} />
         </Routes>
+      </Suspense>
+    )
+  }
+
+  // Whiteboard / TV mode is full screen: no app chrome around the board.
+  if (location.pathname === '/whiteboard') {
+    return (
+      <Suspense fallback={<LoadingPage />}>
+        <WhiteboardPage />
       </Suspense>
     )
   }

@@ -1,9 +1,12 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
+
+	"github.com/carpenike/replog/internal/models"
 )
 
 // TestCrossAthleteIDOR asserts the cross-athlete IDOR guard (app review §1):
@@ -38,6 +41,20 @@ func TestCrossAthleteIDOR(t *testing.T) {
 		fmt.Sprintf("/api/athletes/%d/workouts/%d", athleteB.ID, workoutA.ID),
 		nil, cookies)
 	requireStatus(t, rr, http.StatusNotFound)
+
+	// A's set's form-check video via B's path → 404 for upload, read,
+	// comment and delete (the set is scoped through workout → athlete).
+	ex := env.createExercise(t, "IDOR Squat")
+	setA, err := models.AddSet(context.Background(), env.DB, workoutA.ID, ex.ID, 5, 100, 0, "reps", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	videoB := fmt.Sprintf("/api/athletes/%d/workouts/%d/sets/%d/video", athleteB.ID, workoutA.ID, setA.ID)
+	body, ctype := videoUpload(t, "video", fakeMP4(512))
+	requireStatus(t, env.doMultipart(t, "POST", videoB, body, ctype, cookies), http.StatusNotFound)
+	requireStatus(t, env.do(t, "GET", videoB, nil, cookies), http.StatusNotFound)
+	requireStatus(t, env.do(t, "PUT", videoB+"/comment", `{"comment":"x"}`, cookies), http.StatusNotFound)
+	requireStatus(t, env.do(t, "DELETE", videoB, nil, cookies), http.StatusNotFound)
 
 	// The workout must still be intact under its real owner (A).
 	rr = env.do(t, "GET",

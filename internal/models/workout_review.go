@@ -42,6 +42,8 @@ type UnreviewedWorkout struct {
 	LowReadiness bool
 	// SwapCount is how many prescribed exercises the athlete swapped.
 	SwapCount int
+	// VideoCount is how many sets carry a form-check video (gap 12).
+	VideoCount int
 }
 
 // ReviewStats holds aggregate counts for the coach dashboard.
@@ -160,7 +162,9 @@ func ListUnreviewedWorkouts(ctx context.Context, db *sql.DB) ([]*UnreviewedWorko
 		SELECT w.id, w.athlete_id, a.name, w.date, w.notes,
 		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id AND `+countedSet+`),
 		       rc.sleep_hours, rc.soreness, rc.energy, rc.mood,
-		       (SELECT COUNT(*) FROM workout_exercise_swaps sw WHERE sw.workout_id = w.id)
+		       (SELECT COUNT(*) FROM workout_exercise_swaps sw WHERE sw.workout_id = w.id),
+		       (SELECT COUNT(*) FROM workout_set_videos v JOIN workout_sets vs ON vs.id = v.set_id
+		         WHERE vs.workout_id = w.id)
 		FROM workouts w
 		JOIN athletes a ON a.id = w.athlete_id
 		LEFT JOIN workout_reviews wr ON wr.workout_id = w.id
@@ -184,7 +188,7 @@ func ListUnreviewedWorkouts(ctx context.Context, db *sql.DB) ([]*UnreviewedWorko
 		var sleep sql.NullFloat64
 		var soreness, energy, mood sql.NullInt64
 		if err := rows.Scan(&uw.WorkoutID, &uw.AthleteID, &uw.AthleteName,
-			&uw.Date, &uw.Notes, &uw.SetCount, &sleep, &soreness, &energy, &mood, &uw.SwapCount); err != nil {
+			&uw.Date, &uw.Notes, &uw.SetCount, &sleep, &soreness, &energy, &mood, &uw.SwapCount, &uw.VideoCount); err != nil {
 			return nil, fmt.Errorf("models: scan unreviewed workout: %w", err)
 		}
 		uw.LowReadiness = ReadinessIsLow(sleep, soreness, energy, mood)

@@ -132,6 +132,7 @@ replog/
 │   │   └── seed.go            ← exercise-catalog seeding from JSON
 │   ├── importers/             ← Hevy / Strong / RepLog JSON / catalog parsers
 │   ├── llm/                   ← LLM providers (Anthropic, OpenAI, Ollama)
+│   ├── media/                 ← form-check video storage (sniffed, auth-served)
 │   ├── middleware/            ← auth, CORS, logging, rate limit, security headers
 │   ├── models/                ← data access layer (hand-written SQL, not ORM)
 │   ├── notify/                ← in-app + external (shoutrrr) notifications
@@ -148,6 +149,7 @@ replog/
     ├── requirements.md        ← v1.0 user stories + acceptance criteria
     ├── ui-design.md           ← design system + component patterns
     ├── operations.md          ← deploy, backups, secret-key handling, upgrades
+    ├── health-import.md       ← Apple Health import (Shortcut / Health Auto Export)
     ├── seed-catalog.md        ← exercise seed-data format
     ├── COACH_VOICE.md         ← how the Cowork/Claude agent speaks + behaves
     └── adr/                   ← 14 architecture decision records
@@ -176,7 +178,7 @@ load-bearing ones:
 
 ## Database schema
 
-34 tables; full DDL, constraints, indexes, and triggers live in
+35 tables; full DDL, constraints, indexes, and triggers live in
 [`docs/data-model.md`](docs/data-model.md) — **that file is the source of
 truth**, not this one. Key patterns:
 

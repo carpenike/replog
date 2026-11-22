@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, CalendarData, ComplianceData, PushConfig, RestAlertResult, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, CalendarData, ComplianceData, PushConfig, RestAlertResult, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SetVideo, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, WhiteboardData, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
 import type { AthleteProgram, PlateSetup, PlateSetupPreset, PlateSetupRequest } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
@@ -264,6 +264,43 @@ class ApiClient {
 
   async getWorkout(athleteId: number, workoutId: number): Promise<WorkoutDetailData> {
     return this.request(`/api/athletes/${athleteId}/workouts/${workoutId}`);
+  }
+
+  // Form-check videos. The upload bypasses request() (multipart, no JSON
+  // Content-Type) and is excluded from the service worker's offline queue.
+  async uploadSetVideo(athleteId: number, workoutId: number, setId: number, file: File): Promise<SetVideo> {
+    const formData = new FormData()
+    formData.append('video', file)
+    let res: Response
+    try {
+      res = await fetch(`${this.baseUrl}${setVideoPath(athleteId, workoutId, setId)}`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' },
+      })
+    } catch {
+      throw new ApiError('Upload failed — check your connection and try again.', 0)
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText, code: res.status })) as APIError
+      throw new ApiError(body.error ?? 'Upload failed', res.status)
+    }
+    return res.json()
+  }
+
+  async deleteSetVideo(athleteId: number, workoutId: number, setId: number): Promise<void> {
+    await this.request(setVideoPath(athleteId, workoutId, setId), { method: 'DELETE' })
+  }
+
+  async commentSetVideo(athleteId: number, workoutId: number, setId: number, comment: string): Promise<SetVideo> {
+    return this.request(`${setVideoPath(athleteId, workoutId, setId)}/comment`, { method: 'PUT', body: JSON.stringify({ comment }) })
+  }
+
+  // Whiteboard / TV mode (read-only).
+  async getWhiteboard(athleteIds: number[] = []): Promise<WhiteboardData> {
+    const q = athleteIds.length ? `?athletes=${athleteIds.join(',')}` : ''
+    return this.request<WhiteboardData>(`/api/whiteboard${q}`)
   }
 
   // Exercise swaps: the athlete swaps a prescribed lift for one with the same
@@ -907,6 +944,11 @@ export class ApiError extends Error {
     this.code = code
     this.details = details
   }
+}
+
+/** The authenticated route that streams (GET) or changes a set's clip. */
+export function setVideoPath(athleteId: number, workoutId: number, setId: number): string {
+  return `/api/athletes/${athleteId}/workouts/${workoutId}/sets/${setId}/video`
 }
 
 export const api = new ApiClient();

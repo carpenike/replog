@@ -117,6 +117,25 @@ type WorkoutSet struct {
 	UpdatedAt    string   `json:"updated_at"`
 	ExerciseName string   `json:"exercise_name,omitempty"`
 	RepsLabel    string   `json:"reps_label,omitempty"`
+	// Video is the form-check clip attached to this set, on the workout
+	// read only.
+	Video *SetVideo `json:"video,omitempty"`
+}
+
+// SetVideo is a form-check clip on a logged set (gap 12). URL streams the
+// file through the authenticated set route; it is never a public path.
+type SetVideo struct {
+	ID           int64   `json:"id"`
+	SetID        int64   `json:"set_id"`
+	WorkoutID    int64   `json:"workout_id"`
+	URL          string  `json:"url"`
+	ContentType  string  `json:"content_type"`
+	SizeBytes    int64   `json:"size_bytes"`
+	UploadedBy   *string `json:"uploaded_by,omitempty"`
+	CoachComment *string `json:"coach_comment,omitempty"`
+	CommentedBy  *string `json:"commented_by,omitempty"`
+	CommentedAt  *string `json:"commented_at,omitempty"`
+	CreatedAt    string  `json:"created_at"`
 }
 
 // ExerciseGroup represents sets grouped by exercise in a workout.
@@ -557,6 +576,8 @@ type UnreviewedWorkout struct {
 	LowReadiness bool `json:"low_readiness"`
 	// SwapCount is how many prescribed exercises the athlete swapped.
 	SwapCount int `json:"swap_count"`
+	// VideoCount is how many sets carry a form-check video to review.
+	VideoCount int `json:"video_count"`
 }
 
 // ReviewStats is the JSON representation of models.ReviewStats.
@@ -587,4 +608,23 @@ type APIError struct {
 	Error   string            `json:"error"`
 	Code    int               `json:"code"`
 	Details map[string]string `json:"details,omitempty"`
+}
+
+// BioSampleImportResponse reports what a health import did. Re-sending the
+// same readings is safe: they come back as duplicates.
+type BioSampleImportResponse struct {
+	Received   int                    `json:"received"`
+	Inserted   int                    `json:"inserted"`
+	Duplicates int                    `json:"duplicates"`
+	Skipped    int                    `json:"skipped"`
+	Errors     []BioSampleImportError `json:"errors,omitempty"`
+	// IgnoredMetrics names Health Auto Export series RepLog does not import.
+	IgnoredMetrics []string `json:"ignored_metrics,omitempty"`
+}
+
+// BioSampleImportError explains one skipped reading (the first 50 are listed).
+type BioSampleImportError struct {
+	Index  int    `json:"index"`
+	Metric string `json:"metric"`
+	Reason string `json:"reason"`
 }

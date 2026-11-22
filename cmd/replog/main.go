@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/carpenike/replog/internal/api"
 	"github.com/carpenike/replog/internal/database"
 	"github.com/carpenike/replog/internal/importers"
+	"github.com/carpenike/replog/internal/media"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 	"github.com/carpenike/replog/internal/notify"
@@ -74,6 +76,22 @@ func main() {
 	avatarDir := os.Getenv("REPLOG_AVATAR_DIR")
 	if avatarDir == "" {
 		avatarDir = filepath.Join(filepath.Dir(dbPath), "avatars")
+	}
+
+	// Form-check video storage (gap 12) — a sibling of the DB by default.
+	// Never served by a public file server: clips stream only through the
+	// authenticated set route.
+	videoDir := os.Getenv("REPLOG_VIDEO_DIR")
+	if videoDir == "" {
+		videoDir = filepath.Join(filepath.Dir(dbPath), "videos")
+	}
+	videoMaxBytes := media.DefaultMaxVideoBytes
+	if v := os.Getenv("REPLOG_VIDEO_MAX_MB"); v != "" {
+		mb, err := strconv.Atoi(v)
+		if err != nil || mb < 1 || mb > 1024 {
+			log.Fatalf("REPLOG_VIDEO_MAX_MB must be a whole number of MiB between 1 and 1024, got %q", v)
+		}
+		videoMaxBytes = int64(mb) << 20
 	}
 
 	// Open database and run migrations.
@@ -162,6 +180,7 @@ func main() {
 
 	// Start background maintenance scheduler (daily: expired tokens, old notifications).
 	maintenance := scheduler.New(db)
+	maintenance.VideoDir = videoDir
 	maintenance.Start()
 
 	// Determine base URL for generating absolute URLs (e.g. login token links).
@@ -231,10 +250,12 @@ func main() {
 
 	// Initialize API handlers.
 	apiHandlers := &api.Handlers{
-		DB:        db,
-		Sessions:  sessionManager,
-		AvatarDir: avatarDir,
-		Push:      pushService,
+		DB:            db,
+		Sessions:      sessionManager,
+		AvatarDir:     avatarDir,
+		VideoDir:      videoDir,
+		VideoMaxBytes: videoMaxBytes,
+		Push:          pushService,
 	}
 
 	// Avatar file server (public — no auth required to load avatar images).
@@ -363,6 +384,12 @@ func main() {
 			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}", apiHandlers.UpdateWorkoutSet)
 			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}", apiHandlers.DeleteWorkoutSet)
 
+			// Form-check videos on a set (gap 12). Streamed with auth only.
+			r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", apiHandlers.UploadSetVideo)
+			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", apiHandlers.GetSetVideoFile)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", apiHandlers.DeleteSetVideo)
+			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/comment", apiHandlers.CommentSetVideo)
+
 			// Workout Notes.
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", apiHandlers.UpdateWorkoutNotes)
 
@@ -376,6 +403,8 @@ func main() {
 			r.Get("/athletes/{id}/coach/week", apiHandlers.GetCoachWeek)
 			r.Get("/athletes/{id}/calendar", apiHandlers.GetAthleteCalendar)
 			r.Get("/coach/compliance", apiHandlers.GetCoachCompliance)
+			// Whiteboard / TV mode (gap 15): read-only board of today.
+			r.Get("/whiteboard", apiHandlers.GetWhiteboard)
 			r.Get("/athletes/{id}/coach/progress", apiHandlers.GetCoachProgress)
 			r.Get("/athletes/{id}/coach/position", apiHandlers.GetCoachPosition)
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", apiHandlers.GetCoachLastSession)
@@ -407,6 +436,8 @@ func main() {
 			r.Delete("/athletes/{id}/season-phases/{phaseID}", apiHandlers.DeleteSeasonPhase)
 			r.Get("/athletes/{id}/bio-samples", apiHandlers.ListBioSamples)
 			r.Post("/athletes/{id}/bio-samples", apiHandlers.CreateBioSample)
+			// Batched health import (gap 14): session or service token.
+			r.Post("/athletes/{id}/bio-samples/import", apiHandlers.ImportBioSamples)
 			r.Get("/athletes/{id}/pitch-smart", apiHandlers.GetPitchSmartStatus)
 
 			// Multi-modal logbook, Phase 2 (ADR 018).

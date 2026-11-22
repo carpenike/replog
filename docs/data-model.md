@@ -1861,6 +1861,14 @@ watch a *feed*, not a dependency — a Garmin/Whoop later is another `source`.
 | `created_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                          |
 
 - Append-only — no `updated_at`/trigger. Indexed on `(athlete_id, recorded_at)`.
+- Health import (migration `0026`, `POST /athletes/{id}/bio-samples/import`,
+  see [health-import.md](health-import.md)) writes `source = 'watch_import'`
+  rows with `recorded_at` normalized to UTC `YYYY-MM-DD HH:MM:SS`, metrics
+  `sleep_hours` (h), `resting_hr` (bpm), `hrv` (ms) and `steps` (count).
+  Idempotent per `(athlete_id, metric, recorded_at)`: the importer skips a
+  key any row already holds (compared with `datetime()`), and the partial
+  unique index `idx_bio_samples_import_key ... WHERE source = 'watch_import'`
+  backs it for imported rows. Manual rows are not constrained.
 
 ## Multi-Modal Logbook — Phase 2 (ADR 018, migration `0007_multi_modal_phase2.sql`)
 
@@ -2047,6 +2055,34 @@ Migrations `0012`–`0014` extend the AI-Coach `generations` table (ADR 015):
   coach digest sent, so a week goes out at most once per coach.
 - Pending rest alerts are not stored: they are in-memory timers, and a
   restart drops the one in flight.
+
+### `workout_set_videos` (migration `0026`)
+
+| Column          | Type     | Constraints                                                   |
+|-----------------|----------|---------------------------------------------------------------|
+| `id`            | INTEGER  | PRIMARY KEY AUTOINCREMENT                                     |
+| `set_id`        | INTEGER  | NOT NULL UNIQUE, FK → workout_sets(id) ON DELETE CASCADE      |
+| `file_name`     | TEXT     | NOT NULL UNIQUE (random server-chosen name in `REPLOG_VIDEO_DIR`) |
+| `content_type`  | TEXT     | NOT NULL, CHECK IN ('video/mp4','video/quicktime','video/webm') |
+| `size_bytes`    | INTEGER  | NOT NULL, CHECK > 0                                           |
+| `uploaded_by`   | INTEGER  | NULL, FK → users(id) ON DELETE SET NULL                       |
+| `coach_comment` | TEXT     | NULL (at most 2000 characters)                                |
+| `commented_by`  | INTEGER  | NULL, FK → users(id) ON DELETE SET NULL                       |
+| `commented_at`  | DATETIME | NULL                                                          |
+| `created_at`    | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                            |
+
+- A form-check clip on one logged set (gap 12), at most one per set;
+  uploading again replaces the clip and clears the comment. The type is
+  sniffed from the file's first bytes (ISO base media `ftyp` or WebM EBML),
+  never taken from the client. The cap is `REPLOG_VIDEO_MAX_MB` (default 100).
+- The file is streamed only through `GET
+  /athletes/{id}/workouts/{workoutID}/sets/{setID}/video` (Range supported),
+  scoped set → workout → athlete (ADR 021). It is not in the public avatar
+  directory. Writes are browser-session only; the comment is coach/admin
+  only and is review feedback, never a plan change.
+- Deleting the set or workout removes the file at once; other cascades
+  (athlete delete) leave a file the scheduler sweeps after an hour.
+- Counted per workout in pending reviews (`video_count`).
 
 ## Future Considerations (v2+)
 

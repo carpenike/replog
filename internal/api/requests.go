@@ -483,3 +483,46 @@ type CatalogImportMappingDecision struct {
 	MappedID int64 `json:"mapped_id"`
 	Create   bool  `json:"create"`
 }
+
+// SetVideoCommentRequest is the body for PUT .../sets/{setID}/video/comment.
+// An empty comment clears it.
+type SetVideoCommentRequest struct {
+	Comment string `json:"comment" example:"Knees caving on rep 3 — cue knees out." jsonschema:"Coach comment on the clip (at most 2000 characters). Empty clears it."`
+}
+
+// BioSampleImportRequest is the body for POST /api/athletes/{id}/bio-samples/import.
+// Send either samples (the generic shape, easy to build in an iOS Shortcut)
+// or data (the Health Auto Export REST export as-is), or both.
+type BioSampleImportRequest struct {
+	Samples []BioSampleImportItem `json:"samples,omitempty"`
+	Data    *HealthAutoExportData `json:"data,omitempty"`
+}
+
+// BioSampleImportItem is one reading in the generic import shape.
+type BioSampleImportItem struct {
+	Metric     string  `json:"metric" example:"resting_hr" jsonschema:"sleep_hours, resting_hr, hrv or steps (Apple Health names such as resting_heart_rate are accepted)."`
+	Value      float64 `json:"value" example:"52"`
+	Unit       string  `json:"unit,omitempty" example:"bpm" jsonschema:"Optional. Sleep sent in min is converted to hours; other units are stored canonically (h, bpm, ms, count)."`
+	RecordedAt string  `json:"recorded_at" example:"2026-11-21T06:30:00-05:00" jsonschema:"ISO 8601, 'YYYY-MM-DD HH:MM:SS -0500', or a bare date for daily totals. Zone-less values use the caller's timezone."`
+}
+
+// HealthAutoExportData is the "data" object Health Auto Export posts.
+type HealthAutoExportData struct {
+	Metrics []HealthAutoExportMetric `json:"metrics"`
+}
+
+// HealthAutoExportMetric is one metric series in a Health Auto Export post.
+type HealthAutoExportMetric struct {
+	Name  string                  `json:"name" example:"resting_heart_rate"`
+	Units string                  `json:"units,omitempty" example:"count/min"`
+	Data  []HealthAutoExportPoint `json:"data"`
+}
+
+// HealthAutoExportPoint is one point. Quantity metrics carry qty; the
+// aggregated sleep_analysis series carries asleep / totalSleep in hours.
+type HealthAutoExportPoint struct {
+	Date       string   `json:"date" example:"2026-11-21 00:00:00 -0500"`
+	Qty        *float64 `json:"qty,omitempty"`
+	Asleep     *float64 `json:"asleep,omitempty"`
+	TotalSleep *float64 `json:"totalSleep,omitempty"`
+}
