@@ -132,6 +132,10 @@ user it already verified, instead of as one `rlcst_` account. This is not
 | Var | Required | Notes |
 |-----|----------|-------|
 | `REPLOG_ON_BEHALF_CREDENTIAL` | no | Shared secret. Compared in constant time. Empty disables the path. Must not start with `rlcst_`. Never commit it. Never log it. |
+| `REPLOG_ON_BEHALF_MODE` | no | `shared` (default): shared secret only. `both`: signed token or shared secret. `signed`: signed token only. Any other value accepts neither. |
+| `REPLOG_ON_BEHALF_JWT_PUBLIC_KEY` | for `both`/`signed` | Ed25519 public key, PEM (`-----BEGIN PUBLIC KEY-----`). Public; safe to mount. Or set `REPLOG_ON_BEHALF_JWT_PUBLIC_KEY_FILE` to a path. |
+| `REPLOG_ON_BEHALF_JWT_ISSUER` | no | Expected `iss`. Default `homelab-mcp`. |
+| `REPLOG_ON_BEHALF_JWT_ACTOR` | no | Expected `act.sub`. Default `homelab-mcp`. |
 
 The connector sends both of these on the same request:
 
@@ -139,6 +143,19 @@ The connector sends both of these on the same request:
 Authorization: Bearer <REPLOG_ON_BEHALF_CREDENTIAL>
 X-RepLog-On-Behalf-Of: <verified email>
 ```
+
+With `REPLOG_ON_BEHALF_MODE=both` or `signed`, the connector can instead
+send a short-lived token it signs per call (ADR 025, amendment):
+
+```http
+Authorization: Bearer <EdDSA JWT: iss=homelab-mcp aud=replog sub=email email act.sub=homelab-mcp iat exp jti>
+```
+
+RepLog checks the signature, `iss`, `aud`, `exp` and `iat` (30 s skew),
+a lifetime of at most 5 minutes, `act.sub`, `email` equal to `sub`, and a
+first-use `jti`. A failed check is 401. If `X-RepLog-On-Behalf-Of` is also
+sent it must name the same address, or the call is 403. Startup logs the
+mode and whether the public key loaded, never the key.
 
 RepLog maps that email to `users.email` (unique, case-insensitive) and
 runs the request as that user with admin rights removed. A coach reaches
@@ -156,10 +173,10 @@ It does not fall back to the coach-service user. A browser session or an
 `rlcst_` token ignores and strips `X-RepLog-On-Behalf-Of`, so the header
 alone cannot change the caller.
 
-The credential check is what stops an outside client. Do not treat the
+The credential or signature check is what stops an outside client. Do not treat the
 ingress network as the only control. The secret is not stored and is not
 written to the audit log. A successful call records the acting user with
-action `on_behalf`.
+action `on_behalf` and details `proof=shared` or `proof=signed`.
 
 Set the address on the user in the admin UI. Migration `0020` fills
 `ryan@ryanholt.net` only when a user named `ryan` exists and that email

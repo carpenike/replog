@@ -1945,9 +1945,10 @@ deliberately excluded — they are recovery signals, not training load.
 
 - A durable, append-only trail for privileged identity actions (impersonation
   start/stop, and `on_behalf` when a request authenticated with
-  `REPLOG_ON_BEHALF_CREDENTIAL`) so evidence survives log rotation. Written
-  by `models.WriteAuditLog`. The on-behalf row stores the acting user and
-  `on_behalf=true`. It does not store the credential or the email header.
+  `REPLOG_ON_BEHALF_CREDENTIAL` or a signed on-behalf token) so evidence
+  survives log rotation. Written by `models.WriteAuditLog`. The on-behalf
+  row stores the acting user and `on_behalf=true proof=shared|signed`. It
+  does not store the credential, the token, or the email header.
 
 ### `generations` — added columns
 
