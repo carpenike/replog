@@ -292,3 +292,65 @@ func assertLogOmitsSecrets(t *testing.T, buf *bytes.Buffer, secrets ...string) {
 		}
 	}
 }
+
+func TestOnBehalfRouteAllowed(t *testing.T) {
+	cases := []struct {
+		method, target string
+		want           bool
+	}{
+		{http.MethodGet, "/api/me", true},
+		{http.MethodGet, "/api/dashboard", true},
+		{http.MethodGet, "/api/athletes", true},
+		{http.MethodGet, "/api/athletes/7", true},
+		{http.MethodPost, "/api/athletes/7/workouts/3/sets", true},
+		{http.MethodPost, "/api/athletes/7/coach/programs/preview", true},
+		{http.MethodPost, "/api/athletes/7/coach/programs/import", true},
+		{http.MethodPost, "/api/athletes/7/coach/programs/assign", true},
+		{http.MethodPost, "/api/athletes/7/coach/programs/9/gap-fill", true},
+		{http.MethodGet, "/api/exercises", true},
+		{http.MethodGet, "/api/programs/4", true},
+		{http.MethodGet, "/api/reviews/pending", true},
+
+		{http.MethodPost, "/api/athletes", false},
+		{http.MethodPut, "/api/athletes/7", false},
+		{http.MethodDelete, "/api/athletes/7", false},
+		{http.MethodPost, "/api/exercises", false},
+		{http.MethodPost, "/api/programs", false},
+		{http.MethodPost, "/api/programs/4/approve", false},
+		{http.MethodPost, "/api/me", false},
+		{http.MethodGet, "/api/users", false},
+		{http.MethodPost, "/api/users/1/service-tokens", false},
+		{http.MethodDelete, "/api/users/1/service-tokens/2", false},
+		{http.MethodGet, "/api/users/1/service-tokens", false},
+		{http.MethodPost, "/api/users/1/tokens", false},
+		{http.MethodGet, "/api/admin/settings", false},
+		{http.MethodPost, "/api/admin/impersonate/2", false},
+		{http.MethodPost, "/api/catalog/import/execute", false},
+		{http.MethodPut, "/api/preferences", false},
+		{http.MethodPost, "/api/avatars/upload", false},
+		{http.MethodPost, "/api/logout", false},
+		{http.MethodGet, "/api/notifications", false},
+		{http.MethodGet, "/api/athletes/7/../../users", false},
+		{http.MethodGet, "/api/athletes/7/coach/..%2F..%2F..%2Fusers", false},
+		{http.MethodGet, "/api/athletes//coach/programs", false},
+		{http.MethodGet, "/api/athletes/7/", false},
+		{http.MethodGet, "/healthz", false},
+	}
+	for _, c := range cases {
+		req := httptest.NewRequest(c.method, "http://replog.test"+c.target, nil)
+		if got := onBehalfRouteAllowed(req); got != c.want {
+			t.Errorf("%s %s allowed = %v, want %v", c.method, c.target, got, c.want)
+		}
+	}
+}
+
+func TestOnBehalfUserClearsAdminOnACopy(t *testing.T) {
+	stored := &models.User{ID: 1, IsAdmin: true, IsCoach: true}
+	scoped := onBehalfUser(stored)
+	if scoped.IsAdmin || !scoped.IsCoach || scoped.ID != 1 {
+		t.Fatalf("scoped = %+v", scoped)
+	}
+	if !stored.IsAdmin {
+		t.Fatal("onBehalfUser changed the caller's user")
+	}
+}

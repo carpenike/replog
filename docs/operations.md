@@ -141,8 +141,17 @@ X-RepLog-On-Behalf-Of: <verified email>
 ```
 
 RepLog maps that email to `users.email` (unique, case-insensitive) and
-applies that user's coach, athlete, or admin permissions, the same checks
-a browser session of that user passes. A missing or unknown email is 403.
+runs the request as that user with admin rights removed. A coach reaches
+the athletes they coach, and any user reaches their own linked athlete;
+an admin does not get the admin-wide view. Only the coach-data routes are
+open: `GET /api/me`, `GET /api/dashboard`, `GET /api/athletes` and
+`GET /api/athletes/{id}`, everything under `/api/athletes/{id}/` (sets,
+sessions, notes, coach reads, coach exercises, program preview, import,
+assign, gap-fill), and `GET` under `/api/exercises`, `/api/programs`,
+`/api/equipment`, plus `GET /api/reviews/pending`. Every other route,
+including token issue and revoke, users, login tokens, admin settings,
+catalog import, impersonation, preferences, avatars, and logout, is 403
+on behalf of anyone. A missing or unknown email is 403.
 It does not fall back to the coach-service user. A browser session or an
 `rlcst_` token ignores and strips `X-RepLog-On-Behalf-Of`, so the header
 alone cannot change the caller.

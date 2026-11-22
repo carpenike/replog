@@ -183,6 +183,10 @@ func (h *Handlers) adminBrowser(w http.ResponseWriter, r *http.Request) bool {
 		WriteError(w, http.StatusForbidden, "service token cannot issue or revoke tokens")
 		return false
 	}
+	if middleware.IsOnBehalf(r.Context()) {
+		WriteError(w, http.StatusForbidden, "an on-behalf request cannot issue or revoke tokens")
+		return false
+	}
 	user := middleware.UserFromContext(r.Context())
 	if user == nil || !user.IsAdmin {
 		WriteError(w, http.StatusForbidden, "admin access required")
