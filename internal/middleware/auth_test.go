@@ -343,7 +343,7 @@ func TestRequireAuth_ServiceTokenSetsCredential(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
-	token, err := models.CreateServiceToken(context.Background(), db, user.ID, "agent")
+	token, _, err := models.CreateServiceToken(context.Background(), db, user.ID, "agent")
 	if err != nil {
 		t.Fatalf("create token: %v", err)
 	}

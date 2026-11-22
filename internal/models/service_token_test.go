@@ -14,7 +14,7 @@ func TestServiceToken_StoresHashOnly(t *testing.T) {
 	db := testDB(t)
 	user := serviceTokenUser(t, db, "coach", true, true)
 
-	plaintext, err := CreateServiceToken(context.Background(), db, user.ID, "agent")
+	plaintext, _, err := CreateServiceToken(context.Background(), db, user.ID, "agent")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestServiceToken_RevokedUnknownAndRotated(t *testing.T) {
 	db := testDB(t)
 	user := serviceTokenUser(t, db, "coach", true, false)
 
-	plaintext, err := CreateServiceToken(context.Background(), db, user.ID, "agent")
+	plaintext, _, err := CreateServiceToken(context.Background(), db, user.ID, "agent")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}

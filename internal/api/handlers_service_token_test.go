@@ -35,7 +35,7 @@ func (e *testEnv) serveBearer(t *testing.T, method, path, token string, body any
 
 func (e *testEnv) coachServiceToken(t *testing.T, userID int64) string {
 	t.Helper()
-	plaintext, err := models.CreateServiceToken(context.Background(), e.DB, userID, "coach-agent")
+	plaintext, _, err := models.CreateServiceToken(context.Background(), e.DB, userID, "coach-agent")
 	if err != nil {
 		t.Fatalf("create service token: %v", err)
 	}

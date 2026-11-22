@@ -126,6 +126,14 @@ func setupTest(t *testing.T) *testEnv {
 
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", h.UpdateWorkoutNotes)
 
+			r.Get("/athletes/{id}/coach/sessions", h.ListCoachSessions)
+			r.Get("/athletes/{id}/coach/week", h.GetCoachWeek)
+			r.Get("/athletes/{id}/coach/progress", h.GetCoachProgress)
+			r.Get("/athletes/{id}/coach/position", h.GetCoachPosition)
+			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", h.GetCoachLastSession)
+			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/preview", h.PreviewCoachSessionNote)
+			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/confirm", h.ConfirmCoachSessionNote)
+
 			r.Get("/athletes/{id}/body-weights", h.ListBodyWeights)
 			r.Post("/athletes/{id}/body-weights", h.CreateBodyWeight)
 			r.Delete("/athletes/{id}/body-weights/{bwID}", h.DeleteBodyWeight)
@@ -227,6 +235,10 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/users/{userID}/tokens", h.ListLoginTokens)
 			r.Post("/users/{userID}/tokens", h.CreateLoginToken)
 			r.Delete("/users/{userID}/tokens/{tokenID}", h.DeleteLoginToken)
+
+			r.Get("/users/{userID}/service-tokens", h.ListServiceTokens)
+			r.Post("/users/{userID}/service-tokens", h.IssueServiceToken)
+			r.Delete("/users/{userID}/service-tokens/{tokenID}", h.RevokeServiceToken)
 
 			// Impersonation.
 			r.Post("/admin/impersonate/{userId}", h.StartImpersonation)
