@@ -352,16 +352,32 @@ func SkillSessionFromModel(m *models.SkillSession) *SkillSession {
 // RecoveryCheckinFromModel converts a models.RecoveryCheckin to its API shape.
 func RecoveryCheckinFromModel(m *models.RecoveryCheckin) *RecoveryCheckin {
 	return &RecoveryCheckin{
-		ID:         m.ID,
-		WorkoutID:  m.WorkoutID,
-		AthleteID:  m.AthleteID,
-		Date:       fmtDate(m.Date),
-		SleepHours: nullFloat(m.SleepHours),
-		Soreness:   nullInt(m.Soreness),
-		Energy:     nullInt(m.Energy),
-		Notes:      nullStr(m.Notes),
-		CreatedAt:  fmtTime(m.CreatedAt),
-		UpdatedAt:  fmtTime(m.UpdatedAt),
+		ID:           m.ID,
+		WorkoutID:    m.WorkoutID,
+		AthleteID:    m.AthleteID,
+		Date:         fmtDate(m.Date),
+		SleepHours:   nullFloat(m.SleepHours),
+		Soreness:     nullInt(m.Soreness),
+		Energy:       nullInt(m.Energy),
+		Mood:         nullInt(m.Mood),
+		Notes:        nullStr(m.Notes),
+		LowReadiness: m.ReadinessLow(),
+		CreatedAt:    fmtTime(m.CreatedAt),
+		UpdatedAt:    fmtTime(m.UpdatedAt),
+	}
+}
+
+// ExerciseSwapFromModel converts a models.ExerciseSwap to its API shape.
+func ExerciseSwapFromModel(m *models.ExerciseSwap) *ExerciseSwap {
+	return &ExerciseSwap{
+		ID:               m.ID,
+		WorkoutID:        m.WorkoutID,
+		FromExerciseID:   m.FromExerciseID,
+		FromExerciseName: m.FromName,
+		ToExerciseID:     m.ToExerciseID,
+		ToExerciseName:   m.ToName,
+		Reason:           nullStr(m.Reason),
+		CreatedAt:        fmtTime(m.CreatedAt),
 	}
 }
 

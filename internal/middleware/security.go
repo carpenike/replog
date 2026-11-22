@@ -66,6 +66,8 @@ func SetSPAScriptHashes(hashes []string) {
 //     an inline <style> block and shadcn/Radix portals inject runtime
 //     stylesheets. Migrating that off 'unsafe-inline' is a separate
 //     unsolved problem.
+//   - frame-src allows only the YouTube (no-cookie) and Vimeo players, for
+//     exercise demo videos embedded in the session screen.
 //   - The /api/docs (Swagger UI) endpoints get a relaxed CSP because
 //     Swagger UI loads scripts and styles from unpkg.com.
 func SecurityHeaders(next http.Handler) http.Handler {
@@ -96,6 +98,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 					"script-src "+spaScriptSrc+"; "+
 					"img-src 'self' data:; "+
 					"connect-src 'self'; "+
+					"frame-src https://www.youtube-nocookie.com https://player.vimeo.com; "+
 					"frame-ancestors 'none'; "+
 					"base-uri 'self'; "+
 					"form-action 'self'")

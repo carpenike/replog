@@ -1472,6 +1472,17 @@ definitions:
       optional:
         type: boolean
     type: object
+  api.ExerciseGroup:
+    properties:
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      sets:
+        items:
+          $ref: '#/definitions/api.WorkoutSet'
+        type: array
+    type: object
   api.ExerciseHistoryDay:
     properties:
       sets:
@@ -1549,6 +1560,37 @@ definitions:
       tier:
         example: foundational
         type: string
+    type: object
+  api.ExerciseSwap:
+    properties:
+      created_at:
+        type: string
+      from_exercise_id:
+        type: integer
+      from_exercise_name:
+        type: string
+      id:
+        type: integer
+      reason:
+        type: string
+      to_exercise_id:
+        type: integer
+      to_exercise_name:
+        type: string
+      workout_id:
+        type: integer
+    type: object
+  api.ExerciseSwapRequest:
+    properties:
+      from_exercise_id:
+        example: 12
+        type: integer
+      reason:
+        example: Knee felt off on squats
+        type: string
+      to_exercise_id:
+        example: 31
+        type: integer
     type: object
   api.GenerateExecuteResponse:
     properties:
@@ -2441,6 +2483,14 @@ definitions:
         type: integer
       id:
         type: integer
+      low_readiness:
+        description: |-
+          LowReadiness is true when an answer crosses a readiness threshold
+          (sleep under 6 h, soreness 8+, mood or energy 3 or less). The coach
+          sees the flag in review; it never changes the plan.
+        type: boolean
+      mood:
+        type: integer
       notes:
         type: string
       sleep_hours:
@@ -2458,6 +2508,9 @@ definitions:
         example: "2026-05-12"
         type: string
       energy:
+        example: 7
+        type: integer
+      mood:
         example: 7
         type: integer
       notes:
@@ -2799,9 +2852,17 @@ definitions:
         type: string
       date:
         type: string
+      low_readiness:
+        description: |-
+          LowReadiness is true when that day's readiness check-in flagged low.
+          It informs the review; it never changes the plan.
+        type: boolean
       notes:
         type: string
       set_count:
+        type: integer
+      swap_count:
+        description: SwapCount is how many prescribed exercises the athlete swapped.
         type: integer
       workout_id:
         type: integer
@@ -2997,6 +3058,21 @@ definitions:
         type: integer
       updated_at:
         type: string
+    type: object
+  api.WorkoutDetailResponse:
+    properties:
+      groups:
+        items:
+          $ref: '#/definitions/api.ExerciseGroup'
+        type: array
+      readiness:
+        $ref: '#/definitions/api.RecoveryCheckin'
+      swaps:
+        items:
+          $ref: '#/definitions/api.ExerciseSwap'
+        type: array
+      workout:
+        $ref: '#/definitions/api.Workout'
     type: object
   api.WorkoutNotesRequest:
     properties:
@@ -5372,6 +5448,46 @@ paths:
       summary: Exercise history for athlete
       tags:
       - Exercises
+  /athletes/{id}/exercises/{exerciseID}/substitutes:
+    get:
+      description: Exercises that share a movement pattern with the given exercise,
+        most shared patterns first. An exercise with no pattern tags has no substitutes.
+        Swapping never changes the program.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Prescribed exercise ID
+        in: path
+        name: exerciseID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.Exercise'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List exercise substitutes
+      tags:
+      - Workouts
   /athletes/{id}/exercises/{exerciseID}/training-maxes:
     get:
       parameters:
@@ -7046,6 +7162,8 @@ paths:
       tags:
       - Workouts
     get:
+      description: The workout, its sets grouped by exercise, any exercise swaps the
+        athlete made, and that day's readiness check-in when one was logged.
       parameters:
       - description: Athlete ID
         in: path
@@ -7061,10 +7179,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: workout + sets grouped by exercise
+          description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.WorkoutDetailResponse'
         "400":
           description: Bad Request
           schema:
@@ -7310,6 +7427,92 @@ paths:
           schema:
             $ref: '#/definitions/api.APIError'
       summary: Update set
+      tags:
+      - Workouts
+  /athletes/{id}/workouts/{workoutID}/swaps:
+    post:
+      consumes:
+      - application/json
+      description: Records a swap of a prescribed exercise for one with the same movement
+        pattern, with an optional reason. The coach sees it in review. The program
+        and prescription are unchanged; log the substitute's sets as usual.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Swap
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ExerciseSwapRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.ExerciseSwap'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Swap an exercise
+      tags:
+      - Workouts
+  /athletes/{id}/workouts/{workoutID}/swaps/{swapID}:
+    delete:
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Swap ID
+        in: path
+        name: swapID
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Undo an exercise swap
       tags:
       - Workouts
   /auth/token/{token}:

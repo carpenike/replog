@@ -9,6 +9,8 @@ import { PageHeader } from '@/components/PageHeader'
 import { QueryState } from '@/components/QueryState'
 import { useFriendlyDate } from '@/lib/dates'
 import { ExercisePicker, type PickedExercise } from '@/components/ExercisePicker'
+import { SessionFlags } from '@/components/SessionFlags'
+import { Badge } from '@/components/ui/badge'
 import { useConfirm } from '@/lib/useConfirm'
 import { formatDate, formatWeight, localDateISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -17,9 +19,9 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
-import type { ExerciseGroup, Workout, WorkoutSet } from '@/api/types'
+import type { WorkoutDetailData as WorkoutData, WorkoutSet } from '@/api/types'
 
-type WorkoutData = { workout: Workout; groups: ExerciseGroup[] }
+const SET_TYPE_BADGE: Record<string, string> = { warmup: 'W', drop: 'Drop', failure: 'Fail' }
 
 export function WorkoutDetail() {
   const { id, workoutId } = useParams<{ id: string; workoutId: string }>()
@@ -299,6 +301,7 @@ export function WorkoutDetail() {
           {workout.notes || <span className="text-muted-foreground italic">Add notes...</span>}
         </button>
       )}
+      <SessionFlags readiness={data.readiness} swaps={data.swaps} />
       {groups.length === 0 ? (
         <EmptyState icon="🏋️" title="No sets logged yet" description="Use Add Set below to start logging." />
       ) : (
@@ -368,6 +371,11 @@ export function WorkoutDetail() {
                           >
                             {set.set_number}
                           </button>
+                          {set.set_type && SET_TYPE_BADGE[set.set_type] && (
+                            <Badge variant="outline" className="ml-1 text-[10px]" aria-label={set.set_type === 'warmup' ? 'Warm-up set' : `${set.set_type} set`}>
+                              {SET_TYPE_BADGE[set.set_type]}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>{set.reps_label ?? set.reps}</TableCell>
                         <TableCell>{formatWeight(set.weight)}</TableCell>

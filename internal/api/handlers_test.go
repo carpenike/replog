@@ -126,6 +126,11 @@ func setupTest(t *testing.T) *testEnv {
 
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", h.UpdateWorkoutNotes)
 
+			// Exercise swaps (athlete swaps a prescribed lift; the program is unchanged).
+			r.Get("/athletes/{id}/exercises/{exerciseID}/substitutes", h.ListExerciseSubstitutes)
+			r.Post("/athletes/{id}/workouts/{workoutID}/swaps", h.CreateExerciseSwap)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/swaps/{swapID}", h.DeleteExerciseSwap)
+
 			r.Get("/athletes/{id}/coach/sessions", h.ListCoachSessions)
 			r.Get("/athletes/{id}/coach/week", h.GetCoachWeek)
 			r.Get("/athletes/{id}/coach/progress", h.GetCoachProgress)

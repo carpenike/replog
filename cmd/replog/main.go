@@ -359,6 +359,11 @@ func main() {
 			// Workout Notes.
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", apiHandlers.UpdateWorkoutNotes)
 
+			// Exercise swaps (athlete swaps a prescribed lift; the program is unchanged).
+			r.Get("/athletes/{id}/exercises/{exerciseID}/substitutes", apiHandlers.ListExerciseSubstitutes)
+			r.Post("/athletes/{id}/workouts/{workoutID}/swaps", apiHandlers.CreateExerciseSwap)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/swaps/{swapID}", apiHandlers.DeleteExerciseSwap)
+
 			// Coach session reads. A service token sees only its user's athletes.
 			r.Get("/athletes/{id}/coach/sessions", apiHandlers.ListCoachSessions)
 			r.Get("/athletes/{id}/coach/week", apiHandlers.GetCoachWeek)

@@ -240,6 +240,33 @@ UI rules for anything that loads a bar (plate calculator, warm-up ramps,
   target, with an explicit "Use 225.9 lb" action. Never change a logged or
   prescribed weight without the athlete or coach tapping it.
 - Offer the nearest loadable weights above and below the target.
+- The math lives in `web/src/lib/plates.ts` (greedy per side within the
+  inventory, then the loadable totals either side) and the ramp in
+  `web/src/lib/warmups.ts` (bar, 40%, 60%, 80%, each rounded to loadable).
+  Both are unit-tested; keep new loading logic there, not in components.
+- The setup screen is the Plate setup card in Preferences
+  (`components/PlateSetupCard.tsx`); the session links to
+  `/preferences#plate-setup`.
+
+## Session screen
+
+`pages/ActiveWorkout.tsx`, with the pure rules in `web/src/lib/session.ts`:
+
+- Warm-ups (imported non-working sets, a generated ramp, or logged
+  `set_type = 'warmup'`) render in a dashed "Warm-ups · not counted" block
+  with a `W` marker. They never count toward "Set X of Y", the progress bar,
+  PRs or the rest of a superset round.
+- Targets show rep ranges ("8–12") and RIR/RPE chips ("RIR 2–3").
+- Supersets and circuits (shared group key) render as one linked card. Rows
+  alternate member by member each round (B1·1, B2·1, B1·2, ...) and the rest
+  timer starts once per round, after the last open member's set.
+- The ⓘ on an exercise header opens a sheet with the coach's cues and the
+  demo video (YouTube no-cookie or Vimeo embed; other URLs are links).
+- Swap opens substitutes that share a movement pattern. The swap is recorded
+  for the coach's review; the program is never changed.
+- A three-question readiness check-in (sleep, soreness, mood) opens with a
+  fresh session for today. Skip is remembered per workout. A low answer flags
+  the session for the coach; copy must say it does not change the plan.
 
 ## Accessibility checklist
 

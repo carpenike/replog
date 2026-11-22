@@ -2,11 +2,15 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
-import { Play } from 'lucide-react'
+import { Link2, Play } from 'lucide-react'
 import { EmptyState } from '@/components/ui'
 import { PageHeader } from '@/components/PageHeader'
 import { QueryState } from '@/components/QueryState'
-import { formatDate, formatWeight, localDateISO } from '@/lib/utils'
+import { cn, formatDate, formatWeight, localDateISO } from '@/lib/utils'
+import { groupBlocks, groupKind, memberLabel } from '@/lib/groups'
+import { effortLabel, repTargetLabel } from '@/lib/session'
+import { Badge } from '@/components/ui/badge'
+import type { PrescriptionLineData } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -92,51 +96,87 @@ export function PrescriptionPage() {
       >
         {prescription => (
             <div className="space-y-4">
-              {prescription.lines.map((line, i) => (                <Card key={`${line.exercise_id}-${i}`} size="sm">
-                  <CardHeader>
-                    <CardTitle>{line.exercise_name}</CardTitle>
-                    {line.training_max && (
-                      <CardDescription>TM: {formatWeight(line.training_max)}</CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-16">Set</TableHead>
-                          <TableHead>Reps</TableHead>
-                          <TableHead>Weight</TableHead>
-                          <TableHead>%</TableHead>
-                          <TableHead className="whitespace-normal">Notes</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {line.sets.map((set, j) => (
-                          <TableRow key={j}>
-                            <TableCell className="text-muted-foreground">{set.set_number}</TableCell>
-                            <TableCell className="font-medium">
-                              {set.reps ? set.reps : 'AMRAP'}
-                              {set.reps && set.rep_type === 'amrap' && '+'}
-                            </TableCell>
-                            <TableCell className="font-medium text-primary">
-                              {set.target_weight ? formatWeight(set.target_weight)
-                                : set.absolute_weight ? formatWeight(set.absolute_weight)
-                                : 'BW'}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {set.percentage ? `${set.percentage}%` : ''}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-xs whitespace-normal wrap-break-word">{set.notes ?? ''}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              ))}
+              {groupBlocks(prescription.lines, l => l.group_key ?? l.sets.find(st => st.group_key)?.group_key).map((block, bi) =>
+                block.key && block.items.length >= 2 ? (
+                  <section key={`g-${block.key}`} aria-label={`${groupKind(block.items.length)} ${block.key}`} className="space-y-2 rounded-xl border-2 border-primary/30 p-2">
+                    <p className="flex items-center gap-1.5 px-1 text-xs font-medium text-primary">
+                      <Link2 className="size-3.5" aria-hidden="true" />
+                      {groupKind(block.items.length)} {block.key} · alternate {block.items.map((_, i) => memberLabel(block.key as string, i)).join(' / ')} each round, rest after the round
+                    </p>
+                    {block.items.map((line, i) => (
+                      <PrescriptionLineCard key={`${line.exercise_id}-${i}`} line={line} member={memberLabel(block.key as string, i)} />
+                    ))}
+                  </section>
+                ) : (
+                  block.items.map((line, i) => <PrescriptionLineCard key={`${line.exercise_id}-${bi}-${i}`} line={line} />)
+                ))}
             </div>
         )}
       </QueryState>
     </div>
+  )
+}
+
+/** One exercise of today's prescription: warm-ups first (not counted), then working sets. */
+function PrescriptionLineCard({ line, member }: { line: PrescriptionLineData; member?: string }) {
+  // Warm-ups sort ahead of the working sets they lead into.
+  const sets = [...line.sets].sort((a, b) => Number(!a.non_working) - Number(!b.non_working))
+  const firstWorking = sets.findIndex(st => !st.non_working)
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-1.5">
+          {member && <Badge variant="secondary">{member}</Badge>}
+          {line.exercise_name}
+        </CardTitle>
+        {line.training_max && (
+          <CardDescription>TM: {formatWeight(line.training_max)}</CardDescription>
+        )}
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">Set</TableHead>
+              <TableHead>Reps</TableHead>
+              <TableHead>Weight</TableHead>
+              <TableHead>%</TableHead>
+              <TableHead className="whitespace-normal">Notes</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sets.map((set, j) => {
+              const warmup = !!set.non_working
+              const effort = effortLabel(set)
+              return (
+                <TableRow key={j} className={cn(warmup && 'bg-muted/40 text-muted-foreground')}>
+                  <TableCell className="text-muted-foreground">
+                    {warmup ? <Badge variant="outline" aria-label="Warm-up set">W</Badge> : j - firstWorking + 1}
+                  </TableCell>
+                  <TableCell className={cn(!warmup && 'font-medium')}>
+                    <span className="flex flex-wrap items-center gap-1">
+                      {repTargetLabel(set) ?? '—'}
+                      {effort && <Badge variant="outline" className="text-[11px]">{effort}</Badge>}
+                    </span>
+                  </TableCell>
+                  <TableCell className={cn('font-medium', !warmup && 'text-primary')}>
+                    {set.target_weight ? formatWeight(set.target_weight)
+                      : set.absolute_weight ? formatWeight(set.absolute_weight)
+                      : 'BW'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {set.percentage ? `${set.percentage}%` : ''}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs whitespace-normal wrap-break-word">
+                    {warmup && <span>Warm-up{set.notes ? ' · ' : ''}</span>}
+                    {set.notes ?? ''}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   )
 }

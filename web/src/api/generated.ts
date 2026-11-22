@@ -3253,6 +3253,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/exercises/{exerciseID}/substitutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List exercise substitutes
+         * @description Exercises that share a movement pattern with the given exercise, most shared patterns first. An exercise with no pattern tags has no substitutes. Swapping never changes the program.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Prescribed exercise ID */
+                    exerciseID: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.Exercise"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/exercises/{exerciseID}/training-maxes": {
         parameters: {
             query?: never;
@@ -6270,7 +6341,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get workout */
+        /**
+         * Get workout
+         * @description The workout, its sets grouped by exercise, any exercise swaps the athlete made, and that day's readiness check-in when one was logged.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -6285,15 +6359,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description workout + sets grouped by exercise */
+                /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
+                        "application/json": components["schemas"]["api.WorkoutDetailResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -6725,6 +6797,159 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/workouts/{workoutID}/swaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Swap an exercise
+         * @description Records a swap of a prescribed exercise for one with the same movement pattern, with an optional reason. The coach sees it in review. The program and prescription are unchanged; log the substitute's sets as usual.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Workout ID */
+                    workoutID: number;
+                };
+                cookie?: never;
+            };
+            /** @description Swap */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.ExerciseSwapRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.ExerciseSwap"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/workouts/{workoutID}/swaps/{swapID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Undo an exercise swap */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Workout ID */
+                    workoutID: number;
+                    /** @description Swap ID */
+                    swapID: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["api.APIError"];
                     };
                 };
             };
@@ -10438,6 +10663,11 @@ export interface components {
             equipment_id?: number;
             optional?: boolean;
         };
+        "api.ExerciseGroup": {
+            exercise_id?: number;
+            exercise_name?: string;
+            sets?: components["schemas"]["api.WorkoutSet"][];
+        };
         "api.ExerciseHistoryDay": {
             sets?: components["schemas"]["api.ExerciseHistoryEntry"][];
             workout_date?: string;
@@ -10477,6 +10707,24 @@ export interface components {
             rest_seconds?: number;
             /** @example foundational */
             tier?: string;
+        };
+        "api.ExerciseSwap": {
+            created_at?: string;
+            from_exercise_id?: number;
+            from_exercise_name?: string;
+            id?: number;
+            reason?: string;
+            to_exercise_id?: number;
+            to_exercise_name?: string;
+            workout_id?: number;
+        };
+        "api.ExerciseSwapRequest": {
+            /** @example 12 */
+            from_exercise_id?: number;
+            /** @example Knee felt off on squats */
+            reason?: string;
+            /** @example 31 */
+            to_exercise_id?: number;
         };
         "api.GenerateExecuteResponse": {
             created_template_ids?: number[];
@@ -10984,6 +11232,13 @@ export interface components {
             date?: string;
             energy?: number;
             id?: number;
+            /**
+             * @description LowReadiness is true when an answer crosses a readiness threshold
+             *     (sleep under 6 h, soreness 8+, mood or energy 3 or less). The coach
+             *     sees the flag in review; it never changes the plan.
+             */
+            low_readiness?: boolean;
+            mood?: number;
             notes?: string;
             sleep_hours?: number;
             soreness?: number;
@@ -10995,6 +11250,8 @@ export interface components {
             date?: string;
             /** @example 7 */
             energy?: number;
+            /** @example 7 */
+            mood?: number;
             notes?: string;
             /** @example 8.5 */
             sleep_hours?: number;
@@ -11188,8 +11445,15 @@ export interface components {
             athlete_id?: number;
             athlete_name?: string;
             date?: string;
+            /**
+             * @description LowReadiness is true when that day's readiness check-in flagged low.
+             *     It informs the review; it never changes the plan.
+             */
+            low_readiness?: boolean;
             notes?: string;
             set_count?: number;
+            /** @description SwapCount is how many prescribed exercises the athlete swapped. */
+            swap_count?: number;
             workout_id?: number;
         };
         "api.User": {
@@ -11299,6 +11563,12 @@ export interface components {
             review_status?: string;
             set_count?: number;
             updated_at?: string;
+        };
+        "api.WorkoutDetailResponse": {
+            groups?: components["schemas"]["api.ExerciseGroup"][];
+            readiness?: components["schemas"]["api.RecoveryCheckin"];
+            swaps?: components["schemas"]["api.ExerciseSwap"][];
+            workout?: components["schemas"]["api.Workout"];
         };
         "api.WorkoutNotesRequest": {
             notes?: string;

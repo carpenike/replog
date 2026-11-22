@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
 import type { AthleteProgram, PlateSetup, PlateSetupPreset, PlateSetupRequest } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
@@ -52,6 +52,7 @@ export interface RecoveryCheckinInput {
   sleep_hours?: number;
   soreness?: number;
   energy?: number;
+  mood?: number;
   notes?: string;
 }
 
@@ -261,8 +262,25 @@ class ApiClient {
     return this.request<WorkoutPage>(`/api/athletes/${athleteId}/workouts?offset=${offset}`);
   }
 
-  async getWorkout(athleteId: number, workoutId: number): Promise<{ workout: Workout; groups: ExerciseGroup[] }> {
+  async getWorkout(athleteId: number, workoutId: number): Promise<WorkoutDetailData> {
     return this.request(`/api/athletes/${athleteId}/workouts/${workoutId}`);
+  }
+
+  // Exercise swaps: the athlete swaps a prescribed lift for one with the same
+  // movement pattern. Recorded for the coach's review; the program is unchanged.
+  async listExerciseSubstitutes(athleteId: number, exerciseId: number): Promise<Exercise[]> {
+    return this.request<Exercise[]>(`/api/athletes/${athleteId}/exercises/${exerciseId}/substitutes`);
+  }
+
+  async createExerciseSwap(athleteId: number, workoutId: number, data: { from_exercise_id: number; to_exercise_id: number; reason?: string }): Promise<ExerciseSwap> {
+    return this.request<ExerciseSwap>(`/api/athletes/${athleteId}/workouts/${workoutId}/swaps`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteExerciseSwap(athleteId: number, workoutId: number, swapId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/workouts/${workoutId}/swaps/${swapId}`, { method: 'DELETE' });
   }
 
   async createWorkout(athleteId: number, date: string, notes = '', fromPrescription = false): Promise<Workout> {

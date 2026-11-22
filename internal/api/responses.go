@@ -267,9 +267,38 @@ type RecoveryCheckin struct {
 	SleepHours *float64 `json:"sleep_hours,omitempty"`
 	Soreness   *int64   `json:"soreness,omitempty"`
 	Energy     *int64   `json:"energy,omitempty"`
+	Mood       *int64   `json:"mood,omitempty"`
 	Notes      *string  `json:"notes,omitempty"`
-	CreatedAt  string   `json:"created_at"`
-	UpdatedAt  string   `json:"updated_at"`
+	// LowReadiness is true when an answer crosses a readiness threshold
+	// (sleep under 6 h, soreness 8+, mood or energy 3 or less). The coach
+	// sees the flag in review; it never changes the plan.
+	LowReadiness bool   `json:"low_readiness"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
+// ExerciseSwap is an athlete's swap of a prescribed exercise for one with
+// the same movement pattern during a workout. It is a note for the coach's
+// review; the program is unchanged.
+type ExerciseSwap struct {
+	ID               int64   `json:"id"`
+	WorkoutID        int64   `json:"workout_id"`
+	FromExerciseID   int64   `json:"from_exercise_id"`
+	FromExerciseName string  `json:"from_exercise_name"`
+	ToExerciseID     int64   `json:"to_exercise_id"`
+	ToExerciseName   string  `json:"to_exercise_name"`
+	Reason           *string `json:"reason,omitempty"`
+	CreatedAt        string  `json:"created_at"`
+}
+
+// WorkoutDetailResponse is GET /api/athletes/{id}/workouts/{workoutID}: the
+// workout, its sets grouped by exercise, any exercise swaps, and that day's
+// readiness check-in when one was logged.
+type WorkoutDetailResponse struct {
+	Workout   *Workout         `json:"workout"`
+	Groups    []*ExerciseGroup `json:"groups"`
+	Swaps     []*ExerciseSwap  `json:"swaps"`
+	Readiness *RecoveryCheckin `json:"readiness,omitempty"`
 }
 
 // DisciplineLoad is the per-discipline load rollup within a LoadSummary (ADR 018).
@@ -523,6 +552,11 @@ type UnreviewedWorkout struct {
 	Date        string  `json:"date"`
 	SetCount    int     `json:"set_count"`
 	Notes       *string `json:"notes,omitempty"`
+	// LowReadiness is true when that day's readiness check-in flagged low.
+	// It informs the review; it never changes the plan.
+	LowReadiness bool `json:"low_readiness"`
+	// SwapCount is how many prescribed exercises the athlete swapped.
+	SwapCount int `json:"swap_count"`
 }
 
 // ReviewStats is the JSON representation of models.ReviewStats.

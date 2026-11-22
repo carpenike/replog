@@ -168,7 +168,16 @@ type RecoveryCheckinRequest struct {
 	SleepHours *float64 `json:"sleep_hours,omitempty" example:"8.5" jsonschema:"Hours of sleep the prior night."`
 	Soreness   *int64   `json:"soreness,omitempty" example:"3" jsonschema:"Muscle soreness on a 1-10 scale (1 = none, 10 = severe)."`
 	Energy     *int64   `json:"energy,omitempty" example:"7" jsonschema:"Energy level on a 1-10 scale (1 = exhausted, 10 = fully energized)."`
+	Mood       *int64   `json:"mood,omitempty" example:"7" jsonschema:"Mood on a 1-10 scale (1 = awful, 10 = great)."`
 	Notes      string   `json:"notes,omitempty" jsonschema:"Optional free-text note."`
+}
+
+// ExerciseSwapRequest is the body for POST
+// /api/athletes/{id}/workouts/{workoutID}/swaps.
+type ExerciseSwapRequest struct {
+	FromExerciseID int64  `json:"from_exercise_id" example:"12"`
+	ToExerciseID   int64  `json:"to_exercise_id" example:"31"`
+	Reason         string `json:"reason,omitempty" example:"Knee felt off on squats"`
 }
 
 // PreferencesRequest is the body for PUT /api/preferences.

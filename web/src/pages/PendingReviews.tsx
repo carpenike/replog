@@ -37,9 +37,21 @@ export function PendingReviews() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm">{w.set_count} set{w.set_count !== 1 ? 's' : ''}</p>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-warning/10 text-warning-strong">
-                      Needs review
-                    </span>
+                    <div className="mt-0.5 flex flex-wrap justify-end gap-1">
+                      {w.low_readiness && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">
+                          Low readiness
+                        </span>
+                      )}
+                      {(w.swap_count ?? 0) > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          {w.swap_count} swap{w.swap_count === 1 ? '' : 's'}
+                        </span>
+                      )}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-warning/10 text-warning-strong">
+                        Needs review
+                      </span>
+                    </div>
                   </div>
                 </Link>
               </li>

@@ -147,7 +147,7 @@ export function RecoveryCheckins() {
                 <CardListItem
                   key={c.id}
                   title={friendlyDate(c.date)}
-                  subtitle={[c.sleep_hours != null ? `Sleep ${c.sleep_hours}h` : null, c.soreness != null ? `Soreness ${c.soreness}` : null, c.energy != null ? `Energy ${c.energy}` : null].filter(Boolean).join(' · ') || 'No scores'}
+                  subtitle={[c.sleep_hours != null ? `Sleep ${c.sleep_hours}h` : null, c.soreness != null ? `Soreness ${c.soreness}` : null, c.energy != null ? `Energy ${c.energy}` : null, c.mood != null ? `Mood ${c.mood}` : null, c.low_readiness ? 'Flagged for coach' : null].filter(Boolean).join(' · ') || 'No scores'}
                   actions={<Button variant="ghost" size="sm" aria-label={`Delete ${'check-in ' + friendlyDate(c.date)}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(c.id)}><Trash2 aria-hidden="true" /> Delete</Button>}
                 />
               ))}
@@ -160,6 +160,7 @@ export function RecoveryCheckins() {
                   <TableHead>Sleep</TableHead>
                   <TableHead>Soreness</TableHead>
                   <TableHead>Energy</TableHead>
+                  <TableHead>Mood</TableHead>
                   <TableHead><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>
@@ -170,6 +171,10 @@ export function RecoveryCheckins() {
                     <TableCell>{c.sleep_hours ?? '—'}</TableCell>
                     <TableCell>{c.soreness ?? '—'}</TableCell>
                     <TableCell>{c.energy ?? '—'}</TableCell>
+                    <TableCell>
+                      {c.mood ?? '—'}
+                      {c.low_readiness && <span className="ml-2 rounded-full bg-warning/10 px-2 py-0.5 text-xs text-warning-strong">Flagged for coach</span>}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon-sm" aria-label={`Delete check-in ${friendlyDate(c.date)}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(c.id)}><Trash2 aria-hidden="true" /></Button>
                     </TableCell>

@@ -233,6 +233,8 @@ export interface UnreviewedWorkoutData {
   date: string;
   set_count: number;
   notes?: string | null;
+  low_readiness?: boolean;
+  swap_count?: number;
 }
 
 export interface SettingValueData {
@@ -523,9 +525,32 @@ export interface RecoveryCheckin {
   sleep_hours?: number | null;
   soreness?: number | null;
   energy?: number | null;
+  mood?: number | null;
   notes?: string | null;
+  /** Sleep under 6 h, soreness 8+, or mood/energy 3 or less. Flags the session for the coach; never changes the plan. */
+  low_readiness?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/** An athlete's swap of a prescribed exercise for one with the same movement pattern. The program is unchanged. */
+export interface ExerciseSwap {
+  id: number;
+  workout_id: number;
+  from_exercise_id: number;
+  from_exercise_name: string;
+  to_exercise_id: number;
+  to_exercise_name: string;
+  reason?: string | null;
+  created_at: string;
+}
+
+export interface WorkoutDetailData {
+  workout: Workout;
+  groups: ExerciseGroup[];
+  swaps?: ExerciseSwap[];
+  /** That day's readiness check-in, when one was logged. */
+  readiness?: RecoveryCheckin | null;
 }
 
 export interface SeasonPhase {

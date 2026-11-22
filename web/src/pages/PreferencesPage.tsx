@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
 import { PageHeader } from '@/components/PageHeader'
+import { PlateSetupCard } from '@/components/PlateSetupCard'
 import { PageSkeleton } from '@/components/QueryState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatFriendlyDate } from '@/lib/dates'
@@ -180,6 +181,15 @@ export function PreferencesPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Plate setup (bar, collars, plate inventory) for the plate calculator */}
+      {me && (
+        <PlateSetupCard
+          ownAthleteId={me.athlete_id}
+          isCoach={me.is_coach || me.is_admin}
+          loggingUnit={prefs?.weight_unit ?? 'lbs'}
+        />
       )}
 
       {/* Notification Preferences */}

@@ -740,11 +740,26 @@ func (h *Handlers) CreateRecoveryCheckin(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if req.SleepHours != nil && (*req.SleepHours < 0 || *req.SleepHours > 24) {
+		WriteValidationError(w, "sleep_hours", "must be between 0 and 24")
+		return
+	}
+	for _, f := range []struct {
+		name string
+		v    *int64
+	}{{"soreness", req.Soreness}, {"energy", req.Energy}, {"mood", req.Mood}} {
+		if f.v != nil && (*f.v < 1 || *f.v > 10) {
+			WriteValidationError(w, f.name, "must be between 1 and 10")
+			return
+		}
+	}
+
 	checkin, err := models.CreateRecoveryCheckin(r.Context(), h.DB, athleteID, models.RecoveryCheckinInput{
 		Date:       req.Date,
 		SleepHours: req.SleepHours,
 		Soreness:   req.Soreness,
 		Energy:     req.Energy,
+		Mood:       req.Mood,
 		Notes:      req.Notes,
 	})
 	if err != nil {

@@ -133,3 +133,15 @@ func extractDirective(csp, name string) string {
 	}
 	return ""
 }
+
+// TestSecurityHeaders_FrameSrcAllowsOnlyVideoPlayers checks the SPA CSP
+// lets the session screen embed YouTube (no-cookie) and Vimeo demo videos
+// and nothing else.
+func TestSecurityHeaders_FrameSrcAllowsOnlyVideoPlayers(t *testing.T) {
+	rr := runSecurityHeaders(t, "/")
+	got := extractDirective(rr.Header().Get("Content-Security-Policy"), "frame-src")
+	want := "frame-src https://www.youtube-nocookie.com https://player.vimeo.com"
+	if got != want {
+		t.Errorf("frame-src = %q, want %q", got, want)
+	}
+}

@@ -1943,12 +1943,36 @@ into load**.
 | `sleep_hours` | REAL     | NULL                                                              |
 | `soreness`    | INTEGER  | NULL, CHECK(soreness IS NULL OR (soreness >= 1 AND soreness <= 10)) |
 | `energy`      | INTEGER  | NULL, CHECK(energy IS NULL OR (energy >= 1 AND energy <= 10))      |
+| `mood`        | INTEGER  | NULL, CHECK(mood IS NULL OR (mood >= 1 AND mood <= 10)) (migration `0023`) |
 | `notes`       | TEXT     | NULL                                                              |
 | `created_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                                |
 | `updated_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP (trigger)                     |
 
 - Indexed on `workout_id`. A **recovery signal, not a load input** — excluded
   from the load view.
+- The session screen's readiness prompt (sleep, soreness, mood) saves one of
+  these for the workout's date. `low_readiness` is computed on read
+  (`models.ReadinessIsLow`): sleep under 6 h, soreness 8+, or mood/energy 3 or
+  less. It flags the session in the coach's pending reviews and on the
+  workout read. It never changes the plan.
+
+### `workout_exercise_swaps` (migration `0024`)
+
+| Column             | Type     | Constraints                                           |
+|--------------------|----------|-------------------------------------------------------|
+| `id`               | INTEGER  | PRIMARY KEY AUTOINCREMENT                             |
+| `workout_id`       | INTEGER  | NOT NULL, FK → workouts(id) ON DELETE CASCADE         |
+| `from_exercise_id` | INTEGER  | NOT NULL, FK → exercises(id) ON DELETE RESTRICT       |
+| `to_exercise_id`   | INTEGER  | NOT NULL, FK → exercises(id) ON DELETE RESTRICT       |
+| `reason`           | TEXT     | NULL (at most 500 characters)                         |
+| `created_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                    |
+
+- An athlete swapped a prescribed exercise for one sharing a movement pattern
+  (`exercise_movement_patterns`) during a session. `CHECK(from <> to)`,
+  `UNIQUE(workout_id, from_exercise_id)`, indexed on `workout_id`.
+- A note for the coach's review (shown on the workout read and counted in
+  pending reviews). The program and prescription are never changed; the
+  substitute's sets are logged as normal `workout_sets`.
 
 ### Cross-modal load view (no table — `GetLoadSummary`, `GET /athletes/{id}/load`)
 

@@ -16,11 +16,12 @@ import (
 // GetWorkout returns a workout with its sets grouped by exercise.
 //
 //	@Summary      Get workout
+//	@Description  The workout, its sets grouped by exercise, any exercise swaps the athlete made, and that day's readiness check-in when one was logged.
 //	@Tags         Workouts
 //	@Produce      json
 //	@Param        id         path      int  true  "Athlete ID"
 //	@Param        workoutID  path      int  true  "Workout ID"
-//	@Success      200  {object}  map[string]interface{}  "workout + sets grouped by exercise"
+//	@Success      200  {object}  api.WorkoutDetailResponse
 //	@Failure      400  {object}  api.APIError
 //	@Failure      403  {object}  api.APIError
 //	@Failure      404  {object}  api.APIError
@@ -75,10 +76,30 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	WriteJSON(w, http.StatusOK, map[string]any{
-		"workout": WorkoutFromModel(workout),
-		"groups":  apiGroups,
-	})
+	swaps, err := models.ListExerciseSwaps(r.Context(), h.DB, workoutID)
+	if err != nil {
+		log.Printf("api: list swaps for workout %d: %v", workoutID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to list swaps")
+		return
+	}
+	apiSwaps := make([]*ExerciseSwap, len(swaps))
+	for i, s := range swaps {
+		apiSwaps[i] = ExerciseSwapFromModel(s)
+	}
+
+	resp := WorkoutDetailResponse{
+		Workout: WorkoutFromModel(workout),
+		Groups:  apiGroups,
+		Swaps:   apiSwaps,
+	}
+	readiness, err := models.GetRecoveryCheckinForDate(r.Context(), h.DB, athleteID, workout.Date)
+	switch {
+	case err == nil:
+		resp.Readiness = RecoveryCheckinFromModel(readiness)
+	case !errors.Is(err, models.ErrNotFound):
+		log.Printf("api: readiness for workout %d: %v", workoutID, err)
+	}
+	WriteJSON(w, http.StatusOK, resp)
 }
 
 // CreateWorkout creates a new workout for an athlete.
