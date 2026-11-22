@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/carpenike/replog/internal/models"
@@ -25,8 +26,10 @@ const OnBehalfCredentialEnv = "REPLOG_ON_BEHALF_CREDENTIAL"
 const OnBehalfOfHeader = "X-RepLog-On-Behalf-Of"
 
 // OnBehalfContextKey is set when this request authenticated with the
-// on-behalf credential and a mapped user. It is not a service credential:
-// the mapped user's session permissions apply.
+// on-behalf credential and a mapped user. It is not a service credential,
+// and it is not the mapped user's full session either: the request runs as
+// a copy of that user with IsAdmin cleared, and only the coach-data routes
+// in onBehalfRouteAllowed are reachable (ADR 025).
 const OnBehalfContextKey contextKey = "onBehalf"
 
 // onBehalfAuditAction is the audit_log.action for a successful on-behalf
@@ -80,11 +83,26 @@ func onBehalfCredentialMatches(presented string) bool {
 	return subtle.ConstantTimeCompare(sumP[:], sumE[:]) == 1
 }
 
-// authenticateOnBehalf maps the verified email to a user and attaches that
-// user with session permissions. A missing or unknown email is 403. It does
-// not fall back to a coach-service token, a session cookie, or any default
+// authenticateOnBehalf maps the verified email to a user and attaches a
+// scoped copy of that user. A missing or unknown email is 403. It does not
+// fall back to a coach-service token, a session cookie, or any default
 // user, and it does not write a session.
+//
+// The scope is enforced here, before any handler runs:
+//   - Only the coach-data routes in onBehalfRouteAllowed are reachable.
+//     Token issue and revoke, user and login-token management, admin
+//     settings, catalog import, impersonation, preferences, avatars, and
+//     logout are 403 whoever the mapped user is.
+//   - The attached user has IsAdmin cleared, so an admin mapped user gets
+//     coach-level access (athletes they coach, plus their own linked
+//     athlete), never the admin-wide bypass in CanAccessAthlete,
+//     CanManageAthlete, or CoachAthleteFilter.
 func authenticateOnBehalf(w http.ResponseWriter, r *http.Request, db *sql.DB, email string, next http.Handler) {
+	if !onBehalfRouteAllowed(r) {
+		log.Printf("middleware: on-behalf rejected: route not available on behalf")
+		writeAuthJSON(w, http.StatusForbidden, "not available on behalf of a user")
+		return
+	}
 	if email == "" {
 		log.Printf("middleware: on-behalf rejected: missing email")
 		writeAuthJSON(w, http.StatusForbidden, "on-behalf email is required")
@@ -107,9 +125,59 @@ func authenticateOnBehalf(w http.ResponseWriter, r *http.Request, db *sql.DB, em
 	}
 	log.Printf("middleware: on-behalf authenticated user id=%d on_behalf=true", user.ID)
 
-	ctx := contextWithUser(r.Context(), db, user, false)
+	scoped := onBehalfUser(user)
+	ctx := contextWithUser(r.Context(), db, scoped, false)
 	ctx = context.WithValue(ctx, OnBehalfContextKey, true)
 	next.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// onBehalfUser is the identity an on-behalf request runs as: a copy of the
+// mapped user without admin rights. The stored row is not changed.
+func onBehalfUser(user *models.User) *models.User {
+	scoped := *user
+	scoped.IsAdmin = false
+	return &scoped
+}
+
+// onBehalfRouteAllowed is the allowlist for on-behalf requests. Anything not
+// listed is refused, so a new route is closed to on-behalf callers until it
+// is added here on purpose. Paths must be clean and unescaped, so a
+// dot-segment or an encoded slash cannot reach a route this list would not
+// match.
+//
+// Allowed:
+//   - GET /api/me, GET /api/dashboard
+//   - GET /api/athletes and GET /api/athletes/{id}
+//   - any method under /api/athletes/{id}/... (sets, sessions, notes, coach
+//     reads, coach exercises, program preview, import, assign, gap-fill).
+//     Handlers still check that the caller coaches that athlete.
+//   - GET under /api/exercises, /api/programs, /api/equipment
+//   - GET /api/reviews/pending
+func onBehalfRouteAllowed(r *http.Request) bool {
+	p := r.URL.Path
+	if r.URL.RawPath != "" || p == "" || path.Clean(p) != p || strings.Contains(p, "//") {
+		return false
+	}
+	if !strings.HasPrefix(p, "/api/") {
+		return false
+	}
+	parts := strings.Split(strings.TrimPrefix(p, "/api/"), "/")
+	get := r.Method == http.MethodGet || r.Method == http.MethodHead
+	switch parts[0] {
+	case "me", "dashboard":
+		return get && len(parts) == 1
+	case "athletes":
+		if len(parts) <= 2 {
+			return get
+		}
+		return parts[1] != "" && parts[2] != ""
+	case "exercises", "programs", "equipment":
+		return get
+	case "reviews":
+		return get && len(parts) == 2 && parts[1] == "pending"
+	default:
+		return false
+	}
 }
 
 // IsOnBehalf reports whether this request authenticated via the on-behalf
