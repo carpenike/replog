@@ -27,3 +27,4 @@ Architecture Decision Records for RepLog.
 | [021](021-hardening-pass.md) | Comprehensive Hardening Pass | Accepted | 2026-07-07 |
 | [022](022-coach-service-token.md) | Coach Service Token | Accepted | 2026-11-21 |
 | [023](023-program-drafts.md) | Program Drafts | Accepted | 2026-11-21 |
+| [024](024-coach-program-import.md) | Coach Program Import | Accepted | 2026-11-22 |

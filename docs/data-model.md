@@ -42,7 +42,9 @@ These were resolved interactively before schema design:
 
 18. **Coach notes have public/private visibility.** The `is_private` flag on `athlete_notes` controls whether non-coach athletes can see a note. Private notes (`is_private = 1`) are coach-only; public notes (`is_private = 0`) appear on the athlete's journal view. This lets coaches keep internal observations (e.g., "watch for overtraining signs") separate from athlete-facing notes (e.g., "great progress on squat form").
 
-19. **A program draft is a proposal, not a plan.** `program_templates.status` is `draft` or `approved` (migration `0018`). Existing rows stay `approved`. `program_sources` records the coach, the date, and the source text for a proposal. `lineage_id` is NULL on the first version; a later version points it at that root and increments `version`. Prescribed sets may carry a nullable `prescribed_rpe` and `group_label`. Reference context and assignment use approved programs only. A coach service token may write a draft. Approving it is a browser session (ADR 007, ADR 022, ADR 023) and does not assign the program.
+19. **A program draft is a proposal, not a plan.** `program_templates.status` is `draft` or `approved` (migration `0018`). Existing rows stay `approved`. `program_sources` records the coach, the date, and the source text for a proposal. `lineage_id` is NULL on the first version; a later version points it at that root and increments `version`. Prescribed sets may carry a nullable `prescribed_rpe` and `group_label`. Reference context and assignment use approved programs only. A coach service token may write a draft. Approving it is a browser session (ADR 007, ADR 022, ADR 023) and does not assign the program. Approved names are unique per version (migration `0019`), so a second import of the same name can exist.
+
+20. **A coach import is a locked copy of a program a person wrote.** Migration `0019` stores the day (instructions, estimated minutes, equipment, kind), the block (`straight`, `superset`, or `circuit`, with rounds or sets and optional rest), and the exercise line (rep range, RIR range, per-side, rest, notes, non-working). A weekly cycle's weekday list and upcoming count are schedule metadata on `program_imports`. They are not extra copies of the day. `ai_*` columns hold a later suggestion for a field the coach left blank. Those columns are the only ones gap-fill updates. The catalog side adds `exercise_aliases`, `exercise_muscles`, and `exercises.unilateral` so a create-exercise call can dedupe on name or alias (ADR 024).
 
 ## Entity Relationship Diagram
 
@@ -175,6 +177,13 @@ erDiagram
     users ||--o{ workout_reviews : "reviews"
     athletes ||--o{ program_templates : "owns (optional)"
     program_templates ||--o{ program_sources : "proposed via"
+    program_templates ||--o| program_imports : "imported as"
+    program_templates ||--o{ program_days : "schedules"
+    program_days ||--o{ program_blocks : "groups"
+    program_blocks ||--o{ program_block_exercises : "prescribes"
+    exercises ||--o{ program_block_exercises : "used in"
+    exercises ||--o{ exercise_aliases : "also called"
+    exercises ||--o{ exercise_muscles : "trains"
     users ||--o{ program_sources : "proposed by"
     program_templates ||--o{ prescribed_sets : "defines"
     exercises ||--o{ prescribed_sets : "used in"
@@ -494,6 +503,7 @@ erDiagram
 | `demo_url`  | TEXT         | NULL                                 |
 | `rest_seconds`| INTEGER    | NULL                                 |
 | `featured`  | INTEGER      | NOT NULL DEFAULT 0, CHECK(featured IN (0, 1)) |
+| `unilateral`| INTEGER      | NOT NULL DEFAULT 0, CHECK(unilateral IN (0, 1)) |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
@@ -502,6 +512,7 @@ erDiagram
 - `rest_seconds` is the recommended rest between sets in seconds. NULL means use the app default (90s). Passed to the client-side rest timer after logging a set.
 - `demo_url` links to a video demonstrating proper form.
 - `featured` marks exercises that appear on the featured lifts dashboard. Defaults to not featured.
+- `unilateral` (migration `0019`) is 1 when the movement is per side. Default 0. Aliases live in `exercise_aliases`. Primary muscles live in `exercise_muscles`.
 
 ### `athlete_exercises`
 
@@ -702,7 +713,7 @@ erDiagram
 - `audience` classifies the program as `'youth'` or `'adult'`. NULL means unclassified (e.g. athlete-scoped AI-generated programs inherit audience from the athlete's tier). Used to filter reference programs in LLM context: youth athletes only see youth reference programs, adults only see adult programs.
 - `status` is `approved` or `draft` (migration `0018`). Existing rows and coach-created templates default to `approved`. A `draft` is a proposal: `buildReferencePrograms` skips it, and assignment refuses it. The coach's program list still returns it. Approving sets `status` to `approved` and does not assign the program.
 - `lineage_id` is NULL on the first version. A later version stores the root id and the next `version`. The row does not point `lineage_id` at itself.
-- Uniqueness of names applies to approved programs: global approved names are unique (`WHERE athlete_id IS NULL AND status = 'approved'`), and per-athlete approved names are unique (`WHERE athlete_id IS NOT NULL AND status = 'approved'`). A draft may reuse a name. `(COALESCE(lineage_id, id), version)` is unique. Approving a draft whose name is already approved in that scope is refused.
+- Uniqueness of names applies to approved programs per version: global approved names are unique on `(name, version)` (`WHERE athlete_id IS NULL AND status = 'approved'`), and per-athlete approved names are unique on `(athlete_id, name, version)`. A draft may reuse a name. `(COALESCE(lineage_id, id), version)` is unique. Approving a draft onto the same name and version that is already approved in that scope is refused. A second import of the same name uses the next version (ADR 024).
 - Assignment to athletes is tracked via `athlete_programs`.
 
 ### `program_sources`
@@ -719,6 +730,105 @@ erDiagram
 - Provenance for a program proposal (migration `0018`): the coach who wrote it, the date, and the source text the coach reviews with the draft.
 - One template may have more than one row. Deleting the template cascades. Deleting the coach keeps the text and sets `coach_id` to NULL.
 - A coach service token may insert a draft and its source row. It cannot approve the draft. A browser session of that coach can.
+
+### `program_imports`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `template_id` | INTEGER | PRIMARY KEY, FK → program_templates(id) ON DELETE CASCADE |
+| `source_name` | TEXT | NOT NULL. Example: `Phil / Trainerize` |
+| `author` | TEXT | NOT NULL. The outside coach. Not a `users` row |
+| `repeat_cycle` | TEXT | NULL. `weekly` when the plan repeats |
+| `schedule_weekdays` | TEXT | NULL. JSON array of ISO weekdays, e.g. `[1,3,5]` |
+| `upcoming_count` | INTEGER | NULL. Schedule metadata such as "6 Upcoming". Not copies of a day |
+| `locked` | INTEGER | NOT NULL DEFAULT 1, CHECK(0 or 1) |
+| `start_date` | DATE | NULL. The program's own start, when the coach named one |
+
+- One row per imported template (migration `0019`, ADR 024).
+- `locked = 1` refuses in-place edits of the template and its prescribed sets. A new import of the same name inserts the next version.
+- `author` is free text. Phil has no RepLog login. `program_sources.coach_id` is the RepLog user who stored the import.
+
+### `program_days`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | INTEGER | PRIMARY KEY |
+| `template_id` | INTEGER | NOT NULL, FK → program_templates(id) ON DELETE CASCADE |
+| `week` | INTEGER | NOT NULL. 1 for a one-week repeating cycle |
+| `day_number` | INTEGER | NOT NULL. Prescription index inside the week |
+| `day_order` | INTEGER | NOT NULL. The coach's order |
+| `label` | TEXT | NOT NULL |
+| `weekday` | INTEGER | NULL. ISO weekday when the day names one |
+| `kind` | TEXT | NULL. Example: `Regular` |
+| `estimated_minutes` | INTEGER | NULL |
+| `exercise_count` | INTEGER | NOT NULL |
+| `equipment_json` | TEXT | NOT NULL. JSON array of equipment names |
+| `instructions` | TEXT | NULL. Verbatim, including a truncated tail |
+
+- Unique on `(template_id, week, day_number)` and `(template_id, week, day_order)`.
+
+### `program_blocks`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | INTEGER | PRIMARY KEY |
+| `day_id` | INTEGER | NOT NULL, FK → program_days(id) ON DELETE CASCADE |
+| `block_order` | INTEGER | NOT NULL |
+| `block_type` | TEXT | NOT NULL, CHECK(`straight`, `superset`, `circuit`) |
+| `rounds` | INTEGER | NULL. Circuit rounds |
+| `sets` | INTEGER | NULL. Block-level set count |
+| `rest_seconds` | INTEGER | NULL. Block-level rest. NULL when rest is on the exercise |
+| `rest_text` | TEXT | NULL. The coach's rest text, such as `90s` |
+| `non_working` | INTEGER | NOT NULL DEFAULT 0. 1 for warm-up or mobility |
+
+### `program_block_exercises`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | INTEGER | PRIMARY KEY |
+| `block_id` | INTEGER | NOT NULL, FK → program_blocks(id) ON DELETE CASCADE |
+| `exercise_id` | INTEGER | NOT NULL, FK → exercises(id) ON DELETE RESTRICT |
+| `sort_order` | INTEGER | NOT NULL |
+| `sets` | INTEGER | NULL |
+| `reps_min` | INTEGER | NULL |
+| `reps_max` | INTEGER | NULL |
+| `rir_min` | INTEGER | NULL |
+| `rir_max` | INTEGER | NULL |
+| `per_side` | INTEGER | NOT NULL DEFAULT 0. 1 for `e/s` |
+| `rest_seconds` | INTEGER | NULL. Exercise-level rest |
+| `rest_text` | TEXT | NULL. Example: `2m` |
+| `notes` | TEXT | NULL. Verbatim coach note |
+| `non_working` | INTEGER | NOT NULL DEFAULT 0 |
+| `ai_sets` | INTEGER | NULL |
+| `ai_reps_min` | INTEGER | NULL |
+| `ai_reps_max` | INTEGER | NULL |
+| `ai_rir_min` | INTEGER | NULL |
+| `ai_rir_max` | INTEGER | NULL |
+| `ai_rest_seconds` | INTEGER | NULL |
+| `ai_notes` | TEXT | NULL |
+| `ai_load` | REAL | NULL. Suggested load, pounds |
+
+- Coach columns are the import. `ai_*` is a suggestion for a column that was NULL, or for `ai_load` when no prescribed set carries a percentage or absolute weight. Gap-fill does not update the coach columns.
+
+### `exercise_aliases`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | INTEGER | PRIMARY KEY |
+| `exercise_id` | INTEGER | NOT NULL, FK → exercises(id) ON DELETE CASCADE |
+| `alias` | TEXT | NOT NULL UNIQUE COLLATE NOCASE |
+
+- A create-exercise call that matches `exercises.name` or `alias`, case-insensitively, returns the existing row.
+
+### `exercise_muscles`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `exercise_id` | INTEGER | NOT NULL, FK → exercises(id) ON DELETE CASCADE |
+| `muscle` | TEXT | NOT NULL COLLATE NOCASE |
+| | | PRIMARY KEY (`exercise_id`, `muscle`) |
+
+- Primary muscles named on a create-exercise call. `exercises.unilateral` (migration `0019`, default 0) is the catalog flag. Per-side work on a program line is `program_block_exercises.per_side`, not this flag.
 
 ### `prescribed_sets`
 
@@ -824,7 +934,7 @@ erDiagram
 
 - One hashed bearer per row, bound to one user (ADR 022). Added in migration `0017`. A user may have more than one row.
 - `token_hash` is the lowercase-hex SHA-256 of the full presented secret, including the `rlcst_` prefix. The plaintext is returned only when a token is minted, or it lives in `REPLOG_SERVICE_TOKEN` and is hashed at startup. It is never stored.
-- The row identifies the user and nothing else. A coach token sees athletes with `athletes.coach_id` equal to that user. An athlete user's token sees only `users.athlete_id`. The token does not inherit an admin's view of every athlete. Handlers refuse this credential on program assign, program-draft approve, creating an approved template, generation execute, training-max writes, promote, and on issuing or revoking service tokens. The same credential may `POST /programs/drafts` and may confirm a session note on a session that coach owns. A browser session of an admin issues and revokes tokens.
+- The row identifies the user and nothing else. A coach token sees athletes with `athletes.coach_id` equal to that user. An athlete user's token sees only `users.athlete_id`. The token does not inherit an admin's view of every athlete. Handlers refuse this credential on the general program assign route (`POST /athletes/{id}/programs`), program-draft approve, creating an approved template through `POST /programs`, generation execute, training-max writes, promote, and on issuing or revoking service tokens. The same credential may `POST /programs/drafts`, may confirm a session note on a session that coach owns, and may import, assign, and gap-fill a locked coach program under `/athletes/{id}/coach/programs` (ADR 024). A browser session of an admin issues and revokes tokens.
 - Startup installs at most one `label = 'coach-service'` row per user from `REPLOG_SERVICE_TOKEN`. Replacing the env value replaces that row. That label is reserved; issued tokens use a different label so a restart does not delete them.
 
 ### `webauthn_credentials`

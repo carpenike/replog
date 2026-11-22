@@ -133,6 +133,13 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", h.GetCoachLastSession)
 			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/preview", h.PreviewCoachSessionNote)
 			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/confirm", h.ConfirmCoachSessionNote)
+			r.Get("/athletes/{id}/coach/exercises", h.ListCoachExercises)
+			r.Post("/athletes/{id}/coach/exercises", h.CreateCoachExercise)
+			r.Post("/athletes/{id}/coach/programs/preview", h.PreviewCoachProgram)
+			r.Post("/athletes/{id}/coach/programs/import", h.ImportCoachProgram)
+			r.Get("/athletes/{id}/coach/programs", h.ListCoachPrograms)
+			r.Post("/athletes/{id}/coach/programs/assign", h.AssignCoachProgram)
+			r.Post("/athletes/{id}/coach/programs/{templateID}/gap-fill", h.GapFillCoachProgram)
 
 			r.Get("/athletes/{id}/body-weights", h.ListBodyWeights)
 			r.Post("/athletes/{id}/body-weights", h.CreateBodyWeight)

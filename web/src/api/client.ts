@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, ServiceTokenData, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
 import type { AthleteProgram } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
@@ -585,6 +585,21 @@ class ApiClient {
 
   async deleteLoginToken(userId: number, tokenId: number): Promise<void> {
     await this.request(`/api/users/${userId}/tokens/${tokenId}`, { method: 'DELETE' });
+  }
+
+  async listServiceTokens(userId: number): Promise<ServiceTokenData[]> {
+    return this.request<ServiceTokenData[]>(`/api/users/${userId}/service-tokens`);
+  }
+
+  async issueServiceToken(userId: number, label?: string): Promise<IssuedServiceToken> {
+    return this.request<IssuedServiceToken>(`/api/users/${userId}/service-tokens`, {
+      method: 'POST',
+      body: JSON.stringify({ label: label ?? '' }),
+    });
+  }
+
+  async revokeServiceToken(userId: number, tokenId: number): Promise<void> {
+    await this.request(`/api/users/${userId}/service-tokens/${tokenId}`, { method: 'DELETE' });
   }
 
   // Journal

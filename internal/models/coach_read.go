@@ -45,20 +45,31 @@ type CoachSession struct {
 	Date            string
 	Notes           sql.NullString
 	ProgramDayLabel string
+	TemplateID      int64
+	Week            int
+	Day             int
 	Exercises       []CoachExercise
 }
 
 // ProgramDayLabel is the "Week N Day D" label for the seq-th session of a
 // program (seq is 1-based). It uses the same week/day split as
 // GetPrescription. An empty string means the label cannot be derived.
-func ProgramDayLabel(seq, numWeeks, numDays int) string {
+// ProgramPosition is the week and day for the seq-th session of a program.
+// Zero means the label cannot be derived.
+func ProgramPosition(seq, numWeeks, numDays int) (week, day int) {
 	if seq < 1 || numWeeks < 1 || numDays < 1 {
-		return ""
+		return 0, 0
 	}
 	cycle := numWeeks * numDays
 	position := (seq - 1) % cycle
-	week := position/numDays + 1
-	day := position%numDays + 1
+	return position/numDays + 1, position%numDays + 1
+}
+
+func ProgramDayLabel(seq, numWeeks, numDays int) string {
+	week, day := ProgramPosition(seq, numWeeks, numDays)
+	if week == 0 {
+		return ""
+	}
 	return fmt.Sprintf("Week %d Day %d", week, day)
 }
 
@@ -96,7 +107,7 @@ func ListCoachSessions(ctx context.Context, db *sql.DB, athleteID int64, start, 
 		                      OR (date(p.date) = date(w.date) AND p.id <= w.id))
 		            )
 		       END,
-		       COALESCE(pt.num_weeks, 0), COALESCE(pt.num_days, 0)
+		       COALESCE(pt.id, 0), COALESCE(pt.num_weeks, 0), COALESCE(pt.num_days, 0)
 		  FROM workouts w
 		  LEFT JOIN athlete_programs ap ON ap.id = w.assignment_id
 		  LEFT JOIN program_templates pt ON pt.id = ap.template_id
@@ -123,10 +134,11 @@ func ListCoachSessions(ctx context.Context, db *sql.DB, athleteID int64, start, 
 	for rows.Next() {
 		var s CoachSession
 		var seq, weeks, days int
-		if err := rows.Scan(&s.ID, &s.AthleteID, &s.Date, &s.Notes, &seq, &weeks, &days); err != nil {
+		if err := rows.Scan(&s.ID, &s.AthleteID, &s.Date, &s.Notes, &seq, &s.TemplateID, &weeks, &days); err != nil {
 			return nil, false, fmt.Errorf("models: scan coach session: %w", err)
 		}
 		s.Date = isoDate(s.Date)
+		s.Week, s.Day = ProgramPosition(seq, weeks, days)
 		s.ProgramDayLabel = ProgramDayLabel(seq, weeks, days)
 		sessions = append(sessions, s)
 	}
@@ -477,6 +489,7 @@ type PlannedDay struct {
 	Date             string
 	Weekday          int
 	ProgramID        int64
+	TemplateID       int64
 	ProgramName      string
 	ProgramDayLabel  string
 	Week             int
@@ -560,6 +573,7 @@ func WeekPlanForAthlete(ctx context.Context, db *sql.DB, athleteID int64, weekSt
 			Date:             date,
 			Weekday:          isoWeekday(noon),
 			ProgramID:        program.ID,
+			TemplateID:       program.TemplateID,
 			ProgramName:      program.TemplateName,
 			Status:           status,
 			PlannedExercises: len(plannedIDs),
@@ -676,6 +690,7 @@ type CoachNextSession struct {
 	ProgramDayLabel string
 	Week            int
 	Day             int
+	TemplateID      int64
 	Exercises       []CoachTargetExercise
 }
 
@@ -684,6 +699,7 @@ type CoachNextSession struct {
 type CoachPosition struct {
 	AthleteID       int64
 	ProgramID       int64
+	TemplateID      int64
 	ProgramName     string
 	HasProgram      bool
 	CycleNumber     int
@@ -728,6 +744,7 @@ func CoachProgramPosition(ctx context.Context, db *sql.DB, athleteID int64, toda
 	}
 	pos.HasProgram = true
 	pos.ProgramID = program.ID
+	pos.TemplateID = program.TemplateID
 	pos.ProgramName = program.TemplateName
 	pos.CycleNumber = rx.CycleNumber
 	pos.Week = rx.CurrentWeek
@@ -764,6 +781,7 @@ func CoachProgramPosition(ctx context.Context, db *sql.DB, athleteID int64, toda
 		Date:            nextDate,
 		Week:            nextRx.CurrentWeek,
 		Day:             nextRx.CurrentDay,
+		TemplateID:      nextProgram.TemplateID,
 		ProgramDayLabel: fmt.Sprintf("Week %d Day %d", nextRx.CurrentWeek, nextRx.CurrentDay),
 		Exercises:       targetExercises(nextRx),
 	}

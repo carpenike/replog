@@ -174,7 +174,7 @@ load-bearing ones:
 
 ## Database schema
 
-28 tables; full DDL, constraints, indexes, and triggers live in
+34 tables; full DDL, constraints, indexes, and triggers live in
 [`docs/data-model.md`](docs/data-model.md) — **that file is the source of
 truth**, not this one. Key patterns:
 

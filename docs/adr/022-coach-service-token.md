@@ -63,3 +63,12 @@ not assign the program.
 - A service token does not inherit the admin-wide athlete list. A coach token sees athletes whose `coach_id` is that user, and the athlete linked on the user account. An athlete user's token sees only that linked athlete.
 - Read routes, all scoped to that visibility: session history, week plan versus done, progress, program position, and the last session for one exercise. They do not create a session or change a program or a training max. `block`, `started_at`, `duration`, `rir`, and `set_type` are null because those columns are not stored. Estimated 1RM is the existing Epley formula, computed on read.
 - `POST .../notes/preview` does not write. `POST .../notes/confirm` writes only `workouts.notes` for a session the coach owns, and only the note bound to a one-time token (15 minutes). A mismatched note does not consume the token.
+
+## Amendment 2026-11-22 — Locked program import (ADR 024)
+
+A service token may preview, import, assign, and gap-fill a coach-authored
+program on `/athletes/{id}/coach/programs`. Import writes a new locked
+version. It does not edit a previous version. Gap-fill writes only a
+field the coach left blank, on separate columns. The general assign route
+`POST /athletes/{id}/programs` still returns 403 for this token. The token
+still does not see every athlete when its user is an admin.

@@ -345,6 +345,22 @@ export interface CreatedLoginToken {
   url: string;
 }
 
+export interface ServiceTokenData {
+  id: number;
+  user_id: number;
+  label: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface IssuedServiceToken {
+  id: number;
+  user_id: number;
+  label: string | null;
+  token: string;
+}
+
 export interface TMSuggestion {
   exercise_id: number;
   exercise_name: string;

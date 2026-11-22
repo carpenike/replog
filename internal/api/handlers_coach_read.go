@@ -60,6 +60,7 @@ type CoachSessionResponse struct {
 	Duration        *int                          `json:"duration"`
 	Notes           *string                       `json:"notes"`
 	Exercises       []CoachLoggedExerciseResponse `json:"exercises"`
+	ProgramDay      *CoachDayResponse             `json:"program_day,omitempty"`
 }
 
 // CoachHistoryResponse is one page of session history.
@@ -70,18 +71,19 @@ type CoachHistoryResponse struct {
 
 // CoachWeekDayResponse is one planned day and how it was logged.
 type CoachWeekDayResponse struct {
-	Date             string  `json:"date"`
-	Weekday          int     `json:"weekday"`
-	ProgramID        int64   `json:"program_id"`
-	ProgramName      string  `json:"program_name"`
-	ProgramDayLabel  *string `json:"program_day_label"`
-	Week             *int    `json:"week"`
-	Day              *int    `json:"day"`
-	SessionID        *int64  `json:"session_id"`
-	Status           string  `json:"status"`
-	CompletedOn      *string `json:"completed_on"`
-	PlannedExercises int     `json:"planned_exercises"`
-	LoggedExercises  int     `json:"logged_exercises"`
+	Date             string            `json:"date"`
+	Weekday          int               `json:"weekday"`
+	ProgramID        int64             `json:"program_id"`
+	ProgramName      string            `json:"program_name"`
+	ProgramDayLabel  *string           `json:"program_day_label"`
+	Week             *int              `json:"week"`
+	Day              *int              `json:"day"`
+	SessionID        *int64            `json:"session_id"`
+	Status           string            `json:"status"`
+	CompletedOn      *string           `json:"completed_on"`
+	PlannedExercises int               `json:"planned_exercises"`
+	LoggedExercises  int               `json:"logged_exercises"`
+	ProgramDay       *CoachDayResponse `json:"program_day,omitempty"`
 }
 
 // CoachWeekResponse is planned versus done for a Monday–Sunday week.
@@ -157,9 +159,10 @@ type CoachTargetSetResponse struct {
 
 // CoachTargetExerciseResponse is one exercise on the next session.
 type CoachTargetExerciseResponse struct {
-	ExerciseID int64                    `json:"exercise_id"`
-	Name       string                   `json:"name"`
-	Sets       []CoachTargetSetResponse `json:"sets"`
+	ExerciseID   int64                    `json:"exercise_id"`
+	Name         string                   `json:"name"`
+	Sets         []CoachTargetSetResponse `json:"sets"`
+	Prescription *CoachLineResponse       `json:"prescription,omitempty"`
 }
 
 // CoachNextSessionResponse is the next session. It is not created.
@@ -169,6 +172,7 @@ type CoachNextSessionResponse struct {
 	Week            int                           `json:"week"`
 	Day             int                           `json:"day"`
 	Exercises       []CoachTargetExerciseResponse `json:"exercises"`
+	ProgramDay      *CoachDayResponse             `json:"program_day,omitempty"`
 }
 
 // CoachPositionResponse is the current program position. block is null
@@ -183,6 +187,7 @@ type CoachPositionResponse struct {
 	Day             *int                      `json:"day"`
 	ProgramDayLabel *string                   `json:"program_day_label"`
 	CycleComplete   bool                      `json:"cycle_complete"`
+	ProgramDay      *CoachDayResponse         `json:"program_day,omitempty"`
 	NextSession     *CoachNextSessionResponse `json:"next_session"`
 }
 
@@ -270,7 +275,14 @@ func (h *Handlers) ListCoachSessions(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := CoachHistoryResponse{Sessions: make([]CoachSessionResponse, 0, len(sessions))}
 	for _, s := range sessions {
-		resp.Sessions = append(resp.Sessions, coachSessionResponse(s))
+		item := coachSessionResponse(s)
+		if day, _ := h.attachImportedDay(r, s.TemplateID, s.Week, s.Day); day != nil {
+			item.ProgramDay = day
+			if day.Label != "" {
+				item.ProgramDayLabel = &day.Label
+			}
+		}
+		resp.Sessions = append(resp.Sessions, item)
 	}
 	if hasMore && len(sessions) > 0 {
 		cursor := encodeCoachCursor(sessions[len(sessions)-1].ID)
@@ -341,6 +353,12 @@ func (h *Handlers) GetCoachWeek(w http.ResponseWriter, r *http.Request) {
 			week, d := day.Week, day.Day
 			item.Week = &week
 			item.Day = &d
+			if prog, _ := h.attachImportedDay(r, day.TemplateID, day.Week, day.Day); prog != nil {
+				item.ProgramDay = prog
+				if prog.Label != "" {
+					item.ProgramDayLabel = &prog.Label
+				}
+			}
 		}
 		resp.Days = append(resp.Days, item)
 	}
@@ -426,7 +444,7 @@ func (h *Handlers) GetCoachProgress(w http.ResponseWriter, r *http.Request) {
 // GetCoachPosition returns the current program position and the next session.
 //
 //	@Summary      Coach program position
-//	@Description  Read only. Does not create or advance a session. block is null because the schema has no block column. Week and day come from the existing prescription count.
+//	@Description  Read only. Does not create or advance a session, and does not change the program or a training max. block stays null: it is a mesocycle name, and that column is not stored. program_day is the imported day when this assignment has one. Week and day come from the existing prescription count.
 //	@Tags         Workouts
 //	@Produce      json
 //	@Param        id  path  int  true  "Athlete ID"
@@ -455,6 +473,12 @@ func (h *Handlers) GetCoachPosition(w http.ResponseWriter, r *http.Request) {
 		resp.Week = &week
 		resp.Day = &day
 		resp.ProgramDayLabel = emptyStringPtr(pos.ProgramDayLabel)
+		if prog, _ := h.attachImportedDay(r, pos.TemplateID, pos.Week, pos.Day); prog != nil {
+			resp.ProgramDay = prog
+			if prog.Label != "" {
+				resp.ProgramDayLabel = &prog.Label
+			}
+		}
 	}
 	if pos.Next != nil {
 		next := &CoachNextSessionResponse{
@@ -480,6 +504,13 @@ func (h *Handlers) GetCoachPosition(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 			next.Exercises = append(next.Exercises, item)
+		}
+		if prog, _ := h.attachImportedDay(r, pos.Next.TemplateID, pos.Next.Week, pos.Next.Day); prog != nil {
+			next.ProgramDay = prog
+			if prog.Label != "" {
+				next.ProgramDayLabel = prog.Label
+			}
+			overlayPrescriptions(next.Exercises, prog)
 		}
 		resp.NextSession = next
 	}
