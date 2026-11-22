@@ -123,6 +123,39 @@ athlete user sees their linked athlete. `REPLOG_SERVICE_TOKEN` stays the
 env-installed token for the named coach during that transition. Do not
 commit a plaintext token.
 
+### 3b. On-behalf credential
+
+Optional. Set this when homelab-mcp should call the API as the PocketID
+user it already verified, instead of as one `rlcst_` account. This is not
+`REPLOG_SERVICE_TOKEN`.
+
+| Var | Required | Notes |
+|-----|----------|-------|
+| `REPLOG_ON_BEHALF_CREDENTIAL` | no | Shared secret. Compared in constant time. Empty disables the path. Must not start with `rlcst_`. Never commit it. Never log it. |
+
+The connector sends both of these on the same request:
+
+```http
+Authorization: Bearer <REPLOG_ON_BEHALF_CREDENTIAL>
+X-RepLog-On-Behalf-Of: <verified email>
+```
+
+RepLog maps that email to `users.email` (unique, case-insensitive) and
+applies that user's coach, athlete, or admin permissions, the same checks
+a browser session of that user passes. A missing or unknown email is 403.
+It does not fall back to the coach-service user. A browser session or an
+`rlcst_` token ignores and strips `X-RepLog-On-Behalf-Of`, so the header
+alone cannot change the caller.
+
+The credential check is what stops an outside client. Do not treat the
+ingress network as the only control. The secret is not stored and is not
+written to the audit log. A successful call records the acting user with
+action `on_behalf`.
+
+Set the address on the user in the admin UI. Migration `0020` fills
+`ryan@ryanholt.net` only when a user named `ryan` exists and that email
+is still empty.
+
 ### 4. Set the production env vars
 
 Minimum useful production set:

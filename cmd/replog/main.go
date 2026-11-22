@@ -139,6 +139,7 @@ func main() {
 	if err := bootstrapServiceToken(db); err != nil {
 		log.Fatalf("Failed to install coach service token: %v", err)
 	}
+	middleware.LogOnBehalfConfig()
 
 	// Bootstrap seed catalog (equipment, exercises, programs) on first run.
 	if err := bootstrapCatalog(db); err != nil {

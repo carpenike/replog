@@ -64,19 +64,42 @@ func extractBearer(r *http.Request) string {
 	return strings.TrimSpace(h[len(prefix):])
 }
 
-// RequireAuth gates a handler chain on a browser session or a coach service
-// token. Unauthenticated requests get a 401 JSON response — every route this
-// guards lives under /api/*, so an XHR-friendly response is the right answer.
+// RequireAuth gates a handler chain on a browser session, an rlcst_ service
+// token, or the on-behalf credential. Unauthenticated requests get a 401 JSON
+// response — every route this guards lives under /api/*, so an XHR-friendly
+// response is the right answer.
+//
+// X-RepLog-On-Behalf-Of is read once and then deleted. It is honored only
+// when Authorization is the dedicated REPLOG_ON_BEHALF_CREDENTIAL (constant
+// time, not an rlcst_ token). A browser session, an rlcst_ token, and the
+// coach-service token ignore it, so a browser cannot spoof the caller. The
+// credential check is what stops an outside client; ingress is not the control.
 //
 // A Bearer credential is tried first and is never written into the session.
-// Only an rlcst_ service token is accepted; an MCP token (rlpat_) or any
-// other bearer is 401, not a fall-through to a cookie that might be sitting
-// on the same request. Absent an Authorization header, the scs session is
-// the caller, and that path does not set ServiceCredentialContextKey.
+// An rlcst_ prefix is the service-token path. Any other bearer is the
+// on-behalf secret or a 401 — it does not fall through to a cookie. Absent
+// an Authorization header, the scs session is the caller, and that path
+// does not set ServiceCredentialContextKey.
 func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Handler {
 	authed := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Copy then strip. Handlers and later logs must not see the header
+		// on a session or service-token request.
+		onBehalfEmail := strings.TrimSpace(r.Header.Get(OnBehalfOfHeader))
+		r.Header.Del(OnBehalfOfHeader)
+
 		if presented := extractBearer(r); presented != "" {
-			authenticateServiceToken(w, r, db, presented, next)
+			if strings.HasPrefix(presented, models.ServiceTokenPrefix) {
+				authenticateServiceToken(w, r, db, presented, next)
+				return
+			}
+			if onBehalfCredentialMatches(presented) {
+				authenticateOnBehalf(w, r, db, onBehalfEmail, next)
+				return
+			}
+			if onBehalfEmail != "" && onBehalfMode() == onBehalfEnabled {
+				log.Printf("middleware: on-behalf rejected: credential mismatch")
+			}
+			writeUnauthorizedJSON(w, "invalid token")
 			return
 		}
 
