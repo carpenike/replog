@@ -1,6 +1,6 @@
 # ADR 025 — On-behalf identity
 
-> Status: **Accepted** · Date: 2026-11-22 · Amended 2026-11-22: on-behalf requests are coach-scoped
+> Status: **Accepted** · Date: 2026-11-22 · Amended 2026-11-22: on-behalf requests are coach-scoped · Amended 2026-11-22: signed short-lived tokens
 
 ## Context
 
@@ -47,8 +47,8 @@ already edits it. The service-token issue and revoke UI stays.
   be clean and unescaped. `adminBrowser` also refuses an on-behalf request
   directly.
 - Each success appends `audit_log` action `on_behalf` for that user, with
-  details `on_behalf=true`. The credential and the header value are not
-  written.
+  details `on_behalf=true proof=shared` or `on_behalf=true proof=signed`.
+  The credential, the token, and the header value are not written.
 - Migration `0020` sets `ryan@ryanholt.net` only when a user named `ryan`
   exists, that email is empty, and the address is not already taken. It
   does not insert users. Any other address is set in the admin UI.
@@ -68,5 +68,45 @@ coaching-write refusals on that credential.
   (for example training-max writes or generation execute) is
   still a coach action here. The scope removes admin, not coaching.
 - An unknown PocketID email does not become the coach-service account.
-- PocketID does not speak RFC 8693 token exchange, so this handoff stays a
-  shared credential plus the verified email rather than an exchanged token.
+- PocketID does not speak RFC 8693 token exchange. The amendment below
+  replaces the shared secret with a token homelab-mcp signs itself.
+
+## Amendment: signed short-lived tokens
+
+A shared secret is a bearer that works for any email, forever, from
+anywhere it leaks. Homelab-mcp now signs one token per call instead.
+
+- Homelab-mcp holds an Ed25519 private key. Per RepLog call it signs a
+  JWT (`alg` `EdDSA`) with `iss` `homelab-mcp`, `aud` `replog`, `sub` and
+  `email` set to the verified PocketID email, `act` `{"sub":
+  "homelab-mcp"}`, `iat`, `exp` (about 60 s later), and a random `jti`.
+  It sends `Authorization: Bearer <jwt>`. It may also send
+  `X-RepLog-On-Behalf-Of`; when present it must name the same address.
+- RepLog holds only the public key (`REPLOG_ON_BEHALF_JWT_PUBLIC_KEY`, PEM
+  SPKI, or `REPLOG_ON_BEHALF_JWT_PUBLIC_KEY_FILE`). It accepts only
+  `EdDSA` with exactly one signature, and checks `iss` (default
+  `homelab-mcp`), `aud` `replog`, `exp`, and `iat` with 30 s skew. It
+  requires `jti`, refuses a lifetime over 5 minutes, refuses an `iat` in
+  the future, requires `act.sub` to be the actor (default `homelab-mcp`),
+  and requires `email` to equal `sub` (case-insensitive). A `jti` is
+  accepted once per process; entries are dropped after they expire.
+- A token that passes maps `email` exactly as above. The route allowlist,
+  admin clearing, 403 for an unknown email, and the audit row are the
+  same. Any failed check is 401 and logs no claim or token.
+- `REPLOG_ON_BEHALF_MODE` picks the accepted proof: `shared` (default,
+  shared secret only), `both` (signed token or shared secret), or
+  `signed` (signed token only). Any other value accepts neither. `shared`
+  stays the default for one release so the code can ship before the keys
+  exist. The rollout is `both`, then `signed`, then the shared secret and
+  this switch are removed.
+
+Consequences of the amendment:
+
+- RepLog stores no secret for this path. A leaked public key signs nothing.
+- A captured token works for one call, for one email, for at most about a
+  minute, and only against `aud` `replog`.
+- A leaked private key still reaches coach data for any mapped user until
+  the key is rotated, but not admin actions. Rotation is a new key pair in
+  1Password and a pod restart on both sides.
+- Replay protection is per replica and in memory. RepLog runs one replica.
+  The short `exp` bounds what a restart forgets.

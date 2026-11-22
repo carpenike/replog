@@ -153,6 +153,8 @@ All configuration is via environment variables:
 | `REPLOG_ADMIN_PASS` | | Initial admin password (required on first run) |
 | `REPLOG_ADMIN_EMAIL` | | Initial admin email |
 | `REPLOG_ON_BEHALF_CREDENTIAL` | | Shared secret for homelab-mcp on-behalf calls. Empty disables that path. Not `REPLOG_SERVICE_TOKEN`. Never commit it |
+| `REPLOG_ON_BEHALF_MODE` | `shared` | Which on-behalf proof is accepted: `shared`, `both`, or `signed` (ADR 025) |
+| `REPLOG_ON_BEHALF_JWT_PUBLIC_KEY` | | Ed25519 public key (PEM) that verifies homelab-mcp's signed on-behalf tokens. Or `REPLOG_ON_BEHALF_JWT_PUBLIC_KEY_FILE` |
 | `REPLOG_TRUSTED_PROXIES` | | Comma-separated CIDRs or IPs whose `X-Forwarded-For` headers are trusted for rate limiting (e.g. `127.0.0.1,10.0.0.0/8`) |
 | `REPLOG_OIDC_ISSUER` | | PocketID issuer URL (e.g. `https://id.example.com`). OIDC login is enabled only when issuer + client ID + secret are all set |
 | `REPLOG_OIDC_CLIENT_ID` | | OIDC client ID registered in PocketID |

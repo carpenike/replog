@@ -67,7 +67,7 @@ func TestRequireAuth_OnBehalfMapsEmail(t *testing.T) {
 	if entries[0].RealUserID != coach.ID || entries[0].Action != "on_behalf" || entries[0].TargetUserID.Valid {
 		t.Fatalf("audit = %+v", entries[0])
 	}
-	if !entries[0].Details.Valid || entries[0].Details.String != "on_behalf=true" {
+	if !entries[0].Details.Valid || entries[0].Details.String != "on_behalf=true proof=shared" {
 		t.Fatalf("audit details = %+v", entries[0].Details)
 	}
 	if strings.Contains(entries[0].Details.String, testOnBehalfCredential) {

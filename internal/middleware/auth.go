@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/carpenike/replog/internal/models"
@@ -92,8 +93,24 @@ func RequireAuth(sm *scs.SessionManager, db *sql.DB, next http.Handler) http.Han
 				authenticateServiceToken(w, r, db, presented, next)
 				return
 			}
-			if onBehalfCredentialMatches(presented) {
-				authenticateOnBehalf(w, r, db, onBehalfEmail, next)
+			accepts := onBehalfAccepts()
+			if accepts.signed && looksLikeJWT(presented) {
+				email, err := verifyOnBehalfJWT(presented, time.Now())
+				if err != nil {
+					log.Printf("middleware: on-behalf rejected: signed token invalid")
+					writeUnauthorizedJSON(w, "invalid token")
+					return
+				}
+				if onBehalfEmail != "" && !strings.EqualFold(onBehalfEmail, email) {
+					log.Printf("middleware: on-behalf rejected: header email does not match the token")
+					writeAuthJSON(w, http.StatusForbidden, "on-behalf email does not match the token")
+					return
+				}
+				authenticateOnBehalf(w, r, db, email, onBehalfProofSigned, next)
+				return
+			}
+			if accepts.shared && onBehalfCredentialMatches(presented) {
+				authenticateOnBehalf(w, r, db, onBehalfEmail, onBehalfProofShared, next)
 				return
 			}
 			if onBehalfEmail != "" && onBehalfMode() == onBehalfEnabled {

@@ -37,9 +37,20 @@ const OnBehalfContextKey contextKey = "onBehalf"
 // header value are never written.
 const onBehalfAuditAction = "on_behalf"
 
+// The proof an on-behalf request presented, recorded in the audit details.
+const (
+	onBehalfProofShared = "shared"
+	onBehalfProofSigned = "signed"
+)
+
 // LogOnBehalfConfig reports whether the on-behalf path is active. It logs
 // the env name only, never the secret.
 func LogOnBehalfConfig() {
+	LogOnBehalfSignedConfig()
+	if !onBehalfAccepts().shared {
+		log.Printf("On-behalf shared credential not accepted in this mode")
+		return
+	}
 	switch onBehalfMode() {
 	case onBehalfDisabled:
 		log.Printf("On-behalf auth disabled: %s is unset", OnBehalfCredentialEnv)
@@ -97,7 +108,7 @@ func onBehalfCredentialMatches(presented string) bool {
 //     coach-level access (athletes they coach, plus their own linked
 //     athlete), never the admin-wide bypass in CanAccessAthlete,
 //     CanManageAthlete, or CoachAthleteFilter.
-func authenticateOnBehalf(w http.ResponseWriter, r *http.Request, db *sql.DB, email string, next http.Handler) {
+func authenticateOnBehalf(w http.ResponseWriter, r *http.Request, db *sql.DB, email, proof string, next http.Handler) {
 	if !onBehalfRouteAllowed(r) {
 		log.Printf("middleware: on-behalf rejected: route not available on behalf")
 		writeAuthJSON(w, http.StatusForbidden, "not available on behalf of a user")
@@ -120,10 +131,10 @@ func authenticateOnBehalf(w http.ResponseWriter, r *http.Request, db *sql.DB, em
 		return
 	}
 
-	if err := models.WriteAuditLog(r.Context(), db, user.ID, sql.NullInt64{}, onBehalfAuditAction, "on_behalf=true"); err != nil {
+	if err := models.WriteAuditLog(r.Context(), db, user.ID, sql.NullInt64{}, onBehalfAuditAction, "on_behalf=true proof="+proof); err != nil {
 		log.Printf("middleware: on-behalf audit write failed")
 	}
-	log.Printf("middleware: on-behalf authenticated user id=%d on_behalf=true", user.ID)
+	log.Printf("middleware: on-behalf authenticated user id=%d on_behalf=true proof=%s", user.ID, proof)
 
 	scoped := onBehalfUser(user)
 	ctx := contextWithUser(r.Context(), db, scoped, false)
