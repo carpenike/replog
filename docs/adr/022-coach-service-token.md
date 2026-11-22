@@ -72,3 +72,5 @@ version. It does not edit a previous version. Gap-fill writes only a
 field the coach left blank, on separate columns. The general assign route
 `POST /athletes/{id}/programs` still returns 403 for this token. The token
 still does not see every athlete when its user is an admin.
+
+On-behalf identity (ADR 025) is a different credential, `REPLOG_ON_BEHALF_CREDENTIAL`. It does not change this token. An `rlcst_` bearer still ignores `X-RepLog-On-Behalf-Of`.

@@ -434,7 +434,7 @@ erDiagram
 | `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - Login accounts, not training subjects. Separate from athletes.
-- `email` for password reset or notifications in the future. Required for coaches, optional for kids.
+- `email` for password reset, notifications, and on-behalf identity (ADR 025). Required for a caller homelab-mcp acts as; optional for kids. Unique and case-insensitive. Admins edit it on the user form. Migration `0020` sets `ryan@ryanholt.net` only when a user named `ryan` exists, that email is empty, and the address is not already taken. It does not create users.
 - `athlete_id` links the user to "their" athlete profile. NULL for coach-only accounts without a personal training profile.
 - `is_coach = 1` → full access to all athletes. `is_coach = 0` → can only view/log/edit workouts for their linked athlete.
 - `avatar_path` stores the relative path to the user's uploaded avatar image. NULL if no avatar has been uploaded.
@@ -1943,8 +1943,11 @@ deliberately excluded — they are recovery signals, not training load.
 | `details`       | TEXT     | NULL — optional free-text context        |
 | `created_at`    | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP       |
 
-- A durable, append-only trail for privileged actions (impersonation start/stop
-  today) so evidence survives log rotation. Written by `models.WriteAuditLog`.
+- A durable, append-only trail for privileged identity actions (impersonation
+  start/stop, and `on_behalf` when a request authenticated with
+  `REPLOG_ON_BEHALF_CREDENTIAL`) so evidence survives log rotation. Written
+  by `models.WriteAuditLog`. The on-behalf row stores the acting user and
+  `on_behalf=true`. It does not store the credential or the email header.
 
 ### `generations` — added columns
 
