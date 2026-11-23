@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/carpenike/replog/internal/models"
@@ -181,6 +182,7 @@ func WorkoutSetFromModel(m *models.WorkoutSet) *WorkoutSet {
 		RPE:          nullFloat(m.RPE),
 		RepType:      m.RepType,
 		Category:     m.Category,
+		SetType:      m.SetType,
 		Notes:        nullStr(m.Notes),
 		CreatedAt:    fmtTime(m.CreatedAt),
 		UpdatedAt:    fmtTime(m.UpdatedAt),
@@ -351,16 +353,32 @@ func SkillSessionFromModel(m *models.SkillSession) *SkillSession {
 // RecoveryCheckinFromModel converts a models.RecoveryCheckin to its API shape.
 func RecoveryCheckinFromModel(m *models.RecoveryCheckin) *RecoveryCheckin {
 	return &RecoveryCheckin{
-		ID:         m.ID,
-		WorkoutID:  m.WorkoutID,
-		AthleteID:  m.AthleteID,
-		Date:       fmtDate(m.Date),
-		SleepHours: nullFloat(m.SleepHours),
-		Soreness:   nullInt(m.Soreness),
-		Energy:     nullInt(m.Energy),
-		Notes:      nullStr(m.Notes),
-		CreatedAt:  fmtTime(m.CreatedAt),
-		UpdatedAt:  fmtTime(m.UpdatedAt),
+		ID:           m.ID,
+		WorkoutID:    m.WorkoutID,
+		AthleteID:    m.AthleteID,
+		Date:         fmtDate(m.Date),
+		SleepHours:   nullFloat(m.SleepHours),
+		Soreness:     nullInt(m.Soreness),
+		Energy:       nullInt(m.Energy),
+		Mood:         nullInt(m.Mood),
+		Notes:        nullStr(m.Notes),
+		LowReadiness: m.ReadinessLow(),
+		CreatedAt:    fmtTime(m.CreatedAt),
+		UpdatedAt:    fmtTime(m.UpdatedAt),
+	}
+}
+
+// ExerciseSwapFromModel converts a models.ExerciseSwap to its API shape.
+func ExerciseSwapFromModel(m *models.ExerciseSwap) *ExerciseSwap {
+	return &ExerciseSwap{
+		ID:               m.ID,
+		WorkoutID:        m.WorkoutID,
+		FromExerciseID:   m.FromExerciseID,
+		FromExerciseName: m.FromName,
+		ToExerciseID:     m.ToExerciseID,
+		ToExerciseName:   m.ToName,
+		Reason:           nullStr(m.Reason),
+		CreatedAt:        fmtTime(m.CreatedAt),
 	}
 }
 
@@ -396,7 +414,7 @@ func lineageID(m *models.ProgramTemplate) *int64 {
 
 // ProgramTemplateFromModel converts a models.ProgramTemplate to an API ProgramTemplate.
 func ProgramTemplateFromModel(m *models.ProgramTemplate) *ProgramTemplate {
-	return &ProgramTemplate{
+	out := &ProgramTemplate{
 		ID:           m.ID,
 		AthleteID:    m.AthleteID,
 		Name:         m.Name,
@@ -412,7 +430,13 @@ func ProgramTemplateFromModel(m *models.ProgramTemplate) *ProgramTemplate {
 		UpdatedAt:    fmtTime(m.UpdatedAt),
 		AthleteCount: m.AthleteCount,
 		AthleteName:  m.AthleteName,
+		Locked:       m.Locked,
 	}
+	if m.Imported {
+		v := m.Version
+		out.ImportVersion = &v
+	}
+	return out
 }
 
 // PrescribedSetFromModel converts a models.PrescribedSet to an API PrescribedSet.
@@ -430,6 +454,11 @@ func PrescribedSetFromModel(m *models.PrescribedSet) *PrescribedSet {
 		RestSeconds:    nullInt(m.RestSeconds),
 		PrescribedRPE:  nullFloat(m.PrescribedRPE),
 		GroupLabel:     nullStr(m.GroupLabel),
+		RepsMax:        nullInt(m.RepsMax),
+		RIRMin:         nullInt(m.RIRMin),
+		RIRMax:         nullInt(m.RIRMax),
+		NonWorking:     m.NonWorking,
+		GroupKey:       nullStr(m.GroupKey),
 		SortOrder:      m.SortOrder,
 		RepType:        m.RepType,
 		Notes:          nullStr(m.Notes),
@@ -539,5 +568,42 @@ func UserPreferencesFromModel(m *models.UserPreferences) *UserPreferences {
 		DateFormat: m.DateFormat,
 		CreatedAt:  fmtTime(m.CreatedAt),
 		UpdatedAt:  fmtTime(m.UpdatedAt),
+	}
+}
+
+// setVideoURL is the authenticated route that streams a set's clip.
+func setVideoURL(athleteID, workoutID, setID int64) string {
+	return fmt.Sprintf("/api/athletes/%d/workouts/%d/sets/%d/video", athleteID, workoutID, setID)
+}
+
+// SetVideoFromModel converts a models.SetVideo to its API shape.
+func SetVideoFromModel(m *models.SetVideo) *SetVideo {
+	return &SetVideo{
+		ID:           m.ID,
+		SetID:        m.SetID,
+		WorkoutID:    m.WorkoutID,
+		URL:          setVideoURL(m.AthleteID, m.WorkoutID, m.SetID),
+		ContentType:  m.ContentType,
+		SizeBytes:    m.SizeBytes,
+		UploadedBy:   nullStr(m.UploaderName),
+		CoachComment: nullStr(m.CoachComment),
+		CommentedBy:  nullStr(m.CommenterName),
+		CommentedAt:  fmtNullTimeStr(m.CommentedAt),
+		CreatedAt:    fmtTime(m.CreatedAt),
+	}
+}
+
+// VideoShareFromModel converts a models.VideoShare to its API shape.
+func VideoShareFromModel(m *models.VideoShare, now time.Time) *VideoShare {
+	return &VideoShare{
+		ID:             m.ID,
+		Label:          nullStr(m.Label),
+		CreatedBy:      nullStr(m.CreatorName),
+		CreatedAt:      fmtTime(m.CreatedAt),
+		ExpiresAt:      fmtTime(m.ExpiresAt),
+		RevokedAt:      fmtNullTimeStr(m.RevokedAt),
+		LastAccessedAt: fmtNullTimeStr(m.LastAccessedAt),
+		AccessCount:    m.AccessCount,
+		Status:         m.Status(now),
 	}
 }

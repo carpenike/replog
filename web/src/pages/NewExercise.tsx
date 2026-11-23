@@ -5,6 +5,8 @@ import { api, ApiError } from '@/api/client'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { Field } from '@/components/Field'
+import { PageHeader } from '@/components/PageHeader'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -41,25 +43,20 @@ export function NewExercise() {
 
   return (
     <div className="max-w-lg">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to="/exercises" className="hover:text-foreground">Exercises</Link> / New
-      </p>
-      <h1 className="text-2xl font-bold mb-6">New Exercise</h1>
+      <PageHeader title="New Exercise" back={{ to: '/exercises', label: 'Exercises' }} />
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
           <Alert variant="destructive">{error}</Alert>
         )}
 
-        <div>
-          <Label htmlFor="name" >Name *</Label>
+        <Field label="Name" id="name" required>
           <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
-        </div>
+        </Field>
 
-        <div>
-          <Label>Tier</Label>
+        <Field label="Tier" id="tier">
           <Select value={tier} onValueChange={(val) => setTier(val ?? "")}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="tier" className="w-full">
               <SelectValue placeholder="None" />
             </SelectTrigger>
             <SelectContent>
@@ -69,24 +66,21 @@ export function NewExercise() {
               <SelectItem value="sport_performance">Sport Performance</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </Field>
 
-        <div>
-          <Label htmlFor="formNotes" >Form Notes</Label>
-          <Textarea id="formNotes" value={formNotes} onChange={e => setFormNotes(e.target.value)} 
+        <Field label="Form Notes" id="formNotes">
+          <Textarea id="formNotes" value={formNotes} onChange={e => setFormNotes(e.target.value)}
             placeholder="Coaching cues, technique notes..."
-            />
-        </div>
+          />
+        </Field>
 
-        <div>
-          <Label htmlFor="demoUrl" >Demo URL</Label>
+        <Field label="Demo URL" id="demoUrl">
           <Input id="demoUrl" type="url" value={demoUrl} onChange={e => setDemoUrl(e.target.value)} placeholder="https://..." />
-        </div>
+        </Field>
 
-        <div>
-          <Label htmlFor="rest" >Rest Timer (seconds)</Label>
-          <Input id="rest" type="number" value={restSeconds} onChange={e => setRestSeconds(e.target.value)} min={0} placeholder="e.g. 120" />
-        </div>
+        <Field label="Rest Timer (seconds)" id="rest">
+          <Input id="rest" type="number" inputMode="numeric" value={restSeconds} onChange={e => setRestSeconds(e.target.value)} min={0} placeholder="e.g. 120" />
+        </Field>
 
         <div className="flex items-center gap-2">
           <Checkbox id="featured" checked={featured} onCheckedChange={(checked) => setFeatured(checked)} />

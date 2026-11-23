@@ -62,7 +62,7 @@ func GetWorkoutByID(ctx context.Context, db *sql.DB, id int64) (*Workout, error)
 	var programName sql.NullString
 	err := db.QueryRowContext(ctx,
 		`SELECT w.id, w.athlete_id, w.date, w.discipline, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
-		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
+		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id AND `+countedSet+`),
 		        COALESCE(pt.name, '')
 		 FROM workouts w
 		 JOIN athletes a ON a.id = w.athlete_id
@@ -86,7 +86,7 @@ func GetWorkoutByAthleteDate(ctx context.Context, db *sql.DB, athleteID int64, d
 	var programName sql.NullString
 	err := db.QueryRowContext(ctx,
 		`SELECT w.id, w.athlete_id, w.date, w.discipline, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
-		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
+		        (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id AND `+countedSet+`),
 		        COALESCE(pt.name, '')
 		 FROM workouts w
 		 JOIN athletes a ON a.id = w.athlete_id
@@ -155,7 +155,7 @@ type WorkoutPage struct {
 func ListWorkouts(ctx context.Context, db *sql.DB, athleteID int64, offset int) (*WorkoutPage, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT w.id, w.athlete_id, w.date, w.discipline, w.assignment_id, w.notes, w.created_at, w.updated_at, a.name,
-		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id),
+		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id AND `+countedSet+`),
 		       wr.status, COALESCE(pt.name, '')
 		FROM workouts w
 		JOIN athletes a ON a.id = w.athlete_id

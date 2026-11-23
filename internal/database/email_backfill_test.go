@@ -10,48 +10,31 @@ import (
 	"github.com/carpenike/replog/internal/models"
 )
 
-func TestRyanEmailBackfill(t *testing.T) {
-	t.Run("sets empty ryan email only", func(t *testing.T) {
-		db := openMigratedTo(t, 19)
-		mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('Ryan', NULL, 1, 1)`)
-		mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('sam', 'sam@example.com', 0, 0)`)
-		mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('kid', NULL, 0, 0)`)
-		mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('filled', 'kept@example.com', 0, 0)`)
-		applyRest(t, db)
+// TestEmailBackfillIsNoOp checks that migration 0020 no longer changes any
+// user row. It used to backfill one address; it is now retired.
+func TestEmailBackfillIsNoOp(t *testing.T) {
+	db := openMigratedTo(t, 19)
+	mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('coach', NULL, 1, 1)`)
+	mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('sam', 'sam@example.com', 0, 0)`)
+	mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('kid', '', 0, 0)`)
+	applyRest(t, db)
 
-		assertEmail(t, db, "ryan", "ryan@ryanholt.net")
-		assertEmail(t, db, "sam", "sam@example.com")
-		assertEmail(t, db, "kid", "")
-		assertEmail(t, db, "filled", "kept@example.com")
-		assertUserCount(t, db, 4)
-	})
+	assertEmail(t, db, "coach", "")
+	assertEmail(t, db, "sam", "sam@example.com")
+	assertEmail(t, db, "kid", "")
+	assertUserCount(t, db, 3)
+	if _, err := models.GetUserByUsername(context.Background(), db, "missing"); err == nil {
+		t.Fatal("migration created a user")
+	}
 
-	t.Run("leaves an existing ryan email", func(t *testing.T) {
-		db := openMigratedTo(t, 19)
-		mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('ryan', 'already@example.com', 1, 1)`)
-		applyRest(t, db)
-		assertEmail(t, db, "ryan", "already@example.com")
-	})
-
-	t.Run("does not invent ryan", func(t *testing.T) {
-		db := openMigratedTo(t, 19)
-		mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('sam', NULL, 0, 0)`)
-		applyRest(t, db)
-		assertUserCount(t, db, 1)
-		assertEmail(t, db, "sam", "")
-		if _, err := models.GetUserByUsername(context.Background(), db, "ryan"); err == nil {
-			t.Fatal("migration created a ryan user")
-		}
-	})
-
-	t.Run("skips when the address is taken", func(t *testing.T) {
-		db := openMigratedTo(t, 19)
-		mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('ryan', NULL, 1, 1)`)
-		mustExec(t, db, `INSERT INTO users (username, email, is_coach, is_admin) VALUES ('other', 'ryan@ryanholt.net', 0, 0)`)
-		applyRest(t, db)
-		assertEmail(t, db, "ryan", "")
-		assertEmail(t, db, "other", "ryan@ryanholt.net")
-	})
+	// Down and up again stay no-ops.
+	if err := goose.DownTo(db, "migrations", 19); err != nil {
+		t.Fatalf("down to 19: %v", err)
+	}
+	assertEmail(t, db, "sam", "sam@example.com")
+	applyRest(t, db)
+	assertEmail(t, db, "coach", "")
+	assertUserCount(t, db, 3)
 }
 
 func openMigratedTo(t *testing.T, version int64) *sql.DB {

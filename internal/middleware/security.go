@@ -66,6 +66,8 @@ func SetSPAScriptHashes(hashes []string) {
 //     an inline <style> block and shadcn/Radix portals inject runtime
 //     stylesheets. Migrating that off 'unsafe-inline' is a separate
 //     unsolved problem.
+//   - frame-src allows only the YouTube (no-cookie) and Vimeo players, for
+//     exercise demo videos embedded in the session screen.
 //   - The /api/docs (Swagger UI) endpoints get a relaxed CSP because
 //     Swagger UI loads scripts and styles from unpkg.com.
 func SecurityHeaders(next http.Handler) http.Handler {
@@ -79,6 +81,15 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		if hstsEnabled {
 			// One year, include subdomains, eligible for preload list.
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+
+		// Share links (/s/{token} and /api/share/...) are opened with no
+		// login: no referrer (the token is in the URL), no indexing, and the
+		// strictest CSP the viewer can run under.
+		if IsSharePath(r.URL.Path) {
+			SetShareHeaders(w.Header())
+			next.ServeHTTP(w, r)
+			return
 		}
 
 		// Relax CSP for API docs (Swagger UI loads from CDN).
@@ -96,10 +107,49 @@ func SecurityHeaders(next http.Handler) http.Handler {
 					"script-src "+spaScriptSrc+"; "+
 					"img-src 'self' data:; "+
 					"connect-src 'self'; "+
+					"frame-src https://www.youtube-nocookie.com https://player.vimeo.com; "+
 					"frame-ancestors 'none'; "+
 					"base-uri 'self'; "+
 					"form-action 'self'")
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// IsSharePath reports whether path is a public video share-link route: the
+// viewer page /s/{token} or the API under /api/share/.
+func IsSharePath(path string) bool {
+	return strings.HasPrefix(path, "/s/") || strings.HasPrefix(path, "/api/share/")
+}
+
+// ShareViewerCSP is the Content-Security-Policy for share-link responses.
+// The viewer page runs the SPA bundle (same script hashes as the app), plays
+// one same-origin video and fetches its metadata; it embeds nothing, loads
+// nothing from another origin, submits no forms and cannot be framed.
+func ShareViewerCSP() string {
+	return "default-src 'none'; " +
+		"script-src " + spaScriptSrc + "; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' data:; " +
+		"font-src 'self'; " +
+		"media-src 'self'; " +
+		"connect-src 'self'; " +
+		"manifest-src 'self'; " +
+		"worker-src 'self'; " +
+		"frame-src 'none'; " +
+		"object-src 'none'; " +
+		"frame-ancestors 'none'; " +
+		"base-uri 'none'; " +
+		"form-action 'none'"
+}
+
+// SetShareHeaders sets the headers every share-link response carries,
+// success or 404: never cached or stored, never indexed, no referrer, no
+// MIME sniffing, and the share CSP.
+func SetShareHeaders(h http.Header) {
+	h.Set("Cache-Control", "private, no-store")
+	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set("Referrer-Policy", "no-referrer")
+	h.Set("X-Robots-Tag", "noindex, nofollow, noarchive")
+	h.Set("Content-Security-Policy", ShareViewerCSP())
 }

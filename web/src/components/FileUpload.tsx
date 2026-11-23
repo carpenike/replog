@@ -9,9 +9,11 @@ interface FileUploadProps {
   onChange: (file: File) => void
   className?: string
   label?: string
+  /** id for the hidden file input, so an external <Label htmlFor> names it. */
+  id?: string
 }
 
-export function FileUpload({ accept, disabled, onChange, className, label = 'Choose file' }: FileUploadProps) {
+export function FileUpload({ accept, disabled, onChange, className, label = 'Choose file', id }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -46,7 +48,7 @@ export function FileUpload({ accept, disabled, onChange, className, label = 'Cho
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
-      <Upload className="h-8 w-8 text-muted-foreground" />
+      <Upload className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
       {fileName ? (
         <p className="text-sm font-medium">{fileName}</p>
       ) : (
@@ -63,6 +65,7 @@ export function FileUpload({ accept, disabled, onChange, className, label = 'Cho
       </Button>
       <input
         ref={inputRef}
+        id={id}
         type="file"
         accept={accept}
         onChange={handleChange}

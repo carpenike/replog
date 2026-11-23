@@ -279,7 +279,7 @@ func ExerciseVolumeChart(ctx context.Context, db *sql.DB, athleteID, exerciseID 
 		SELECT w.date, SUM(ws.reps * COALESCE(ws.weight, 0)) as volume
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id
-		WHERE w.athlete_id = ? AND ws.exercise_id = ?
+		WHERE w.athlete_id = ? AND ws.exercise_id = ? AND `+countedSet+`
 		GROUP BY w.date
 		ORDER BY w.date DESC
 		LIMIT ?`, athleteID, exerciseID, limit)
@@ -394,7 +394,7 @@ func WorkoutHeatmap(ctx context.Context, db *sql.DB, athleteID int64) (*HeatmapD
 	rows, err := db.QueryContext(ctx, `
 		SELECT w.date, SUM(ws.reps * COALESCE(ws.weight, 0)) as volume
 		FROM workouts w
-		LEFT JOIN workout_sets ws ON ws.workout_id = w.id
+		LEFT JOIN workout_sets ws ON ws.workout_id = w.id AND `+countedSet+`
 		WHERE w.athlete_id = ?
 		  AND date(w.date) >= date(?)
 		  AND date(w.date) <= date(?)
@@ -522,7 +522,7 @@ func GetDashboardStats(ctx context.Context, db *sql.DB) (*DashboardStats, error)
 		SELECT COALESCE(SUM(ws.reps * COALESCE(ws.weight, 0)), 0)
 		FROM workout_sets ws
 		JOIN workouts w ON w.id = ws.workout_id
-		WHERE date(w.date) >= date(?)`, mondayStr).Scan(&stats.WeekVolume)
+		WHERE date(w.date) >= date(?) AND `+countedSet, mondayStr).Scan(&stats.WeekVolume)
 	if err != nil {
 		return nil, fmt.Errorf("models: dashboard week volume: %w", err)
 	}

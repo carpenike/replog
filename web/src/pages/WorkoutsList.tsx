@@ -1,22 +1,26 @@
 import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { api } from '@/api/client'
-import { EmptyState, QueryError } from '@/components/ui'
-import { usePageTitle } from '@/lib/usePageTitle'
-import { formatDate } from '@/lib/utils'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { CardList, CardListItem, DesktopOnly, RowLink } from '@/components/CardList'
+import { useFriendlyDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
+function ReviewBadge({ status }: { status?: string | null }) {
+  if (!status) return <span className="text-muted-foreground">—</span>
+  return <Badge variant={status === 'approved' ? 'secondary' : 'destructive'}>{status}</Badge>
+}
+
 export function WorkoutsList() {
-  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const [offset, setOffset] = useState(0)
-
-  usePageTitle('Workouts')
+  const friendlyDate = useFriendlyDate()
 
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
@@ -24,107 +28,86 @@ export function WorkoutsList() {
     enabled: !isNaN(athleteId),
   })
 
-  const { data: page, isLoading, error, refetch } = useQuery({
+  const query = useQuery({
     queryKey: ['workouts', athleteId, offset],
     queryFn: () => api.listWorkouts(athleteId, offset),
     enabled: !isNaN(athleteId),
   })
-
-  const header = (
-    <div className="flex items-center justify-between mb-6">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">
-            {athlete?.name ?? 'Athlete'}
-          </Link>
-          {' / '}
-          Workouts
-        </p>
-        <h1 className="text-2xl font-bold">Workouts</h1>
-      </div>
-      <Button onClick={() => navigate(`/athletes/${athleteId}/workouts/new`)}>
-        + New Workout
-      </Button>
-    </div>
-  )
-
-  if (isLoading) {
-    return (
-      <div>
-        {header}
-        <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-        </div>
-      </div>
-    )
-  }
-  if (error) return <div>{header}<QueryError error={error} onRetry={refetch} resource="workouts" /></div>
+  const newTo = `/athletes/${athleteId}/workouts/new`
 
   return (
     <div>
-      {header}
+      <PageHeader
+        title="Workouts"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={<Button render={<Link to={newTo} />}><Plus aria-hidden="true" /> New Workout</Button>}
+      />
 
-      {page && page.workouts.length === 0 ? (
-        <EmptyState
-          icon="🏋️"
-          title="No workouts logged yet"
-          description="Start logging to build training history."
-          action="+ New Workout"
-          actionTo={`/athletes/${athleteId}/workouts/new`}
-        />
-      ) : (
-        <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Program</TableHead>
-                <TableHead>Sets</TableHead>
-                <TableHead>Review</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {page?.workouts.map(workout => {
-                const go = () => navigate(`/athletes/${athleteId}/workouts/${workout.id}`)
-                return (
-                <TableRow
-                  key={workout.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Open workout ${formatDate(workout.date)}`}
-                  className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                  onClick={go}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } }}
-                >
-                  <TableCell className="font-medium">{formatDate(workout.date)}</TableCell>
-                  <TableCell className="text-muted-foreground">{workout.program_name ?? '—'}</TableCell>
-                  <TableCell>{workout.set_count}</TableCell>
-                  <TableCell>
-                    {workout.review_status ? (
-                      <Badge variant={workout.review_status === 'approved' ? 'secondary' : 'destructive'}>
-                        {workout.review_status}
-                      </Badge>
-                    ) : '—'}
-                  </TableCell>
-                </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+      <QueryState
+        query={query}
+        resource="workouts"
+        isEmpty={p => p.workouts.length === 0 && offset === 0}
+        empty={{
+          icon: '🏋️',
+          title: 'No workouts logged yet',
+          description: 'Start logging to build training history.',
+          action: 'New Workout',
+          actionTo: newTo,
+        }}
+      >
+        {page => (
+          <>
+            <CardList label="Workouts">
+              {page.workouts.map(w => (
+                <CardListItem
+                  key={w.id}
+                  to={`/athletes/${athleteId}/workouts/${w.id}`}
+                  title={friendlyDate(w.date)}
+                  subtitle={`${w.program_name ?? 'Unprogrammed'} · ${w.set_count} set${w.set_count === 1 ? '' : 's'}`}
+                  trailing={w.review_status ? <ReviewBadge status={w.review_status} /> : undefined}
+                />
+              ))}
+            </CardList>
+            <DesktopOnly>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Program</TableHead>
+                    <TableHead>Sets</TableHead>
+                    <TableHead>Review</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {page.workouts.map(workout => (
+                    <TableRow key={workout.id} className="relative">
+                      <TableCell>
+                        <RowLink to={`/athletes/${athleteId}/workouts/${workout.id}`}>{friendlyDate(workout.date)}</RowLink>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{workout.program_name ?? '—'}</TableCell>
+                      <TableCell>{workout.set_count}</TableCell>
+                      <TableCell><ReviewBadge status={workout.review_status} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </DesktopOnly>
 
-          <div className="flex items-center justify-between pt-4">
-            <Button variant="ghost" onClick={() => setOffset(Math.max(0, offset - 20))}
-              disabled={offset === 0}>
-              ← Previous
-            </Button>
-            {page?.has_more && (
-              <Button variant="ghost" onClick={() => setOffset(offset + 20)}>
-                Next →
-              </Button>
+            {(offset > 0 || page.has_more) && (
+              <div className="flex items-center justify-between pt-4">
+                <Button variant="ghost" onClick={() => setOffset(Math.max(0, offset - 20))} disabled={offset === 0}>
+                  <ChevronLeft aria-hidden="true" /> Previous
+                </Button>
+                {page.has_more && (
+                  <Button variant="ghost" onClick={() => setOffset(offset + 20)}>
+                    Next <ChevronRight aria-hidden="true" />
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </QueryState>
     </div>
   )
 }

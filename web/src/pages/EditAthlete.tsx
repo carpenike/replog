@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -19,11 +20,12 @@ export function EditAthlete() {
   const { confirm, dialog: confirmDialog } = useConfirm()
   const queryClient = useQueryClient()
 
-  const { data: athlete, isLoading } = useQuery({
+  const athleteQuery = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
     enabled: !isNaN(athleteId),
   })
+  const athlete = athleteQuery.data
 
   const [name, setName] = useState('')
   const [tier, setTier] = useState('')
@@ -74,14 +76,19 @@ export function EditAthlete() {
     },
   })
 
-  if (isLoading) return <Spinner />
+  const header = <PageHeader title="Edit Athlete" back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }} />
+  if (!athlete) {
+    return (
+      <div className="max-w-lg">
+        {header}
+        <QueryState query={athleteQuery} resource="athlete" skeleton="form">{() => null}</QueryState>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-lg">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link> / Edit
-      </p>
-      <h1 className="text-2xl font-bold mb-6">Edit Athlete</h1>
+      {header}
 
       <form onSubmit={(e) => { e.preventDefault(); mutation.mutate() }} className="space-y-4">
         {error && (
@@ -89,14 +96,14 @@ export function EditAthlete() {
         )}
 
         <div>
-          <Label htmlFor="name" >Name *</Label>
+          <Label htmlFor="name" >Name <span aria-hidden="true" className="text-destructive">*</span></Label>
           <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
         </div>
 
         <div>
-          <Label>Tier</Label>
+          <Label htmlFor="athlete-tier">Tier</Label>
           <Select value={tier} onValueChange={(val) => setTier(val ?? "")}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="athlete-tier" className="w-full">
               <SelectValue placeholder="None" />
             </SelectTrigger>
             <SelectContent>
@@ -126,9 +133,9 @@ export function EditAthlete() {
             <Input id="dob" type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} />
           </div>
           <div>
-            <Label>Gender</Label>
+            <Label htmlFor="athlete-gender">Gender</Label>
             <Select value={gender} onValueChange={(val) => setGender(val ?? "")}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="athlete-gender" className="w-full">
                 <SelectValue placeholder="Not specified" />
               </SelectTrigger>
               <SelectContent>

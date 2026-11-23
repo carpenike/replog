@@ -352,7 +352,7 @@ func ListFeaturedLifts(ctx context.Context, db *sql.DB, athleteID int64) ([]*Fea
 			       ROW_NUMBER() OVER (PARTITION BY ws.exercise_id ORDER BY ws.weight DESC, ws.reps DESC) AS rn
 			FROM workout_sets ws
 			JOIN workouts w ON w.id = ws.workout_id
-			WHERE w.athlete_id = ? AND ws.weight IS NOT NULL AND ws.weight > 0
+			WHERE w.athlete_id = ? AND ws.weight IS NOT NULL AND ws.weight > 0 AND `+countedSet+`
 		)
 		SELECT e.id, e.name,
 		       ct.tm_id, ct.tm_weight, ct.tm_date, ct.tm_notes, ct.tm_created,

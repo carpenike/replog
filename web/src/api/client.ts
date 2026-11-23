@@ -1,5 +1,5 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseGroup, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressionRuleData, ProgramTemplate, RecoveryCheckin, SeasonPhase, ServiceTokenData, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, Workout, WorkoutPage, WorkoutSet } from './types';
-import type { AthleteProgram } from './schemas';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, CalendarData, ComplianceData, PushConfig, RestAlertResult, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SetVideo, SettingCategoryData, CreatedVideoShare, SharedVideo, VideoShare, VideoShareList, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, WhiteboardData, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
+import type { AthleteProgram, PlateSetup, PlateSetupPreset, PlateSetupRequest } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
 // *Request structs in internal/api/requests.go.
@@ -52,6 +52,7 @@ export interface RecoveryCheckinInput {
   sleep_hours?: number;
   soreness?: number;
   energy?: number;
+  mood?: number;
   notes?: string;
 }
 
@@ -261,8 +262,97 @@ class ApiClient {
     return this.request<WorkoutPage>(`/api/athletes/${athleteId}/workouts?offset=${offset}`);
   }
 
-  async getWorkout(athleteId: number, workoutId: number): Promise<{ workout: Workout; groups: ExerciseGroup[] }> {
+  async getWorkout(athleteId: number, workoutId: number): Promise<WorkoutDetailData> {
     return this.request(`/api/athletes/${athleteId}/workouts/${workoutId}`);
+  }
+
+  // Form-check videos. The upload bypasses request() (multipart, no JSON
+  // Content-Type) and is excluded from the service worker's offline queue.
+  async uploadSetVideo(athleteId: number, workoutId: number, setId: number, file: File): Promise<SetVideo> {
+    const formData = new FormData()
+    formData.append('video', file)
+    let res: Response
+    try {
+      res = await fetch(`${this.baseUrl}${setVideoPath(athleteId, workoutId, setId)}`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' },
+      })
+    } catch {
+      throw new ApiError('Upload failed — check your connection and try again.', 0)
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText, code: res.status })) as APIError
+      throw new ApiError(body.error ?? 'Upload failed', res.status)
+    }
+    return res.json()
+  }
+
+  async deleteSetVideo(athleteId: number, workoutId: number, setId: number): Promise<void> {
+    await this.request(setVideoPath(athleteId, workoutId, setId), { method: 'DELETE' })
+  }
+
+  async commentSetVideo(athleteId: number, workoutId: number, setId: number, comment: string): Promise<SetVideo> {
+    return this.request(`${setVideoPath(athleteId, workoutId, setId)}/comment`, { method: 'PUT', body: JSON.stringify({ comment }) })
+  }
+
+  // Form-check share links (owner side). The paths sit under .../video, so
+  // the service worker neither caches nor queues them (see swRoutes).
+  async listVideoShares(athleteId: number, workoutId: number, setId: number, includeInactive = false): Promise<VideoShareList> {
+    const q = includeInactive ? '?include_inactive=true' : ''
+    return this.request(`${setVideoPath(athleteId, workoutId, setId)}/shares${q}`, { cache: 'no-store' })
+  }
+
+  async createVideoShare(athleteId: number, workoutId: number, setId: number, body: { expires_in_hours: number; label?: string }): Promise<CreatedVideoShare> {
+    return this.request(`${setVideoPath(athleteId, workoutId, setId)}/shares`, { method: 'POST', body: JSON.stringify(body), cache: 'no-store' })
+  }
+
+  async revokeVideoShare(athleteId: number, workoutId: number, setId: number, shareId: number): Promise<VideoShare> {
+    return this.request(`${setVideoPath(athleteId, workoutId, setId)}/shares/${shareId}`, { method: 'DELETE' })
+  }
+
+  // Public share-link viewer. Bypasses request(): no session cookie is sent
+  // and a failure never redirects to login (the viewer has no account).
+  async getSharedVideo(token: string): Promise<SharedVideo> {
+    let res: Response
+    try {
+      res = await fetch(`${this.baseUrl}${sharedVideoPath(token)}`, {
+        credentials: 'omit',
+        cache: 'no-store',
+        referrerPolicy: 'no-referrer',
+        headers: { 'Accept': 'application/json' },
+      })
+    } catch {
+      throw new ApiError('Unable to reach the server. Please try again.', 0)
+    }
+    if (!res.ok) {
+      throw new ApiError(res.status === 429 ? 'Too many requests. Wait a minute and try again.' : 'This link is not available.', res.status)
+    }
+    return res.json()
+  }
+
+  // Whiteboard / TV mode (read-only).
+  async getWhiteboard(athleteIds: number[] = []): Promise<WhiteboardData> {
+    const q = athleteIds.length ? `?athletes=${athleteIds.join(',')}` : ''
+    return this.request<WhiteboardData>(`/api/whiteboard${q}`)
+  }
+
+  // Exercise swaps: the athlete swaps a prescribed lift for one with the same
+  // movement pattern. Recorded for the coach's review; the program is unchanged.
+  async listExerciseSubstitutes(athleteId: number, exerciseId: number): Promise<Exercise[]> {
+    return this.request<Exercise[]>(`/api/athletes/${athleteId}/exercises/${exerciseId}/substitutes`);
+  }
+
+  async createExerciseSwap(athleteId: number, workoutId: number, data: { from_exercise_id: number; to_exercise_id: number; reason?: string }): Promise<ExerciseSwap> {
+    return this.request<ExerciseSwap>(`/api/athletes/${athleteId}/workouts/${workoutId}/swaps`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteExerciseSwap(athleteId: number, workoutId: number, swapId: number): Promise<void> {
+    await this.request(`/api/athletes/${athleteId}/workouts/${workoutId}/swaps/${swapId}`, { method: 'DELETE' });
   }
 
   async createWorkout(athleteId: number, date: string, notes = '', fromPrescription = false): Promise<Workout> {
@@ -284,14 +374,14 @@ class ApiClient {
   }
 
   // Workout Sets
-  async addSet(athleteId: number, workoutId: number, data: { exercise_id: number; reps: number; weight?: number; rpe?: number; rep_type?: string; category?: string; notes?: string }): Promise<WorkoutSet> {
+  async addSet(athleteId: number, workoutId: number, data: { exercise_id: number; reps: number; weight?: number; rpe?: number; rep_type?: string; category?: string; notes?: string; set_type?: SetType }): Promise<WorkoutSet> {
     return this.request<WorkoutSet>(`/api/athletes/${athleteId}/workouts/${workoutId}/sets`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateSet(athleteId: number, workoutId: number, setId: number, data: { reps: number; weight?: number; rpe?: number; notes?: string }): Promise<WorkoutSet> {
+  async updateSet(athleteId: number, workoutId: number, setId: number, data: { reps: number; weight?: number; rpe?: number; notes?: string; set_type?: SetType }): Promise<WorkoutSet> {
     return this.request<WorkoutSet>(`/api/athletes/${athleteId}/workouts/${workoutId}/sets/${setId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -450,11 +540,11 @@ class ApiClient {
   }
 
   // Prescribed Sets
-  async addPrescribedSet(programId: number, data: { exercise_id: number; week: number; day: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
+  async addPrescribedSet(programId: number, data: { exercise_id: number; week: number; day: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string; reps_max?: number | null; rir_min?: number | null; rir_max?: number | null; non_working?: boolean; group_key?: string; prescribed_rpe?: number | null; group_label?: string }): Promise<void> {
     await this.request(`/api/programs/${programId}/sets`, { method: 'POST', body: JSON.stringify(data) });
   }
 
-  async updatePrescribedSet(programId: number, setId: number, data: { exercise_id: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string }): Promise<void> {
+  async updatePrescribedSet(programId: number, setId: number, data: { exercise_id: number; set_number: number; reps?: number | null; percentage?: number | null; absolute_weight?: number | null; rest_seconds?: number | null; sort_order?: number; rep_type?: string; notes?: string; /** 0 clears */ reps_max?: number; /** negative clears the RIR range */ rir_min?: number; rir_max?: number; non_working?: boolean; /** "" ungroups; omit to keep */ group_key?: string; prescribed_rpe?: number | null; group_label?: string }): Promise<void> {
     await this.request(`/api/programs/${programId}/sets/${setId}`, { method: 'PUT', body: JSON.stringify(data) });
   }
 
@@ -638,6 +728,29 @@ class ApiClient {
     return this.request(`/api/athletes/${athleteId}/exercises/${exerciseId}/history?offset=${offset}`);
   }
 
+  /**
+   * Per-session estimated 1RM and top set for each exercise (the read-only
+   * progress read the coach tools use). Warm-ups are excluded server-side.
+   */
+  async getProgress(athleteId: number, opts: { exerciseId?: number; start?: string; end?: string } = {}): Promise<ProgressData> {
+    const q = new URLSearchParams()
+    if (opts.exerciseId) q.set('exercise', String(opts.exerciseId))
+    if (opts.start) q.set('start', opts.start)
+    if (opts.end) q.set('end', opts.end)
+    const qs = q.toString()
+    return this.request<ProgressData>(`/api/athletes/${athleteId}/coach/progress${qs ? `?${qs}` : ''}`);
+  }
+
+  /** Current personal records by lift and rep range (own history only). */
+  async getAthleteRecords(athleteId: number): Promise<RecordsData> {
+    return this.request<RecordsData>(`/api/athletes/${athleteId}/records`);
+  }
+
+  /** Tier badges, firsts and consistency milestones (own history only). */
+  async getAthleteMilestones(athleteId: number): Promise<MilestonesData> {
+    return this.request<MilestonesData>(`/api/athletes/${athleteId}/milestones`);
+  }
+
   // Preferences
   async getPreferences(): Promise<UserPreferences> {
     return this.request<UserPreferences>('/api/preferences');
@@ -683,19 +796,76 @@ class ApiClient {
     await this.request(`/api/athletes/${athleteId}/programs/${programId}`, { method: 'DELETE' });
   }
 
+  // Coach compliance grid and athlete calendar (read only)
+  async getCoachCompliance(weekStart?: string): Promise<ComplianceData> {
+    const qs = weekStart ? `?week_start=${encodeURIComponent(weekStart)}` : '';
+    return this.request<ComplianceData>(`/api/coach/compliance${qs}`);
+  }
+
+  async getAthleteCalendar(athleteId: number, month?: string): Promise<CalendarData> {
+    const qs = month ? `?month=${encodeURIComponent(month)}` : '';
+    return this.request<CalendarData>(`/api/athletes/${athleteId}/calendar${qs}`);
+  }
+
+  // Web Push rest alerts. These live under /api/push, outside the offline
+  // mutation queue: a rest alert replayed after reconnecting would be stale.
+  async getPushConfig(): Promise<PushConfig> {
+    return this.request<PushConfig>('/api/push/config');
+  }
+
+  async subscribePush(sub: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<void> {
+    await this.request('/api/push/subscriptions', { method: 'POST', body: JSON.stringify(sub) });
+  }
+
+  async unsubscribePush(endpoint: string): Promise<void> {
+    await this.request('/api/push/subscriptions', { method: 'DELETE', body: JSON.stringify({ endpoint }) });
+  }
+
+  async testPush(): Promise<{ sent: number }> {
+    return this.request<{ sent: number }>('/api/push/test', { method: 'POST' });
+  }
+
+  async scheduleRestAlert(data: { seconds: number; label?: string; url?: string }): Promise<RestAlertResult> {
+    return this.request<RestAlertResult>('/api/push/rest-alert', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async cancelRestAlert(): Promise<void> {
+    await this.request('/api/push/rest-alert', { method: 'DELETE' });
+  }
+
+  // Plate setup (bar, collars, plate inventory per athlete gym)
+  async getPlateSetup(athleteId: number): Promise<PlateSetup> {
+    return this.request<PlateSetup>(`/api/athletes/${athleteId}/plate-setup`);
+  }
+
+  async updatePlateSetup(athleteId: number, data: PlateSetupRequest): Promise<PlateSetup> {
+    return this.request<PlateSetup>(`/api/athletes/${athleteId}/plate-setup`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async resetPlateSetup(athleteId: number): Promise<PlateSetup> {
+    return this.request<PlateSetup>(`/api/athletes/${athleteId}/plate-setup`, { method: 'DELETE' });
+  }
+
+  async listPlateSetupPresets(): Promise<PlateSetupPreset[]> {
+    return this.request<PlateSetupPreset[]>('/api/plate-setup/presets');
+  }
+
   // Accessory Plans
   async listAccessoryPlans(athleteId: number): Promise<AccessoryPlanData[]> {
     return this.request(`/api/athletes/${athleteId}/accessories`);
   }
 
-  async createAccessoryPlan(athleteId: number, data: { day: number; exercise_id: number; target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string }): Promise<void> {
+  async createAccessoryPlan(athleteId: number, data: { day: number; exercise_id: number; target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string; group_key?: string }): Promise<void> {
     await this.request(`/api/athletes/${athleteId}/accessories`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateAccessoryPlan(athleteId: number, planId: number, data: { target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string; sort_order?: number }): Promise<void> {
+  async updateAccessoryPlan(athleteId: number, planId: number, data: { target_sets?: number; target_rep_min?: number; target_rep_max?: number; target_weight?: number; notes?: string; sort_order?: number; /** "" ungroups; omit to keep */ group_key?: string }): Promise<void> {
     await this.request(`/api/athletes/${athleteId}/accessories/${planId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -809,6 +979,16 @@ export class ApiError extends Error {
     this.code = code
     this.details = details
   }
+}
+
+/** Public metadata path for a share token. */
+export function sharedVideoPath(token: string): string {
+  return `/api/share/${encodeURIComponent(token)}`
+}
+
+/** The authenticated route that streams (GET) or changes a set's clip. */
+export function setVideoPath(athleteId: number, workoutId: number, setId: number): string {
+  return `/api/athletes/${athleteId}/workouts/${workoutId}/sets/${setId}/video`
 }
 
 export const api = new ApiClient();

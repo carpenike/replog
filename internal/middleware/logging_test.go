@@ -53,6 +53,10 @@ func TestScrubPath_RedactsLoginToken(t *testing.T) {
 	}{
 		// Magic-link tokens must never be logged.
 		{"/api/auth/token/abc123def456", "/api/auth/token/<redacted>"},
+		// Video share-link tokens must never be logged either.
+		{"/s/AbCdEf_-123", "/s/<redacted>"},
+		{"/api/share/AbCdEf_-123", "/api/share/<redacted>"},
+		{"/api/share/AbCdEf_-123/video", "/api/share/<redacted>"},
 		// Trailing slash with no token = no secret to redact.
 		{"/api/auth/token/", "/api/auth/token/"},
 		// Unrelated paths unchanged.

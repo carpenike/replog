@@ -1,25 +1,32 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import { Spinner, EmptyState, QueryError } from '@/components/ui'
+import type { LucideIcon } from 'lucide-react'
+import { CheckCircle2, Dumbbell, Flag, ClipboardList, FileText, Lock, NotebookPen, Pencil, Pin, Plus, Scale, Target, Trash2, TrendingUp, X } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
 import { useConfirm } from '@/lib/useConfirm'
-import { usePageTitle } from '@/lib/usePageTitle'
+import { useFriendlyDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { formatDate } from '@/lib/utils'
-const typeIcons: Record<string, string> = {
-  workout: '🏋️',
-  body_weight: '⚖️',
-  training_max: '💪',
-  goal_change: '🎯',
-  tier_change: '📈',
-  program_start: '📋',
-  program_end: '🏁',
-  review: '✅',
-  note: '📝',
+const typeIcons: Record<string, LucideIcon> = {
+  workout: Dumbbell,
+  body_weight: Scale,
+  training_max: TrendingUp,
+  goal_change: Target,
+  tier_change: TrendingUp,
+  program_start: ClipboardList,
+  program_end: Flag,
+  review: CheckCircle2,
+  note: NotebookPen,
+}
+
+function EntryIcon({ type }: { type: string }) {
+  const Icon = typeIcons[type] ?? FileText
+  return <Icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
 }
 export function JournalPage() {
   const { id } = useParams<{ id: string }>()
@@ -31,13 +38,13 @@ export function JournalPage() {
   const [showNoteForm, setShowNoteForm] = useState(false)
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
   const [editContent, setEditContent] = useState('')
-  usePageTitle('Journal')
+  const friendlyDate = useFriendlyDate()
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
     enabled: !isNaN(athleteId),
   })
-  const { data: entries, isLoading, error, refetch } = useQuery({
+  const query = useQuery({
     queryKey: ['journal', athleteId],
     queryFn: () => api.listJournalEntries(athleteId),
     enabled: !isNaN(athleteId),
@@ -62,29 +69,26 @@ export function JournalPage() {
     mutationFn: (noteId: number) => api.deleteNote(athleteId, noteId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['journal', athleteId] }),
   })
-  if (isLoading) return <Spinner />
-  if (error) return <QueryError error={error} onRetry={refetch} resource="journal" />
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / Journal'}
-      </p>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Journal</h1>
-        <Button variant="ghost" onClick={() => setShowNoteForm(!showNoteForm)}
-          >
-          {showNoteForm ? 'Cancel' : '+ Add Note'}
-        </Button>
-      </div>
+      <PageHeader
+        title="Journal"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={
+          <Button variant={showNoteForm ? 'ghost' : 'default'} onClick={() => setShowNoteForm(!showNoteForm)} aria-expanded={showNoteForm}>
+            {showNoteForm ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Add Note</>}
+          </Button>
+        }
+      />
       {/* Add note form */}
       {showNoteForm && (
         <form onSubmit={(e) => { e.preventDefault(); createNoteMutation.mutate() }}
           className="rounded-lg border border-border bg-card p-4 mb-6 space-y-3">
-          <Textarea value={noteContent} onChange={e => setNoteContent(e.target.value)}
+          <Label htmlFor="journal-note" className="sr-only">Note</Label>
+          <Textarea id="journal-note" value={noteContent} onChange={e => setNoteContent(e.target.value)}
             placeholder="Write a note..." />
           <div className="flex items-center justify-between">
-            <Label>
+            <Label className="min-h-11 md:min-h-0">
               <Checkbox checked={isPrivate} onCheckedChange={(checked) => setIsPrivate(checked)} />
               Private (coaches only)
             </Label>
@@ -95,25 +99,28 @@ export function JournalPage() {
           </div>
         </form>
       )}
-      {entries && entries.length === 0 ? (
-        <EmptyState icon="📓" title="No journal entries yet" description="Add a note to capture context on this athlete." />
-      ) : (
+      <QueryState
+        query={query}
+        resource="journal"
+        empty={{ icon: '📓', title: 'No journal entries yet', description: 'Add a note to capture context on this athlete.', action: showNoteForm ? undefined : 'Add Note', onAction: () => setShowNoteForm(true) }}
+      >
+        {entries => (
         <div className="space-y-2">
-          {entries?.map((entry, i) => (
+          {entries.map((entry, i) => (
             <div key={`${entry.type}-${entry.id}-${i}`}
               className={`rounded-lg border bg-card p-3 ${entry.pinned ? 'border-primary/30' : 'border-border'}`}
             >
               <div className="flex items-start gap-3">
-                <span className="text-lg" aria-hidden="true">{typeIcons[entry.type] ?? '📄'}</span>
+                <EntryIcon type={entry.type} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{entry.summary}</p>
-                    {entry.pinned && <span className="text-xs text-primary">📌</span>}
-                    {entry.is_private && <span className="text-xs text-muted-foreground">🔒</span>}
+                    {entry.pinned && <Pin className="size-3.5 text-primary" aria-label="Pinned" />}
+                    {entry.is_private && <Lock className="size-3.5 text-muted-foreground" aria-label="Private" />}
                   </div>
                   {editingNoteId === entry.id && entry.type === 'note' ? (
                     <div className="mt-2">
-                      <Textarea value={editContent} onChange={e => setEditContent(e.target.value)}
+                      <Textarea aria-label="Edit note" value={editContent} onChange={e => setEditContent(e.target.value)}
                         rows={2} />
                       <div className="flex gap-2">
                         <Button variant="ghost" onClick={() => updateNoteMutation.mutate(entry.id)}
@@ -129,16 +136,18 @@ export function JournalPage() {
                         <p className="text-sm text-muted-foreground mt-0.5">{entry.detail}</p>
                       )}
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground">{formatDate(entry.date)}</span>
+                        <span className="text-xs text-muted-foreground">{friendlyDate(entry.date)}</span>
                         {entry.author && (
                           <span className="text-xs text-muted-foreground">by {entry.author}</span>
                         )}
                         {entry.type === 'note' && (
                           <>
-                            <Button variant="ghost" onClick={() => { setEditingNoteId(entry.id); setEditContent(entry.detail || entry.summary) }}
-                              >Edit</Button>
-                            <Button variant="ghost" onClick={async () => { if (await confirm({ title: 'Delete Note', description: 'Remove this note?', confirmLabel: 'Delete', variant: 'danger' })) deleteNoteMutation.mutate(entry.id) }}
-                              >Delete</Button>
+                            <Button variant="ghost" size="icon-sm" aria-label="Edit note" onClick={() => { setEditingNoteId(entry.id); setEditContent(entry.detail || entry.summary) }}>
+                              <Pencil aria-hidden="true" />
+                            </Button>
+                            <Button variant="ghost" size="icon-sm" aria-label="Delete note" className="text-muted-foreground hover:text-destructive" onClick={async () => { if (await confirm({ title: 'Delete Note', description: 'Remove this note?', confirmLabel: 'Delete', variant: 'danger' })) deleteNoteMutation.mutate(entry.id) }}>
+                              <Trash2 aria-hidden="true" />
+                            </Button>
                           </>
                         )}
                       </div>
@@ -149,7 +158,8 @@ export function JournalPage() {
             </div>
           ))}
         </div>
-      )}
+        )}
+      </QueryState>
       {confirmDialog()}
     </div>
   )

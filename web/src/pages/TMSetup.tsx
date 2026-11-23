@@ -1,32 +1,34 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { EmptyState } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Alert } from '@/components/ui/alert'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+
 export function TMSetup() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
   const queryClient = useQueryClient()
-  const [templateId] = useState('')
   const [weights, setWeights] = useState<Record<number, string>>({})
-  const [saved, setSaved] = useState(false)
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
     queryFn: () => api.getAthlete(athleteId),
     enabled: !isNaN(athleteId),
   })
-  const { data: programs } = useQuery({
+  const programsQuery = useQuery({
     queryKey: ['athlete-programs', athleteId],
     queryFn: () => api.listAthletePrograms(athleteId),
     enabled: !isNaN(athleteId),
   })
-  const activeProgram = programs?.find(p => p.active)
-  const resolvedTemplateId = templateId ? parseInt(templateId) : activeProgram?.template_id
-  const { data: missing, isLoading } = useQuery({
+  const activeProgram = programsQuery.data?.find(p => p.active)
+  const resolvedTemplateId = activeProgram?.template_id
+  const missingQuery = useQuery({
     queryKey: ['missing-tms', athleteId, resolvedTemplateId],
     queryFn: () => api.listMissingTMs(athleteId, resolvedTemplateId!),
     enabled: !isNaN(athleteId) && !!resolvedTemplateId,
@@ -41,54 +43,65 @@ export function TMSetup() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['missing-tms', athleteId] })
       queryClient.invalidateQueries({ queryKey: ['training-maxes', athleteId] })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
+      setWeights({})
+      toast.success('Training maxes saved')
     },
   })
+  const filled = Object.values(weights).filter(w => w && parseFloat(w) > 0).length
+
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / TM Setup'}
-      </p>
-      <h1 className="text-2xl font-bold mb-4">Training Max Setup</h1>
-      <p className="text-sm text-muted-foreground mb-6">
-        Set training maxes for exercises that need them before starting a program.
-      </p>
-      {saved && (
-        <Alert variant="success" className="mb-4">
-          Training maxes saved!
-        </Alert>
-      )}
-      {isLoading ? <Spinner /> : missing && missing.length === 0 ? (
-        <Card className="text-center">
-          <CardContent>
-          <span className="text-3xl block mb-2">✅</span>
-          <p className="text-muted-foreground">All training maxes are set! No missing TMs.</p>
-          </CardContent>
-        </Card>
-      ) : missing && missing.length > 0 ? (
-        <div>
-          <div className="space-y-3 mb-6">
-            {missing.map(m => (
-              <Card size="sm" className="flex items-center gap-4">
-                <CardContent>
-                <p className="text-sm font-medium flex-1">{m.exercise_name}</p>
-                <div className="w-32">
-                  <Input type="number" step="0.5" min={0} value={weights[m.exercise_id] ?? ''} onChange={e => setWeights(prev => ({ ...prev, [m.exercise_id]: e.target.value }))} placeholder="Weight" />
-                </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <Button variant="ghost" onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending || Object.values(weights).filter(w => w && parseFloat(w) > 0).length === 0}
-            >
-            {saveMutation.isPending ? 'Saving...' : 'Save Training Maxes'}
-          </Button>
-        </div>
+      <PageHeader
+        title="Training Max Setup"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        description="Set training maxes for exercises that need them before starting a program."
+      />
+      {programsQuery.data && !activeProgram ? (
+        <EmptyState
+          icon="📊"
+          title="No active program"
+          description="Assign a program first, then set the training maxes it needs."
+          action="Manage programs"
+          actionTo={`/athletes/${athleteId}/assignments`}
+        />
       ) : (
-        <p className="text-muted-foreground">Select a program to check for missing training maxes.</p>
+        <QueryState
+          query={{
+            data: missingQuery.data,
+            error: programsQuery.error ?? missingQuery.error,
+            refetch: programsQuery.error ? programsQuery.refetch : missingQuery.refetch,
+          }}
+          resource="training maxes"
+          empty={{ icon: '✅', title: 'All training maxes are set', description: 'Nothing missing for the active program.', action: 'View training maxes', actionTo: `/athletes/${athleteId}/training-maxes` }}
+        >
+          {missing => (
+            <form onSubmit={e => { e.preventDefault(); saveMutation.mutate() }}>
+              <div className="space-y-3 mb-6">
+                {missing.map(m => (
+                  <Card key={m.exercise_id} size="sm">
+                    <CardContent className="flex items-center gap-4">
+                      <Label htmlFor={`tm-${m.exercise_id}`} className="flex-1">{m.exercise_name}</Label>
+                      <Input
+                        id={`tm-${m.exercise_id}`}
+                        className="w-32"
+                        type="number"
+                        inputMode="decimal"
+                        step="0.5"
+                        min={0}
+                        value={weights[m.exercise_id] ?? ''}
+                        onChange={e => setWeights(prev => ({ ...prev, [m.exercise_id]: e.target.value }))}
+                        placeholder="Weight"
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <Button type="submit" disabled={saveMutation.isPending || filled === 0}>
+                {saveMutation.isPending ? 'Saving...' : 'Save Training Maxes'}
+              </Button>
+            </form>
+          )}
+        </QueryState>
       )}
     </div>
   )

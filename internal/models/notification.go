@@ -17,6 +17,7 @@ const (
 	NotifyMagicLinkSent      = "magic_link_sent"
 	NotifyGenerationComplete = "generation_complete"
 	NotifyGenerationFailed   = "generation_failed"
+	NotifyWeeklyDigest       = "weekly_digest"
 )
 
 // AllNotificationTypes lists all known notification types for preference UI.
@@ -29,6 +30,7 @@ var AllNotificationTypes = []NotificationType{
 	{Type: NotifyMagicLinkSent, Label: "Login Link Sent", Description: "When a login link is generated for you"},
 	{Type: NotifyGenerationComplete, Label: "AI Coach Draft Ready", Description: "When an AI Coach program draft finishes generating"},
 	{Type: NotifyGenerationFailed, Label: "AI Coach Draft Failed", Description: "When an AI Coach program draft fails to generate"},
+	{Type: NotifyWeeklyDigest, Label: "Weekly Coach Digest", Description: "Monday summary of each coached athlete's week: planned vs done, new PRs, recovery flags, Pitch Smart"},
 }
 
 // NotificationType describes a notification type for preference UI.

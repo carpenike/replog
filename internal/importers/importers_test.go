@@ -188,6 +188,12 @@ Morning Workout,2024-01-15 08:00:00,,Leg day,Deadlift,,,0,warmup,135,5,,,
 	if dlSet.Notes == nil || !strings.Contains(*dlSet.Notes, "[warmup]") {
 		t.Errorf("warmup set notes = %v, want [warmup] prefix", dlSet.Notes)
 	}
+	if dlSet.SetType != "warmup" {
+		t.Errorf("warmup set type = %q, want warmup", dlSet.SetType)
+	}
+	if wo.Sets[0].SetType != "" {
+		t.Errorf("normal set type = %q, want empty (working)", wo.Sets[0].SetType)
+	}
 }
 
 func TestParseHevyCSV_EmptyFile(t *testing.T) {
@@ -507,7 +513,7 @@ func TestMergeExerciseMappings(t *testing.T) {
 		{ImportName: "Squat", MappedID: 1, MappedName: "Squat"},
 	}
 	additional := []EntityMapping{
-		{ImportName: "Squat", MappedID: 1, MappedName: "Squat"},       // duplicate — should be skipped
+		{ImportName: "Squat", MappedID: 1, MappedName: "Squat"},             // duplicate — should be skipped
 		{ImportName: "Bench Press", MappedID: 2, MappedName: "Bench Press"}, // new — should be added
 	}
 

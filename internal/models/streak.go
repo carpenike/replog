@@ -114,6 +114,7 @@ func WeeklyStreaks(ctx context.Context, db *sql.DB, athleteID int64, weeks int) 
 		 WHERE w.athlete_id = ?
 		   AND date(w.date) >= date(?)
 		   AND date(w.date) <= date(?)
+		   AND `+countedSet+`
 		 GROUP BY date(w.date), ws.exercise_id`,
 		athleteID, rangeStart, rangeEnd,
 	)

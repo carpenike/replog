@@ -23,6 +23,7 @@ type CoachLoggedSet struct {
 	Weight     sql.NullFloat64
 	RPE        sql.NullFloat64
 	Category   string
+	SetType    string
 	Notes      sql.NullString
 	ExerciseID int64
 	Exercise   string
@@ -170,7 +171,7 @@ func attachCoachSets(ctx context.Context, db *sql.DB, sessions []CoachSession) e
 
 	query := `
 		SELECT ws.workout_id, ws.id, ws.set_number, ws.reps, ws.weight, ws.rpe,
-		       ws.category, ws.notes, ws.exercise_id, e.name
+		       ws.category, ws.set_type, ws.notes, ws.exercise_id, e.name
 		  FROM workout_sets ws
 		  JOIN exercises e ON e.id = ws.exercise_id
 		 WHERE ws.workout_id IN (` + inClause(len(ids)) + `)
@@ -193,7 +194,7 @@ func attachCoachSets(ctx context.Context, db *sql.DB, sessions []CoachSession) e
 		var workoutID int64
 		var set CoachLoggedSet
 		if err := rows.Scan(&workoutID, &set.ID, &set.SetNumber, &set.Reps, &set.Weight, &set.RPE,
-			&set.Category, &set.Notes, &set.ExerciseID, &set.Exercise); err != nil {
+			&set.Category, &set.SetType, &set.Notes, &set.ExerciseID, &set.Exercise); err != nil {
 			return fmt.Errorf("models: scan coach set: %w", err)
 		}
 		si, ok := index[workoutID]
@@ -282,6 +283,7 @@ func ListCoachProgress(ctx context.Context, db *sql.DB, athleteID, exerciseID in
 		  JOIN exercises e ON e.id = ws.exercise_id
 		 WHERE w.athlete_id = ?
 		   AND w.discipline = 'resistance'
+		   AND `+countedSet+`
 		   AND (? = 0 OR e.id = ?)
 		   AND (? = '' OR date(w.date) <= date(?))
 		 ORDER BY e.name COLLATE NOCASE, e.id, date(w.date), w.id, ws.id`,
@@ -459,7 +461,7 @@ func LastCoachSession(ctx context.Context, db *sql.DB, athleteID, exerciseID int
 	}
 
 	rows, err := db.QueryContext(ctx, `
-		SELECT ws.id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.category, ws.notes, ws.exercise_id, e.name
+		SELECT ws.id, ws.set_number, ws.reps, ws.weight, ws.rpe, ws.category, ws.set_type, ws.notes, ws.exercise_id, e.name
 		  FROM workout_sets ws
 		  JOIN exercises e ON e.id = ws.exercise_id
 		 WHERE ws.workout_id = ? AND ws.exercise_id = ?
@@ -473,7 +475,7 @@ func LastCoachSession(ctx context.Context, db *sql.DB, athleteID, exerciseID int
 	session := &CoachLastSession{SessionID: sessionID, AthleteID: athleteID, Date: isoDate(date), Sets: []CoachLoggedSet{}}
 	for rows.Next() {
 		var set CoachLoggedSet
-		if err := rows.Scan(&set.ID, &set.SetNumber, &set.Reps, &set.Weight, &set.RPE, &set.Category, &set.Notes, &set.ExerciseID, &set.Exercise); err != nil {
+		if err := rows.Scan(&set.ID, &set.SetNumber, &set.Reps, &set.Weight, &set.RPE, &set.Category, &set.SetType, &set.Notes, &set.ExerciseID, &set.Exercise); err != nil {
 			return nil, fmt.Errorf("models: scan last coach set: %w", err)
 		}
 		session.Sets = append(session.Sets, set)
@@ -555,7 +557,11 @@ func WeekPlanForAthlete(ctx context.Context, db *sql.DB, athleteID int64, weekSt
 		plannedIDs := map[int64]struct{}{}
 		if !rx.CycleComplete {
 			for _, line := range rx.Lines {
-				plannedIDs[line.ExerciseID] = struct{}{}
+				// Warm-up-only lines are not planned work: warm-up sets are
+				// not counted as logged, so they would hold a day at partial.
+				if lineHasWorkingSet(line) {
+					plannedIDs[line.ExerciseID] = struct{}{}
+				}
 			}
 		}
 		logged, setCount, err := loggedExerciseIDs(ctx, db, workout)
@@ -604,6 +610,15 @@ func WeekPlanForAthlete(ctx context.Context, db *sql.DB, athleteID int64, weekSt
 	return plan, nil
 }
 
+func lineHasWorkingSet(line *PrescriptionLine) bool {
+	for _, s := range line.Sets {
+		if !s.NonWorking {
+			return true
+		}
+	}
+	return false
+}
+
 func scheduleIncludes(program *AthleteProgram, weekday int) bool {
 	days := program.ScheduleDays()
 	if days == nil {
@@ -631,7 +646,7 @@ func loggedExerciseIDs(ctx context.Context, db *sql.DB, workout *Workout) (map[i
 		return logged, 0, nil
 	}
 	rows, err := db.QueryContext(ctx,
-		`SELECT exercise_id FROM workout_sets WHERE workout_id = ?`, workout.ID)
+		`SELECT ws.exercise_id FROM workout_sets ws WHERE ws.workout_id = ? AND `+countedSet, workout.ID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("models: week plan logged sets: %w", err)
 	}

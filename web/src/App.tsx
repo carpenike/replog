@@ -1,5 +1,5 @@
 import { Suspense, lazy, type ReactNode } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { useTheme } from '@/lib/useTheme'
@@ -7,6 +7,7 @@ import { Layout } from '@/components/Layout'
 import { Login } from '@/pages/Login'
 import { LoadingPage, Spinner } from '@/components/ui'
 import type { User } from '@/api/types'
+import { isSharePath } from '@/lib/swRoutes'
 
 /** Route guard — redirects to / if the user doesn't have the required role. */
 function RequireRole({ user, role, children }: { user: User; role: 'coach' | 'admin'; children: ReactNode }) {
@@ -54,6 +55,8 @@ const ExportPage = lazy(() => import('@/pages/ExportPage').then(m => ({ default:
 const PendingReviews = lazy(() => import('@/pages/PendingReviews').then(m => ({ default: m.PendingReviews })))
 const AdminSettings = lazy(() => import('@/pages/AdminSettings').then(m => ({ default: m.AdminSettings })))
 const CatalogAdmin = lazy(() => import('@/pages/CatalogAdmin').then(m => ({ default: m.CatalogAdmin })))
+const CompliancePage = lazy(() => import('@/pages/CompliancePage').then(m => ({ default: m.CompliancePage })))
+const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })))
 const PreferencesPage = lazy(() => import('@/pages/PreferencesPage').then(m => ({ default: m.PreferencesPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
 const TokenLoginPage = lazy(() => import('@/pages/TokenLoginPage').then(m => ({ default: m.TokenLoginPage })))
@@ -62,10 +65,30 @@ const ConditioningSessions = lazy(() => import('@/pages/ConditioningSessions').t
 const SkillSessions = lazy(() => import('@/pages/SkillSessions').then(m => ({ default: m.SkillSessions })))
 const RecoveryCheckins = lazy(() => import('@/pages/RecoveryCheckins').then(m => ({ default: m.RecoveryCheckins })))
 const SeasonPhases = lazy(() => import('@/pages/SeasonPhases').then(m => ({ default: m.SeasonPhases })))
+const RecordsPage = lazy(() => import('@/pages/RecordsPage').then(m => ({ default: m.RecordsPage })))
+const WhiteboardPage = lazy(() => import('@/pages/WhiteboardPage').then(m => ({ default: m.WhiteboardPage })))
 const LoadDashboard = lazy(() => import('@/pages/LoadDashboard').then(m => ({ default: m.LoadDashboard })))
 
+const SharedVideoPage = lazy(() => import('@/pages/SharedVideoPage').then(m => ({ default: m.SharedVideoPage })))
+
 export function App() {
+  const location = useLocation()
+  // Public form-check share links (/s/{token}) are for viewers with no
+  // account: render them before, and instead of, the auth bootstrap so the
+  // page never calls /api/me or redirects to login.
+  if (isSharePath(location.pathname)) {
+    return (
+      <Suspense fallback={<LoadingPage />}>
+        <SharedVideoPage />
+      </Suspense>
+    )
+  }
+  return <AuthedApp />
+}
+
+function AuthedApp() {
   const { theme, toggleTheme } = useTheme()
+  const location = useLocation()
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.me(),
@@ -87,6 +110,15 @@ export function App() {
           <Route path="/auth/token/:token" element={<TokenLoginPage />} />
           <Route path="*" element={<Login />} />
         </Routes>
+      </Suspense>
+    )
+  }
+
+  // Whiteboard / TV mode is full screen: no app chrome around the board.
+  if (location.pathname === '/whiteboard') {
+    return (
+      <Suspense fallback={<LoadingPage />}>
+        <WhiteboardPage />
       </Suspense>
     )
   }
@@ -121,6 +153,8 @@ export function App() {
         <Route path="/athletes/:id/recovery-checkins" element={<RecoveryCheckins />} />
         <Route path="/athletes/:id/season-phases" element={<SeasonPhases />} />
         <Route path="/athletes/:id/load" element={<LoadDashboard />} />
+        <Route path="/athletes/:id/records" element={<RecordsPage />} />
+        <Route path="/athletes/:id/calendar" element={<CalendarPage />} />
         <Route path="/exercises" element={<ExercisesList user={user} />} />
         <Route path="/exercises/new" element={<RequireRole user={user} role="coach"><NewExercise /></RequireRole>} />
         <Route path="/exercises/:id" element={<ExerciseDetail />} />
@@ -133,6 +167,7 @@ export function App() {
         <Route path="/athletes/:id/cycle-review" element={<CycleReview />} />
         <Route path="/notifications" element={<NotificationsList />} />
         <Route path="/reviews/pending" element={<RequireRole user={user} role="coach"><PendingReviews /></RequireRole>} />
+        <Route path="/coach/compliance" element={<RequireRole user={user} role="coach"><CompliancePage /></RequireRole>} />
         <Route path="/users" element={<RequireRole user={user} role="admin"><UsersList /></RequireRole>} />
         <Route path="/users/new" element={<RequireRole user={user} role="admin"><NewUser /></RequireRole>} />
         <Route path="/users/:userId/edit" element={<RequireRole user={user} role="admin"><EditUser /></RequireRole>} />

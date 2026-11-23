@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { ArrowRight, Loader2 } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
 import { Label } from '@/components/ui/label'
 import { FileUpload } from '@/components/FileUpload'
 import { Button } from '@/components/ui/button'
@@ -85,18 +86,14 @@ export function ImportPage() {
   }
   return (
     <div className="max-w-2xl">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / Import'}
-      </p>
-      <h1 className="text-2xl font-bold mb-6">Import Workouts</h1>
+      <PageHeader title="Import Workouts" back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }} />
       {/* Step 1: Upload */}
       {step === 'upload' && (
         <div className="space-y-4">
           <div>
-            <Label >Format</Label>
+            <Label htmlFor="import-format">Format</Label>
             <Select value={format} onValueChange={(val) => setFormat(val ?? "strong")}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="import-format" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -107,13 +104,17 @@ export function ImportPage() {
             </Select>
           </div>
           <div>
-            <Label>File</Label>
-            <FileUpload accept=".csv,.json" onChange={(file) => uploadMutation.mutate(file)}
+            <Label htmlFor="import-file">File</Label>
+            <FileUpload id="import-file" accept=".csv,.json" onChange={(file) => uploadMutation.mutate(file)}
                label="Select file" />
           </div>
-          {uploadMutation.isPending && <Spinner />}
+          {uploadMutation.isPending && (
+            <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Reading file…
+            </p>
+          )}
           {uploadMutation.isError && (
-            <p className="text-sm text-destructive">{(uploadMutation.error as Error).message}</p>
+            <p role="alert" className="text-sm text-destructive">{(uploadMutation.error as Error).message}</p>
           )}
         </div>
       )}
@@ -126,15 +127,15 @@ export function ImportPage() {
           </p>
           <div className="space-y-3 mb-6">
             {mappings.map((m, i) => (
-              <Card size="sm" className="flex items-center gap-3">
-                <CardContent>
-                <p className="text-sm font-medium w-48 truncate" title={m.name}>{m.name}</p>
-                <span className="text-muted-foreground">→</span>
+              <Card key={`${m.name}-${i}`} size="sm">
+                <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <p id={`import-map-${i}`} className="text-sm font-medium sm:w-48 truncate" title={m.name}>{m.name}</p>
+                <ArrowRight className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
                 <Select
                   value={String(m.mapped_id)}
                   onValueChange={(val) => updateMapping(i, parseInt(val ?? '0'))}
                 >
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger aria-labelledby={`import-map-${i}`} className="w-full sm:flex-1">
                     <SelectValue>
                       {(value: string | null) => {
                         if (!value || value === '0') return 'Create new'
@@ -154,7 +155,7 @@ export function ImportPage() {
             ))}
           </div>
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => executeMutation.mutate()}
+            <Button onClick={() => executeMutation.mutate()}
               disabled={executeMutation.isPending}
               >
               {executeMutation.isPending ? 'Importing...' : 'Import'}
@@ -165,7 +166,7 @@ export function ImportPage() {
             </Button>
           </div>
           {executeMutation.isError && (
-            <p className="text-sm text-destructive mt-2">{(executeMutation.error as Error).message}</p>
+            <p role="alert" className="text-sm text-destructive mt-2">{(executeMutation.error as Error).message}</p>
           )}
         </div>
       )}
@@ -173,7 +174,7 @@ export function ImportPage() {
       {step === 'result' && importResult && (
         <Card className="text-center">
           <CardContent>
-          <span className="text-4xl block mb-3">✅</span>
+          <span className="text-4xl block mb-3" aria-hidden="true">✅</span>
           <h2 className="text-lg font-semibold mb-2">Import Complete!</h2>
           <div className="text-sm text-muted-foreground space-y-1">
             <p>{importResult.workouts_created} workout{importResult.workouts_created !== 1 ? 's' : ''} imported</p>

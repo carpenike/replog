@@ -3,10 +3,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { api, ApiError } from '@/api/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert } from '@/components/ui/alert'
+import { usePageTitle } from '@/lib/usePageTitle'
 
 // Map the machine-readable reason the OIDC callback appends on failure
 // (/login?error=...) to a friendly message. Anything unrecognized falls back
@@ -25,6 +26,7 @@ function oidcErrorMessage(reason: string): string {
 }
 
 export function Login() {
+  usePageTitle('Sign in')
   const location = useLocation()
   const params = new URLSearchParams(location.search)
   const oidcError = params.get('error')
@@ -72,7 +74,7 @@ export function Login() {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-primary">RepLog</CardTitle>
+          <h1 className="text-2xl font-bold text-primary">RepLog</h1>
         </CardHeader>
 
         <CardContent className="space-y-4">

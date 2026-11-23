@@ -434,7 +434,7 @@ erDiagram
 | `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - Login accounts, not training subjects. Separate from athletes.
-- `email` for password reset, notifications, and on-behalf identity (ADR 025). Required for a caller homelab-mcp acts as; optional for kids. Unique and case-insensitive. Admins edit it on the user form. Migration `0020` sets `ryan@ryanholt.net` only when a user named `ryan` exists, that email is empty, and the address is not already taken. It does not create users.
+- `email` for password reset, notifications, and on-behalf identity (ADR 025). Required for a caller homelab-mcp acts as; optional for kids. Unique and case-insensitive. Admins edit it on the user form. Migration `0020` is a retired no-op; it does not set addresses or create users.
 - `athlete_id` links the user to "their" athlete profile. NULL for coach-only accounts without a personal training profile.
 - `is_coach = 1` → full access to all athletes. `is_coach = 0` → can only view/log/edit workouts for their linked athlete.
 - `avatar_path` stores the relative path to the user's uploaded avatar image. NULL if no avatar has been uploaded.
@@ -581,11 +581,13 @@ erDiagram
 | `rep_type`  | TEXT         | NOT NULL DEFAULT 'reps', CHECK(rep_type IN ('reps', 'each_side', 'seconds', 'distance')) |
 | `category`  | TEXT         | NOT NULL DEFAULT 'main', CHECK(category IN ('main', 'supplemental', 'accessory')) |
 | `rpe`       | REAL         | NULL, CHECK(rpe >= 1 AND rpe <= 10)  |
+| `set_type`  | TEXT         | NOT NULL DEFAULT 'working', CHECK(set_type IN ('working', 'warmup', 'drop', 'failure')) |
 | `notes`     | TEXT         | NULL                                 |
 | `created_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`| DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 
 - One row = one set.
+- `set_type` (migration `0021`): warm-ups stay in the log, history, and exports, but every server-side read that counts work leaves them out — volume and load, featured-lift bests and e1RM, coach progress and PRs, AMRAP cycle results, week plan-vs-done, streak completion, and set counts. Drop and failure sets count as work. A set seeded from a `non_working` prescribed set is stored as `warmup`.
 - `weight` is nullable — bodyweight exercises (push-ups, bear crawls) don't need it.
 - `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s", `distance` → "20yd".
 - `category` classifies sets: `main` for programmed lifts, `supplemental` for lighter program work, `accessory` for accessory exercises. Defaults to `main`.
@@ -847,10 +849,16 @@ erDiagram
 | `rest_seconds`| INTEGER    | NULL, CHECK(NULL or >= 0)            |
 | `prescribed_rpe`| REAL   | NULL, CHECK(NULL or 1 through 10)    |
 | `group_label`| TEXT      | NULL                                 |
+| `reps_max`  | INTEGER      | NULL, CHECK(NULL or >= 0)            |
+| `rir_min`   | INTEGER      | NULL, CHECK(NULL or 0 through 10)    |
+| `rir_max`   | INTEGER      | NULL, CHECK(NULL or 0 through 10)    |
+| `non_working`| INTEGER     | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
+| `group_key` | TEXT         | NULL                                 |
 | `sort_order`| INTEGER      | NOT NULL DEFAULT 0                   |
 | `notes`     | TEXT         | NULL                                 |
 
 - Each row is one prescribed set within a template's week/day.
+- Migration `0021` adds the prescription detail: `reps_max` is the top of a rep range (`reps` is the bottom, so "8–12" is `reps = 8, reps_max = 12`; NULL means fixed reps). `rir_min`/`rir_max` is a reps-in-reserve range. `non_working = 1` marks a warm-up set, shown but not counted toward progress or PRs. `group_key` is the superset/circuit identity (`A`, `B`, …); sets of different exercises that share a key on a day are done as one linked group. A coach import fills all four from `program_block_exercises`, lettering the day's superset and circuit blocks in block order; the migration re-derived them for templates imported before it.
 - `reps = NULL` indicates an AMRAP (as many reps as possible) set.
 - `rep_type` determines how `reps` is displayed: `reps` → "5", `each_side` → "5/ea", `seconds` → "30s", `distance` → "20yd".
 - `percentage` is a decimal (e.g. 65.0 for 65%) used to calculate target weight from the athlete's training max.
@@ -1569,6 +1577,7 @@ INSERT INTO exercises (name, tier, form_notes) VALUES
 | `target_weight`| REAL         | NULL                                 |
 | `notes`        | TEXT         | NULL                                 |
 | `sort_order`   | INTEGER      | NOT NULL DEFAULT 0                   |
+| `group_key`    | TEXT         | NULL (superset/circuit group, migration `0021`) |
 | `active`       | INTEGER      | NOT NULL DEFAULT 1, CHECK(active IN (0, 1)) |
 | `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
 | `updated_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
@@ -1579,6 +1588,31 @@ INSERT INTO exercises (name, tier, form_notes) VALUES
 - `target_sets`, `target_rep_min`, `target_rep_max`, `target_weight` are all optional guidance — the coach sets goals, the athlete logs what they actually do.
 - `active = 0` soft-deactivates a plan without deleting it (preserves history). Partial index on `(athlete_id, day) WHERE active = 1` for fast lookup.
 - Deleting an athlete cascades to their plans. Exercises use RESTRICT to prevent deleting an exercise with plans.
+
+### `plate_setups` and `plate_setup_plates` (migration `0022`)
+
+| Column (`plate_setups`) | Type | Constraints |
+|----------------|-------------|--------------------------------------|
+| `athlete_id`   | INTEGER      | PRIMARY KEY, FK → athletes(id) ON DELETE CASCADE |
+| `bar_weight`   | REAL         | NOT NULL, CHECK(>= 0)                |
+| `bar_unit`     | TEXT         | NOT NULL, CHECK(IN ('kg', 'lbs'))    |
+| `collar_weight`| REAL         | NOT NULL DEFAULT 0 (one collar)      |
+| `collar_unit`  | TEXT         | NOT NULL DEFAULT 'kg'                |
+| `use_collars`  | INTEGER      | NOT NULL DEFAULT 0, CHECK(0 or 1)    |
+| `created_at` / `updated_at` | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP |
+
+| Column (`plate_setup_plates`) | Type | Constraints |
+|----------------|-------------|--------------------------------------|
+| `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `athlete_id`   | INTEGER      | NOT NULL, FK → plate_setups(athlete_id) ON DELETE CASCADE |
+| `weight`       | REAL         | NOT NULL, CHECK(> 0)                 |
+| `unit`         | TEXT         | NOT NULL, CHECK(IN ('kg', 'lbs'))    |
+| `pairs`        | INTEGER      | NOT NULL, CHECK(>= 0)                |
+
+- The barbell loading setup for an athlete's gym. The bar, collars, and each plate carry their own unit, separate from `user_preferences.weight_unit`, so an athlete can log in lbs while loading kg competition plates.
+- `pairs` is how many matched pairs of a plate size the gym has. `UNIQUE(athlete_id, weight, unit)`.
+- An athlete with no row reads the default: 20 kg bar, 2.5 kg collars (off), and competition kg plate pairs 25, 20 (×2), 15, 10, 5, 2.5, 2, 1.5, 1, 0.5, 0.25, 0.125 (the home gym). A standard lb preset (45 lb bar; 45/35/25/10/5/2.5 lb) is also offered. Saving replaces the whole inventory; deleting the row resets to the default.
+- The athlete and their coach (or an admin) can read and change it via `/api/athletes/{id}/plate-setup`.
 
 ### `notifications`
 
@@ -1827,6 +1861,14 @@ watch a *feed*, not a dependency — a Garmin/Whoop later is another `source`.
 | `created_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                          |
 
 - Append-only — no `updated_at`/trigger. Indexed on `(athlete_id, recorded_at)`.
+- Health import (migration `0026`, `POST /athletes/{id}/bio-samples/import`,
+  see [health-import.md](health-import.md)) writes `source = 'watch_import'`
+  rows with `recorded_at` normalized to UTC `YYYY-MM-DD HH:MM:SS`, metrics
+  `sleep_hours` (h), `resting_hr` (bpm), `hrv` (ms) and `steps` (count).
+  Idempotent per `(athlete_id, metric, recorded_at)`: the importer skips a
+  key any row already holds (compared with `datetime()`), and the partial
+  unique index `idx_bio_samples_import_key ... WHERE source = 'watch_import'`
+  backs it for imported rows. Manual rows are not constrained.
 
 ## Multi-Modal Logbook — Phase 2 (ADR 018, migration `0007_multi_modal_phase2.sql`)
 
@@ -1909,12 +1951,36 @@ into load**.
 | `sleep_hours` | REAL     | NULL                                                              |
 | `soreness`    | INTEGER  | NULL, CHECK(soreness IS NULL OR (soreness >= 1 AND soreness <= 10)) |
 | `energy`      | INTEGER  | NULL, CHECK(energy IS NULL OR (energy >= 1 AND energy <= 10))      |
+| `mood`        | INTEGER  | NULL, CHECK(mood IS NULL OR (mood >= 1 AND mood <= 10)) (migration `0023`) |
 | `notes`       | TEXT     | NULL                                                              |
 | `created_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                                |
 | `updated_at`  | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP (trigger)                     |
 
 - Indexed on `workout_id`. A **recovery signal, not a load input** — excluded
   from the load view.
+- The session screen's readiness prompt (sleep, soreness, mood) saves one of
+  these for the workout's date. `low_readiness` is computed on read
+  (`models.ReadinessIsLow`): sleep under 6 h, soreness 8+, or mood/energy 3 or
+  less. It flags the session in the coach's pending reviews and on the
+  workout read. It never changes the plan.
+
+### `workout_exercise_swaps` (migration `0024`)
+
+| Column             | Type     | Constraints                                           |
+|--------------------|----------|-------------------------------------------------------|
+| `id`               | INTEGER  | PRIMARY KEY AUTOINCREMENT                             |
+| `workout_id`       | INTEGER  | NOT NULL, FK → workouts(id) ON DELETE CASCADE         |
+| `from_exercise_id` | INTEGER  | NOT NULL, FK → exercises(id) ON DELETE RESTRICT       |
+| `to_exercise_id`   | INTEGER  | NOT NULL, FK → exercises(id) ON DELETE RESTRICT       |
+| `reason`           | TEXT     | NULL (at most 500 characters)                         |
+| `created_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                    |
+
+- An athlete swapped a prescribed exercise for one sharing a movement pattern
+  (`exercise_movement_patterns`) during a session. `CHECK(from <> to)`,
+  `UNIQUE(workout_id, from_exercise_id)`, indexed on `workout_id`.
+- A note for the coach's review (shown on the workout read and counted in
+  pending reviews). The program and prescription are never changed; the
+  substitute's sets are logged as normal `workout_sets`.
 
 ### Cross-modal load view (no table — `GetLoadSummary`, `GET /athletes/{id}/load`)
 
@@ -1962,6 +2028,95 @@ Migrations `0012`–`0014` extend the AI-Coach `generations` table (ADR 015):
   youth percentage-loading. Surfaced in the coach's preview; advisory only.
 - `prompt_version` (TEXT) — the `llm.PromptVersion` that produced the draft, so
   output-quality changes can be correlated with prompt edits across rows.
+
+### `push_subscriptions`, `vapid_keys`, `weekly_digest_log` (migration `0025`)
+
+| Column (`push_subscriptions`) | Type | Constraints |
+|----------------|-------------|--------------------------------------|
+| `id`           | INTEGER      | PRIMARY KEY AUTOINCREMENT            |
+| `user_id`      | INTEGER      | NOT NULL, FK → users(id) ON DELETE CASCADE |
+| `endpoint`     | TEXT         | NOT NULL UNIQUE                      |
+| `p256dh`       | TEXT         | NOT NULL (browser public key, base64url) |
+| `auth`         | TEXT         | NOT NULL (16-byte auth secret, base64url) |
+| `user_agent`   | TEXT         | NULL                                 |
+| `created_at`   | DATETIME     | NOT NULL DEFAULT CURRENT_TIMESTAMP   |
+| `last_success_at` | DATETIME  | NULL                                 |
+
+- One row per browser Web Push subscription, used for rest alerts (a push
+  when the rest timer ends so a locked phone buzzes). Re-subscribing the same
+  endpoint refreshes the keys; a device signed in as another user moves to
+  that user. A subscription the push service reports as gone (404/410) is
+  deleted on the next send. Endpoints must be https on a known push service.
+- `vapid_keys` is a single row (`id = 1`): the VAPID application-server key
+  pair, generated on first start when `REPLOG_VAPID_PUBLIC_KEY` /
+  `REPLOG_VAPID_PRIVATE_KEY` are unset. `private_key` is stored as
+  `enc:<ciphertext>` when `REPLOG_SECRET_KEY` is set.
+- `weekly_digest_log` (`PRIMARY KEY (user_id, week_start)`) records each
+  coach digest sent, so a week goes out at most once per coach.
+- Pending rest alerts are not stored: they are in-memory timers, and a
+  restart drops the one in flight.
+
+### `workout_set_videos` (migration `0026`)
+
+| Column          | Type     | Constraints                                                   |
+|-----------------|----------|---------------------------------------------------------------|
+| `id`            | INTEGER  | PRIMARY KEY AUTOINCREMENT                                     |
+| `set_id`        | INTEGER  | NOT NULL UNIQUE, FK → workout_sets(id) ON DELETE CASCADE      |
+| `file_name`     | TEXT     | NOT NULL UNIQUE (random server-chosen name in `REPLOG_VIDEO_DIR`) |
+| `content_type`  | TEXT     | NOT NULL, CHECK IN ('video/mp4','video/quicktime','video/webm') |
+| `size_bytes`    | INTEGER  | NOT NULL, CHECK > 0                                           |
+| `uploaded_by`   | INTEGER  | NULL, FK → users(id) ON DELETE SET NULL                       |
+| `coach_comment` | TEXT     | NULL (at most 2000 characters)                                |
+| `commented_by`  | INTEGER  | NULL, FK → users(id) ON DELETE SET NULL                       |
+| `commented_at`  | DATETIME | NULL                                                          |
+| `created_at`    | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                            |
+
+- A form-check clip on one logged set (gap 12), at most one per set;
+  uploading again replaces the clip and clears the comment. The type is
+  sniffed from the file's first bytes (ISO base media `ftyp` or WebM EBML),
+  never taken from the client. The cap is `REPLOG_VIDEO_MAX_MB` (default 100).
+- The file is streamed only through `GET
+  /athletes/{id}/workouts/{workoutID}/sets/{setID}/video` (Range supported),
+  scoped set → workout → athlete (ADR 021). It is not in the public avatar
+  directory. Writes are browser-session only; the comment is coach/admin
+  only and is review feedback, never a plan change.
+- Deleting the set or workout removes the file at once; other cascades
+  (athlete delete) leave a file the scheduler sweeps after an hour.
+- Counted per workout in pending reviews (`video_count`).
+
+### `set_video_shares` (migration `0027`)
+
+| Column             | Type     | Constraints                                                     |
+|--------------------|----------|-----------------------------------------------------------------|
+| `id`               | INTEGER  | PRIMARY KEY AUTOINCREMENT                                       |
+| `video_id`         | INTEGER  | NOT NULL, FK → workout_set_videos(id) ON DELETE CASCADE         |
+| `token_hash`       | TEXT     | NOT NULL UNIQUE, CHECK length = 64 (hex SHA-256 of the token)   |
+| `label`            | TEXT     | NULL, CHECK at most 100 characters                              |
+| `created_by`       | INTEGER  | NULL, FK → users(id) ON DELETE SET NULL                         |
+| `created_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                              |
+| `expires_at`       | DATETIME | NOT NULL                                                        |
+| `revoked_at`       | DATETIME | NULL                                                            |
+| `revoked_by`       | INTEGER  | NULL, FK → users(id) ON DELETE SET NULL                         |
+| `last_accessed_at` | DATETIME | NULL                                                            |
+| `access_count`     | INTEGER  | NOT NULL DEFAULT 0, CHECK >= 0                                  |
+
+Index: `idx_set_video_shares_video (video_id)`.
+
+- A no-login link to one form-check clip. Anyone with access to the clip
+  (the athlete, their coach, an admin; ADR 021 scoping) can create one;
+  browser session only. The token (32 random bytes, base64url) is returned
+  once on create; only its SHA-256 is stored and lookups are by hash.
+- Expiry is 24 h, 7 d (default) or 30 d, chosen at creation; the API
+  refuses anything else. Expired and revoked rows stay for the owner's
+  history (`include_inactive=true`) and never resolve.
+- Public routes: the viewer page `GET /s/{token}`, `GET
+  /api/share/{token}` (exercise name, workout date, expiry) and `GET
+  /api/share/{token}/video` (the bytes, Range supported). Every unusable
+  token gets the same 404. `access_count` counts metadata loads and plain
+  (non-Range) downloads; `last_accessed_at` is stamped on every access.
+- Deleting or replacing the clip deletes its `workout_set_videos` row, and
+  the cascade removes every link to it. `REPLOG_VIDEO_SHARING_DISABLED`
+  turns all links off without touching rows.
 
 ## Future Considerations (v2+)
 

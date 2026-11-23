@@ -57,6 +57,7 @@ type WorkoutSetRequest struct {
 	RepType    string  `json:"rep_type,omitempty" example:"reps" jsonschema:"One of: reps, each_side, seconds, distance. Defaults to reps."`
 	Category   string  `json:"category,omitempty" example:"main" jsonschema:"One of: main, supplemental, accessory. Defaults to main."`
 	Notes      string  `json:"notes,omitempty" jsonschema:"Optional free-text note for this set."`
+	SetType    string  `json:"set_type,omitempty" example:"working" jsonschema:"One of: working, warmup, drop, failure. Defaults to working. Warm-ups are left out of volume, PRs, e1RM, streaks, and set counts."`
 }
 
 // WorkoutSetUpdateRequest is the body for PUT /api/athletes/{id}/workouts/{workoutID}/sets/{setID}.
@@ -67,10 +68,11 @@ type WorkoutSetRequest struct {
 // history. A non-nil weight/rpe of 0 explicitly clears that column; a non-nil
 // empty notes clears the note.
 type WorkoutSetUpdateRequest struct {
-	Reps   *int     `json:"reps,omitempty" example:"5" jsonschema:"New repetition count. Omit to leave unchanged."`
-	Weight *float64 `json:"weight,omitempty" example:"135" jsonschema:"New load in the user's configured weight unit (lbs by default). Omit to leave unchanged; send 0 to clear."`
-	RPE    *float64 `json:"rpe,omitempty" example:"7" jsonschema:"New RPE, 0-10. Omit to leave unchanged; send 0 to clear."`
-	Notes  *string  `json:"notes,omitempty" jsonschema:"New note text. Omit to leave unchanged; send an empty string to clear."`
+	Reps    *int     `json:"reps,omitempty" example:"5" jsonschema:"New repetition count. Omit to leave unchanged."`
+	Weight  *float64 `json:"weight,omitempty" example:"135" jsonschema:"New load in the user's configured weight unit (lbs by default). Omit to leave unchanged; send 0 to clear."`
+	RPE     *float64 `json:"rpe,omitempty" example:"7" jsonschema:"New RPE, 0-10. Omit to leave unchanged; send 0 to clear."`
+	Notes   *string  `json:"notes,omitempty" jsonschema:"New note text. Omit to leave unchanged; send an empty string to clear."`
+	SetType *string  `json:"set_type,omitempty" example:"warmup" jsonschema:"New set type: working, warmup, drop, or failure. Omit to leave unchanged."`
 }
 
 // WorkoutNotesRequest is the body for PUT /api/athletes/{id}/workouts/{workoutID}/notes.
@@ -166,7 +168,16 @@ type RecoveryCheckinRequest struct {
 	SleepHours *float64 `json:"sleep_hours,omitempty" example:"8.5" jsonschema:"Hours of sleep the prior night."`
 	Soreness   *int64   `json:"soreness,omitempty" example:"3" jsonschema:"Muscle soreness on a 1-10 scale (1 = none, 10 = severe)."`
 	Energy     *int64   `json:"energy,omitempty" example:"7" jsonschema:"Energy level on a 1-10 scale (1 = exhausted, 10 = fully energized)."`
+	Mood       *int64   `json:"mood,omitempty" example:"7" jsonschema:"Mood on a 1-10 scale (1 = awful, 10 = great)."`
 	Notes      string   `json:"notes,omitempty" jsonschema:"Optional free-text note."`
+}
+
+// ExerciseSwapRequest is the body for POST
+// /api/athletes/{id}/workouts/{workoutID}/swaps.
+type ExerciseSwapRequest struct {
+	FromExerciseID int64  `json:"from_exercise_id" example:"12"`
+	ToExerciseID   int64  `json:"to_exercise_id" example:"31"`
+	Reason         string `json:"reason,omitempty" example:"Knee felt off on squats"`
 }
 
 // PreferencesRequest is the body for PUT /api/preferences.
@@ -232,6 +243,11 @@ type PrescribedSetRequest struct {
 	RestSeconds    *int     `json:"rest_seconds,omitempty" example:"180"`
 	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty" example:"7.5"`
 	GroupLabel     string   `json:"group_label,omitempty" example:"T1"`
+	RepsMax        *int     `json:"reps_max,omitempty" example:"12"`
+	RIRMin         *int     `json:"rir_min,omitempty" example:"2"`
+	RIRMax         *int     `json:"rir_max,omitempty" example:"3"`
+	NonWorking     bool     `json:"non_working,omitempty"`
+	GroupKey       string   `json:"group_key,omitempty" example:"A"`
 	SortOrder      int      `json:"sort_order,omitempty"`
 	RepType        string   `json:"rep_type,omitempty" example:"reps"`
 	Notes          string   `json:"notes,omitempty"`
@@ -247,9 +263,17 @@ type PrescribedSetUpdateRequest struct {
 	RestSeconds    *int     `json:"rest_seconds,omitempty" example:"180"`
 	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty" example:"7.5"`
 	GroupLabel     string   `json:"group_label,omitempty" example:"T1"`
-	SortOrder      int      `json:"sort_order,omitempty"`
-	RepType        string   `json:"rep_type,omitempty"`
-	Notes          string   `json:"notes,omitempty"`
+	// Detail fields are optional on update: omit one to leave it unchanged.
+	// reps_max 0 clears the rep range; a negative rir_min or rir_max clears
+	// the RIR range; group_key "" ungroups the set.
+	RepsMax    *int    `json:"reps_max,omitempty" example:"12"`
+	RIRMin     *int    `json:"rir_min,omitempty" example:"2"`
+	RIRMax     *int    `json:"rir_max,omitempty" example:"3"`
+	NonWorking *bool   `json:"non_working,omitempty"`
+	GroupKey   *string `json:"group_key,omitempty" example:"A"`
+	SortOrder  int     `json:"sort_order,omitempty"`
+	RepType    string  `json:"rep_type,omitempty"`
+	Notes      string  `json:"notes,omitempty"`
 }
 
 // WriteProgramDraftRequest is the body for POST /api/programs/drafts.
@@ -281,6 +305,11 @@ type DraftPrescribedSetRequest struct {
 	RestSeconds    *int     `json:"rest_seconds,omitempty"`
 	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty" example:"7.5"`
 	GroupLabel     string   `json:"group_label,omitempty" example:"T1"`
+	RepsMax        *int     `json:"reps_max,omitempty" example:"12"`
+	RIRMin         *int     `json:"rir_min,omitempty" example:"2"`
+	RIRMax         *int     `json:"rir_max,omitempty" example:"3"`
+	NonWorking     bool     `json:"non_working,omitempty"`
+	GroupKey       string   `json:"group_key,omitempty" example:"A"`
 	SortOrder      int      `json:"sort_order,omitempty"`
 	RepType        string   `json:"rep_type,omitempty" example:"reps"`
 	Notes          string   `json:"notes,omitempty"`
@@ -318,6 +347,8 @@ type AccessoryPlanRequest struct {
 	TargetWeight float64 `json:"target_weight,omitempty"`
 	Notes        string  `json:"notes,omitempty"`
 	SortOrder    int     `json:"sort_order,omitempty"`
+	// GroupKey links accessory lines into a superset/circuit (A, B, ...).
+	GroupKey string `json:"group_key,omitempty" example:"A"`
 }
 
 // AccessoryPlanUpdateRequest is the body for PUT /api/athletes/{id}/accessories/{planID}.
@@ -328,6 +359,9 @@ type AccessoryPlanUpdateRequest struct {
 	TargetWeight float64 `json:"target_weight,omitempty"`
 	Notes        string  `json:"notes,omitempty"`
 	SortOrder    int     `json:"sort_order,omitempty"`
+	// GroupKey links accessory lines into a superset/circuit (A, B, ...).
+	// Omit it to leave the group unchanged; send "" to ungroup.
+	GroupKey *string `json:"group_key,omitempty" example:"A"`
 }
 
 // AthleteNoteRequest is the body for POST /api/athletes/{id}/notes
@@ -448,4 +482,57 @@ type CatalogImportExecuteRequest struct {
 type CatalogImportMappingDecision struct {
 	MappedID int64 `json:"mapped_id"`
 	Create   bool  `json:"create"`
+}
+
+// SetVideoCommentRequest is the body for PUT .../sets/{setID}/video/comment.
+// An empty comment clears it.
+type SetVideoCommentRequest struct {
+	Comment string `json:"comment" example:"Knees caving on rep 3 — cue knees out." jsonschema:"Coach comment on the clip (at most 2000 characters). Empty clears it."`
+}
+
+// VideoShareCreateRequest is the body for POST .../sets/{setID}/video/shares.
+type VideoShareCreateRequest struct {
+	// ExpiresInHours is 24, 168 (7 days, the default when 0 or omitted) or
+	// 720 (30 days). Anything else, including more than 30 days, is a 400.
+	ExpiresInHours int `json:"expires_in_hours,omitempty" example:"168" enums:"24,168,720"`
+	// Label is an optional note for the owner's list, such as who the link
+	// was sent to (at most 100 characters). The viewer never sees it.
+	Label string `json:"label,omitempty" example:"Grandpa"`
+}
+
+// BioSampleImportRequest is the body for POST /api/athletes/{id}/bio-samples/import.
+// Send either samples (the generic shape, easy to build in an iOS Shortcut)
+// or data (the Health Auto Export REST export as-is), or both.
+type BioSampleImportRequest struct {
+	Samples []BioSampleImportItem `json:"samples,omitempty"`
+	Data    *HealthAutoExportData `json:"data,omitempty"`
+}
+
+// BioSampleImportItem is one reading in the generic import shape.
+type BioSampleImportItem struct {
+	Metric     string  `json:"metric" example:"resting_hr" jsonschema:"sleep_hours, resting_hr, hrv or steps (Apple Health names such as resting_heart_rate are accepted)."`
+	Value      float64 `json:"value" example:"52"`
+	Unit       string  `json:"unit,omitempty" example:"bpm" jsonschema:"Optional. Sleep sent in min is converted to hours; other units are stored canonically (h, bpm, ms, count)."`
+	RecordedAt string  `json:"recorded_at" example:"2026-11-21T06:30:00-05:00" jsonschema:"ISO 8601, 'YYYY-MM-DD HH:MM:SS -0500', or a bare date for daily totals. Zone-less values use the caller's timezone."`
+}
+
+// HealthAutoExportData is the "data" object Health Auto Export posts.
+type HealthAutoExportData struct {
+	Metrics []HealthAutoExportMetric `json:"metrics"`
+}
+
+// HealthAutoExportMetric is one metric series in a Health Auto Export post.
+type HealthAutoExportMetric struct {
+	Name  string                  `json:"name" example:"resting_heart_rate"`
+	Units string                  `json:"units,omitempty" example:"count/min"`
+	Data  []HealthAutoExportPoint `json:"data"`
+}
+
+// HealthAutoExportPoint is one point. Quantity metrics carry qty; the
+// aggregated sleep_analysis series carries asleep / totalSleep in hours.
+type HealthAutoExportPoint struct {
+	Date       string   `json:"date" example:"2026-11-21 00:00:00 -0500"`
+	Qty        *float64 `json:"qty,omitempty"`
+	Asleep     *float64 `json:"asleep,omitempty"`
+	TotalSleep *float64 `json:"totalSleep,omitempty"`
 }

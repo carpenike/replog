@@ -1,9 +1,12 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
 import type { PitchSmartStatus } from '@/api/types'
-import { Spinner, QueryError } from '@/components/ui'
-import { usePageTitle } from '@/lib/usePageTitle'
+import { EmptyState } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { useFriendlyDate } from '@/lib/dates'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -16,7 +19,7 @@ const DISCIPLINE_LABELS: Record<string, string> = {
 }
 
 export function LoadDashboard() {
-  usePageTitle('Training Load')
+  const friendlyDate = useFriendlyDate()
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
 
@@ -26,7 +29,7 @@ export function LoadDashboard() {
     enabled: !isNaN(athleteId),
   })
 
-  const { data: load, isLoading, error, refetch } = useQuery({
+  const loadQuery = useQuery({
     queryKey: ['load-summary', athleteId],
     queryFn: () => api.getLoadSummary(athleteId),
     enabled: !isNaN(athleteId),
@@ -48,31 +51,26 @@ export function LoadDashboard() {
     retry: false,
   })
 
-  if (isLoading) return <Spinner />
-  if (error) return <QueryError error={error} onRetry={refetch} resource="training load" />
+  const load = loadQuery.data
 
   return (
     <div>
-      <div className="mb-6">
-        <p className="text-sm text-muted-foreground">
-          <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">
-            {athlete?.name ?? 'Athlete'}
-          </Link>
-          {' / Load'}
-        </p>
-        <h1 className="text-2xl font-bold">Training load</h1>
-        {load && (
-          <p className="text-sm text-muted-foreground mt-1">
-            Acute:chronic workload ratio per discipline, as of {load.as_of}. Read-only — for coach review.
-          </p>
-        )}
-      </div>
+      <PageHeader
+        title="Training load"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        description={load && `Acute:chronic workload ratio per discipline, as of ${friendlyDate(load.as_of)}. Read-only, for coach review.`}
+      />
 
-      {load && load.disciplines.length === 0 ? (
-        <p className="text-muted-foreground">No load data yet. Log some sessions to build history.</p>
-      ) : (
+      <QueryState
+        query={loadQuery}
+        resource="training load"
+        skeleton="cards"
+        isEmpty={l => l.disciplines.length === 0}
+        empty={{ icon: '📈', title: 'No load data yet', description: 'Log some sessions to build history.' }}
+      >
+        {load => (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-          {load?.disciplines.map(d => (
+          {load.disciplines.map(d => (
             <Card key={d.discipline}>
               <CardHeader>
                 <CardTitle className="text-base">{DISCIPLINE_LABELS[d.discipline] ?? d.discipline}</CardTitle>
@@ -98,14 +96,15 @@ export function LoadDashboard() {
             </Card>
           ))}
         </div>
-      )}
+        )}
+      </QueryState>
 
-      <div className="max-w-xl">
+      <div className="max-w-xl mt-8">
         <h2 className="text-lg font-semibold mb-2">Pitch Smart</h2>
         {pitchLoading ? (
-          <Spinner />
+          <Skeleton className="h-20 w-full rounded-lg" />
         ) : pitchSmart === null || pitchSmart === undefined ? (
-          <p className="text-muted-foreground text-sm">No counted pitching sessions yet — no Pitch Smart advisory to show.</p>
+          <EmptyState icon="⚾" title="No Pitch Smart advisory" description="No counted pitching sessions yet." />
         ) : (
           <Alert variant={pitchSmart.over_daily_max || pitchSmart.rest_days_owed > 0 ? 'warning' : 'default'}>
             <AlertTitle>
@@ -115,7 +114,7 @@ export function LoadDashboard() {
               <p>{pitchSmart.advisory}</p>
               {pitchSmart.rest_days_owed > 0 && pitchSmart.next_eligible_date && (
                 <p className="mt-1">
-                  Rest days owed: {pitchSmart.rest_days_owed} (next eligible {pitchSmart.next_eligible_date}).
+                  Rest days owed: {pitchSmart.rest_days_owed} (next eligible {friendlyDate(pitchSmart.next_eligible_date)}).
                 </p>
               )}
             </AlertDescription>

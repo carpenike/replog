@@ -6,10 +6,10 @@ package importers
 type Format string
 
 const (
-	FormatRepLogJSON   Format = "replog_json"
-	FormatCatalogJSON  Format = "catalog_json"
-	FormatStrongCSV    Format = "strong_csv"
-	FormatHevyCSV      Format = "hevy_csv"
+	FormatRepLogJSON  Format = "replog_json"
+	FormatCatalogJSON Format = "catalog_json"
+	FormatStrongCSV   Format = "strong_csv"
+	FormatHevyCSV     Format = "hevy_csv"
 )
 
 // ParsedFile is the unified output from any parser. It contains all entities
@@ -119,6 +119,7 @@ type ParsedWorkoutSet struct {
 	Reps      int      `json:"reps"`
 	RepType   string   `json:"rep_type"`
 	Category  string   `json:"category,omitempty"`
+	SetType   string   `json:"set_type,omitempty"` // working (default), warmup, drop, failure
 	Weight    *float64 `json:"weight"`
 	RPE       *float64 `json:"rpe"`
 	Notes     *string  `json:"notes"`
@@ -160,6 +161,13 @@ type ParsedPrescribedSet struct {
 	RestSeconds    *int     `json:"rest_seconds"`
 	SortOrder      int      `json:"sort_order"`
 	Notes          *string  `json:"notes"`
+	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty"`
+	GroupLabel     *string  `json:"group_label,omitempty"`
+	RepsMax        *int     `json:"reps_max,omitempty"`
+	RIRMin         *int     `json:"rir_min,omitempty"`
+	RIRMax         *int     `json:"rir_max,omitempty"`
+	NonWorking     bool     `json:"non_working,omitempty"`
+	GroupKey       *string  `json:"group_key,omitempty"`
 }
 
 // ParsedProgressionRule is a TM increment rule for a program template.

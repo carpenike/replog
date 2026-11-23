@@ -1,10 +1,15 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
 import type { SkillSessionInput } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Plus, Trash2, X } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { CardList, CardListItem, DesktopOnly } from '@/components/CardList'
+import { useFriendlyDate } from '@/lib/dates'
+import { localDateISO } from '@/lib/utils'
 import { useConfirm } from '@/lib/useConfirm'
 import { EnumSelect } from '@/components/EnumSelect'
 import { Button } from '@/components/ui/button'
@@ -36,7 +41,7 @@ export function SkillSessions() {
   const { confirm, dialog: confirmDialog } = useConfirm()
 
   const [showForm, setShowForm] = useState(false)
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(localDateISO())
   const [skillType, setSkillType] = useState('batting')
   const [repCount, setRepCount] = useState('')
   const [loadKg, setLoadKg] = useState('')
@@ -50,14 +55,15 @@ export function SkillSessions() {
     enabled: !isNaN(athleteId),
   })
 
-  const { data: sessions, isLoading, error } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const listQuery = useQuery({
     queryKey: ['skill-sessions', athleteId],
     queryFn: () => api.listSkillSessions(athleteId),
     enabled: !isNaN(athleteId),
   })
 
   function resetForm() {
-    setDate(new Date().toISOString().slice(0, 10))
+    setDate(localDateISO())
     setSkillType('batting')
     setRepCount('')
     setLoadKg('')
@@ -99,24 +105,19 @@ export function SkillSessions() {
     }
   }
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load skill sessions.</p>
 
   return (
     <div>
       {confirmDialog()}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">
-              {athlete?.name ?? 'Athlete'}
-            </Link>
-            {' / Skill'}
-          </p>
-          <h1 className="text-2xl font-bold">Skill</h1>
-        </div>
-        <Button onClick={() => setShowForm(s => !s)}>{showForm ? 'Cancel' : '+ Log Skill'}</Button>
-      </div>
+      <PageHeader
+        title="Skill"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={
+          <Button variant={showForm ? 'ghost' : 'default'} onClick={() => setShowForm(s => !s)} aria-expanded={showForm}>
+            {showForm ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Log Skill</>}
+          </Button>
+        }
+      />
 
       {showForm && (
         <form
@@ -124,12 +125,12 @@ export function SkillSessions() {
           className="space-y-4 max-w-lg mb-8 rounded-lg border p-4"
         >
           <div>
-            <Label htmlFor="date">Date</Label>
+            <Label htmlFor="date">Date <span aria-hidden="true" className="text-destructive">*</span></Label>
             <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
           </div>
           <div>
-            <Label>Skill type</Label>
-            <EnumSelect value={skillType} onChange={setSkillType} options={SKILL_TYPES} required />
+            <Label htmlFor="skill-skill-type">Skill type <span aria-hidden="true" className="text-destructive">*</span></Label>
+            <EnumSelect id="skill-skill-type" value={skillType} onChange={setSkillType} options={SKILL_TYPES} required />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -159,34 +160,53 @@ export function SkillSessions() {
         </form>
       )}
 
-      {sessions && sessions.length === 0 ? (
-        <p className="text-muted-foreground">No skill sessions logged yet.</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Skill</TableHead>
-              <TableHead>Reps</TableHead>
-              <TableHead>Load</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sessions?.map(s => (
-              <TableRow key={s.id}>
-                <TableCell className="font-medium">{s.date}</TableCell>
-                <TableCell>{s.skill_type}</TableCell>
-                <TableCell>{s.rep_count ?? '—'}</TableCell>
-                <TableCell>{s.load_kg ?? '—'}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}>Delete</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+      <QueryState
+        query={listQuery}
+        resource="skill sessions"
+        empty={{ icon: '🎯', title: 'No skill sessions logged yet', description: 'Batting, fielding, sprints and other skill work show up here.', action: !showForm ? 'Log Skill' : undefined, onAction: () => setShowForm(true) }}
+      >
+        {sessions => (
+          <>
+            <CardList label="Skill">
+              {sessions.map(s => (
+                <CardListItem
+                  key={s.id}
+                  title={friendlyDate(s.date)}
+                  subtitle={SKILL_TYPES.find(t => t.value === s.skill_type)?.label ?? s.skill_type}
+                  trailing={[s.rep_count != null ? `${s.rep_count} reps` : null, s.load_kg != null ? `${s.load_kg} kg` : null].filter(Boolean).join(' · ') || undefined}
+                  actions={<Button variant="ghost" size="sm" aria-label={`Delete ${'skill session ' + friendlyDate(s.date)}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(s.id)}><Trash2 aria-hidden="true" /> Delete</Button>}
+                />
+              ))}
+            </CardList>
+            <DesktopOnly>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Skill</TableHead>
+                  <TableHead>Reps</TableHead>
+                  <TableHead>Load</TableHead>
+                  <TableHead><span className="sr-only">Actions</span></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sessions.map(s => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{friendlyDate(s.date)}</TableCell>
+                    <TableCell>{s.skill_type}</TableCell>
+                    <TableCell>{s.rep_count ?? '—'}</TableCell>
+                    <TableCell>{s.load_kg ?? '—'}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon-sm" aria-label={`Delete skill session ${friendlyDate(s.date)}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(s.id)}><Trash2 aria-hidden="true" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
         </Table>
-      )}
+            </DesktopOnly>
+          </>
+        )}
+      </QueryState>
     </div>
   )
 }

@@ -36,6 +36,9 @@ import (
 	"github.com/carpenike/replog/internal/models"
 )
 
+// testShareIndexHTML stands in for the built SPA index.html in tests.
+const testShareIndexHTML = "<!doctype html><title>RepLog</title><div id=root></div>"
+
 // testEnv bundles the per-test database, session manager, handlers, and an HTTP
 // router that mirrors the production /api wiring.
 type testEnv struct {
@@ -71,6 +74,7 @@ func setupTest(t *testing.T) *testEnv {
 		DB:        db,
 		Sessions:  sm,
 		AvatarDir: t.TempDir(),
+		VideoDir:  t.TempDir(),
 	}
 
 	withAuth := func(next http.Handler) http.Handler {
@@ -85,6 +89,12 @@ func setupTest(t *testing.T) *testEnv {
 		r.Group(func(r chi.Router) {
 			r.Post("/login", h.Login)
 			r.Get("/auth/token/{token}", h.TokenLogin)
+		})
+
+		// Public share-link routes: outside withAuth, as in main.go.
+		r.Group(func(r chi.Router) {
+			r.Get("/share/{token}", h.GetSharedVideo)
+			r.Get("/share/{token}/video", h.GetSharedVideoFile)
 		})
 
 		// Authenticated endpoints — mirror main.go's /api group.
@@ -124,10 +134,26 @@ func setupTest(t *testing.T) *testEnv {
 			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}", h.UpdateWorkoutSet)
 			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}", h.DeleteWorkoutSet)
 
+			r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", h.UploadSetVideo)
+			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", h.GetSetVideoFile)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", h.DeleteSetVideo)
+			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/comment", h.CommentSetVideo)
+			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares", h.ListVideoShares)
+			r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares", h.CreateVideoShare)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares/{shareID}", h.RevokeVideoShare)
+
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", h.UpdateWorkoutNotes)
+
+			// Exercise swaps (athlete swaps a prescribed lift; the program is unchanged).
+			r.Get("/athletes/{id}/exercises/{exerciseID}/substitutes", h.ListExerciseSubstitutes)
+			r.Post("/athletes/{id}/workouts/{workoutID}/swaps", h.CreateExerciseSwap)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/swaps/{swapID}", h.DeleteExerciseSwap)
 
 			r.Get("/athletes/{id}/coach/sessions", h.ListCoachSessions)
 			r.Get("/athletes/{id}/coach/week", h.GetCoachWeek)
+			r.Get("/athletes/{id}/calendar", h.GetAthleteCalendar)
+			r.Get("/coach/compliance", h.GetCoachCompliance)
+			r.Get("/whiteboard", h.GetWhiteboard)
 			r.Get("/athletes/{id}/coach/progress", h.GetCoachProgress)
 			r.Get("/athletes/{id}/coach/position", h.GetCoachPosition)
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", h.GetCoachLastSession)
@@ -157,6 +183,7 @@ func setupTest(t *testing.T) *testEnv {
 			r.Delete("/athletes/{id}/season-phases/{phaseID}", h.DeleteSeasonPhase)
 			r.Get("/athletes/{id}/bio-samples", h.ListBioSamples)
 			r.Post("/athletes/{id}/bio-samples", h.CreateBioSample)
+			r.Post("/athletes/{id}/bio-samples/import", h.ImportBioSamples)
 			r.Get("/athletes/{id}/pitch-smart", h.GetPitchSmartStatus)
 
 			r.Get("/athletes/{id}/conditioning-sessions", h.ListConditioningSessions)
@@ -209,6 +236,10 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/equipment", h.ListAthleteEquipment)
 			r.Post("/athletes/{id}/equipment", h.AddAthleteEquipment)
 			r.Delete("/athletes/{id}/equipment/{equipmentID}", h.RemoveAthleteEquipment)
+			r.Get("/athletes/{id}/plate-setup", h.GetPlateSetup)
+			r.Put("/athletes/{id}/plate-setup", h.UpdatePlateSetup)
+			r.Delete("/athletes/{id}/plate-setup", h.ResetPlateSetup)
+			r.Get("/plate-setup/presets", h.ListPlateSetupPresets)
 
 			// Exercise equipment.
 			r.Get("/exercises/{id}/equipment", h.ListExerciseEquipment)
@@ -223,6 +254,8 @@ func setupTest(t *testing.T) *testEnv {
 
 			// Exercise history (per athlete).
 			r.Get("/athletes/{id}/exercises/{exerciseID}/history", h.ListExerciseHistory)
+			r.Get("/athletes/{id}/records", h.GetAthleteRecords)
+			r.Get("/athletes/{id}/milestones", h.GetAthleteMilestones)
 
 			// Program compatibility check.
 			r.Get("/athletes/{id}/program-compatibility", h.CheckProgramCompatibility)
@@ -236,6 +269,14 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/notifications/count", h.UnreadNotificationCount)
 			r.Post("/notifications/{notificationID}/read", h.MarkNotificationRead)
 			r.Post("/notifications/read-all", h.MarkAllNotificationsRead)
+
+			// Web Push rest alerts (browser session only; handlers check).
+			r.Get("/push/config", h.GetPushConfig)
+			r.Post("/push/subscriptions", h.SubscribePush)
+			r.Delete("/push/subscriptions", h.UnsubscribePush)
+			r.Post("/push/test", h.TestPush)
+			r.Post("/push/rest-alert", h.ScheduleRestAlert)
+			r.Delete("/push/rest-alert", h.CancelRestAlert)
 
 			// Workout reviews (coach approval flow).
 			r.Get("/reviews/pending", h.ListPendingReviews)
@@ -311,6 +352,9 @@ func setupTest(t *testing.T) *testEnv {
 			r.Post("/athletes/{id}/wod/{genID}/log", h.WODLog)
 		})
 	})
+
+	// Share viewer page, served outside /api like main.go does.
+	r.Get("/s/{token}", h.SharePage([]byte(testShareIndexHTML)))
 
 	return &testEnv{
 		DB:       db,

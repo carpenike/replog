@@ -1,54 +1,69 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
-import { Card, CardContent } from '@/components/ui/card'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { useFriendlyDate } from '@/lib/dates'
 
 export function PendingReviews() {
-  const { data: workouts, isLoading, error } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const query = useQuery({
     queryKey: ['pending-reviews'],
     queryFn: () => api.listPendingReviews(),
   })
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load pending reviews.</p>
-
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Pending Reviews</h1>
-
-      {workouts && workouts.length === 0 ? (
-        <Card className="text-center">
-          <CardContent>
-          <p className="text-2xl mb-2">✅</p>
-          <p className="text-muted-foreground">All workouts reviewed! Nice work, coach.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {workouts?.map(w => (
-            <Link
-              key={w.workout_id}
-              to={`/athletes/${w.athlete_id}/workouts/${w.workout_id}`}
-              className="flex items-center justify-between rounded-lg border border-warning/30 bg-card p-4 hover:border-primary/50 transition-colors"
-            >
-              <div>
-                <p className="font-medium">{w.athlete_name}</p>
-                <p className="text-sm text-muted-foreground">{w.date}</p>
-                {w.notes && (
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{w.notes}</p>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="text-sm">{w.set_count} set{w.set_count !== 1 ? 's' : ''}</p>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-warning/10 text-warning">
-                  Needs review
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <PageHeader title="Pending Reviews" />
+      <QueryState
+        query={query}
+        resource="pending reviews"
+        empty={{ icon: '✅', title: 'All workouts reviewed', description: 'Nice work, coach. New sessions show up here when athletes log them.' }}
+      >
+        {workouts => (
+          <ul className="space-y-2">
+            {workouts.map(w => (
+              <li key={w.workout_id}>
+                <Link
+                  to={`/athletes/${w.athlete_id}/workouts/${w.workout_id}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-warning/30 bg-card p-4 hover:border-primary/50 transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium">{w.athlete_name}</p>
+                    <p className="text-sm text-muted-foreground">{friendlyDate(w.date)}</p>
+                    {w.notes && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{w.notes}</p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm">{w.set_count} set{w.set_count !== 1 ? 's' : ''}</p>
+                    <div className="mt-0.5 flex flex-wrap justify-end gap-1">
+                      {w.low_readiness && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive">
+                          Low readiness
+                        </span>
+                      )}
+                      {(w.video_count ?? 0) > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          {w.video_count} form check{w.video_count === 1 ? '' : 's'}
+                        </span>
+                      )}
+                      {(w.swap_count ?? 0) > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          {w.swap_count} swap{w.swap_count === 1 ? '' : 's'}
+                        </span>
+                      )}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-warning/10 text-warning-strong">
+                        Needs review
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </QueryState>
     </div>
   )
 }

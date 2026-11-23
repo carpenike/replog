@@ -1,10 +1,15 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/api/client'
 import type { SeasonPhaseInput } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Plus, Trash2, X } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { CardList, CardListItem, DesktopOnly } from '@/components/CardList'
+import { useFriendlyDate } from '@/lib/dates'
+import { localDateISO } from '@/lib/utils'
 import { useConfirm } from '@/lib/useConfirm'
 import { EnumSelect } from '@/components/EnumSelect'
 import { Button } from '@/components/ui/button'
@@ -30,7 +35,7 @@ export function SeasonPhases() {
   const [showForm, setShowForm] = useState(false)
   const [phase, setPhase] = useState('off')
   const [sport, setSport] = useState('')
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10))
+  const [startDate, setStartDate] = useState(localDateISO())
   const [endDate, setEndDate] = useState('')
   const [notes, setNotes] = useState('')
 
@@ -43,7 +48,8 @@ export function SeasonPhases() {
     enabled: !isNaN(athleteId),
   })
 
-  const { data: phases, isLoading, error } = useQuery({
+  const friendlyDate = useFriendlyDate()
+  const listQuery = useQuery({
     queryKey: ['season-phases', athleteId],
     queryFn: () => api.listSeasonPhases(athleteId),
     enabled: !isNaN(athleteId),
@@ -52,7 +58,7 @@ export function SeasonPhases() {
   function resetForm() {
     setPhase('off')
     setSport('')
-    setStartDate(new Date().toISOString().slice(0, 10))
+    setStartDate(localDateISO())
     setEndDate('')
     setNotes('')
   }
@@ -88,26 +94,21 @@ export function SeasonPhases() {
     }
   }
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load season phases.</p>
 
   return (
     <div>
       {confirmDialog()}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">
-              {athlete?.name ?? 'Athlete'}
-            </Link>
-            {' / Season phases'}
-          </p>
-          <h1 className="text-2xl font-bold">Season phases</h1>
-        </div>
-        {isCoach && (
-          <Button onClick={() => setShowForm(s => !s)}>{showForm ? 'Cancel' : '+ Record phase'}</Button>
-        )}
-      </div>
+      <PageHeader
+        title="Season phases"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={
+          isCoach && (
+          <Button variant={showForm ? 'ghost' : 'default'} onClick={() => setShowForm(s => !s)} aria-expanded={showForm}>
+            {showForm ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> Record phase</>}
+          </Button>
+        )
+        }
+      />
 
       {isCoach && showForm && (
         <form
@@ -116,8 +117,8 @@ export function SeasonPhases() {
         >
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Phase</Label>
-              <EnumSelect value={phase} onChange={setPhase} options={PHASES} required />
+              <Label htmlFor="phase-phase">Phase <span aria-hidden="true" className="text-destructive">*</span></Label>
+              <EnumSelect id="phase-phase" value={phase} onChange={setPhase} options={PHASES} required />
             </div>
             <div>
               <Label htmlFor="sport">Sport</Label>
@@ -126,7 +127,7 @@ export function SeasonPhases() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="start_date">Start date</Label>
+              <Label htmlFor="start_date">Start date <span aria-hidden="true" className="text-destructive">*</span></Label>
               <Input id="start_date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required />
             </div>
             <div>
@@ -144,36 +145,55 @@ export function SeasonPhases() {
         </form>
       )}
 
-      {phases && phases.length === 0 ? (
-        <p className="text-muted-foreground">No season phases recorded yet.</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Phase</TableHead>
-              <TableHead>Sport</TableHead>
-              <TableHead>Start</TableHead>
-              <TableHead>End</TableHead>
-              {isCoach && <TableHead></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {phases?.map(p => (
-              <TableRow key={p.id}>
-                <TableCell className="font-medium">{PHASE_LABELS[p.phase] ?? p.phase}</TableCell>
-                <TableCell>{p.sport ?? '—'}</TableCell>
-                <TableCell>{p.start_date}</TableCell>
-                <TableCell>{p.end_date ?? '—'}</TableCell>
-                {isCoach && (
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)}>Delete</Button>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
+      <QueryState
+        query={listQuery}
+        resource="season phases"
+        empty={{ icon: '📅', title: 'No season phases recorded yet', description: 'Record in-season and off-season blocks so programming has context.', action: isCoach && !showForm ? 'Record phase' : undefined, onAction: () => setShowForm(true) }}
+      >
+        {phases => (
+          <>
+            <CardList label="Season phases">
+              {phases.map(p => (
+                <CardListItem
+                  key={p.id}
+                  title={PHASE_LABELS[p.phase] ?? p.phase}
+                  subtitle={`${friendlyDate(p.start_date, { absolute: true })} → ${p.end_date ? friendlyDate(p.end_date, { absolute: true }) : 'ongoing'}`}
+                  trailing={p.sport ?? undefined}
+                  actions={isCoach ? (<Button variant="ghost" size="sm" aria-label={`Delete ${'phase ' + (PHASE_LABELS[p.phase] ?? p.phase)}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(p.id)}><Trash2 aria-hidden="true" /> Delete</Button>) : undefined}
+                />
+              ))}
+            </CardList>
+            <DesktopOnly>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Phase</TableHead>
+                  <TableHead>Sport</TableHead>
+                  <TableHead>Start</TableHead>
+                  <TableHead>End</TableHead>
+                  {isCoach && <TableHead><span className="sr-only">Actions</span></TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {phases.map(p => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium">{PHASE_LABELS[p.phase] ?? p.phase}</TableCell>
+                    <TableCell>{p.sport ?? '—'}</TableCell>
+                    <TableCell>{friendlyDate(p.start_date, { absolute: true })}</TableCell>
+                    <TableCell>{p.end_date ? friendlyDate(p.end_date, { absolute: true }) : '—'}</TableCell>
+                    {isCoach && (
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon-sm" aria-label={`Delete phase ${PHASE_LABELS[p.phase] ?? p.phase}`} className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(p.id)}><Trash2 aria-hidden="true" /></Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
         </Table>
-      )}
+            </DesktopOnly>
+          </>
+        )}
+      </QueryState>
     </div>
   )
 }

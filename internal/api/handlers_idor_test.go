@@ -1,9 +1,12 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
+
+	"github.com/carpenike/replog/internal/models"
 )
 
 // TestCrossAthleteIDOR asserts the cross-athlete IDOR guard (app review §1):
@@ -38,6 +41,34 @@ func TestCrossAthleteIDOR(t *testing.T) {
 		fmt.Sprintf("/api/athletes/%d/workouts/%d", athleteB.ID, workoutA.ID),
 		nil, cookies)
 	requireStatus(t, rr, http.StatusNotFound)
+
+	// A's set's form-check video via B's path → 404 for upload, read,
+	// comment and delete (the set is scoped through workout → athlete).
+	ex := env.createExercise(t, "IDOR Squat")
+	setA, err := models.AddSet(context.Background(), env.DB, workoutA.ID, ex.ID, 5, 100, 0, "reps", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	videoB := fmt.Sprintf("/api/athletes/%d/workouts/%d/sets/%d/video", athleteB.ID, workoutA.ID, setA.ID)
+	body, ctype := videoUpload(t, "video", fakeMP4(512))
+	requireStatus(t, env.doMultipart(t, "POST", videoB, body, ctype, cookies), http.StatusNotFound)
+	requireStatus(t, env.do(t, "GET", videoB, nil, cookies), http.StatusNotFound)
+	requireStatus(t, env.do(t, "PUT", videoB+"/comment", `{"comment":"x"}`, cookies), http.StatusNotFound)
+	requireStatus(t, env.do(t, "DELETE", videoB, nil, cookies), http.StatusNotFound)
+
+	// Same for the clip's share links: give A's set a clip under A's path,
+	// then try to list, create and revoke its links through B's path.
+	videoA := fmt.Sprintf("/api/athletes/%d/workouts/%d/sets/%d/video", athleteA.ID, workoutA.ID, setA.ID)
+	body, ctype = videoUpload(t, "video", fakeMP4(512))
+	requireStatus(t, env.doMultipart(t, "POST", videoA, body, ctype, cookies), http.StatusCreated)
+	rr = env.do(t, "POST", videoA+"/shares", `{}`, cookies)
+	requireStatus(t, rr, http.StatusCreated)
+	var shareA CreatedVideoShare
+	decodeJSON(t, rr, &shareA)
+	requireStatus(t, env.do(t, "GET", videoB+"/shares", nil, cookies), http.StatusNotFound)
+	requireStatus(t, env.do(t, "POST", videoB+"/shares", `{}`, cookies), http.StatusNotFound)
+	requireStatus(t, env.do(t, "DELETE", fmt.Sprintf("%s/shares/%d", videoB, shareA.Share.ID), nil, cookies), http.StatusNotFound)
+	requireStatus(t, env.do(t, "GET", "/api/share/"+shareA.Token, nil, nil), http.StatusOK)
 
 	// The workout must still be intact under its real owner (A).
 	rr = env.do(t, "GET",

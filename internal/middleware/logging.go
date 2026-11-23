@@ -31,11 +31,19 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
+// Unwrap exposes the underlying writer so http.ResponseController can reach
+// it (the form-check video routes extend their read/write deadlines).
+func (w *statusWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
 // redactedPaths is the set of URL prefixes whose remaining path segments
 // carry a secret (magic-link tokens, etc.) and must be scrubbed from access
 // logs. Anything matching is logged as "<prefix>/<redacted>".
 var redactedPaths = []string{
 	"/api/auth/token/",
+	"/api/share/",
+	"/s/",
 }
 
 // scrubPath replaces secret-bearing path tails with "<redacted>" so they

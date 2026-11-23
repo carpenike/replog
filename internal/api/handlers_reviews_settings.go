@@ -40,12 +40,15 @@ func (h *Handlers) ListPendingReviews(w http.ResponseWriter, r *http.Request) {
 	result := make([]*UnreviewedWorkout, len(workouts))
 	for i, w := range workouts {
 		result[i] = &UnreviewedWorkout{
-			WorkoutID:   w.WorkoutID,
-			AthleteID:   w.AthleteID,
-			AthleteName: w.AthleteName,
-			Date:        w.Date,
-			SetCount:    w.SetCount,
-			Notes:       nullStr(w.Notes),
+			WorkoutID:    w.WorkoutID,
+			AthleteID:    w.AthleteID,
+			AthleteName:  w.AthleteName,
+			Date:         w.Date,
+			SetCount:     w.SetCount,
+			Notes:        nullStr(w.Notes),
+			LowReadiness: w.LowReadiness,
+			SwapCount:    w.SwapCount,
+			VideoCount:   w.VideoCount,
 		}
 	}
 	WriteJSON(w, http.StatusOK, result)

@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { AlertTriangle, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { EmptyState, QueryError } from '@/components/ui'
+import { PageSkeleton } from '@/components/QueryState'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -85,11 +88,12 @@ export function GeneratePage() {
     enabled: !isNaN(athleteId),
   })
 
-  const { data: formData } = useQuery({
+  const formQuery = useQuery({
     queryKey: ['generate-form', athleteId],
     queryFn: () => api.getGenerateForm(athleteId) as Promise<GenerateFormData>,
     enabled: !isNaN(athleteId) && step === 'form',
   })
+  const formData = formQuery.data
 
   const selectedMethodology = formData?.available_methodologies?.find(methodology => methodology.id === methodologyId)
   const isGalpinMethodology = selectedMethodology?.key === GALPIN_METHODOLOGY_KEY
@@ -252,19 +256,23 @@ export function GeneratePage() {
 
   return (
     <div className="max-w-2xl">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / AI Coach'}
-      </p>
-      <h1 className="text-2xl font-bold mb-6">Generate Program</h1>
+      <PageHeader
+        title="Generate Program"
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        description="The AI Coach drafts a proposal. You review, edit and assign it."
+      />
+      {step === 'form' && formQuery.error && (
+        <QueryError error={formQuery.error} onRetry={() => { formQuery.refetch() }} resource="generator settings" />
+      )}
+      {step === 'form' && !formData && !formQuery.error && <PageSkeleton kind="form" rows={4} />}
       {formData && !formData.configured && (
-        <Card className="text-center">
-          <CardContent>
-          <span className="text-3xl block mb-2">🤖</span>
-          <p className="font-medium mb-1">AI Coach Not Configured</p>
-          <p className="text-sm text-muted-foreground">Go to Admin Settings to configure an LLM provider.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon="🤖"
+          title="AI Coach not configured"
+          description="Configure an LLM provider in Admin Settings first."
+          action="Open Settings"
+          actionTo="/admin/settings"
+        />
       )}
       {error && (
         <Alert variant="destructive" className="mb-4">
@@ -280,15 +288,15 @@ export function GeneratePage() {
               adults (renders unselected, may submit blank). */}
           {formData.available_methodologies && formData.available_methodologies.length > 0 && (
             <div>
-              <Label>
+              <Label htmlFor="gen-methodology">
                 Methodology
-                {formData.default_methodology_id != null && <span className="text-destructive"> *</span>}
+                {formData.default_methodology_id != null && <span aria-hidden="true" className="text-destructive">*</span>}
               </Label>
               <Select
                 value={methodologyId != null ? String(methodologyId) : ''}
                 onValueChange={selectMethodology}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="gen-methodology" aria-required={formData.default_methodology_id != null || undefined} aria-describedby={methodologyId != null ? 'gen-methodology-hint' : undefined} className="w-full">
                   <SelectValue placeholder={formData.default_methodology_id == null ? 'Optional — pick a methodology or leave blank' : 'Select a methodology'}>
                     {(value: string | null) => {
                       if (!value) return formData.default_methodology_id == null ? 'Optional — leave blank for the default block' : 'Select a methodology'
@@ -310,13 +318,13 @@ export function GeneratePage() {
                 const m = formData.available_methodologies?.find(opt => opt.id === methodologyId)
                 if (!m?.philosophy) return null
                 return (
-                  <p className="text-xs text-muted-foreground mt-1">{m.philosophy}</p>
+                  <p id="gen-methodology-hint" className="text-xs text-muted-foreground mt-1">{m.philosophy}</p>
                 )
               })()}
             </div>
           )}
           <div>
-            <Label htmlFor="gen-program-name">Program Name *</Label>
+            <Label htmlFor="gen-program-name">Program Name <span aria-hidden="true" className="text-destructive">*</span></Label>
             <Input id="gen-program-name" type="text" value={programName} onChange={e => setProgramName(e.target.value)} required placeholder="e.g. Ryan — Block 5" />
           </div>
           <div>
@@ -324,9 +332,10 @@ export function GeneratePage() {
             <Input id="gen-days" type="number" inputMode="numeric" min={isGalpinMethodology ? 3 : 1} max={isGalpinMethodology ? 5 : 7} value={numDays} onChange={e => setNumDays(e.target.value)} className="w-24" />
             {isGalpinMethodology && <p className="mt-1 text-xs text-muted-foreground">Choose the session frequency deliberately; the coach reviews every generated detail.</p>}
           </div>
-          <div>
-            <Label>Schedule</Label>
+          <div role="group" aria-labelledby="gen-schedule-label">
+            <p id="gen-schedule-label" className="text-sm font-medium">Schedule</p>
             <RadioGroup
+              aria-labelledby="gen-schedule-label"
               value={schedule}
               onValueChange={(val: 'fixed' | 'loop' | null) => { if (val && (!isGalpinMethodology || val === 'loop')) setSchedule(val) }}
               className="mt-2"
@@ -376,10 +385,12 @@ export function GeneratePage() {
             <div>
               <button
                 type="button"
-                className="text-sm text-muted-foreground underline hover:text-foreground"
+                className="inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground underline hover:text-foreground md:min-h-0"
+                aria-expanded={showAdvancedRefs}
                 onClick={() => setShowAdvancedRefs(v => !v)}
               >
-                {showAdvancedRefs ? '▾' : '▸'} Advanced — override reference programs
+                {showAdvancedRefs ? <ChevronDown className="size-4" aria-hidden="true" /> : <ChevronRight className="size-4" aria-hidden="true" />}
+                Advanced: override reference programs
               </button>
               {showAdvancedRefs && (
                 <div className="mt-2">
@@ -412,8 +423,8 @@ export function GeneratePage() {
       )}
       {/* Step 2: Generating (polling) */}
       {step === 'generating' && (
-        <div className="text-center py-12">
-          <Spinner />
+        <div role="status" className="flex flex-col items-center text-center py-12">
+          <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
           <p className="text-muted-foreground mt-4">
             {generation?.status === 'running' ? 'AI Coach is generating your program...' : 'Queued — starting shortly...'}
           </p>
@@ -444,7 +455,7 @@ export function GeneratePage() {
               {generation.model && <span>Model: {generation.model}</span>}
               {generation.tokens_used != null && <span>{generation.tokens_used} tokens</span>}
               {generation.duration && <span>{generation.duration}</span>}
-              {generation.truncated && <span className="text-warning">⚠ Output was truncated</span>}
+              {generation.truncated && <span className="inline-flex items-center gap-1 text-warning-strong"><AlertTriangle className="size-3.5" aria-hidden="true" /> Output was truncated</span>}
             </div>
             </CardContent>
           </Card>
@@ -548,7 +559,7 @@ export function GeneratePage() {
       {step === 'result' && execResult && (
         <Card className="text-center">
           <CardContent>
-          <span className="text-4xl block mb-3">✅</span>
+          <span className="text-4xl block mb-3" aria-hidden="true">✅</span>
           <h2 className="text-lg font-semibold mb-2">Draft Saved</h2>
           <p className="text-sm text-muted-foreground mb-3">
             The program template was created but is <strong>not yet assigned</strong> to {athlete?.name ?? 'the athlete'}.

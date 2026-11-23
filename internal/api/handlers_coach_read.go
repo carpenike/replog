@@ -799,9 +799,18 @@ func coachSetResponse(set models.CoachLoggedSet) CoachLoggedSetResponse {
 		Reps:      set.Reps,
 		Load:      coachLoad(set.Weight),
 		RPE:       nullFloat(set.RPE),
+		SetType:   strPtrOrNil(set.SetType),
 		Category:  set.Category,
 		Notes:     nullStr(set.Notes),
 	}
+}
+
+// strPtrOrNil returns nil for "" and a pointer to s otherwise.
+func strPtrOrNil(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 func coachSessionResponse(s models.CoachSession) CoachSessionResponse {

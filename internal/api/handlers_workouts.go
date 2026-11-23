@@ -16,11 +16,12 @@ import (
 // GetWorkout returns a workout with its sets grouped by exercise.
 //
 //	@Summary      Get workout
+//	@Description  The workout, its sets grouped by exercise, any exercise swaps the athlete made, and that day's readiness check-in when one was logged.
 //	@Tags         Workouts
 //	@Produce      json
 //	@Param        id         path      int  true  "Athlete ID"
 //	@Param        workoutID  path      int  true  "Workout ID"
-//	@Success      200  {object}  map[string]interface{}  "workout + sets grouped by exercise"
+//	@Success      200  {object}  api.WorkoutDetailResponse
 //	@Failure      400  {object}  api.APIError
 //	@Failure      403  {object}  api.APIError
 //	@Failure      404  {object}  api.APIError
@@ -62,11 +63,21 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	videos, err := models.ListSetVideosByWorkout(r.Context(), h.DB, workoutID)
+	if err != nil {
+		log.Printf("api: list videos for workout %d: %v", workoutID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to list sets")
+		return
+	}
+
 	apiGroups := make([]*ExerciseGroup, len(groups))
 	for i, g := range groups {
 		sets := make([]*WorkoutSet, len(g.Sets))
 		for j, s := range g.Sets {
 			sets[j] = WorkoutSetFromModel(s)
+			if v, ok := videos[s.ID]; ok {
+				sets[j].Video = SetVideoFromModel(v)
+			}
 		}
 		apiGroups[i] = &ExerciseGroup{
 			ExerciseID:   g.ExerciseID,
@@ -75,10 +86,30 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	WriteJSON(w, http.StatusOK, map[string]any{
-		"workout": WorkoutFromModel(workout),
-		"groups":  apiGroups,
-	})
+	swaps, err := models.ListExerciseSwaps(r.Context(), h.DB, workoutID)
+	if err != nil {
+		log.Printf("api: list swaps for workout %d: %v", workoutID, err)
+		WriteError(w, http.StatusInternalServerError, "failed to list swaps")
+		return
+	}
+	apiSwaps := make([]*ExerciseSwap, len(swaps))
+	for i, s := range swaps {
+		apiSwaps[i] = ExerciseSwapFromModel(s)
+	}
+
+	resp := WorkoutDetailResponse{
+		Workout: WorkoutFromModel(workout),
+		Groups:  apiGroups,
+		Swaps:   apiSwaps,
+	}
+	readiness, err := models.GetRecoveryCheckinForDate(r.Context(), h.DB, athleteID, workout.Date)
+	switch {
+	case err == nil:
+		resp.Readiness = RecoveryCheckinFromModel(readiness)
+	case !errors.Is(err, models.ErrNotFound):
+		log.Printf("api: readiness for workout %d: %v", workoutID, err)
+	}
+	WriteJSON(w, http.StatusOK, resp)
 }
 
 // CreateWorkout creates a new workout for an athlete.
@@ -194,6 +225,16 @@ func (h *Handlers) DeleteWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Collect the workout's form-check clips first; the rows cascade away
+	// with the workout and the files are removed once that succeeds.
+	var videoFiles []string
+	if wk, err := models.GetWorkoutByID(r.Context(), h.DB, workoutID); err == nil && wk.AthleteID == athleteID {
+		videoFiles, err = models.ListVideoFileNamesForWorkout(r.Context(), h.DB, workoutID)
+		if err != nil {
+			log.Printf("api: list videos for workout %d: %v", workoutID, err)
+		}
+	}
+
 	if err := models.DeleteWorkout(r.Context(), h.DB, workoutID, athleteID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "workout not found")
@@ -203,6 +244,7 @@ func (h *Handlers) DeleteWorkout(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusInternalServerError, "failed to delete workout")
 		return
 	}
+	h.removeVideoFiles(videoFiles...)
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
@@ -276,8 +318,15 @@ func (h *Handlers) AddWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		WriteValidationError(w, "rpe", "must be between 1 and 10")
 		return
 	}
+	if req.SetType == "" {
+		req.SetType = models.SetTypeWorking
+	}
+	if !models.ValidSetType(req.SetType) {
+		WriteValidationError(w, "set_type", "must be one of working, warmup, drop, failure")
+		return
+	}
 
-	set, err := models.AddSet(r.Context(), h.DB, workoutID, req.ExerciseID, req.Reps, req.Weight, req.RPE, req.RepType, req.Category, req.Notes)
+	set, err := models.AddSetWithType(r.Context(), h.DB, workoutID, req.ExerciseID, req.Reps, req.Weight, req.RPE, req.RepType, req.Category, req.Notes, req.SetType)
 	if err != nil {
 		log.Printf("api: add set to workout %d: %v", workoutID, err)
 		WriteDBError(w, err, "failed to add set")
@@ -334,7 +383,12 @@ func (h *Handlers) UpdateWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	set, err := models.UpdateSet(r.Context(), h.DB, setID, athleteID, req.Reps, req.Weight, req.RPE, req.Notes)
+	if req.SetType != nil && !models.ValidSetType(*req.SetType) {
+		WriteValidationError(w, "set_type", "must be one of working, warmup, drop, failure")
+		return
+	}
+
+	set, err := models.UpdateSetWithType(r.Context(), h.DB, setID, athleteID, req.Reps, req.Weight, req.RPE, req.Notes, req.SetType)
 	if errors.Is(err, models.ErrNotFound) {
 		WriteError(w, http.StatusNotFound, "set not found")
 		return
@@ -372,6 +426,11 @@ func (h *Handlers) DeleteWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	videoFile, err := models.SetVideoFileName(r.Context(), h.DB, setID, athleteID)
+	if err != nil {
+		log.Printf("api: video for set %d: %v", setID, err)
+	}
+
 	if err := models.DeleteSet(r.Context(), h.DB, setID, athleteID); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			WriteError(w, http.StatusNotFound, "set not found")
@@ -381,6 +440,7 @@ func (h *Handlers) DeleteWorkoutSet(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusInternalServerError, "failed to delete set")
 		return
 	}
+	h.removeVideoFiles(videoFile)
 
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

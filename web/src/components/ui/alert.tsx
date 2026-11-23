@@ -12,9 +12,9 @@ const alertVariants = cva(
         destructive:
           "bg-destructive/10 border-destructive/30 text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
         success:
-          "bg-success/10 border-success/30 text-success *:data-[slot=alert-description]:text-success/90 *:[svg]:text-current",
+          "bg-success/10 border-success/30 text-success-strong *:data-[slot=alert-description]:text-success-strong/90 *:[svg]:text-current",
         warning:
-          "bg-warning/10 border-warning/30 text-warning *:data-[slot=alert-description]:text-warning/90 *:[svg]:text-current",
+          "bg-warning/10 border-warning/30 text-warning-strong *:data-[slot=alert-description]:text-warning-strong/90 *:[svg]:text-current",
       },
     },
     defaultVariants: {

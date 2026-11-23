@@ -37,6 +37,13 @@ type UnreviewedWorkout struct {
 	Date        string
 	SetCount    int
 	Notes       sql.NullString
+	// LowReadiness is true when the athlete's readiness check-in that day
+	// flagged low (ReadinessIsLow). It informs the review only.
+	LowReadiness bool
+	// SwapCount is how many prescribed exercises the athlete swapped.
+	SwapCount int
+	// VideoCount is how many sets carry a form-check video (gap 12).
+	VideoCount int
 }
 
 // ReviewStats holds aggregate counts for the coach dashboard.
@@ -153,10 +160,20 @@ func DeleteWorkoutReview(ctx context.Context, db *sql.DB, id int64) error {
 func ListUnreviewedWorkouts(ctx context.Context, db *sql.DB) ([]*UnreviewedWorkout, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT w.id, w.athlete_id, a.name, w.date, w.notes,
-		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id)
+		       (SELECT COUNT(*) FROM workout_sets ws WHERE ws.workout_id = w.id AND `+countedSet+`),
+		       rc.sleep_hours, rc.soreness, rc.energy, rc.mood,
+		       (SELECT COUNT(*) FROM workout_exercise_swaps sw WHERE sw.workout_id = w.id),
+		       (SELECT COUNT(*) FROM workout_set_videos v JOIN workout_sets vs ON vs.id = v.set_id
+		         WHERE vs.workout_id = w.id)
 		FROM workouts w
 		JOIN athletes a ON a.id = w.athlete_id
 		LEFT JOIN workout_reviews wr ON wr.workout_id = w.id
+		LEFT JOIN recovery_checkins rc ON rc.id = (
+		    SELECT rc2.id FROM recovery_checkins rc2
+		      JOIN workouts rw ON rw.id = rc2.workout_id
+		     WHERE rw.athlete_id = w.athlete_id AND date(rw.date) = date(w.date)
+		       AND rw.discipline = 'recovery'
+		     ORDER BY rc2.id DESC LIMIT 1)
 		WHERE wr.id IS NULL
 		ORDER BY w.date DESC
 		LIMIT 100`)
@@ -168,10 +185,13 @@ func ListUnreviewedWorkouts(ctx context.Context, db *sql.DB) ([]*UnreviewedWorko
 	var workouts []*UnreviewedWorkout
 	for rows.Next() {
 		uw := &UnreviewedWorkout{}
+		var sleep sql.NullFloat64
+		var soreness, energy, mood sql.NullInt64
 		if err := rows.Scan(&uw.WorkoutID, &uw.AthleteID, &uw.AthleteName,
-			&uw.Date, &uw.Notes, &uw.SetCount); err != nil {
+			&uw.Date, &uw.Notes, &uw.SetCount, &sleep, &soreness, &energy, &mood, &uw.SwapCount, &uw.VideoCount); err != nil {
 			return nil, fmt.Errorf("models: scan unreviewed workout: %w", err)
 		}
+		uw.LowReadiness = ReadinessIsLow(sleep, soreness, energy, mood)
 		workouts = append(workouts, uw)
 	}
 	if err := rows.Err(); err != nil {

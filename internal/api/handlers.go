@@ -19,6 +19,7 @@ import (
 	"github.com/carpenike/replog/internal/llm"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
+	"github.com/carpenike/replog/internal/push"
 )
 
 func init() {
@@ -35,6 +36,27 @@ type Handlers struct {
 	DB        *sql.DB
 	Sessions  *scs.SessionManager
 	AvatarDir string
+
+	// VideoDir holds form-check clips (gap 12). It is never served by a
+	// public file server; clips stream through the authenticated set
+	// route. Empty disables uploads. VideoMaxBytes caps one clip (zero
+	// means media.DefaultMaxVideoBytes).
+	VideoDir      string
+	VideoMaxBytes int64
+
+	// VideoSharingDisabled is the share-link kill switch
+	// (REPLOG_VIDEO_SHARING_DISABLED=true): creating a link is refused and
+	// every public share URL answers 404. Listing and revoking still work.
+	VideoSharingDisabled bool
+
+	// ClientIP returns the caller's address for share-link access logs. It
+	// should be the rate limiter's trusted-proxy-aware extractor; nil falls
+	// back to the connection's remote address.
+	ClientIP func(*http.Request) string
+
+	// Push delivers Web Push rest alerts. Nil when push is disabled; the
+	// push routes then report it and the SPA hides the opt-in.
+	Push *push.Service
 
 	// LLMProviderFactory builds the LLM provider used by the AI Coach
 	// generation flow. Defaults to llm.NewProviderFromSettings (read from

@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { EmptyState } from '@/components/ui'
+import { localDateISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -21,7 +24,7 @@ interface WODLogResult {
 
 const TERMINAL_STATUSES: Generation['status'][] = ['succeeded', 'failed', 'cancelled']
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localDateISO()
 
 function parseGenerationID(value: string | null) {
   if (!value) return null
@@ -173,11 +176,7 @@ export function WodPage() {
 
   return (
     <div className="max-w-2xl">
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / WOD'}
-      </p>
-      <h1 className="text-2xl font-bold mb-6">Ad-hoc WOD</h1>
+      <PageHeader title="Ad-hoc WOD" back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }} />
 
       {error && (
         <Alert variant="destructive" className="mb-4">
@@ -187,15 +186,13 @@ export function WodPage() {
       )}
 
       {isYouth && (
-        <Card className="text-center">
-          <CardContent>
-            <span className="text-3xl block mb-2">🏋️</span>
-            <p className="font-medium mb-1">Adult athletes only</p>
-            <p className="text-sm text-muted-foreground">
-              The ad-hoc WOD generator uses the adult Sarge-circuit style. Youth athletes follow their tier methodology.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon="🏋️"
+          title="Adult athletes only"
+          description="The ad-hoc WOD generator uses the adult Sarge-circuit style. Youth athletes follow their tier methodology."
+          action="Back to athlete"
+          actionTo={`/athletes/${athleteId}`}
+        />
       )}
 
       {/* Step 1: Form */}
@@ -206,13 +203,13 @@ export function WodPage() {
             Review it, then <strong>log it</strong> as an ad-hoc workout or <strong>discard</strong> it. Nothing is saved until you log it.
           </Alert>
           <div>
-            <Label>Coach Directions</Label>
-            <Textarea value={coachDirections} onChange={e => setCoachDirections(e.target.value)}
+            <Label htmlFor="wod-directions">Coach Directions</Label>
+            <Textarea id="wod-directions" value={coachDirections} onChange={e => setCoachDirections(e.target.value)}
               placeholder="Optional — e.g. heavy carries, short on time, emphasize posterior chain..." />
           </div>
           <div>
-            <Label>Focus Areas</Label>
-            <Input type="text" value={focusAreas} onChange={e => setFocusAreas(e.target.value)}
+            <Label htmlFor="wod-focus">Focus Areas</Label>
+            <Input id="wod-focus" type="text" value={focusAreas} onChange={e => setFocusAreas(e.target.value)}
               placeholder="e.g. conditioning, grip, core (comma-separated)" />
           </div>
           <Button size="lg" type="submit" disabled={generateMutation.isPending}>
@@ -223,8 +220,8 @@ export function WodPage() {
 
       {/* Step 2: Generating */}
       {step === 'generating' && (
-        <div className="text-center py-12">
-          <Spinner />
+        <div role="status" className="flex flex-col items-center text-center py-12">
+          <Loader2 className="size-8 animate-spin text-primary" aria-hidden="true" />
           <p className="text-muted-foreground mt-4">
             {generation?.status === 'running' ? 'Building your WOD...' : 'Queued — starting shortly...'}
           </p>
@@ -256,7 +253,7 @@ export function WodPage() {
                   {generation.model && <span>Model: {generation.model}</span>}
                   {generation.tokens_used != null && <span>{generation.tokens_used} tokens</span>}
                   {generation.duration && <span>{generation.duration}</span>}
-                  {generation.truncated && <span className="text-warning">⚠ Output was truncated</span>}
+                  {generation.truncated && <span className="inline-flex items-center gap-1 text-warning-strong"><AlertTriangle className="size-3.5" aria-hidden="true" /> Output was truncated</span>}
                 </div>
               </CardContent>
             </Card>
@@ -332,20 +329,19 @@ export function WodPage() {
       {step === 'result' && logResult && (
         <Card className="text-center">
           <CardContent>
-            <span className="text-4xl block mb-3">✅</span>
+            <span className="text-4xl block mb-3" aria-hidden="true">✅</span>
             <h2 className="text-lg font-semibold mb-2">WOD logged</h2>
             <p className="text-sm text-muted-foreground mb-4">
               {logResult.sets_created} set{logResult.sets_created !== 1 ? 's' : ''} seeded
               {logResult.replaced ? ' (replaced the existing session)' : ''}. Confirm or edit them on the workout.
             </p>
             <div className="flex gap-3 justify-center">
-              <Link to={`/athletes/${athleteId}/workouts/${logResult.workout_id}`}
-                className="text-sm text-primary hover:text-primary/80">
-                Open workout →
-              </Link>
-              <button className="text-sm text-muted-foreground hover:text-foreground" onClick={discard}>
+              <Button render={<Link to={`/athletes/${athleteId}/workouts/${logResult.workout_id}`} />}>
+                Open workout <ArrowRight aria-hidden="true" />
+              </Button>
+              <Button variant="ghost" onClick={discard}>
                 Generate another
-              </button>
+              </Button>
             </div>
           </CardContent>
         </Card>

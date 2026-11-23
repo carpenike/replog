@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -26,10 +27,12 @@ import (
 	"github.com/carpenike/replog/internal/api"
 	"github.com/carpenike/replog/internal/database"
 	"github.com/carpenike/replog/internal/importers"
+	"github.com/carpenike/replog/internal/media"
 	"github.com/carpenike/replog/internal/middleware"
 	"github.com/carpenike/replog/internal/models"
 	"github.com/carpenike/replog/internal/notify"
 	"github.com/carpenike/replog/internal/oidc"
+	"github.com/carpenike/replog/internal/push"
 	"github.com/carpenike/replog/internal/scheduler"
 	frontend "github.com/carpenike/replog/web"
 )
@@ -73,6 +76,22 @@ func main() {
 	avatarDir := os.Getenv("REPLOG_AVATAR_DIR")
 	if avatarDir == "" {
 		avatarDir = filepath.Join(filepath.Dir(dbPath), "avatars")
+	}
+
+	// Form-check video storage (gap 12) — a sibling of the DB by default.
+	// Never served by a public file server: clips stream only through the
+	// authenticated set route.
+	videoDir := os.Getenv("REPLOG_VIDEO_DIR")
+	if videoDir == "" {
+		videoDir = filepath.Join(filepath.Dir(dbPath), "videos")
+	}
+	videoMaxBytes := media.DefaultMaxVideoBytes
+	if v := os.Getenv("REPLOG_VIDEO_MAX_MB"); v != "" {
+		mb, err := strconv.Atoi(v)
+		if err != nil || mb < 1 || mb > 1024 {
+			log.Fatalf("REPLOG_VIDEO_MAX_MB must be a whole number of MiB between 1 and 1024, got %q", v)
+		}
+		videoMaxBytes = int64(mb) << 20
 	}
 
 	// Open database and run migrations.
@@ -161,6 +180,7 @@ func main() {
 
 	// Start background maintenance scheduler (daily: expired tokens, old notifications).
 	maintenance := scheduler.New(db)
+	maintenance.VideoDir = videoDir
 	maintenance.Start()
 
 	// Determine base URL for generating absolute URLs (e.g. login token links).
@@ -223,11 +243,26 @@ func main() {
 		log.Printf("OIDC login disabled: set REPLOG_OIDC_ISSUER, REPLOG_OIDC_CLIENT_ID, and REPLOG_OIDC_CLIENT_SECRET to enable PocketID login")
 	}
 
+	// Web Push rest alerts (gap 4). VAPID keys come from the environment
+	// or are generated once and persisted, so subscriptions survive
+	// restarts. A bad key setup disables push rather than the server.
+	pushService := setupPush(db, baseURL)
+
 	// Initialize API handlers.
 	apiHandlers := &api.Handlers{
-		DB:        db,
-		Sessions:  sessionManager,
-		AvatarDir: avatarDir,
+		DB:            db,
+		Sessions:      sessionManager,
+		AvatarDir:     avatarDir,
+		VideoDir:      videoDir,
+		VideoMaxBytes: videoMaxBytes,
+		Push:          pushService,
+
+		// Share-link kill switch: no new links, and every public share
+		// URL answers 404 while it is set.
+		VideoSharingDisabled: os.Getenv("REPLOG_VIDEO_SHARING_DISABLED") == "true",
+	}
+	if apiHandlers.VideoSharingDisabled {
+		log.Printf("Form-check video sharing disabled by REPLOG_VIDEO_SHARING_DISABLED")
 	}
 
 	// Avatar file server (public — no auth required to load avatar images).
@@ -257,6 +292,13 @@ func main() {
 		log.Printf("Trusted proxies: %v", trustedProxies)
 	}
 	authLimiter := middleware.NewRateLimiter(10, time.Minute, trustedProxies...)
+
+	// Rate limiter for the public, no-login video share routes. A player
+	// makes several Range requests while seeking, so the budget is higher
+	// than the login limiter's, but it still makes guessing tokens hopeless
+	// on top of their 256 bits. Access logs use the same client-IP logic.
+	shareLimiter := middleware.NewRateLimiter(120, time.Minute, trustedProxies...)
+	apiHandlers.ClientIP = shareLimiter.ClientIP
 
 	// Middleware adapter — converts existing RequireAuth middleware to chi-compatible.
 	withAuth := func(next http.Handler) http.Handler {
@@ -300,6 +342,14 @@ func main() {
 			r.Use(authLimiter.Limit)
 			r.Post("/login", apiHandlers.Login)
 			r.Get("/auth/token/{token}", apiHandlers.TokenLogin)
+		})
+
+		// Public form-check video share links — no login, rate limited per
+		// client IP. They expose one clip plus its exercise and date.
+		r.Group(func(r chi.Router) {
+			r.Use(shareLimiter.Limit)
+			r.Get("/share/{token}", apiHandlers.GetSharedVideo)
+			r.Get("/share/{token}/video", apiHandlers.GetSharedVideoFile)
 		})
 
 		// Authenticated API endpoints.
@@ -356,12 +406,31 @@ func main() {
 			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}", apiHandlers.UpdateWorkoutSet)
 			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}", apiHandlers.DeleteWorkoutSet)
 
+			// Form-check videos on a set (gap 12). Streamed with auth only.
+			r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", apiHandlers.UploadSetVideo)
+			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", apiHandlers.GetSetVideoFile)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", apiHandlers.DeleteSetVideo)
+			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/comment", apiHandlers.CommentSetVideo)
+			// No-login share links to a clip (same access as the clip).
+			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares", apiHandlers.ListVideoShares)
+			r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares", apiHandlers.CreateVideoShare)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares/{shareID}", apiHandlers.RevokeVideoShare)
+
 			// Workout Notes.
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", apiHandlers.UpdateWorkoutNotes)
+
+			// Exercise swaps (athlete swaps a prescribed lift; the program is unchanged).
+			r.Get("/athletes/{id}/exercises/{exerciseID}/substitutes", apiHandlers.ListExerciseSubstitutes)
+			r.Post("/athletes/{id}/workouts/{workoutID}/swaps", apiHandlers.CreateExerciseSwap)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/swaps/{swapID}", apiHandlers.DeleteExerciseSwap)
 
 			// Coach session reads. A service token sees only its user's athletes.
 			r.Get("/athletes/{id}/coach/sessions", apiHandlers.ListCoachSessions)
 			r.Get("/athletes/{id}/coach/week", apiHandlers.GetCoachWeek)
+			r.Get("/athletes/{id}/calendar", apiHandlers.GetAthleteCalendar)
+			r.Get("/coach/compliance", apiHandlers.GetCoachCompliance)
+			// Whiteboard / TV mode (gap 15): read-only board of today.
+			r.Get("/whiteboard", apiHandlers.GetWhiteboard)
 			r.Get("/athletes/{id}/coach/progress", apiHandlers.GetCoachProgress)
 			r.Get("/athletes/{id}/coach/position", apiHandlers.GetCoachPosition)
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", apiHandlers.GetCoachLastSession)
@@ -393,6 +462,8 @@ func main() {
 			r.Delete("/athletes/{id}/season-phases/{phaseID}", apiHandlers.DeleteSeasonPhase)
 			r.Get("/athletes/{id}/bio-samples", apiHandlers.ListBioSamples)
 			r.Post("/athletes/{id}/bio-samples", apiHandlers.CreateBioSample)
+			// Batched health import (gap 14): session or service token.
+			r.Post("/athletes/{id}/bio-samples/import", apiHandlers.ImportBioSamples)
 			r.Get("/athletes/{id}/pitch-smart", apiHandlers.GetPitchSmartStatus)
 
 			// Multi-modal logbook, Phase 2 (ADR 018).
@@ -443,6 +514,8 @@ func main() {
 
 			// Exercise History.
 			r.Get("/athletes/{id}/exercises/{exerciseID}/history", apiHandlers.ListExerciseHistory)
+			r.Get("/athletes/{id}/records", apiHandlers.GetAthleteRecords)
+			r.Get("/athletes/{id}/milestones", apiHandlers.GetAthleteMilestones)
 
 			// Exercise Equipment.
 			r.Get("/exercises/{id}/equipment", apiHandlers.ListExerciseEquipment)
@@ -453,6 +526,12 @@ func main() {
 			r.Get("/athletes/{id}/equipment", apiHandlers.ListAthleteEquipment)
 			r.Post("/athletes/{id}/equipment", apiHandlers.AddAthleteEquipment)
 			r.Delete("/athletes/{id}/equipment/{equipmentID}", apiHandlers.RemoveAthleteEquipment)
+
+			// Plate setup (bar, collars, plate inventory per athlete gym).
+			r.Get("/athletes/{id}/plate-setup", apiHandlers.GetPlateSetup)
+			r.Put("/athletes/{id}/plate-setup", apiHandlers.UpdatePlateSetup)
+			r.Delete("/athletes/{id}/plate-setup", apiHandlers.ResetPlateSetup)
+			r.Get("/plate-setup/presets", apiHandlers.ListPlateSetupPresets)
 
 			// Exercise Assignments.
 			r.Get("/athletes/{id}/assignments", apiHandlers.ListAssignments)
@@ -502,6 +581,14 @@ func main() {
 			r.Get("/notifications/count", apiHandlers.UnreadNotificationCount)
 			r.Post("/notifications/{notificationID}/read", apiHandlers.MarkNotificationRead)
 			r.Post("/notifications/read-all", apiHandlers.MarkAllNotificationsRead)
+
+			// Web Push rest alerts (browser session only; handlers check).
+			r.Get("/push/config", apiHandlers.GetPushConfig)
+			r.Post("/push/subscriptions", apiHandlers.SubscribePush)
+			r.Delete("/push/subscriptions", apiHandlers.UnsubscribePush)
+			r.Post("/push/test", apiHandlers.TestPush)
+			r.Post("/push/rest-alert", apiHandlers.ScheduleRestAlert)
+			r.Delete("/push/rest-alert", apiHandlers.CancelRestAlert)
 
 			// Users (admin only — handler checks IsAdmin internally).
 			r.Get("/users", apiHandlers.ListUsers)
@@ -580,6 +667,14 @@ func main() {
 		})
 	}
 
+	// --- Video share viewer page (public, no login) ---
+	// The SPA shell with share headers (no-store, noindex, no-referrer,
+	// strict CSP); 404 for an unusable token. Outside the auth middleware.
+	r.Group(func(r chi.Router) {
+		r.Use(shareLimiter.Limit)
+		r.Get("/s/{token}", apiHandlers.SharePage(spaIndexHTML()))
+	})
+
 	// --- SPA fallback for all other routes ---
 	// React Router handles client-side routing; the SPA serves all browser navigation.
 	spaHandler := spaFallbackHandler()
@@ -628,6 +723,7 @@ func main() {
 
 	// Stop background goroutines.
 	authLimiter.Stop()
+	shareLimiter.Stop()
 	maintenance.Stop()
 	sessionStore.StopCleanup()
 
@@ -652,6 +748,11 @@ func main() {
 	case <-genDone:
 	case <-time.After(10 * time.Second):
 		log.Printf("Warning: AI Coach generations still running at shutdown; will reset on next start")
+	}
+
+	// Drop pending rest alerts and wait for pushes already on the wire.
+	if pushService != nil {
+		pushService.Close()
 	}
 
 	// Drain in-flight notification sends (each is a tracked goroutine bounded
@@ -900,6 +1001,16 @@ func handleReadyz(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+// spaIndexHTML returns the embedded SPA index.html, or nil when the
+// frontend is not embedded (dev mode).
+func spaIndexHTML() []byte {
+	b, err := fs.ReadFile(frontend.DistFS, "dist/index.html")
+	if err != nil {
+		return nil
+	}
+	return b
+}
+
 // spaFallbackHandler returns a handler that serves the React SPA from the
 // embedded filesystem. For non-asset routes, it serves index.html so that
 // client-side routing works correctly.
@@ -966,4 +1077,37 @@ func spaFallbackHandler() http.Handler {
 		r.URL.Path = "/"
 		fileServer.ServeHTTP(w, r)
 	})
+}
+
+// setupPush builds the Web Push service from REPLOG_VAPID_* settings.
+// REPLOG_PUSH_DISABLED=true turns it off. With no keys set, a VAPID pair is
+// generated on first start and stored in the database. A misconfiguration
+// logs and leaves push off; the rest of the app runs normally.
+func setupPush(db *sql.DB, baseURL string) *push.Service {
+	if os.Getenv("REPLOG_PUSH_DISABLED") == "true" {
+		log.Printf("Web Push disabled by REPLOG_PUSH_DISABLED")
+		return nil
+	}
+	subject := os.Getenv("REPLOG_VAPID_SUBJECT")
+	if subject == "" && strings.HasPrefix(baseURL, "https://") {
+		subject = baseURL
+	}
+	var extraHosts []string
+	for _, h := range strings.Split(os.Getenv("REPLOG_PUSH_ALLOWED_HOSTS"), ",") {
+		if h = strings.TrimSpace(h); h != "" {
+			extraHosts = append(extraHosts, h)
+		}
+	}
+	svc, err := push.New(context.Background(), db, push.Config{
+		PublicKey:         strings.TrimSpace(os.Getenv("REPLOG_VAPID_PUBLIC_KEY")),
+		PrivateKey:        strings.TrimSpace(os.Getenv("REPLOG_VAPID_PRIVATE_KEY")),
+		Subject:           subject,
+		ExtraAllowedHosts: extraHosts,
+	})
+	if err != nil {
+		log.Printf("Warning: Web Push disabled: %v", err)
+		return nil
+	}
+	log.Printf("Web Push enabled (rest alerts)")
+	return svc
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { Pencil, Plus, X } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import type { EquipmentData } from '@/api/types'
-import { Spinner } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
 import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -17,7 +19,7 @@ export function EquipmentList() {
   const [description, setDescription] = useState('')
   const [showForm, setShowForm] = useState(false)
 
-  const { data: equipment, isLoading } = useQuery({
+  const query = useQuery({
     queryKey: ['equipment'],
     queryFn: () => api.listEquipment(),
   })
@@ -39,27 +41,28 @@ export function EquipmentList() {
     onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Failed to delete equipment'),
   })
 
-  if (isLoading) return <Spinner />
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Equipment</h1>
-        <Button variant="ghost" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : '+ New'}
-        </Button>
-      </div>
+      <PageHeader
+        title="Equipment"
+        description="What each gym has, so programs only prescribe lifts an athlete can do."
+        actions={
+          <Button variant={showForm ? 'ghost' : 'default'} onClick={() => setShowForm(!showForm)} aria-expanded={showForm}>
+            {showForm ? <><X aria-hidden="true" /> Cancel</> : <><Plus aria-hidden="true" /> New</>}
+          </Button>
+        }
+      />
 
       {showForm && (
         <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }}
           className="rounded-lg border border-border bg-card p-4 mb-6 flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-50">
-            <Label>Name</Label>
-            <Input type="text" value={name} onChange={e => setName(e.target.value)} required />
+            <Label htmlFor="equipment-name">Name <span aria-hidden="true" className="text-destructive">*</span></Label>
+            <Input id="equipment-name" type="text" value={name} onChange={e => setName(e.target.value)} required />
           </div>
           <div className="flex-1 min-w-50">
-            <Label>Description</Label>
-            <Input type="text" value={description} onChange={e => setDescription(e.target.value)} />
+            <Label htmlFor="equipment-desc">Description</Label>
+            <Input id="equipment-desc" type="text" value={description} onChange={e => setDescription(e.target.value)} />
           </div>
           <Button type="submit" disabled={createMutation.isPending || !name}>
             Add
@@ -67,19 +70,22 @@ export function EquipmentList() {
         </form>
       )}
 
-      {equipment && equipment.length === 0 ? (
-        <p className="text-muted-foreground">No equipment defined.</p>
-      ) : (
+      <QueryState
+        query={query}
+        resource="equipment"
+        empty={{ icon: '🏗️', title: 'No equipment yet', description: 'Add the bars, racks and machines your gyms have.', action: showForm ? undefined : 'Add equipment', onAction: () => setShowForm(true) }}
+      >
+        {equipment => (
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="w-24"></TableHead>
+              <TableHead className="w-24"><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {equipment?.map(e => (
+            {equipment.map(e => (
               <EquipmentRow
                 key={e.id}
                 item={e}
@@ -91,7 +97,8 @@ export function EquipmentList() {
             ))}
           </TableBody>
         </Table>
-      )}
+        )}
+      </QueryState>
       {confirmDialog()}
     </div>
   )
@@ -116,17 +123,17 @@ function EquipmentRow({ item, onDelete }: { item: EquipmentData; onDelete: () =>
     return (
       <TableRow>
         <TableCell>
-          <Input value={editName} onChange={e => setEditName(e.target.value)} />
+          <Input aria-label="Name" value={editName} onChange={e => setEditName(e.target.value)} />
         </TableCell>
         <TableCell>
-          <Input value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+          <Input aria-label="Description" value={editDesc} onChange={e => setEditDesc(e.target.value)} />
         </TableCell>
         <TableCell>
           <div className="flex gap-1">
-            <Button size="xs" disabled={updateMutation.isPending || !editName.trim()} onClick={() => updateMutation.mutate()}>
+            <Button size="sm" disabled={updateMutation.isPending || !editName.trim()} onClick={() => updateMutation.mutate()}>
               {updateMutation.isPending ? '…' : 'Save'}
             </Button>
-            <Button size="xs" variant="ghost" onClick={() => { setEditing(false); setEditName(item.name); setEditDesc(item.description ?? '') }}>
+            <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setEditName(item.name); setEditDesc(item.description ?? '') }}>
               Cancel
             </Button>
           </div>
@@ -141,8 +148,12 @@ function EquipmentRow({ item, onDelete }: { item: EquipmentData; onDelete: () =>
       <TableCell className="text-muted-foreground">{item.description ?? '—'}</TableCell>
       <TableCell>
         <div className="flex gap-1">
-          <Button variant="ghost" size="xs" onClick={() => setEditing(true)}>✎</Button>
-          <Button variant="ghost" size="xs" onClick={onDelete}>×</Button>
+          <Button variant="ghost" size="icon-sm" aria-label={`Edit ${item.name}`} onClick={() => setEditing(true)}>
+            <Pencil aria-hidden="true" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" aria-label={`Delete ${item.name}`} className="hover:text-destructive" onClick={onDelete}>
+            <X aria-hidden="true" />
+          </Button>
         </div>
       </TableCell>
     </TableRow>

@@ -36,6 +36,7 @@ VOLUME ["/data"]
 
 ENV REPLOG_DB_PATH=/data/replog.db
 ENV REPLOG_AVATAR_DIR=/data/avatars
+ENV REPLOG_VIDEO_DIR=/data/videos
 ENV REPLOG_ADDR=:8080
 
 # Distroless has no shell, so use the exec form against the binary's built-in

@@ -109,6 +109,17 @@ func (h *Handlers) WriteProgramDraft(w http.ResponseWriter, r *http.Request) {
 			Notes:          set.Notes,
 			PrescribedRPE:  set.PrescribedRPE,
 			GroupLabel:     set.GroupLabel,
+			Detail: models.PrescribedSetDetail{
+				RepsMax:    set.RepsMax,
+				RIRMin:     set.RIRMin,
+				RIRMax:     set.RIRMax,
+				NonWorking: set.NonWorking,
+				GroupKey:   set.GroupKey,
+			},
+		}
+		if field, msg := models.ValidatePrescribedSetDetail(set.Reps, sets[i].Detail); field != "" {
+			WriteValidationError(w, field, msg)
+			return
 		}
 	}
 

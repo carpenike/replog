@@ -64,6 +64,33 @@ type ExportPrescribedSet struct {
 	RestSeconds    *int     `json:"rest_seconds"`
 	SortOrder      int      `json:"sort_order"`
 	Notes          *string  `json:"notes"`
+	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty"`
+	GroupLabel     *string  `json:"group_label,omitempty"`
+	RepsMax        *int     `json:"reps_max,omitempty"`
+	RIRMin         *int     `json:"rir_min,omitempty"`
+	RIRMax         *int     `json:"rir_max,omitempty"`
+	NonWorking     bool     `json:"non_working,omitempty"`
+	GroupKey       *string  `json:"group_key,omitempty"`
+}
+
+// applyPrescribedSetDetail copies the optional prescription detail of a
+// stored set onto its export row.
+func applyPrescribedSetDetail(eps *ExportPrescribedSet, ps *PrescribedSet) {
+	eps.PrescribedRPE = nullFloatPtr(ps.PrescribedRPE)
+	eps.GroupLabel = nullStringPtr(ps.GroupLabel)
+	eps.RepsMax = nullIntAsIntPtr(ps.RepsMax)
+	eps.RIRMin = nullIntAsIntPtr(ps.RIRMin)
+	eps.RIRMax = nullIntAsIntPtr(ps.RIRMax)
+	eps.NonWorking = ps.NonWorking
+	eps.GroupKey = nullStringPtr(ps.GroupKey)
+}
+
+func nullIntAsIntPtr(n sql.NullInt64) *int {
+	if !n.Valid {
+		return nil
+	}
+	v := int(n.Int64)
+	return &v
 }
 
 // ExportProgressionRule is a progression rule in a JSON export.
@@ -187,6 +214,7 @@ func BuildCatalogExportJSON(ctx context.Context, db *sql.DB) (*CatalogJSON, erro
 				rest := int(ps.RestSeconds.Int64)
 				eps.RestSeconds = &rest
 			}
+			applyPrescribedSetDetail(&eps, ps)
 			eps.Notes = nullStringPtr(ps.Notes)
 			ept.PrescribedSets = append(ept.PrescribedSets, eps)
 		}

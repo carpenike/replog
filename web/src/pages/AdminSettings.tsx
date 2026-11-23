@@ -2,33 +2,37 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { SettingCategoryData, SettingValueData } from '@/api/types'
-import { Spinner } from '@/components/ui'
+import { Check, X } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert } from '@/components/ui/alert'
 
 export function AdminSettings() {
-  const { data: categories, isLoading, error } = useQuery({
+  const query = useQuery({
     queryKey: ['admin-settings'],
     queryFn: () => api.listSettings(),
   })
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load settings.</p>
-
   return (
     <div className="max-w-3xl">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+      <PageHeader title="Settings" />
 
       <div className="space-y-6">
-        {categories?.map((cat: SettingCategoryData) => (
-          <SettingCategoryCard key={cat.category} category={cat} />
-        ))}
+        <QueryState query={query} resource="settings" skeleton="cards">
+          {categories => (
+            <>
+              {categories.map((cat: SettingCategoryData) => (
+                <SettingCategoryCard key={cat.category} category={cat} />
+              ))}
+            </>
+          )}
+        </QueryState>
 
         {/* Test Connections */}
         <Card>
@@ -97,8 +101,7 @@ function SettingCategoryCard({ category }: { category: SettingCategoryData }) {
         <CardTitle>{category.category}</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableBody>
+        <div className="divide-y divide-border">
             {category.settings.map(setting => (
               <SettingRow
                 key={setting.key}
@@ -107,8 +110,7 @@ function SettingCategoryCard({ category }: { category: SettingCategoryData }) {
                 onDraftChange={val => setDrafts(d => ({ ...d, [setting.key]: val }))}
               />
             ))}
-          </TableBody>
-        </Table>
+        </div>
       </CardContent>
       {category.settings.some(s => !s.read_only) && (
         <CardFooter className="flex justify-end gap-2 border-t pt-4">
@@ -120,7 +122,7 @@ function SettingCategoryCard({ category }: { category: SettingCategoryData }) {
             onClick={handleSave}
             disabled={!hasChanges && status !== 'saved'}
           >
-            {status === 'saving' ? 'Saving...' : status === 'saved' ? 'Saved ✓' : 'Save'}
+            {status === 'saving' ? 'Saving...' : status === 'saved' ? <><Check aria-hidden="true" /> Saved</> : 'Save'}
           </Button>
         </CardFooter>
       )}
@@ -134,6 +136,8 @@ function SettingRow({ setting, draft, onDraftChange }: {
   onDraftChange: (val: string) => void
 }) {
   const label = setting.key.split('.').slice(1).join(' ').replace(/_/g, ' ')
+  const controlId = `setting-${setting.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+  const descId = setting.description ? `${controlId}-desc` : undefined
 
   function renderControl() {
     const value = draft ?? setting.value
@@ -141,7 +145,7 @@ function SettingRow({ setting, draft, onDraftChange }: {
     if (setting.field_type === 'select' && setting.options?.length) {
       return (
         <Select value={value} onValueChange={(v) => onDraftChange(v ?? '')}>
-          <SelectTrigger className="font-mono">
+          <SelectTrigger id={controlId} aria-describedby={descId} className="font-mono">
             <SelectValue>{(val) => val || <span className="text-muted-foreground italic">Select...</span>}</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -156,6 +160,8 @@ function SettingRow({ setting, draft, onDraftChange }: {
     if (setting.field_type === 'textarea') {
       return (
         <Textarea
+          id={controlId}
+          aria-describedby={descId}
           value={value}
           onChange={e => onDraftChange(e.target.value)}
           className="font-mono"
@@ -168,6 +174,8 @@ function SettingRow({ setting, draft, onDraftChange }: {
     if (setting.field_type === 'number') {
       return (
         <Input
+          id={controlId}
+          aria-describedby={descId}
           type="number"
           value={value}
           onChange={e => onDraftChange(e.target.value)}
@@ -179,6 +187,8 @@ function SettingRow({ setting, draft, onDraftChange }: {
 
     return (
       <Input
+        id={controlId}
+        aria-describedby={descId}
         type={setting.field_type === 'password' ? 'password' : 'text'}
         value={value}
         onChange={e => onDraftChange(e.target.value)}
@@ -189,17 +199,19 @@ function SettingRow({ setting, draft, onDraftChange }: {
   }
 
   return (
-    <TableRow>
-      <TableCell className="font-medium capitalize whitespace-normal w-1/3 align-top">
-        <div>{label}</div>
+    <div className="grid gap-2 py-3 md:grid-cols-[1fr_2fr] md:gap-4">
+      <div className="text-sm">
+        {setting.read_only
+          ? <div className="font-medium capitalize">{label}</div>
+          : <label htmlFor={controlId} className="font-medium capitalize">{label}</label>}
         {setting.description && (
-          <div className="text-xs text-muted-foreground font-normal normal-case mt-0.5">{setting.description}</div>
+          <div id={descId} className="text-xs text-muted-foreground font-normal normal-case mt-0.5">{setting.description}</div>
         )}
-      </TableCell>
-      <TableCell>
+      </div>
+      <div className="min-w-0">
         {setting.read_only ? (
           <div className="flex items-center gap-2">
-            <span className="font-mono text-muted-foreground">{setting.masked || setting.value || <span className="italic">(empty)</span>}</span>
+            <span className="font-mono text-sm text-muted-foreground break-all">{setting.masked || setting.value || <span className="italic">(empty)</span>}</span>
             {setting.source !== 'default' && (
               <Badge variant={setting.source === 'env' ? 'default' : 'secondary'}>{setting.source}</Badge>
             )}
@@ -212,8 +224,8 @@ function SettingRow({ setting, draft, onDraftChange }: {
             )}
           </div>
         )}
-      </TableCell>
-    </TableRow>
+      </div>
+    </div>
   )
 }
 
@@ -243,8 +255,8 @@ function TestButton({ label, onClick }: { label: string; onClick: () => Promise<
         disabled={status === 'testing'}
       >
         {status === 'testing' ? 'Testing...' :
-         status === 'success' ? '✓ Connected' :
-         status === 'error' ? '✗ Failed' :
+         status === 'success' ? <><Check aria-hidden="true" /> Connected</> :
+         status === 'error' ? <><X aria-hidden="true" /> Failed</> :
          label}
       </Button>
       {errorMsg && <Alert variant="destructive" className="mt-2">{errorMsg}</Alert>}

@@ -5,6 +5,13 @@
 export interface RecordSet {
   reps: number
   weight?: number | null
+  /** working | warmup | drop | failure. Warm-ups never count toward records. */
+  set_type?: string | null
+}
+
+/** Warm-up sets stay in the log but never count toward PRs or bests. */
+export function isWarmup(s: { set_type?: string | null }): boolean {
+  return s.set_type === 'warmup'
 }
 
 /** A set with the date it was performed, for computing all-time bests. */
@@ -47,8 +54,9 @@ function isBodyweight(s: RecordSet): boolean {
  * history at all (a first-ever set is not a record). When a set qualifies on
  * multiple counts the most impressive kind wins: weight > e1rm > reps.
  */
-export function classifyPR(prior: RecordSet[], set: RecordSet): PRResult | null {
-  if (set.reps < 1) return null
+export function classifyPR(allPrior: RecordSet[], set: RecordSet): PRResult | null {
+  if (set.reps < 1 || isWarmup(set)) return null
+  const prior = allPrior.filter(s => !isWarmup(s))
 
   // Bodyweight sets only compete on plain max reps against other BW sets.
   if (!isWeighted(set)) {
@@ -111,7 +119,7 @@ export interface ExerciseBests {
 export function computeBests(sets: DatedSet[]): ExerciseBests {
   const out: ExerciseBests = {}
   for (const s of sets) {
-    if (s.reps < 1) continue
+    if (s.reps < 1 || isWarmup(s)) continue
     if (isWeighted(s)) {
       const w = s.weight as number
       const h = out.heaviest

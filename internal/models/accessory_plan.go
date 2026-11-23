@@ -22,6 +22,7 @@ type AccessoryPlan struct {
 	TargetWeight sql.NullFloat64
 	Notes        sql.NullString
 	SortOrder    int
+	GroupKey     sql.NullString // superset/circuit group (A, B, ...); NULL = not grouped
 	Active       bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -56,6 +57,20 @@ func (ap *AccessoryPlan) RepRangeLabel() string {
 
 // CreateAccessoryPlan inserts a new accessory plan entry.
 func CreateAccessoryPlan(ctx context.Context, db *sql.DB, athleteID int64, day int, exerciseID int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int) (*AccessoryPlan, error) {
+	return CreateAccessoryPlanGrouped(ctx, db, athleteID, day, exerciseID, targetSets, targetRepMin, targetRepMax, targetWeight, notes, sortOrder, "")
+}
+
+// CreateAccessoryPlanGrouped is CreateAccessoryPlan with a superset/circuit
+// group key. Lines on the same day that share a key are done as one group.
+func CreateAccessoryPlanGrouped(ctx context.Context, db *sql.DB, athleteID int64, day int, exerciseID int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int, groupKey string) (*AccessoryPlan, error) {
+	key := NormalizeGroupKey(groupKey)
+	if !ValidGroupKey(key) {
+		return nil, fmt.Errorf("%w: group_key must be 1-4 letters or digits starting with a letter", ErrInvalidInput)
+	}
+	var keyVal sql.NullString
+	if key != "" {
+		keyVal = sql.NullString{String: key, Valid: true}
+	}
 	var tsVal sql.NullInt64
 	if targetSets > 0 {
 		tsVal = sql.NullInt64{Int64: int64(targetSets), Valid: true}
@@ -79,10 +94,10 @@ func CreateAccessoryPlan(ctx context.Context, db *sql.DB, athleteID int64, day i
 
 	var id int64
 	err := db.QueryRowContext(ctx,
-		`INSERT INTO accessory_plans (athlete_id, day, exercise_id, target_sets, target_rep_min, target_rep_max, target_weight, notes, sort_order)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO accessory_plans (athlete_id, day, exercise_id, target_sets, target_rep_min, target_rep_max, target_weight, notes, sort_order, group_key)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 RETURNING id`,
-		athleteID, day, exerciseID, tsVal, minVal, maxVal, wVal, nVal, sortOrder,
+		athleteID, day, exerciseID, tsVal, minVal, maxVal, wVal, nVal, sortOrder, keyVal,
 	).Scan(&id)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -98,13 +113,13 @@ func GetAccessoryPlanByID(ctx context.Context, db *sql.DB, id int64) (*Accessory
 	ap := &AccessoryPlan{}
 	err := db.QueryRowContext(ctx,
 		`SELECT ap.id, ap.athlete_id, ap.day, ap.exercise_id, ap.target_sets, ap.target_rep_min, ap.target_rep_max,
-		        ap.target_weight, ap.notes, ap.sort_order, ap.active, ap.created_at, ap.updated_at,
+		        ap.target_weight, ap.notes, ap.sort_order, ap.group_key, ap.active, ap.created_at, ap.updated_at,
 		        e.name
 		 FROM accessory_plans ap
 		 JOIN exercises e ON e.id = ap.exercise_id
 		 WHERE ap.id = ?`, id,
 	).Scan(&ap.ID, &ap.AthleteID, &ap.Day, &ap.ExerciseID, &ap.TargetSets, &ap.TargetRepMin, &ap.TargetRepMax,
-		&ap.TargetWeight, &ap.Notes, &ap.SortOrder, &ap.Active, &ap.CreatedAt, &ap.UpdatedAt,
+		&ap.TargetWeight, &ap.Notes, &ap.SortOrder, &ap.GroupKey, &ap.Active, &ap.CreatedAt, &ap.UpdatedAt,
 		&ap.ExerciseName)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -120,7 +135,7 @@ func GetAccessoryPlanByID(ctx context.Context, db *sql.DB, id int64) (*Accessory
 func ListAccessoryPlansForDay(ctx context.Context, db *sql.DB, athleteID int64, day int) ([]*AccessoryPlan, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT ap.id, ap.athlete_id, ap.day, ap.exercise_id, ap.target_sets, ap.target_rep_min, ap.target_rep_max,
-		       ap.target_weight, ap.notes, ap.sort_order, ap.active, ap.created_at, ap.updated_at,
+		       ap.target_weight, ap.notes, ap.sort_order, ap.group_key, ap.active, ap.created_at, ap.updated_at,
 		       e.name
 		FROM accessory_plans ap
 		JOIN exercises e ON e.id = ap.exercise_id
@@ -135,7 +150,7 @@ func ListAccessoryPlansForDay(ctx context.Context, db *sql.DB, athleteID int64, 
 	for rows.Next() {
 		ap := &AccessoryPlan{}
 		if err := rows.Scan(&ap.ID, &ap.AthleteID, &ap.Day, &ap.ExerciseID, &ap.TargetSets, &ap.TargetRepMin, &ap.TargetRepMax,
-			&ap.TargetWeight, &ap.Notes, &ap.SortOrder, &ap.Active, &ap.CreatedAt, &ap.UpdatedAt,
+			&ap.TargetWeight, &ap.Notes, &ap.SortOrder, &ap.GroupKey, &ap.Active, &ap.CreatedAt, &ap.UpdatedAt,
 			&ap.ExerciseName); err != nil {
 			return nil, fmt.Errorf("models: scan accessory plan: %w", err)
 		}
@@ -149,7 +164,7 @@ func ListAccessoryPlansForDay(ctx context.Context, db *sql.DB, athleteID int64, 
 func ListAllAccessoryPlans(ctx context.Context, db *sql.DB, athleteID int64) ([]*AccessoryPlan, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT ap.id, ap.athlete_id, ap.day, ap.exercise_id, ap.target_sets, ap.target_rep_min, ap.target_rep_max,
-		       ap.target_weight, ap.notes, ap.sort_order, ap.active, ap.created_at, ap.updated_at,
+		       ap.target_weight, ap.notes, ap.sort_order, ap.group_key, ap.active, ap.created_at, ap.updated_at,
 		       e.name
 		FROM accessory_plans ap
 		JOIN exercises e ON e.id = ap.exercise_id
@@ -164,7 +179,7 @@ func ListAllAccessoryPlans(ctx context.Context, db *sql.DB, athleteID int64) ([]
 	for rows.Next() {
 		ap := &AccessoryPlan{}
 		if err := rows.Scan(&ap.ID, &ap.AthleteID, &ap.Day, &ap.ExerciseID, &ap.TargetSets, &ap.TargetRepMin, &ap.TargetRepMax,
-			&ap.TargetWeight, &ap.Notes, &ap.SortOrder, &ap.Active, &ap.CreatedAt, &ap.UpdatedAt,
+			&ap.TargetWeight, &ap.Notes, &ap.SortOrder, &ap.GroupKey, &ap.Active, &ap.CreatedAt, &ap.UpdatedAt,
 			&ap.ExerciseName); err != nil {
 			return nil, fmt.Errorf("models: scan accessory plan: %w", err)
 		}
@@ -176,6 +191,12 @@ func ListAllAccessoryPlans(ctx context.Context, db *sql.DB, athleteID int64) ([]
 // UpdateAccessoryPlan updates a plan, scoped to athleteID so a coach cannot
 // mutate a plan belonging to an athlete they do not manage by guessing its ID.
 func UpdateAccessoryPlan(ctx context.Context, db *sql.DB, id, athleteID int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int) error {
+	return UpdateAccessoryPlanGrouped(ctx, db, id, athleteID, targetSets, targetRepMin, targetRepMax, targetWeight, notes, sortOrder, nil)
+}
+
+// UpdateAccessoryPlanGrouped is UpdateAccessoryPlan that can also change the
+// group key. A nil groupKey leaves it unchanged; "" ungroups the line.
+func UpdateAccessoryPlanGrouped(ctx context.Context, db *sql.DB, id, athleteID int64, targetSets, targetRepMin, targetRepMax int, targetWeight float64, notes string, sortOrder int, groupKey *string) error {
 	var tsVal sql.NullInt64
 	if targetSets > 0 {
 		tsVal = sql.NullInt64{Int64: int64(targetSets), Valid: true}
@@ -197,10 +218,22 @@ func UpdateAccessoryPlan(ctx context.Context, db *sql.DB, id, athleteID int64, t
 		nVal = sql.NullString{String: notes, Valid: true}
 	}
 
-	result, err := db.ExecContext(ctx,
-		`UPDATE accessory_plans SET target_sets = ?, target_rep_min = ?, target_rep_max = ?, target_weight = ?, notes = ?, sort_order = ? WHERE id = ? AND athlete_id = ?`,
-		tsVal, minVal, maxVal, wVal, nVal, sortOrder, id, athleteID,
-	)
+	query := `UPDATE accessory_plans SET target_sets = ?, target_rep_min = ?, target_rep_max = ?, target_weight = ?, notes = ?, sort_order = ?`
+	args := []any{tsVal, minVal, maxVal, wVal, nVal, sortOrder}
+	if groupKey != nil {
+		key := NormalizeGroupKey(*groupKey)
+		if !ValidGroupKey(key) {
+			return fmt.Errorf("%w: group_key must be 1-4 letters or digits starting with a letter", ErrInvalidInput)
+		}
+		var keyVal sql.NullString
+		if key != "" {
+			keyVal = sql.NullString{String: key, Valid: true}
+		}
+		query += `, group_key = ?`
+		args = append(args, keyVal)
+	}
+	args = append(args, id, athleteID)
+	result, err := db.ExecContext(ctx, query+` WHERE id = ? AND athlete_id = ?`, args...)
 	if err != nil {
 		return fmt.Errorf("models: update accessory plan %d: %w", id, err)
 	}

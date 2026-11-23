@@ -135,6 +135,13 @@ func (rl *RateLimiter) isTrustedProxy(ipStr string) bool {
 	return false
 }
 
+// ClientIP returns the caller's address the way the limiter keys it: the
+// connection's address, or the forwarded client address when the
+// connection comes from a trusted proxy.
+func (rl *RateLimiter) ClientIP(r *http.Request) string {
+	return rl.extractIP(r)
+}
+
 // extractIP returns the real client IP address. It only trusts
 // X-Forwarded-For / X-Real-IP when the direct connection (RemoteAddr)
 // comes from a configured trusted proxy. This prevents IP spoofing attacks

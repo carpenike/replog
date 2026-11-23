@@ -1,65 +1,98 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { Plus, Star } from 'lucide-react'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
-import { usePageTitle } from '@/lib/usePageTitle'
 import type { User } from '@/api/types'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { CardList, CardListItem, DesktopOnly, RowLink } from '@/components/CardList'
+import { EmptyState } from '@/components/ui'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
-export function ExercisesList({ user }: { user: User }) {
-  usePageTitle('Exercises')
-  const navigate = useNavigate()
-  const [search, setSearch] = useState('')
+function Featured({ featured }: { featured: boolean }) {
+  if (!featured) return null
+  return <Star className="size-4 fill-current text-warning-strong" aria-label="Featured" />
+}
 
-  const { data: exercises, isLoading, error } = useQuery({
+export function ExercisesList({ user }: { user: User }) {
+  const [search, setSearch] = useState('')
+  const canManage = user.is_coach || user.is_admin
+
+  const query = useQuery({
     queryKey: ['exercises'],
     queryFn: () => api.listExercises(),
   })
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load exercises.</p>
-
-  const filtered = exercises?.filter(e =>
-    e.name.toLowerCase().includes(search.toLowerCase())
-  ) ?? []
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Exercises</h1>
-        {(user.is_coach || user.is_admin) && (
-          <Button onClick={() => navigate('/exercises/new')}>
-            + New Exercise
+      <PageHeader
+        title="Exercises"
+        actions={canManage && (
+          <Button render={<Link to="/exercises/new" />}>
+            <Plus aria-hidden="true" /> New Exercise
           </Button>
         )}
-      </div>
+      />
 
-      <Input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search exercises..." className="mb-4" />
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Tier</TableHead>
-            <TableHead>Featured</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.map(exercise => (
-            <TableRow key={exercise.id} className="cursor-pointer"
-              onClick={() => navigate(`/exercises/${exercise.id}`)}>
-              <TableCell className="font-medium">
-                <Link to={`/exercises/${exercise.id}`} className="hover:text-primary">{exercise.name}</Link>
-              </TableCell>
-              <TableCell className="text-muted-foreground capitalize">{exercise.tier?.replace('_', ' ') ?? '—'}</TableCell>
-              <TableCell>{exercise.featured ? '⭐' : ''}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <QueryState
+        query={query}
+        resource="exercises"
+        empty={{
+          icon: '📋',
+          title: 'No exercises yet',
+          action: canManage ? 'New Exercise' : undefined,
+          actionTo: canManage ? '/exercises/new' : undefined,
+        }}
+      >
+        {exercises => {
+          const filtered = exercises.filter(e => e.name.toLowerCase().includes(search.toLowerCase()))
+          return (
+            <>
+              <Input type="search" aria-label="Search exercises" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search exercises..." className="mb-4" />
+              {filtered.length === 0 ? (
+                <EmptyState icon="🔍" title="No exercises match your search" />
+              ) : (
+                <>
+                  <CardList label="Exercises">
+                    {filtered.map(e => (
+                      <CardListItem
+                        key={e.id}
+                        to={`/exercises/${e.id}`}
+                        title={e.name}
+                        subtitle={<span className="capitalize">{e.tier?.replace('_', ' ') ?? 'Any tier'}</span>}
+                        trailing={<Featured featured={e.featured} />}
+                      />
+                    ))}
+                  </CardList>
+                  <DesktopOnly>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Tier</TableHead>
+                          <TableHead>Featured</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filtered.map(exercise => (
+                          <TableRow key={exercise.id} className="relative">
+                            <TableCell><RowLink to={`/exercises/${exercise.id}`}>{exercise.name}</RowLink></TableCell>
+                            <TableCell className="text-muted-foreground capitalize">{exercise.tier?.replace('_', ' ') ?? '—'}</TableCell>
+                            <TableCell><Featured featured={exercise.featured} /></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </DesktopOnly>
+                </>
+              )}
+            </>
+          )
+        }}
+      </QueryState>
     </div>
   )
 }

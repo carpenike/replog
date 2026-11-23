@@ -6,8 +6,11 @@ import { EmptyState, QueryError } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import { fetchWeekStreak } from '@/lib/streak'
 import { openTodaySession, sessionPath, workoutOnDate } from '@/lib/todaySession'
-import { usePageTitle } from '@/lib/usePageTitle'
-import { cn, formatDate, localDateISO } from '@/lib/utils'
+import { ArrowRight } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { MilestonesCard } from '@/components/Milestones'
+import { useFriendlyDate } from '@/lib/dates'
+import { cn, localDateISO } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,8 +27,8 @@ function formatVolume(v: number): string {
 
 export function Dashboard({ user }: DashboardProps) {
   // Linked non-coach: the home screen is today's log, one tap away.
-  // Coaches and admins keep the staff dashboard even if they also have
-  // an athlete profile.
+  // Coaches and admins keep the staff dashboard; when they also train
+  // (athlete_id set) it opens with their own session button and streak.
   if (!user.is_coach && !user.is_admin && user.athlete_id != null) {
     return <AthleteHome user={user} athleteId={user.athlete_id} />
   }
@@ -33,12 +36,11 @@ export function Dashboard({ user }: DashboardProps) {
 }
 
 /**
- * Kid home. The first control opens today's resistance session — resume
- * the day's workout, or create an empty one. The screen records the log.
- * It does not choose the work.
+ * Today's session button and the week streak. The button opens today's
+ * resistance session — resume the day's workout, or create an empty one.
+ * The screen records the log. It does not choose the work.
  */
-function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
-  usePageTitle('Today')
+function TodaySessionCard({ athleteId }: { athleteId: number }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const today = localDateISO()
@@ -73,11 +75,7 @@ function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
   const sessionClass = 'h-14 w-full text-base font-semibold'
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">
-        Welcome, {user.name ?? user.username}
-      </h1>
-
+    <>
       {todayWorkout ? (
         <Button
           size="touch"
@@ -117,6 +115,17 @@ function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
           )}
         </div>
       )}
+    </>
+  )
+}
+
+/** Kid home: today's session one tap away. */
+function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
+  return (
+    <div>
+      <PageHeader title={`Welcome, ${user.name ?? user.username}`} pageTitle="Today" className="mb-4" />
+
+      <TodaySessionCard athleteId={athleteId} />
 
       <nav aria-label="More" className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
         <Link to={`/athletes/${athleteId}/prescription`} className="text-muted-foreground hover:text-foreground">
@@ -128,16 +137,22 @@ function AthleteHome({ user, athleteId }: { user: User; athleteId: number }) {
         <Link to={`/athletes/${athleteId}/body-weights`} className="text-muted-foreground hover:text-foreground">
           Body weight
         </Link>
+        <Link to={`/athletes/${athleteId}/records`} className="text-muted-foreground hover:text-foreground">
+          Records
+        </Link>
         <Link to={`/athletes/${athleteId}`} className="text-muted-foreground hover:text-foreground">
           Profile
         </Link>
       </nav>
+
+      <MilestonesCard athleteId={athleteId} className="mt-6" />
     </div>
   )
 }
 
 function StaffHome({ user }: DashboardProps) {
-  usePageTitle('Dashboard')
+  const friendlyDate = useFriendlyDate()
+  const welcome = `Welcome, ${user.name ?? user.username}`
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.dashboard(),
@@ -146,7 +161,7 @@ function StaffHome({ user }: DashboardProps) {
   if (isLoading) {
     return (
       <div>
-        <Skeleton className="h-8 w-56 mb-6" />
+        <PageHeader title={welcome} pageTitle="Dashboard" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
         </div>
@@ -159,7 +174,7 @@ function StaffHome({ user }: DashboardProps) {
   if (error) {
     return (
       <div>
-        <h1 className="text-2xl font-bold mb-6">Welcome, {user.name ?? user.username}</h1>
+        <PageHeader title={welcome} pageTitle="Dashboard" />
         <QueryError error={error} onRetry={refetch} resource="dashboard" />
       </div>
     )
@@ -169,17 +184,14 @@ function StaffHome({ user }: DashboardProps) {
   if (!user.is_coach && !user.is_admin) {
     return (
       <div>
-        <h1 className="text-2xl font-bold mb-6">
-          Welcome, {user.name ?? user.username}
-        </h1>
+        <PageHeader title={welcome} pageTitle="Dashboard" />
         <Card className="text-center">
           <CardContent>
-          <span className="text-4xl block mb-3">👋</span>
-          <p className="font-semibold text-lg mb-2">You're all set!</p>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Your account hasn't been linked to an athlete profile yet.
-            Ask your coach to connect your account so you can start logging workouts.
-          </p>
+            <EmptyState
+              icon="👋"
+              title="You're all set!"
+              description="Your account hasn't been linked to an athlete profile yet. Ask your coach to connect your account so you can start logging workouts."
+            />
           </CardContent>
         </Card>
       </div>
@@ -188,9 +200,14 @@ function StaffHome({ user }: DashboardProps) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">
-        Welcome, {user.name ?? user.username}
-      </h1>
+      <PageHeader title={welcome} pageTitle="Dashboard" />
+
+      {/* Staff who also train get their own session first. */}
+      {user.athlete_id != null && (
+        <section aria-label="My training" className="mb-8">
+          <TodaySessionCard athleteId={user.athlete_id} />
+        </section>
+      )}
 
       {/* Stats cards */}
       {data?.stats && (
@@ -238,9 +255,9 @@ function StaffHome({ user }: DashboardProps) {
             </div>
             <Link
               to="/reviews/pending"
-              className="text-sm font-medium text-primary hover:text-primary/80"
+              className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 md:min-h-0"
             >
-              Review now &rarr;
+              Review now <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           </div>
         </Alert>
@@ -270,20 +287,20 @@ function StaffHome({ user }: DashboardProps) {
                   {a.avatar_url ? (
                     <img src={a.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
+                    <div aria-hidden="true" className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
                       {a.name.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div>
                     <p className="font-medium">{a.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {a.last_workout_date ? `Last: ${formatDate(a.last_workout_date)}` : 'No workouts'}
+                      {a.last_workout_date ? `Last: ${friendlyDate(a.last_workout_date)}` : 'No workouts'}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   {a.week_streak > 0 && (
-                    <span className="text-sm"><span aria-hidden="true">🔥</span> {a.week_streak}w</span>
+                    <span className="text-sm"><span aria-hidden="true">🔥</span> {a.week_streak}w<span className="sr-only"> streak</span></span>
                   )}
                 </div>
               </Link>

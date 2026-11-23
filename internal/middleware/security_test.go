@@ -133,3 +133,49 @@ func extractDirective(csp, name string) string {
 	}
 	return ""
 }
+
+// TestSecurityHeaders_FrameSrcAllowsOnlyVideoPlayers checks the SPA CSP
+// lets the session screen embed YouTube (no-cookie) and Vimeo demo videos
+// and nothing else.
+func TestSecurityHeaders_FrameSrcAllowsOnlyVideoPlayers(t *testing.T) {
+	rr := runSecurityHeaders(t, "/")
+	got := extractDirective(rr.Header().Get("Content-Security-Policy"), "frame-src")
+	want := "frame-src https://www.youtube-nocookie.com https://player.vimeo.com"
+	if got != want {
+		t.Errorf("frame-src = %q, want %q", got, want)
+	}
+}
+
+func TestSecurityHeaders_SharePathsAreLockedDown(t *testing.T) {
+	for _, path := range []string{"/s/abc", "/api/share/abc", "/api/share/abc/video"} {
+		rr := runSecurityHeaders(t, path)
+		checks := map[string]string{
+			"Referrer-Policy":        "no-referrer",
+			"X-Robots-Tag":           "noindex, nofollow, noarchive",
+			"Cache-Control":          "private, no-store",
+			"X-Content-Type-Options": "nosniff",
+			"X-Frame-Options":        "DENY",
+		}
+		for h, want := range checks {
+			if got := rr.Header().Get(h); got != want {
+				t.Errorf("%s: %s = %q, want %q", path, h, got, want)
+			}
+		}
+		csp := rr.Header().Get("Content-Security-Policy")
+		for _, want := range []string{"default-src 'none'", "media-src 'self'", "frame-ancestors 'none'", "form-action 'none'", "frame-src 'none'"} {
+			if !strings.Contains(csp, want) {
+				t.Errorf("%s: CSP %q lacks %q", path, csp, want)
+			}
+		}
+		if strings.Contains(csp, "youtube") {
+			t.Errorf("%s: share CSP should not allow embeds: %q", path, csp)
+		}
+	}
+	// The app itself keeps its usual policy.
+	if got := runSecurityHeaders(t, "/settings").Header().Get("Referrer-Policy"); got != "same-origin" {
+		t.Errorf("app Referrer-Policy = %q", got)
+	}
+	if IsSharePath("/share") || IsSharePath("/sets") || IsSharePath("/api/shares") {
+		t.Error("IsSharePath matched a non-share path")
+	}
+}

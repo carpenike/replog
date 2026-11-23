@@ -57,3 +57,6 @@ package api
 //
 // @tag.name Admin
 // @tag.description Admin-only impersonation, settings, and catalog import/export
+//
+// @tag.name Share
+// @tag.description Public, no-login form-check video share links (token in the path)

@@ -1,15 +1,14 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
-import { usePageTitle } from '@/lib/usePageTitle'
+import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
 export function ExportPage() {
   const { id } = useParams<{ id: string }>()
   const athleteId = Number(id)
-  usePageTitle('Export Data')
 
   const { data: athlete } = useQuery({
     queryKey: ['athlete', athleteId],
@@ -37,11 +36,7 @@ export function ExportPage() {
 
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">{athlete?.name ?? 'Athlete'}</Link>
-        {' / Export'}
-      </p>
-      <h1 className="text-2xl font-bold mb-6">Export Data</h1>
+      <PageHeader title="Export Data" back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent>

@@ -38,6 +38,11 @@ RepLog is a **single static binary** that owns:
   `REPLOG_AVATAR_DIR`) — small image files keyed by user ID + random
   suffix. Served from a public no-auth route, so don't put anything here
   except the binary's own writes.
+- **A form-check video directory** (default `videos/` beside the DB,
+  override with `REPLOG_VIDEO_DIR`) — short clips athletes attach to a
+  logged set for the coach's review. Never served from a public route:
+  clips stream only through the authenticated set route, scoped like the
+  rest of the athlete's data. Keep it separate from the avatar directory.
 - **An encryption key** supplied only as `REPLOG_SECRET_KEY`. It
   AES-256-GCM-encrypts sensitive settings (LLM API keys, SMTP
   password). The app never writes it to `app_settings` and never reads
@@ -45,11 +50,12 @@ RepLog is a **single static binary** that owns:
 - **Sessions** in the same SQLite DB (table `sessions`).
 - **A background scheduler** that prunes expired login tokens and old
   notifications (interval and retention controlled by app settings;
-  defaults: 24h / 90d).
+  defaults: 24h / 90d), and removes form-check video files no row
+  references any more.
 
 **There is no external service.** No Redis, no second database, no message
-queue. Backing up the DB file plus the avatar directory captures the
-app data. `REPLOG_SECRET_KEY` is separate: it lives only in the
+queue. Backing up the DB file plus the avatar and video directories
+captures the app data. `REPLOG_SECRET_KEY` is separate: it lives only in the
 environment, and a DB backup does not contain it.
 
 ---
@@ -63,7 +69,7 @@ your nix-config. The flow below is environment-agnostic.
 ### 1. Provision the data directory
 
 ```bash
-sudo mkdir -p /var/lib/replog/avatars
+sudo mkdir -p /var/lib/replog/avatars /var/lib/replog/videos
 sudo chown -R replog:replog /var/lib/replog
 sudo chmod 750 /var/lib/replog
 ```
@@ -178,9 +184,8 @@ ingress network as the only control. The secret is not stored and is not
 written to the audit log. A successful call records the acting user with
 action `on_behalf` and details `proof=shared` or `proof=signed`.
 
-Set the address on the user in the admin UI. Migration `0020` fills
-`ryan@ryanholt.net` only when a user named `ryan` exists and that email
-is still empty.
+Set the address on the user in the admin UI. Migration `0020` is a
+retired no-op and does not fill any address.
 
 ### 4. Set the production env vars
 
@@ -189,10 +194,62 @@ Minimum useful production set:
 ```bash
 REPLOG_DB_PATH=/var/lib/replog/replog.db
 REPLOG_AVATAR_DIR=/var/lib/replog/avatars
+REPLOG_VIDEO_DIR=/var/lib/replog/videos   # form-check clips (not public)
 REPLOG_ADDR=127.0.0.1:8080            # bind loopback; expose via reverse proxy
 REPLOG_BASE_URL=https://replog.example.com
 REPLOG_TRUSTED_PROXIES=127.0.0.1/32   # whatever your proxy is
 ```
+
+Optional: Web Push rest alerts (a push when the rest timer ends, so a
+locked phone still buzzes). Nothing is required: with no keys set, the
+first start generates a VAPID key pair and stores it in `vapid_keys`
+(encrypted when `REPLOG_SECRET_KEY` is set), so subscriptions survive
+restarts and backups. To manage the keys yourself instead:
+
+```bash
+REPLOG_VAPID_PUBLIC_KEY=...    # base64url, 65-byte uncompressed P-256 point
+REPLOG_VAPID_PRIVATE_KEY=...   # base64url, 32-byte scalar; set both or neither
+REPLOG_VAPID_SUBJECT=mailto:coach@example.com  # default: REPLOG_BASE_URL when https
+REPLOG_PUSH_ALLOWED_HOSTS=push.example.org     # extra push-service hosts (comma list)
+REPLOG_PUSH_DISABLED=true      # turn push off entirely
+```
+
+Changing the key pair invalidates every existing subscription; users turn
+rest alerts on again in Preferences. The server only sends to the known
+browser push services (FCM, Mozilla, Apple, WNS) plus
+`REPLOG_PUSH_ALLOWED_HOSTS`, so the outbound firewall must allow https to
+them. iPhone and iPad only receive pushes when RepLog is added to the Home
+Screen (iOS 16.4+). A bad key setup logs `Web Push disabled: ...` and the
+rest of the app runs normally.
+
+Optional: form-check video size cap. Each clip is limited to
+`REPLOG_VIDEO_MAX_MB` MiB (default 100, allowed 1–1024). The server sniffs
+the container and accepts only MP4, QuickTime (.mov, what an iPhone
+records) and WebM. **Raise your reverse proxy's body limit to match** (see
+[Reverse proxy notes](#reverse-proxy-notes)); nginx's default of 1 MiB
+rejects every clip with a 413 before RepLog sees it.
+
+```bash
+REPLOG_VIDEO_MAX_MB=100
+```
+
+Optional: turn off form-check video share links (see
+[Form-check video share links](#form-check-video-share-links)). With the
+kill switch set, nobody can create a link and every existing link answers
+404 until it is unset; owners can still list and revoke links.
+
+```bash
+REPLOG_VIDEO_SHARING_DISABLED=true
+```
+
+Optional: health import. Athletes (or their coach) can send sleep, resting
+HR, HRV and step counts from Apple Health with an iOS Shortcut or Health
+Auto Export. Nothing to configure server-side beyond a service token for
+the sender; see [Health import](health-import.md).
+
+The weekly coach digest goes out Monday after 07:00 in each coach's
+timezone, through the normal notification path (in-app, plus email and
+broadcast when the coach turns on "External" for Weekly Coach Digest).
 
 Setting `REPLOG_BASE_URL` to an `https://` URL automatically:
 
@@ -317,6 +374,7 @@ source tree.
 | `$REPLOG_DB_PATH` | All user data, sessions, encrypted settings | **Yes** |
 | `REPLOG_SECRET_KEY` | Encryption key for those settings. Not stored in the DB | **Yes**, separately from the DB file |
 | `$REPLOG_AVATAR_DIR` | User avatar images | No (cosmetic) |
+| `$REPLOG_VIDEO_DIR` | Form-check clips on sets | Nice to have (large; the rows are in the DB) |
 
 ### How to take a SQLite backup safely
 
@@ -341,6 +399,17 @@ A plain copy is fine — they are immutable once written:
 rsync -a --delete /var/lib/replog/avatars/ /var/backups/replog/avatars/
 ```
 
+### How to back up form-check videos
+
+Clips are written once and never edited, so a plain copy is also fine.
+They can be large; back them up less often than the DB if space is tight.
+A restored DB whose clip files are missing shows "video file is missing"
+on those sets and nothing else breaks.
+
+```bash
+rsync -a --delete /var/lib/replog/videos/ /var/backups/replog/videos/
+```
+
 ### Suggested cron / timer
 
 ```bash
@@ -352,6 +421,7 @@ dest=/var/backups/replog
 mkdir -p "$dest"
 sqlite3 /var/lib/replog/replog.db ".backup '$dest/replog-$ts.db'"
 rsync -a --delete /var/lib/replog/avatars/ "$dest/avatars/"
+rsync -a --delete /var/lib/replog/videos/ "$dest/videos/"
 # Keep 14 daily snapshots; keep weeklies forever (or rotate as you wish).
 find "$dest" -maxdepth 1 -name 'replog-*.db' -mtime +14 -delete
 ```
@@ -388,8 +458,9 @@ sudo rm -f /var/lib/replog/replog.db-{wal,shm}    # discard live WAL sidecars
 sudo cp /var/backups/replog/replog-GOOD.db /var/lib/replog/replog.db
 sudo chown replog:replog /var/lib/replog/replog.db
 
-# (Optional) restore avatars.
+# (Optional) restore avatars and form-check videos.
 sudo rsync -a --delete /var/backups/replog/avatars/ /var/lib/replog/avatars/
+sudo rsync -a --delete /var/backups/replog/videos/ /var/lib/replog/videos/
 
 sudo systemctl start replog
 sudo journalctl -u replog -n 50
@@ -625,11 +696,73 @@ proxy if you don't need to — bind them to an internal listener instead
 
 ### Sensitive paths are redacted
 
-The access logger redacts magic-link login tokens. A request to
-`/api/auth/token/abc123def...` is logged as
-`/api/auth/token/<redacted>`. If you add a new route that carries a
+The access logger redacts magic-link login tokens and video share-link
+tokens. A request to `/api/auth/token/abc123def...` is logged as
+`/api/auth/token/<redacted>`; `/s/<token>` and `/api/share/<token>/...`
+are logged as `/s/<redacted>` and `/api/share/<redacted>`. If you add a new route that carries a
 secret in the path, append the prefix to `redactedPaths` in
 `internal/middleware/logging.go`.
+
+### Form-check video share links
+
+Anyone who can see a set's form-check clip (the athlete it belongs to,
+their coach, or an admin) can open **Share** on the clip and create a link
+that lets a person **with no login** watch that one clip until the link
+expires. These clips are often of minors, so the feature is built to give
+away as little as possible.
+
+**What a link exposes.** The viewer page `/s/<token>` and the public API
+under `/api/share/<token>` show the one clip, its exercise name, the
+workout date and when the link expires. They do not show the athlete's
+name, any account data, other sets or links into the app. The routes sit
+outside the auth middleware; nothing else becomes public.
+
+**How links work.**
+
+- The token is 32 random bytes (base64url, 43 characters). It is shown
+  once, when the link is created. Only its SHA-256 hash is stored, in
+  `set_video_shares.token_hash`, so a database copy cannot open a link.
+- Expiry is chosen at creation: 24 hours, 7 days (the default) or 30 days.
+  The server refuses anything else.
+- An unknown, malformed, expired or revoked token gets the same 404 body,
+  so a response does not say which. The page and the API are rate limited
+  to 120 requests a minute per client IP (the same `REPLOG_TRUSTED_PROXIES`
+  rule as the login limiter decides the client IP).
+- Responses are `Cache-Control: private, no-store`,
+  `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow,
+  noarchive`, `X-Content-Type-Options: nosniff`, with a strict CSP
+  (`default-src 'none'`, media and fetches from this origin only, no
+  frames). The service worker never caches or serves them. The clip is
+  streamed with Range support and is found only through its stored row,
+  never from anything in the URL.
+- Each link records who created it, when, its expiry, an optional label,
+  `last_accessed_at` and `access_count` (one per viewer page load or plain
+  download; seeking while playing does not count).
+
+**Audit trail.** Creating and revoking a link writes `audit_log` rows with
+action `video_share_create` / `video_share_revoke` (link id, clip, set,
+athlete, expiry; never the token). Each public request is logged by slog as
+`video share access` with the endpoint, client IP, outcome and, for a link
+that resolved, its `share_id`:
+
+```bash
+journalctl -u replog | grep 'video share access'
+```
+
+**Revoking.** In the app: open the clip, **Share**, then **Revoke** next to
+the link (tick *Show expired and revoked* to see old ones). It takes effect
+at once. Deleting the clip, or uploading a replacement, removes every link
+to it (the rows cascade). To revoke from the shell, for example every
+active link at once:
+
+```bash
+sqlite3 /var/lib/replog/replog.db \
+  "UPDATE set_video_shares SET revoked_at = CURRENT_TIMESTAMP WHERE revoked_at IS NULL;"
+```
+
+To stop all sharing immediately without touching the rows, set
+`REPLOG_VIDEO_SHARING_DISABLED=true` and restart: creating a link returns
+403 and every share URL returns 404.
 
 ### Metrics
 
@@ -656,6 +789,13 @@ The proxy must forward (and the binary must trust) at least:
   Without that allow-list, the binary uses the direct `RemoteAddr` so
   upstream clients cannot spoof their IP to evade rate limiting.
 
+### Upload size
+
+Form-check clips (up to `REPLOG_VIDEO_MAX_MB`, default 100 MiB) and
+health imports (up to 5 MiB) are larger than most proxy defaults. Caddy
+has no default limit. nginx needs `client_max_body_size` (below). Keep
+proxy timeouts long enough for a clip to upload over gym wifi.
+
 ### Caddy example
 
 ```caddy
@@ -673,6 +813,9 @@ replog.example.com {
 server {
     listen 443 ssl http2;
     server_name replog.example.com;
+
+    # Form-check video uploads (REPLOG_VIDEO_MAX_MB plus multipart overhead).
+    client_max_body_size 110m;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -734,6 +877,9 @@ on the configured interval (default 24 h) and:
   single-use semantics).
 - Prunes notification rows older than the configured retention (default
   90 d).
+- Removes files in `REPLOG_VIDEO_DIR` that no `workout_set_videos` row
+  references (left when a set, workout or athlete is deleted) and that
+  are more than an hour old, so an upload in progress is never touched.
 
 Both interval and retention are admin-tunable in the Settings page; the
 defaults are fine.
@@ -930,6 +1076,10 @@ change.
       `X-Forwarded-Proto`.
 - [ ] Health endpoints `/healthz` and `/readyz` are reachable from
       whatever monitors them, but ideally not from the public internet.
+- [ ] You have decided whether form-check video share links should be
+      available. If not, `REPLOG_VIDEO_SHARING_DISABLED=true` is set. If
+      so, `REPLOG_TRUSTED_PROXIES` is right, so the share rate limit and
+      access logs see the real client IP.
 - [ ] The data directory is owned by the service user and chmod 750.
 - [ ] systemd unit (or container) sets `NoNewPrivileges`, `PrivateTmp`,
       `ProtectSystem=strict`, `ProtectHome` — the shipped NixOS module

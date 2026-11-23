@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { ApiError } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { Loader2 } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
@@ -57,7 +58,7 @@ export function CatalogAdmin() {
   }
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">Catalog Administration</h1>
+      <PageHeader title="Catalog Administration" pageTitle="Catalog" />
       {error && (
         <Alert variant="destructive" className="mb-4">
           {error}
@@ -100,7 +101,11 @@ export function CatalogAdmin() {
             }}>
               {uploadMutation.isPending ? 'Uploading...' : 'Select JSON file'}
             </Button>
-            {uploadMutation.isPending && <Spinner className="mt-2" />}
+            {uploadMutation.isPending && (
+              <p role="status" className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Reading catalog…
+              </p>
+            )}
             </CardContent>
           </Card>
         </div>
@@ -118,7 +123,7 @@ export function CatalogAdmin() {
             </CardContent>
           </Card>
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => executeMutation.mutate()}
+            <Button onClick={() => executeMutation.mutate()}
               disabled={executeMutation.isPending}
               >
               {executeMutation.isPending ? 'Importing...' : 'Import Catalog'}
@@ -133,7 +138,7 @@ export function CatalogAdmin() {
       {step === 'result' && importResult && (
         <Card className="text-center">
           <CardContent>
-          <span className="text-4xl block mb-3">✅</span>
+          <span className="text-4xl block mb-3" aria-hidden="true">✅</span>
           <h2 className="text-lg font-semibold mb-2">Catalog Imported!</h2>
           <div className="text-sm text-muted-foreground space-y-1">
             {importResult.exercises_created > 0 && <p>{importResult.exercises_created} exercises</p>}

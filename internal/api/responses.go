@@ -111,11 +111,76 @@ type WorkoutSet struct {
 	RPE          *float64 `json:"rpe,omitempty"`
 	RepType      string   `json:"rep_type"`
 	Category     string   `json:"category"`
+	SetType      string   `json:"set_type"`
 	Notes        *string  `json:"notes,omitempty"`
 	CreatedAt    string   `json:"created_at"`
 	UpdatedAt    string   `json:"updated_at"`
 	ExerciseName string   `json:"exercise_name,omitempty"`
 	RepsLabel    string   `json:"reps_label,omitempty"`
+	// Video is the form-check clip attached to this set, on the workout
+	// read only.
+	Video *SetVideo `json:"video,omitempty"`
+}
+
+// SetVideo is a form-check clip on a logged set (gap 12). URL streams the
+// file through the authenticated set route; it is never a public path.
+type SetVideo struct {
+	ID           int64   `json:"id"`
+	SetID        int64   `json:"set_id"`
+	WorkoutID    int64   `json:"workout_id"`
+	URL          string  `json:"url"`
+	ContentType  string  `json:"content_type"`
+	SizeBytes    int64   `json:"size_bytes"`
+	UploadedBy   *string `json:"uploaded_by,omitempty"`
+	CoachComment *string `json:"coach_comment,omitempty"`
+	CommentedBy  *string `json:"commented_by,omitempty"`
+	CommentedAt  *string `json:"commented_at,omitempty"`
+	CreatedAt    string  `json:"created_at"`
+}
+
+// VideoShare is a no-login share link to one form-check clip, as its owner
+// sees it. It never carries the token: that is returned once, on create.
+type VideoShare struct {
+	ID             int64   `json:"id"`
+	Label          *string `json:"label,omitempty"`
+	CreatedBy      *string `json:"created_by,omitempty"`
+	CreatedAt      string  `json:"created_at"`
+	ExpiresAt      string  `json:"expires_at"`
+	RevokedAt      *string `json:"revoked_at,omitempty"`
+	LastAccessedAt *string `json:"last_accessed_at,omitempty"`
+	AccessCount    int64   `json:"access_count"`
+	// Status is active, expired or revoked.
+	Status string `json:"status" enums:"active,expired,revoked"`
+}
+
+// VideoShareList is the share links on one clip.
+type VideoShareList struct {
+	// SharingEnabled is false when REPLOG_VIDEO_SHARING_DISABLED is set:
+	// no new link can be created and existing links do not open.
+	SharingEnabled bool          `json:"sharing_enabled"`
+	Shares         []*VideoShare `json:"shares"`
+}
+
+// CreatedVideoShare is the response to creating a share link. Token and URL
+// are shown this once; only the token's hash is stored.
+type CreatedVideoShare struct {
+	Share *VideoShare `json:"share"`
+	// Token is the secret in the link. It cannot be retrieved again.
+	Token string `json:"token"`
+	// URL is the viewer path, /s/{token}, relative to the app's origin.
+	URL string `json:"url"`
+}
+
+// SharedVideo is what a share-link viewer sees: the exercise, the date and
+// when the link expires. It holds no athlete name, account data or links
+// into the app.
+type SharedVideo struct {
+	ExerciseName string `json:"exercise_name"`
+	Date         string `json:"date"`
+	ExpiresAt    string `json:"expires_at"`
+	ContentType  string `json:"content_type"`
+	// VideoURL streams the clip: /api/share/{token}/video.
+	VideoURL string `json:"video_url"`
 }
 
 // ExerciseGroup represents sets grouped by exercise in a workout.
@@ -266,9 +331,38 @@ type RecoveryCheckin struct {
 	SleepHours *float64 `json:"sleep_hours,omitempty"`
 	Soreness   *int64   `json:"soreness,omitempty"`
 	Energy     *int64   `json:"energy,omitempty"`
+	Mood       *int64   `json:"mood,omitempty"`
 	Notes      *string  `json:"notes,omitempty"`
-	CreatedAt  string   `json:"created_at"`
-	UpdatedAt  string   `json:"updated_at"`
+	// LowReadiness is true when an answer crosses a readiness threshold
+	// (sleep under 6 h, soreness 8+, mood or energy 3 or less). The coach
+	// sees the flag in review; it never changes the plan.
+	LowReadiness bool   `json:"low_readiness"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
+// ExerciseSwap is an athlete's swap of a prescribed exercise for one with
+// the same movement pattern during a workout. It is a note for the coach's
+// review; the program is unchanged.
+type ExerciseSwap struct {
+	ID               int64   `json:"id"`
+	WorkoutID        int64   `json:"workout_id"`
+	FromExerciseID   int64   `json:"from_exercise_id"`
+	FromExerciseName string  `json:"from_exercise_name"`
+	ToExerciseID     int64   `json:"to_exercise_id"`
+	ToExerciseName   string  `json:"to_exercise_name"`
+	Reason           *string `json:"reason,omitempty"`
+	CreatedAt        string  `json:"created_at"`
+}
+
+// WorkoutDetailResponse is GET /api/athletes/{id}/workouts/{workoutID}: the
+// workout, its sets grouped by exercise, any exercise swaps, and that day's
+// readiness check-in when one was logged.
+type WorkoutDetailResponse struct {
+	Workout   *Workout         `json:"workout"`
+	Groups    []*ExerciseGroup `json:"groups"`
+	Swaps     []*ExerciseSwap  `json:"swaps"`
+	Readiness *RecoveryCheckin `json:"readiness,omitempty"`
 }
 
 // DisciplineLoad is the per-discipline load rollup within a LoadSummary (ADR 018).
@@ -306,6 +400,12 @@ type ProgramTemplate struct {
 	UpdatedAt    string  `json:"updated_at"`
 	AthleteCount int     `json:"athlete_count,omitempty"`
 	AthleteName  string  `json:"athlete_name,omitempty"`
+	// Locked is true for a coach-imported template. Edit and delete return
+	// 409; the coach re-imports a new version instead.
+	Locked bool `json:"locked"`
+	// ImportVersion is the import version of a coach-imported template
+	// (the same number as version). Omitted for hand-built templates.
+	ImportVersion *int `json:"import_version,omitempty"`
 }
 
 // PrescribedSet is the JSON representation of models.PrescribedSet.
@@ -322,6 +422,11 @@ type PrescribedSet struct {
 	RestSeconds    *int64   `json:"rest_seconds,omitempty"`
 	PrescribedRPE  *float64 `json:"prescribed_rpe,omitempty"`
 	GroupLabel     *string  `json:"group_label,omitempty"`
+	RepsMax        *int64   `json:"reps_max,omitempty"`
+	RIRMin         *int64   `json:"rir_min,omitempty"`
+	RIRMax         *int64   `json:"rir_max,omitempty"`
+	NonWorking     bool     `json:"non_working"`
+	GroupKey       *string  `json:"group_key,omitempty"`
 	SortOrder      int      `json:"sort_order"`
 	RepType        string   `json:"rep_type"`
 	Notes          *string  `json:"notes,omitempty"`
@@ -442,6 +547,7 @@ type AccessoryPlan struct {
 	TargetWeight *float64 `json:"target_weight,omitempty"`
 	Notes        *string  `json:"notes,omitempty"`
 	SortOrder    int      `json:"sort_order"`
+	GroupKey     *string  `json:"group_key,omitempty"`
 	Active       bool     `json:"active"`
 	CreatedAt    string   `json:"created_at"`
 	UpdatedAt    string   `json:"updated_at"`
@@ -485,6 +591,7 @@ type ExerciseHistoryEntry struct {
 	Reps        int      `json:"reps"`
 	Weight      *float64 `json:"weight,omitempty"`
 	RPE         *float64 `json:"rpe,omitempty"`
+	SetType     string   `json:"set_type"`
 	Notes       *string  `json:"notes,omitempty"`
 }
 
@@ -509,6 +616,13 @@ type UnreviewedWorkout struct {
 	Date        string  `json:"date"`
 	SetCount    int     `json:"set_count"`
 	Notes       *string `json:"notes,omitempty"`
+	// LowReadiness is true when that day's readiness check-in flagged low.
+	// It informs the review; it never changes the plan.
+	LowReadiness bool `json:"low_readiness"`
+	// SwapCount is how many prescribed exercises the athlete swapped.
+	SwapCount int `json:"swap_count"`
+	// VideoCount is how many sets carry a form-check video to review.
+	VideoCount int `json:"video_count"`
 }
 
 // ReviewStats is the JSON representation of models.ReviewStats.
@@ -539,4 +653,23 @@ type APIError struct {
 	Error   string            `json:"error"`
 	Code    int               `json:"code"`
 	Details map[string]string `json:"details,omitempty"`
+}
+
+// BioSampleImportResponse reports what a health import did. Re-sending the
+// same readings is safe: they come back as duplicates.
+type BioSampleImportResponse struct {
+	Received   int                    `json:"received"`
+	Inserted   int                    `json:"inserted"`
+	Duplicates int                    `json:"duplicates"`
+	Skipped    int                    `json:"skipped"`
+	Errors     []BioSampleImportError `json:"errors,omitempty"`
+	// IgnoredMetrics names Health Auto Export series RepLog does not import.
+	IgnoredMetrics []string `json:"ignored_metrics,omitempty"`
+}
+
+// BioSampleImportError explains one skipped reading (the first 50 are listed).
+type BioSampleImportError struct {
+	Index  int    `json:"index"`
+	Metric string `json:"metric"`
+	Reason string `json:"reason"`
 }

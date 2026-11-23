@@ -1,11 +1,16 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import { Spinner } from '@/components/ui'
+import { PageHeader } from '@/components/PageHeader'
+import { QueryState } from '@/components/QueryState'
+import { useFriendlyDate } from '@/lib/dates'
 import { fullHistoryQuery } from '@/lib/fullHistory'
 import { computeBests, type ExerciseBests } from '@/lib/records'
-import { formatWeight } from '@/lib/utils'
+import { trendChange, trendSeries, type TrendMetric } from '@/lib/trend'
+import { cn, formatWeight, localDateISO } from '@/lib/utils'
+import { TrendChart } from '@/components/TrendChart'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card'
 
@@ -60,6 +65,105 @@ function BestsCard({ bests }: { bests: ExerciseBests }) {
   )
 }
 
+type TrendRange = '3m' | '6m' | '1y' | 'all'
+
+const RANGES: { value: TrendRange; label: string; months?: number }[] = [
+  { value: '3m', label: '3M', months: 3 },
+  { value: '6m', label: '6M', months: 6 },
+  { value: '1y', label: '1Y', months: 12 },
+  { value: 'all', label: 'All' },
+]
+
+const METRICS: { value: TrendMetric; label: string }[] = [
+  { value: 'e1rm', label: 'Estimated 1RM' },
+  { value: 'top', label: 'Top set' },
+]
+
+function rangeStart(range: TrendRange): string {
+  const months = RANGES.find(r => r.value === range)?.months
+  if (!months) return ''
+  const d = new Date()
+  d.setMonth(d.getMonth() - months)
+  return localDateISO(d)
+}
+
+/** Segmented single-choice control (aria-pressed buttons in a labelled group). */
+function Segmented<T extends string>({ label, value, options, onChange }: {
+  label: string
+  value: T
+  options: { value: T; label: string }[]
+  onChange: (v: T) => void
+}) {
+  return (
+    <div role="group" aria-label={label} className="inline-flex rounded-md border border-border p-0.5">
+      {options.map(o => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            'min-h-11 rounded px-2.5 text-xs font-medium transition-colors md:min-h-7',
+            value === o.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** e1RM / top-set trend for one exercise, from the read-only progress endpoint. */
+function TrendCard({ athleteId, exerciseId }: { athleteId: number; exerciseId: number }) {
+  const [metric, setMetric] = useState<TrendMetric>('e1rm')
+  const [range, setRange] = useState<TrendRange>('all')
+  const { data, isLoading } = useQuery({
+    queryKey: ['progress', athleteId, exerciseId],
+    queryFn: () => api.getProgress(athleteId, { exerciseId }),
+    enabled: !isNaN(athleteId) && !isNaN(exerciseId),
+    staleTime: 5 * 60_000,
+  })
+  const exercise = data?.exercises.find(e => e.exercise_id === exerciseId)
+  const start = rangeStart(range)
+  const points = trendSeries(exercise, metric).filter(p => !start || p.date >= start)
+  const change = trendChange(points)
+  const metricLabel = METRICS.find(m => m.value === metric)!.label
+
+  if (isLoading) return <Skeleton className="mb-4 h-64 w-full" />
+  // Bodyweight-only or brand-new exercises have nothing to plot.
+  if (!exercise || trendSeries(exercise, 'top').length + trendSeries(exercise, 'e1rm').length === 0) return null
+
+  return (
+    <Card size="sm" className="mb-4">
+      <CardHeader>
+        <CardTitle>{metricLabel} trend</CardTitle>
+        {change != null && (
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {change >= 0 ? '+' : '−'}{formatWeight(Math.round(Math.abs(change)))} lb over {points.length} sessions
+          </p>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Segmented label="Measure" value={metric} options={METRICS} onChange={setMetric} />
+          <Segmented label="Time range" value={range} options={RANGES} onChange={setRange} />
+        </div>
+        {points.length >= 2 ? (
+          <TrendChart points={points} label={metricLabel} />
+        ) : (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {points.length === 1 ? 'One session in this range. Log another to see a trend.' : 'No sessions in this range.'}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Estimated 1RM uses the Epley formula on each session's best set. Warm-ups are left out. Ringed points are PRs.
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function ExerciseHistory() {
   const { id, exerciseId } = useParams<{ id: string; exerciseId: string }>()
   const athleteId = Number(id)
@@ -71,7 +175,14 @@ export function ExerciseHistory() {
     enabled: !isNaN(exId),
   })
 
-  const { data: history, isLoading, error } = useQuery({
+  const { data: athlete } = useQuery({
+    queryKey: ['athlete', athleteId],
+    queryFn: () => api.getAthlete(athleteId),
+    enabled: !isNaN(athleteId),
+  })
+  const friendlyDate = useFriendlyDate()
+
+  const query = useQuery({
     queryKey: ['exercise-history', athleteId, exId],
     queryFn: () => api.listExerciseHistory(athleteId, exId),
     enabled: !isNaN(athleteId) && !isNaN(exId),
@@ -89,32 +200,39 @@ export function ExerciseHistory() {
     [fullDays],
   )
 
-  if (isLoading) return <Spinner />
-  if (error) return <p className="text-destructive">Failed to load history.</p>
-
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-1">
-        <Link to={`/athletes/${athleteId}`} className="hover:text-foreground">Athlete</Link>
-        {' / '}
-        <Link to={`/exercises/${exId}`} className="hover:text-foreground">{exercise?.name ?? 'Exercise'}</Link>
-        {' / History'}
-      </p>
-      <h1 className="text-2xl font-bold mb-6">{exercise?.name ?? 'Exercise'} History</h1>
+      <PageHeader
+        title={`${exercise?.name ?? 'Exercise'} History`}
+        pageTitle={exercise ? `${exercise.name} History` : null}
+        back={{ to: `/athletes/${athleteId}`, label: athlete?.name ?? 'Athlete' }}
+        actions={
+          <div className="flex flex-wrap gap-3 text-sm">
+            <Link to={`/athletes/${athleteId}/records`} className="text-primary hover:underline">All records</Link>
+            {exercise && <Link to={`/exercises/${exId}`} className="text-primary hover:underline">About this exercise</Link>}
+          </div>
+        }
+      />
 
       {bests && <BestsCard bests={bests} />}
 
-      {history && history.days.length === 0 ? (
-        <p className="text-muted-foreground">No history for this exercise.</p>
-      ) : (
+      <TrendCard athleteId={athleteId} exerciseId={exId} />
+
+      <QueryState
+        query={query}
+        resource="history"
+        isEmpty={h => h.days.length === 0}
+        empty={{ icon: '📈', title: 'No history for this exercise yet', description: 'Logged sets show up here, newest first.' }}
+      >
+        {history => (
         <div className="space-y-4">
-          {history?.days.map(day => (
+          {history.days.map(day => (
             <Card key={day.workout_id} size="sm">
               <CardHeader>
                 <CardTitle>
                   <Link to={`/athletes/${athleteId}/workouts/${day.workout_id}`}
                     className="hover:text-primary">
-                    {day.workout_date}
+                    {friendlyDate(day.workout_date)}
                   </Link>
                 </CardTitle>
                 <CardAction>
@@ -146,7 +264,8 @@ export function ExerciseHistory() {
             </Card>
           ))}
         </div>
-      )}
+        )}
+      </QueryState>
     </div>
   )
 }

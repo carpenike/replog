@@ -139,6 +139,7 @@ func GetCycleSummary(ctx context.Context, db *sql.DB, program *AthleteProgram, t
 		   AND date(w.date) >= date(?)
 		   AND date(w.date) <= date(?)
 		   AND ws.weight IS NOT NULL
+		   AND `+countedSet+`
 		 ORDER BY e.name COLLATE NOCASE, w.date, ws.set_number DESC
 		 LIMIT 100`,
 		program.TemplateID, program.ID, cycleStart, cycleEnd,

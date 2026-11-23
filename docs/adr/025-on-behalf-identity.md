@@ -49,9 +49,8 @@ already edits it. The service-token issue and revoke UI stays.
 - Each success appends `audit_log` action `on_behalf` for that user, with
   details `on_behalf=true proof=shared` or `on_behalf=true proof=signed`.
   The credential, the token, and the header value are not written.
-- Migration `0020` sets `ryan@ryanholt.net` only when a user named `ryan`
-  exists, that email is empty, and the address is not already taken. It
-  does not insert users. Any other address is set in the admin UI.
+- Migration `0020` once backfilled one user's address. It is now a no-op
+  and inserts nothing. Addresses are set in the admin UI.
 
 `rlcst_` tokens and `REPLOG_SERVICE_TOKEN` are unchanged, including the
 coaching-write refusals on that credential.

@@ -12,6 +12,8 @@ interface EnumSelectProps {
   placeholder?: string
   required?: boolean
   className?: string
+  /** id for the trigger so a <Label htmlFor> / <Field> can name it. */
+  id?: string
 }
 
 /**
@@ -19,10 +21,10 @@ interface EnumSelectProps {
  * used by the multi-modal logbook forms (HOF-011). It renders the selected
  * option's label via the SelectValue render-child the base Select expects.
  */
-export function EnumSelect({ value, onChange, options, placeholder = 'Select...', required, className }: EnumSelectProps) {
+export function EnumSelect({ value, onChange, options, placeholder = 'Select...', required, className, id }: EnumSelectProps) {
   return (
     <Select value={value || null} onValueChange={(val) => onChange(val ?? '')} required={required}>
-      <SelectTrigger className={className ?? 'w-full'}>
+      <SelectTrigger id={id} className={className ?? 'w-full'}>
         <SelectValue placeholder={placeholder}>
           {(val: string | null) => {
             if (!val) return placeholder

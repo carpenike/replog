@@ -92,12 +92,71 @@ export interface WorkoutSet {
   rpe?: number | null;
   rep_type: string;
   category: string;
+  /** working | warmup | drop | failure. Warm-ups are excluded from volume, PRs, and counts server-side. */
+  set_type?: SetType;
   notes?: string | null;
   created_at: string;
   updated_at: string;
   exercise_name?: string;
   reps_label?: string;
+  /** Form-check clip on this set (workout read only). */
+  video?: SetVideo | null;
 }
+
+/** A form-check clip on a logged set. `url` streams it with the session cookie. */
+export interface SetVideo {
+  id: number;
+  set_id: number;
+  workout_id: number;
+  url: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by?: string | null;
+  coach_comment?: string | null;
+  commented_by?: string | null;
+  commented_at?: string | null;
+  created_at: string;
+}
+
+export type VideoShareStatus = 'active' | 'expired' | 'revoked';
+
+/** A no-login share link to one form-check clip. Never carries the token. */
+export interface VideoShare {
+  id: number;
+  label?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  expires_at: string;
+  revoked_at?: string | null;
+  last_accessed_at?: string | null;
+  access_count: number;
+  status: VideoShareStatus;
+}
+
+export interface VideoShareList {
+  /** False when the server's REPLOG_VIDEO_SHARING_DISABLED kill switch is on. */
+  sharing_enabled: boolean;
+  shares: VideoShare[];
+}
+
+/** Create response: the token and viewer path are shown this once. */
+export interface CreatedVideoShare {
+  share: VideoShare;
+  token: string;
+  /** Viewer path, /s/{token}, relative to the app origin. */
+  url: string;
+}
+
+/** What a share-link viewer sees (no athlete or account data). */
+export interface SharedVideo {
+  exercise_name: string;
+  date: string;
+  expires_at: string;
+  content_type: string;
+  video_url: string;
+}
+
+export type SetType = 'working' | 'warmup' | 'drop' | 'failure';
 
 export interface TrainingMax {
   id: number;
@@ -140,6 +199,10 @@ export interface ProgramTemplate {
   updated_at: string;
   athlete_count?: number;
   athlete_name?: string;
+  /** True for a coach-imported template: edit/delete return 409; re-import a new version instead. */
+  locked?: boolean;
+  /** Import version of a coach-imported template; absent for hand-built templates. */
+  import_version?: number | null;
 }
 
 export interface Notification {
@@ -225,6 +288,10 @@ export interface UnreviewedWorkoutData {
   date: string;
   set_count: number;
   notes?: string | null;
+  low_readiness?: boolean;
+  swap_count?: number;
+  /** Sets with a form-check video to watch. */
+  video_count?: number;
 }
 
 export interface SettingValueData {
@@ -254,6 +321,7 @@ export interface AccessoryPlanData {
   target_weight?: number | null;
   notes?: string | null;
   sort_order: number;
+  group_key?: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -286,6 +354,7 @@ export interface ExerciseHistoryEntryData {
   reps: number;
   weight?: number | null;
   rpe?: number | null;
+  set_type?: SetType;
   notes?: string | null;
 }
 
@@ -385,12 +454,23 @@ export interface PrescriptionSetData {
   rest_seconds?: number | null;
   rep_type: string;
   notes?: string | null;
+  /** Top of a rep range; reps is the bottom ("8–12"). */
+  reps_max?: number | null;
+  rir_min?: number | null;
+  rir_max?: number | null;
+  prescribed_rpe?: number | null;
+  /** Warm-up set: shown, but not counted toward progress or PRs. */
+  non_working?: boolean;
+  /** Superset/circuit group (A, B, ...). */
+  group_key?: string | null;
+  group_label?: string | null;
 }
 
 export interface PrescriptionLineData {
   exercise_name: string;
   exercise_id: number;
   training_max?: number | null;
+  group_key?: string | null;
   sets: PrescriptionSetData[];
 }
 
@@ -502,9 +582,32 @@ export interface RecoveryCheckin {
   sleep_hours?: number | null;
   soreness?: number | null;
   energy?: number | null;
+  mood?: number | null;
   notes?: string | null;
+  /** Sleep under 6 h, soreness 8+, or mood/energy 3 or less. Flags the session for the coach; never changes the plan. */
+  low_readiness?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/** An athlete's swap of a prescribed exercise for one with the same movement pattern. The program is unchanged. */
+export interface ExerciseSwap {
+  id: number;
+  workout_id: number;
+  from_exercise_id: number;
+  from_exercise_name: string;
+  to_exercise_id: number;
+  to_exercise_name: string;
+  reason?: string | null;
+  created_at: string;
+}
+
+export interface WorkoutDetailData {
+  workout: Workout;
+  groups: ExerciseGroup[];
+  swaps?: ExerciseSwap[];
+  /** That day's readiness check-in, when one was logged. */
+  readiness?: RecoveryCheckin | null;
 }
 
 export interface SeasonPhase {
@@ -546,4 +649,236 @@ export interface PitchSmartStatus {
   rest_days_owed: number;
   next_eligible_date?: string;
   advisory: string;
+}
+
+// --- Records board (GET /api/athletes/{id}/records) ---
+
+export interface RecordSetData {
+  workout_id: number;
+  date: string;
+  reps: number;
+  /** null/absent for a bodyweight set */
+  weight?: number | null;
+}
+
+export interface RepMaxData extends RecordSetData {
+  /** Heaviest load lifted for at least this many reps. */
+  target: number;
+}
+
+export interface E1RMRecordData extends RecordSetData {
+  e1rm: number;
+}
+
+export interface ExerciseRecordsData {
+  exercise_id: number;
+  name: string;
+  session_count: number;
+  last_date: string;
+  heaviest?: RecordSetData | null;
+  best_e1rm?: E1RMRecordData | null;
+  most_reps?: RecordSetData | null;
+  rep_maxes: RepMaxData[];
+}
+
+export interface RecordsData {
+  athlete_id: number;
+  rep_targets: number[];
+  e1rm_source: string;
+  e1rm_max_reps: number;
+  exercises: ExerciseRecordsData[];
+}
+
+// --- Milestones (GET /api/athletes/{id}/milestones) ---
+
+export type MilestoneKind = 'tier' | 'first' | 'consistency';
+
+export interface MilestoneData {
+  key: string;
+  kind: MilestoneKind;
+  title: string;
+  detail: string;
+  achieved_on: string;
+}
+
+export interface MilestoneGoalData {
+  key: string;
+  title: string;
+  current: number;
+  target: number;
+}
+
+export interface MilestonesData {
+  athlete_id: number;
+  total_sessions: number;
+  current_streak: number;
+  best_streak: number;
+  pr_count: number;
+  /** Newest first. */
+  achieved: MilestoneData[];
+  next: MilestoneGoalData[];
+}
+
+// --- Progress read (GET /api/athletes/{id}/coach/progress) ---
+
+export interface ProgressLoad {
+  value: number | null;
+  unit: string;
+}
+
+export interface ProgressTopSet {
+  session_id: number;
+  date: string;
+  reps: number;
+  load: ProgressLoad;
+  e1rm: number | null;
+  rpe?: number | null;
+}
+
+export interface ProgressPoint {
+  session_id: number;
+  date: string;
+  e1rm: number | null;
+  top_set: ProgressTopSet;
+}
+
+export interface ProgressPR {
+  session_id: number;
+  date: string;
+  e1rm: number;
+  reps: number;
+  load: ProgressLoad;
+}
+
+export interface ProgressExercise {
+  exercise_id: number;
+  name: string;
+  sessions: ProgressPoint[];
+  prs: ProgressPR[];
+  last_session_top_set?: ProgressTopSet | null;
+}
+
+export interface ProgressData {
+  athlete_id: number;
+  start?: string | null;
+  end?: string | null;
+  e1rm_source: string;
+  exercises: ProgressExercise[];
+}
+
+// --- Coach compliance grid (GET /api/coach/compliance) ---
+
+export type ComplianceStatus = 'rest' | 'prescribed' | 'done' | 'partial' | 'skipped' | 'extra';
+
+export interface ComplianceDay {
+  date: string;
+  /** ISO weekday: 1 = Monday … 7 = Sunday. */
+  weekday: number;
+  status: ComplianceStatus;
+  session_id: number | null;
+  program_name: string | null;
+  program_day_label: string | null;
+}
+
+export interface ComplianceAthlete {
+  athlete_id: number;
+  name: string;
+  planned_count: number;
+  done_count: number;
+  partial_count: number;
+  skipped_count: number;
+  prescribed_count: number;
+  extra_count: number;
+  summary: string;
+  days: ComplianceDay[];
+}
+
+export interface ComplianceData {
+  week_start: string;
+  week_end: string;
+  timezone: string;
+  athletes: ComplianceAthlete[];
+}
+
+// --- Athlete calendar (GET /api/athletes/{id}/calendar) ---
+
+export type CalendarDiscipline = 'resistance' | 'throwing' | 'conditioning' | 'skill' | 'recovery';
+
+export interface CalendarSession {
+  workout_id: number;
+  discipline: CalendarDiscipline | string;
+  label: string | null;
+  set_count: number;
+}
+
+export interface CalendarDay {
+  date: string;
+  scheduled: boolean;
+  program_id: number | null;
+  program_name: string | null;
+  /** done | partial | missed | upcoming for a scheduled day, else null. */
+  status: 'done' | 'partial' | 'missed' | 'upcoming' | null;
+  sessions: CalendarSession[];
+}
+
+export interface CalendarPhase {
+  id: number;
+  sport: string | null;
+  phase: 'off' | 'pre' | 'in' | string;
+  start_date: string;
+  /** null = ongoing. */
+  end_date: string | null;
+}
+
+export interface CalendarData {
+  month: string;
+  start: string;
+  end: string;
+  today: string;
+  days: CalendarDay[];
+  phases: CalendarPhase[];
+}
+
+// --- Web Push (GET /api/push/config etc.) ---
+
+export interface PushConfig {
+  enabled: boolean;
+  public_key: string;
+  subscriptions: number;
+}
+
+export interface RestAlertResult {
+  scheduled: boolean;
+  fires_at: string | null;
+}
+
+// Whiteboard / TV mode: read-only board of today's session.
+export interface WhiteboardLine {
+  exercise_id: number;
+  exercise_name: string;
+  group_key?: string | null;
+  prescribed: PrescriptionSetData[];
+  logged: WorkoutSet[];
+  working_target: number;
+  working_done: number;
+}
+
+export interface WhiteboardAthlete {
+  athlete_id: number;
+  name: string;
+  tier?: string | null;
+  program_name?: string | null;
+  current_week?: number;
+  current_day?: number;
+  workout_id?: number | null;
+  lines: WhiteboardLine[];
+  working_target: number;
+  working_done: number;
+}
+
+export interface WhiteboardData {
+  date: string;
+  athletes: WhiteboardAthlete[];
+  available: { id: number; name: string }[];
+  truncated: boolean;
 }
