@@ -232,7 +232,7 @@ function PlateSetupEditor({ athleteId, setup, presets, loggingUnit, copyFrom }: 
         <ul className="space-y-2">
           {form.plates.map((p, i) => (
             <li key={p.key} className="flex items-center gap-2">
-              <Input type="number" inputMode="decimal" step="0.25" min={0} value={p.weight} aria-label={`Plate ${i + 1} weight`}
+              <Input type="number" inputMode="decimal" step="any" min={0} value={p.weight} aria-label={`Plate ${i + 1} weight`}
                 onChange={e => updatePlate(p.key, { weight: e.target.value })} className="w-24" />
               <UnitSelect id={`plate-unit-${athleteId}-${p.key}`} label={`Plate ${i + 1} unit`} value={p.unit} onChange={u => updatePlate(p.key, { unit: u })} />
               <span className="text-sm text-muted-foreground" aria-hidden="true">×</span>

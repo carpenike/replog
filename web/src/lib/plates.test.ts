@@ -3,6 +3,7 @@ import {
   KG_COMPETITION,
   formatPerSide,
   inventoryFromSetup,
+  loadableTotalsKg,
   maxLoadable,
   nearestLoadable,
   roundToLoadable,
@@ -24,6 +25,42 @@ const LB_STANDARD: PlateInventory = {
   ],
 }
 
+describe('the home kg inventory', () => {
+  const pairsOf = (w: number) => KG_COMPETITION.plates.find(p => p.weight === w)?.pairs
+
+  it('matches the plates the home gym owns', () => {
+    expect(KG_COMPETITION.plates.map(p => [p.weight, p.pairs])).toEqual([
+      [25, 1], [20, 2], [15, 1], [10, 1], [5, 1], [2.5, 1], [2, 1], [1.5, 1], [1, 1], [0.5, 1], [0.25, 1], [0.125, 1],
+    ])
+    expect(pairsOf(25)).toBe(1)
+    expect(pairsOf(20)).toBe(2)
+  })
+
+  it('never plans more pairs of a plate than are owned, at any target', () => {
+    for (let target = 45; target <= 600; target += 2.5) {
+      const s = solvePlates(target, KG_COMPETITION, 'lbs')
+      for (const load of s.perSide) expect(load.count).toBeLessThanOrEqual(pairsOf(load.weight)!)
+    }
+  })
+
+  it('loads the heaviest loadable weight at or under every target', () => {
+    const totals = loadableTotalsKg(KG_COMPETITION)
+    for (let target = 45; target <= 497; target += 0.5) {
+      const kg = target / 2.20462
+      const best = totals.filter(t => t <= kg + 1e-6).at(-1)!
+      expect(solvePlates(target, KG_COMPETITION, 'lbs').loadedKg).toBeCloseTo(best, 6)
+    }
+  })
+
+  it('tops out at 225.75 kg with everything on the bar', () => {
+    expect(maxLoadable(KG_COMPETITION, 'kg')).toBe(225.8)
+    const s = solvePlates(600, KG_COMPETITION, 'lbs')
+    expect(s.overCapacity).toBe(true)
+    expect(s.perSide).toContainEqual({ weight: 20, unit: 'kg', count: 2 })
+    expect(s.perSide).toContainEqual({ weight: 25, unit: 'kg', count: 1 })
+  })
+})
+
 describe('solvePlates', () => {
   it('loads 225 lb on a 20 kg bar with kg plates and reports the real weight', () => {
     const s = solvePlates(225, KG_COMPETITION, 'lbs')
@@ -42,7 +79,7 @@ describe('solvePlates', () => {
   })
 
   it('offers the nearest loadable weights either side of 225 lb', () => {
-    expect(nearestLoadable(225, KG_COMPETITION, 'lbs')).toEqual({ below: 224.9, above: 227.1 })
+    expect(nearestLoadable(225, KG_COMPETITION, 'lbs')).toEqual({ below: 224.9, above: 225.4 })
   })
 
   it('counts collars in the bar weight when they are used', () => {
@@ -57,7 +94,7 @@ describe('solvePlates', () => {
     expect(s.loaded).toBe(100)
     expect(s.difference).toBe(0)
     expect(s.exact).toBe(true)
-    expect(nearestLoadable(100, KG_COMPETITION, 'kg')).toEqual({ below: 99, above: 101 })
+    expect(nearestLoadable(100, KG_COMPETITION, 'kg')).toEqual({ below: 99.8, above: 100.3 })
   })
 
   it('uses several of one plate up to the pairs owned', () => {
@@ -79,8 +116,8 @@ describe('solvePlates', () => {
   it('flags a target heavier than the inventory can load', () => {
     const s = solvePlates(800, KG_COMPETITION, 'lbs')
     expect(s.overCapacity).toBe(true)
-    expect(s.loadedKg).toBeCloseTo(335, 6)
-    expect(maxLoadable(KG_COMPETITION, 'lbs')).toBe(738.5)
+    expect(s.loadedKg).toBeCloseTo(225.75, 6)
+    expect(maxLoadable(KG_COMPETITION, 'lbs')).toBe(497.7)
     expect(nearestLoadable(800, KG_COMPETITION, 'lbs').above).toBeUndefined()
   })
 
@@ -94,7 +131,7 @@ describe('solvePlates', () => {
 
 describe('roundToLoadable', () => {
   it('rounds to the closest loadable weight in the logging unit', () => {
-    expect(roundToLoadable(90, KG_COMPETITION, 'lbs')).toBe(90.4)
+    expect(roundToLoadable(90, KG_COMPETITION, 'lbs')).toBe(89.8)
     expect(roundToLoadable(108, LB_STANDARD, 'lbs')).toBe(110)
     expect(roundToLoadable(10, LB_STANDARD, 'lbs')).toBe(45)
   })

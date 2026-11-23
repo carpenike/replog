@@ -1611,7 +1611,7 @@ INSERT INTO exercises (name, tier, form_notes) VALUES
 
 - The barbell loading setup for an athlete's gym. The bar, collars, and each plate carry their own unit, separate from `user_preferences.weight_unit`, so an athlete can log in lbs while loading kg competition plates.
 - `pairs` is how many matched pairs of a plate size the gym has. `UNIQUE(athlete_id, weight, unit)`.
-- An athlete with no row reads the default: 20 kg bar, 2.5 kg collars (off), and competition kg plate pairs 25 (×4), 20, 15, 10, 5, 2.5, 2, 1.5, 1, 0.5. A standard lb preset (45 lb bar; 45/35/25/10/5/2.5 lb) is also offered. Saving replaces the whole inventory; deleting the row resets to the default.
+- An athlete with no row reads the default: 20 kg bar, 2.5 kg collars (off), and competition kg plate pairs 25, 20 (×2), 15, 10, 5, 2.5, 2, 1.5, 1, 0.5, 0.25, 0.125 (the home gym). A standard lb preset (45 lb bar; 45/35/25/10/5/2.5 lb) is also offered. Saving replaces the whole inventory; deleting the row resets to the default.
 - The athlete and their coach (or an admin) can read and change it via `/api/athletes/{id}/plate-setup`.
 
 ### `notifications`

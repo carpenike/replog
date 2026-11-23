@@ -91,7 +91,7 @@ beforeEach(() => {
   vi.mocked(api.getPreferences).mockResolvedValue({ id: 1, user_id: 1, weight_unit: 'lbs', timezone: 'UTC', date_format: '2006-01-02', created_at: '', updated_at: '' })
   vi.mocked(api.getPlateSetup).mockResolvedValue({
     athlete_id: 7, bar: { weight: 20, unit: 'kg' }, collar: { weight: 2.5, unit: 'kg' }, use_collars: false, is_default: true,
-    plates: [25, 20, 15, 10, 5, 2.5, 2, 1.5, 1, 0.5].map(w => ({ weight: w, unit: 'kg', pairs: w === 25 ? 4 : 1 })),
+    plates: [25, 20, 15, 10, 5, 2.5, 2, 1.5, 1, 0.5, 0.25, 0.125].map(w => ({ weight: w, unit: 'kg', pairs: w === 20 ? 2 : 1 })),
   })
   vi.mocked(api.listExerciseHistory).mockResolvedValue({ days: [], has_more: false })
 })

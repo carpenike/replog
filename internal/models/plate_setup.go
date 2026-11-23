@@ -65,8 +65,8 @@ func DefaultPlateSetup(athleteID int64) *PlateSetup {
 		CollarUnit:   PlateUnitKg,
 		UseCollars:   false,
 		Plates: []PlatePair{
-			{Weight: 25, Unit: PlateUnitKg, Pairs: 4},
-			{Weight: 20, Unit: PlateUnitKg, Pairs: 1},
+			{Weight: 25, Unit: PlateUnitKg, Pairs: 1},
+			{Weight: 20, Unit: PlateUnitKg, Pairs: 2},
 			{Weight: 15, Unit: PlateUnitKg, Pairs: 1},
 			{Weight: 10, Unit: PlateUnitKg, Pairs: 1},
 			{Weight: 5, Unit: PlateUnitKg, Pairs: 1},
@@ -75,6 +75,8 @@ func DefaultPlateSetup(athleteID int64) *PlateSetup {
 			{Weight: 1.5, Unit: PlateUnitKg, Pairs: 1},
 			{Weight: 1, Unit: PlateUnitKg, Pairs: 1},
 			{Weight: 0.5, Unit: PlateUnitKg, Pairs: 1},
+			{Weight: 0.25, Unit: PlateUnitKg, Pairs: 1},
+			{Weight: 0.125, Unit: PlateUnitKg, Pairs: 1},
 		},
 		IsDefault: true,
 	}

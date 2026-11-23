@@ -13,9 +13,9 @@ describe('generateWarmupRamp', () => {
   it('ramps to 225 lb on kg plates, shown in lbs', () => {
     expect(generateWarmupRamp(225, KG_COMPETITION, 'lbs')).toEqual([
       { label: 'Bar', weight: 44.1, reps: 10 },
-      { label: '40%', weight: 90.4, reps: 5 },
-      { label: '60%', weight: 134.5, reps: 3 },
-      { label: '80%', weight: 180.8, reps: 2 },
+      { label: '40%', weight: 89.8, reps: 5 },
+      { label: '60%', weight: 135, reps: 3 },
+      { label: '80%', weight: 180.2, reps: 2 },
     ])
   })
 

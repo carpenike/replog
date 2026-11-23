@@ -270,7 +270,7 @@ func TestPlateSetup(t *testing.T) {
 	requireStatus(t, rr, http.StatusOK)
 	var setup PlateSetupResponse
 	decodeJSON(t, rr, &setup)
-	if !setup.IsDefault || setup.Bar.Weight != 20 || setup.Bar.Unit != "kg" || setup.Collar.Weight != 2.5 || setup.UseCollars || len(setup.Plates) != 10 || setup.Plates[0].Weight != 25 || setup.Plates[0].Unit != "kg" {
+	if !setup.IsDefault || setup.Bar.Weight != 20 || setup.Bar.Unit != "kg" || setup.Collar.Weight != 2.5 || setup.UseCollars || len(setup.Plates) != 12 || setup.Plates[0].Weight != 25 || setup.Plates[0].Pairs != 1 || setup.Plates[1].Weight != 20 || setup.Plates[1].Pairs != 2 || setup.Plates[11].Weight != 0.125 || setup.Plates[0].Unit != "kg" {
 		t.Fatalf("default setup = %+v", setup)
 	}
 
@@ -320,7 +320,7 @@ func TestPlateSetup(t *testing.T) {
 	rr = env.do(t, "GET", path, nil, coachCookies)
 	requireStatus(t, rr, http.StatusOK)
 	decodeJSON(t, rr, &setup)
-	if !setup.IsDefault || len(setup.Plates) != 10 {
+	if !setup.IsDefault || len(setup.Plates) != 12 {
 		t.Fatalf("after reset = %+v", setup)
 	}
 

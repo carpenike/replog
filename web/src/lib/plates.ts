@@ -236,5 +236,5 @@ export const KG_COMPETITION: PlateInventory = {
   bar: { weight: 20, unit: 'kg' },
   collar: { weight: 2.5, unit: 'kg' },
   useCollars: false,
-  plates: [25, 20, 15, 10, 5, 2.5, 2, 1.5, 1, 0.5].map(w => ({ weight: w, unit: 'kg' as const, pairs: w === 25 ? 4 : 1 })),
+  plates: [25, 20, 15, 10, 5, 2.5, 2, 1.5, 1, 0.5, 0.25, 0.125].map(w => ({ weight: w, unit: 'kg' as const, pairs: w === 20 ? 2 : 1 })),
 }
