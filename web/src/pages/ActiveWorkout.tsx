@@ -9,6 +9,7 @@ import { PageSkeleton, QueryState } from '@/components/QueryState'
 import { useFriendlyDate } from '@/lib/dates'
 import { ExercisePicker, type PickedExercise } from '@/components/ExercisePicker'
 import { ExerciseCuesSheet } from '@/components/ExerciseCuesSheet'
+import { CueNote } from '@/components/CueNote'
 import { PlateCalculator } from '@/components/PlateCalculator'
 import { ReadinessPrompt, type ReadinessAnswers } from '@/components/ReadinessPrompt'
 import { SetVideoControl } from '@/components/SetVideoSheet'
@@ -40,12 +41,23 @@ import { useRestAlertSink } from '@/lib/useRestAlerts'
 import { withRestAlerts } from '@/lib/push'
 import { useWakeLock } from '@/lib/useWakeLock'
 import { generateWarmupRamp } from '@/lib/warmups'
+import { distinctNotes } from '@/lib/setSummary'
 import { formatWeight, cn, localDateISO } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { ExerciseHistoryDayData, ExerciseHistoryEntryData, PrescriptionSetData, WorkoutDetailData, WorkoutSet } from '@/api/types'
+
+/**
+ * The coach's cue when every prescribed set of this exercise carries the same
+ * one (imports repeat it per set). Shown once under the exercise name instead
+ * of under every row. Null when there is none or the sets differ.
+ */
+function sharedCue(section: Section): string | null {
+  const notes = distinctNotes([...section.prescribedWarmups, ...section.prescribed])
+  return notes.length === 1 ? notes[0] : null
+}
 
 interface RowDraft {
   reps?: string
@@ -705,7 +717,7 @@ export function ActiveWorkout() {
             })}
           ><Check aria-hidden="true" /></Button>
         </div>
-        {t.notes && <p className="mt-1 text-xs text-muted-foreground">{t.notes}</p>}
+        {t.notes && !sharedCue(section) && <p className="mt-1 text-xs text-muted-foreground">{t.notes}</p>}
       </div>
     )
   }
@@ -801,7 +813,7 @@ export function ActiveWorkout() {
             />
           </div>
         )}
-        {pset?.notes && (
+        {pset?.notes && !sharedCue(section) && (
           <p className="mt-1 text-xs text-muted-foreground">{pset.notes}</p>
         )}
       </div>
@@ -862,6 +874,7 @@ export function ActiveWorkout() {
             )}
           </p>
         )}
+        {sharedCue(section) && <CueNote text={sharedCue(section)!} />}
         {prevDay && (
           <p className="text-xs text-muted-foreground">Last: {lastSummary(prevDay)}</p>
         )}

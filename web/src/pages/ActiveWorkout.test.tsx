@@ -116,6 +116,30 @@ describe('ActiveWorkout session', () => {
     expect(within(card).getByText('RIR 2–3')).toBeTruthy()
   })
 
+  it('shows a cue repeated on every set once under the exercise name', async () => {
+    const cue = 'Use assistance if necessary; pull chin over the bar.'
+    vi.mocked(api.getPrescription).mockResolvedValue({
+      ...prescription,
+      lines: [{ exercise_id: 9, exercise_name: 'Pull-up', sets: [1, 2, 3].map(n => ({ set_number: n, reps: 5, rep_type: 'standard', notes: cue })) }],
+    })
+    renderSession()
+    expect(await screen.findByText(cue)).toBeTruthy()
+    expect(screen.getAllByText(cue)).toHaveLength(1)
+  })
+
+  it('keeps per-set cues on their rows when the sets differ', async () => {
+    vi.mocked(api.getPrescription).mockResolvedValue({
+      ...prescription,
+      lines: [{ exercise_id: 9, exercise_name: 'Pull-up', sets: [
+        { set_number: 1, reps: 5, rep_type: 'standard', notes: 'Strict' },
+        { set_number: 2, reps: 5, rep_type: 'standard', notes: 'Kipping allowed' },
+      ] }],
+    })
+    renderSession()
+    expect(await screen.findByText('Strict')).toBeTruthy()
+    expect(screen.getByText('Kipping allowed')).toBeTruthy()
+  })
+
   it('shows kg plates per side for a lb target and offers the real loaded weight', async () => {
     renderSession()
     const trigger = await screen.findByRole('button', { name: /Plates for Back Squat set 1: 25 \+ 15 \+ 1 kg per side, 224.9 lb loaded/ })

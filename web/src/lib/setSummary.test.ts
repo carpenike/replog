@@ -55,3 +55,20 @@ describe('helpers', () => {
     expect(sharedValue([], x => x)).toBeUndefined()
   })
 })
+
+describe('rep types and custom load', () => {
+  it('formats AMRAP floors, seconds and per-side reps', () => {
+    const base = { rir_min: null, rir_max: null, rest_seconds: null, reps_max: null }
+    expect(summarizeSets([s({ ...base, reps: 5, rep_type: 'amrap' })])[0].head).toBe('1 × 5+')
+    expect(summarizeSets([s({ ...base, reps: 30, rep_type: 'seconds' })])[0].head).toBe('1 × 30s')
+    expect(summarizeSets([s({ ...base, reps: 8, rep_type: 'each_side' }), s({ ...base, reps: 8, rep_type: 'each_side' })])[0].head).toBe('2 × 8/side')
+  })
+
+  it('collapses on the formatted load from a custom load function', () => {
+    const lines = summarizeSets(
+      [s({ percentage: 75 }), s({ percentage: 75 }), s({ percentage: 85 })],
+      { load: x => (x.percentage ? `${x.percentage * 3} lb` : null) },
+    )
+    expect(lines.map(l => l.head)).toEqual(['2 × 5–8 @ 225 lb', '1 × 5–8 @ 255 lb'])
+  })
+})

@@ -3,16 +3,25 @@
 // repeats on every set is shown once. Pure so the rules are unit-tested.
 
 export interface PrescribedSetLike {
-  reps: number | null
+  reps?: number | null
   reps_max?: number | null
-  percentage: number | null
-  absolute_weight: number | null
-  rest_seconds: number | null
+  /** standard, amrap, each_side, seconds, distance. */
+  rep_type?: string
+  percentage?: number | null
+  absolute_weight?: number | null
+  rest_seconds?: number | null
   prescribed_rpe?: number | null
   rir_min?: number | null
   rir_max?: number | null
   non_working?: boolean
-  notes: string | null
+  notes?: string | null
+}
+
+export interface SummaryOptions {
+  /** Drop rest when a group header shows it. */
+  omitRest?: boolean
+  /** Load text after "@", or null for none. Defaults to "75%" or the absolute weight. */
+  load?: (s: PrescribedSetLike) => string | null
 }
 
 export interface SummaryLine {
@@ -27,11 +36,21 @@ export interface SummaryLine {
   text: string
 }
 
-/** "5–8", "5", or "AMRAP". */
-export function formatReps(s: Pick<PrescribedSetLike, 'reps' | 'reps_max'>): string {
-  if (s.reps && s.reps_max && s.reps_max > s.reps) return `${s.reps}–${s.reps_max}`
-  if (s.reps) return String(s.reps)
-  return 'AMRAP'
+const REP_SUFFIX: Record<string, string> = { each_side: '/side', seconds: 's', distance: ' dist' }
+
+/** "5–8", "5", "5+" (AMRAP with a floor), "AMRAP", "30s" or "8/side". */
+export function formatReps(s: Pick<PrescribedSetLike, 'reps' | 'reps_max' | 'rep_type'>): string {
+  let r: string
+  if (s.reps && s.reps_max && s.reps_max > s.reps) r = `${s.reps}–${s.reps_max}`
+  else if (s.reps) r = s.rep_type === 'amrap' ? `${s.reps}+` : String(s.reps)
+  else return 'AMRAP'
+  return r + (REP_SUFFIX[s.rep_type ?? ''] ?? '')
+}
+
+function defaultLoad(s: PrescribedSetLike): string | null {
+  if (s.percentage) return `${s.percentage}%`
+  if (s.absolute_weight) return String(s.absolute_weight)
+  return null
 }
 
 /** "RIR 1–2", "RIR 2", or null. */
@@ -49,17 +68,16 @@ export function formatRest(seconds: number | null | undefined): string | null {
 }
 
 /** Fields that make two sets "the same" for display (not notes or ids). */
-function signature(s: PrescribedSetLike, omitRest: boolean): string {
+function signature(s: PrescribedSetLike, omitRest: boolean, load: string | null): string {
   return [
-    s.non_working ? 1 : 0, s.reps, s.reps_max ?? null, s.percentage, s.absolute_weight,
-    omitRest ? null : s.rest_seconds, s.prescribed_rpe ?? null, s.rir_min ?? null, s.rir_max ?? null,
+    s.non_working ? 1 : 0, s.reps ?? null, s.reps_max ?? null, s.rep_type ?? null, load,
+    omitRest ? null : s.rest_seconds ?? null, s.prescribed_rpe ?? null, s.rir_min ?? null, s.rir_max ?? null,
   ].join('|')
 }
 
-function line(s: PrescribedSetLike, count: number, omitRest: boolean): SummaryLine {
+function line(s: PrescribedSetLike, count: number, omitRest: boolean, load: string | null): SummaryLine {
   let head = `${count} × ${formatReps(s)}`
-  if (s.percentage) head += ` @ ${s.percentage}%`
-  else if (s.absolute_weight) head += ` @ ${s.absolute_weight}`
+  if (load) head += ` @ ${load}`
   const detail = [formatRir(s), s.prescribed_rpe != null ? `RPE ${s.prescribed_rpe}` : null, omitRest ? null : formatRest(s.rest_seconds)]
     .filter((p): p is string => p != null)
   return { count, warmup: !!s.non_working, head, detail, text: [head, ...detail].join(' · ') }
@@ -70,20 +88,22 @@ function line(s: PrescribedSetLike, count: number, omitRest: boolean): SummaryLi
  * differ (a top set and back-offs, a warm-up before working sets) keep their
  * own lines, in order. omitRest drops rest when a group header shows it.
  */
-export function summarizeSets(sets: PrescribedSetLike[], opts: { omitRest?: boolean } = {}): SummaryLine[] {
+export function summarizeSets(sets: PrescribedSetLike[], opts: SummaryOptions = {}): SummaryLine[] {
   const omitRest = !!opts.omitRest
-  const lines: { sig: string; first: PrescribedSetLike; count: number }[] = []
+  const loadOf = opts.load ?? defaultLoad
+  const lines: { sig: string; first: PrescribedSetLike; load: string | null; count: number }[] = []
   for (const s of sets) {
-    const sig = signature(s, omitRest)
+    const load = loadOf(s)
+    const sig = signature(s, omitRest, load)
     const last = lines[lines.length - 1]
     if (last && last.sig === sig) last.count++
-    else lines.push({ sig, first: s, count: 1 })
+    else lines.push({ sig, first: s, load, count: 1 })
   }
-  return lines.map(l => line(l.first, l.count, omitRest))
+  return lines.map(l => line(l.first, l.count, omitRest, l.load))
 }
 
 /** Distinct non-blank notes, in first-seen order. */
-export function distinctNotes(sets: Pick<PrescribedSetLike, 'notes'>[]): string[] {
+export function distinctNotes(sets: { notes?: string | null }[]): string[] {
   const seen = new Set<string>()
   for (const s of sets) {
     const n = (s.notes ?? '').trim()
