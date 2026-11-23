@@ -1,8 +1,10 @@
 package api
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/carpenike/replog/internal/middleware"
@@ -44,11 +46,18 @@ type PrescriptionSetResponse struct {
 
 // PrescriptionResponse is the full prescription for today's workout.
 type PrescriptionResponse struct {
-	ProgramName string                     `json:"program_name"`
-	CurrentWeek int                        `json:"current_week"`
-	CurrentDay  int                        `json:"current_day"`
-	CycleNumber int                        `json:"cycle_number"`
-	Lines       []PrescriptionLineResponse `json:"lines"`
+	ProgramName string `json:"program_name"`
+	CurrentWeek int    `json:"current_week"`
+	CurrentDay  int    `json:"current_day"`
+	CycleNumber int    `json:"cycle_number"`
+	// NumWeeks/NumDays bound the program week/day a session can be started on.
+	NumWeeks int `json:"num_weeks"`
+	NumDays  int `json:"num_days"`
+	// DaySource says where current_week/current_day came from: stored (today's
+	// session has one), next_after_stored, count (older sessions without a
+	// stored day), or chosen (the week/day query) (ADR 028).
+	DaySource string                     `json:"day_source" enums:"stored,next_after_stored,count,chosen"`
+	Lines     []PrescriptionLineResponse `json:"lines"`
 }
 
 // GetPrescription returns today's workout prescription for an athlete.
@@ -57,7 +66,9 @@ type PrescriptionResponse struct {
 //	@Description  Returns the day's prescribed sets from the athlete's active program (if any), with TM-resolved weights.
 //	@Tags         Athletes
 //	@Produce      json
-//	@Param        id   path      int  true  "Athlete ID"
+//	@Param        id    path      int  true   "Athlete ID"
+//	@Param        week  query     int  false  "Program week to show instead of the next one (needs day)"
+//	@Param        day   query     int  false  "Program day to show instead of the next one"
 //	@Success      200  {object}  api.PrescriptionResponse
 //	@Failure      400  {object}  api.APIError
 //	@Failure      403  {object}  api.APIError
@@ -86,7 +97,39 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prescription, err := models.GetPrescription(r.Context(), h.DB, program, time.Now())
+	var prescription *models.Prescription
+	if q := r.URL.Query(); q.Get("day") != "" || q.Get("week") != "" {
+		day, derr := strconv.Atoi(q.Get("day"))
+		week := 0
+		var werr error
+		if q.Get("week") != "" {
+			week, werr = strconv.Atoi(q.Get("week"))
+		}
+		if derr != nil || werr != nil || day < 1 || week < 0 {
+			WriteValidationError(w, "day", "week and day must be positive integers; day is required")
+			return
+		}
+		if week == 0 {
+			week = models.CalendarProgramWeek(program.StartDate, todayInUserTZ(r), program.NumWeeks, program.IsLoop)
+		}
+		version := 0
+		if tmpl, terr := models.GetProgramTemplateByID(r.Context(), h.DB, program.TemplateID); terr == nil {
+			version = tmpl.Version
+		}
+		if verr := models.ValidateProgramDay(r.Context(), h.DB, program, version, week, day); verr != nil {
+			var pde *models.ProgramDayError
+			if errors.As(verr, &pde) {
+				WriteValidationError(w, pde.Field, pde.Message)
+				return
+			}
+			log.Printf("api: validate program day for athlete %d: %v", athleteID, verr)
+			WriteError(w, http.StatusInternalServerError, "failed to get prescription")
+			return
+		}
+		prescription, err = models.GetPrescriptionForDay(r.Context(), h.DB, program, time.Now(), week, day)
+	} else {
+		prescription, err = models.GetPrescription(r.Context(), h.DB, program, time.Now())
+	}
 	if err != nil {
 		log.Printf("api: get prescription for athlete %d: %v", athleteID, err)
 		WriteError(w, http.StatusInternalServerError, "failed to get prescription")
@@ -100,6 +143,9 @@ func (h *Handlers) GetPrescription(w http.ResponseWriter, r *http.Request) {
 		CurrentWeek: prescription.CurrentWeek,
 		CurrentDay:  prescription.CurrentDay,
 		CycleNumber: prescription.CycleNumber,
+		NumWeeks:    program.NumWeeks,
+		NumDays:     program.NumDays,
+		DaySource:   prescription.DaySource,
 		Lines:       lines,
 	})
 }

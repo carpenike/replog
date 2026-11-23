@@ -115,7 +115,7 @@ func (h *Handlers) GetWorkout(w http.ResponseWriter, r *http.Request) {
 // CreateWorkout creates a new workout for an athlete.
 //
 //	@Summary      Create workout
-//	@Description  One workout per athlete per day (UNIQUE constraint). Date defaults to today if omitted.
+//	@Description  One workout per athlete per day (UNIQUE constraint). Date defaults to today if omitted. link_program (implied by from_prescription or program_day) links the workout to the program assigned on its date and stores its program week/day: program_week/program_day when sent (checked against the template), otherwise the next day the prescription shows (ADR 028).
 //	@Tags         Workouts
 //	@Accept       json
 //	@Produce      json
@@ -145,29 +145,78 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// When seeding from the prescription, resolve today's assignment so the
-	// workout links to it (advancing cycle progress) and we can transcribe the
-	// prescribed sets into the log for the athlete to confirm.
-	var seedProgram *models.AthleteProgram
-	var assignmentID int64
-	if req.FromPrescription {
-		tz := "America/New_York"
-		if prefs := middleware.PrefsFromContext(r.Context()); prefs != nil {
-			tz = prefs.Timezone
-		}
-		program, perr := models.ResolveAssignment(r.Context(), h.DB, athleteID, time.Now(), tz)
+	if req.ProgramWeek < 0 || req.ProgramDay < 0 {
+		WriteValidationError(w, "program_day", "program_week and program_day must be positive")
+		return
+	}
+	if req.ProgramWeek > 0 && req.ProgramDay == 0 {
+		WriteValidationError(w, "program_day", "is required with program_week")
+		return
+	}
+
+	// Linking resolves the assignment on the workout's date so the session
+	// advances that program, and stores the program week/day it is (ADR
+	// 028): the one sent, or the next day the prescription shows. Seeding
+	// (from_prescription) also transcribes that day's prescribed sets.
+	link := req.FromPrescription || req.LinkProgram || req.ProgramDay > 0
+	var program *models.AthleteProgram
+	var week, day int
+	loc := userLocation(r)
+	dateNoon, _ := time.ParseInLocation("2006-01-02", req.Date, loc)
+	dateNoon = time.Date(dateNoon.Year(), dateNoon.Month(), dateNoon.Day(), 12, 0, 0, 0, loc)
+	if link {
+		resolved, perr := models.ResolveAssignment(r.Context(), h.DB, athleteID, dateNoon, loc.String())
 		if perr != nil {
 			log.Printf("api: resolve assignment for athlete %d: %v", athleteID, perr)
 			WriteError(w, http.StatusInternalServerError, "failed to resolve program")
 			return
 		}
-		if program != nil {
-			seedProgram = program
-			assignmentID = program.ID
+		program = resolved
+	}
+	if program == nil && req.ProgramDay > 0 {
+		WriteValidationError(w, "program_day", "no program is assigned on "+req.Date)
+		return
+	}
+	if program != nil {
+		week, day = req.ProgramWeek, req.ProgramDay
+		if day > 0 {
+			if week == 0 {
+				week = models.CalendarProgramWeek(program.StartDate, req.Date, program.NumWeeks, program.IsLoop)
+				if week == 0 {
+					WriteValidationError(w, "program_week", "the date is past the program's last week; send program_week")
+					return
+				}
+			}
+			version := 0
+			if tmpl, terr := models.GetProgramTemplateByID(r.Context(), h.DB, program.TemplateID); terr == nil {
+				version = tmpl.Version
+			}
+			if verr := models.ValidateProgramDay(r.Context(), h.DB, program, version, week, day); verr != nil {
+				var pde *models.ProgramDayError
+				if errors.As(verr, &pde) {
+					WriteValidationError(w, pde.Field, pde.Message)
+					return
+				}
+				log.Printf("api: validate program day for athlete %d: %v", athleteID, verr)
+				WriteError(w, http.StatusInternalServerError, "failed to check program day")
+				return
+			}
+		} else {
+			var nerr error
+			week, day, _, nerr = models.NextProgramDay(r.Context(), h.DB, program, req.Date)
+			if nerr != nil {
+				log.Printf("api: next program day for athlete %d: %v", athleteID, nerr)
+				WriteError(w, http.StatusInternalServerError, "failed to resolve program day")
+				return
+			}
 		}
 	}
+	var assignmentID int64
+	if program != nil {
+		assignmentID = program.ID
+	}
 
-	workout, err := models.CreateWorkout(r.Context(), h.DB, athleteID, req.Date, req.Notes, assignmentID)
+	workout, err := models.CreateWorkoutOnDay(r.Context(), h.DB, athleteID, req.Date, req.Notes, assignmentID, week, day)
 	if err != nil {
 		if errors.Is(err, models.ErrWorkoutExists) {
 			WriteError(w, http.StatusConflict, "a resistance workout already exists for this date")
@@ -178,9 +227,9 @@ func (h *Handlers) CreateWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Seed the prescribed sets, if requested and a program resolved.
-	if seedProgram != nil {
-		prescription, perr := models.GetPrescription(r.Context(), h.DB, seedProgram, time.Now())
+	// Seed the stored day's prescribed sets, if requested and a program resolved.
+	if req.FromPrescription && program != nil {
+		prescription, perr := models.GetPrescription(r.Context(), h.DB, program, dateNoon)
 		if perr != nil {
 			log.Printf("api: get prescription for seeding workout %d: %v", workout.ID, perr)
 		} else if _, serr := models.SeedSetsFromPrescription(r.Context(), h.DB, workout.ID, prescription); serr != nil {

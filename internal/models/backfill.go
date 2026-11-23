@@ -78,10 +78,15 @@ type BackfillProgram struct {
 	TemplateVersion int
 	StartDate       string
 	Schedule        []int
-	Week            int // position this session takes, derived from earlier linked sessions
+	Week            int // the program week/day stored on the session (ADR 028)
 	Day             int
 	Label           string
-	LaterSessions   int // linked sessions after this date; each moves one position later
+	// DaySource is "given" (program_day sent; program_week sent or read from
+	// the calendar week) or "derived" (the day RepLog would pick next).
+	DaySource string
+	// LaterSessions counts later linked sessions with no stored day; each
+	// of those moves one program day later.
+	LaterSessions int
 }
 
 // BackfillPlan is the checked session. It is what confirm writes.
@@ -161,6 +166,9 @@ func PlanBackfill(ctx context.Context, db *sql.DB, athleteID int64, in BackfillI
 	}
 	if (in.ProgramDay > 0 || in.ProgramWeek > 0) && in.TemplateID == 0 && in.AssignmentID == 0 {
 		return nil, backfillField("program_day", "needs assignment_id or template_id")
+	}
+	if in.ProgramWeek > 0 && in.ProgramDay == 0 {
+		return nil, backfillField("program_day", "is required with program_week")
 	}
 
 	sets := make([]BackfillSetInput, len(in.Sets))
@@ -250,22 +258,47 @@ func PlanBackfill(ctx context.Context, db *sql.DB, athleteID int64, in BackfillI
 		if in.TemplateVersion > 0 && in.TemplateVersion != tmpl.Version {
 			return nil, backfillField("template_version", "assignment %d uses template %d version %d, not version %d", program.ID, tmpl.ID, tmpl.Version, in.TemplateVersion)
 		}
-		var before, after int
-		if err := db.QueryRowContext(ctx,
-			`SELECT COALESCE(SUM(date(date) < date(?)), 0), COALESCE(SUM(date(date) > date(?)), 0)
-			   FROM workouts WHERE assignment_id = ?`, in.Date, in.Date, program.ID,
-		).Scan(&before, &after); err != nil {
-			return nil, fmt.Errorf("models: backfill program position: %w", err)
+		week, dayNum, source := in.ProgramWeek, in.ProgramDay, "given"
+		var cycleComplete bool
+		if dayNum > 0 {
+			if week == 0 {
+				week = CalendarProgramWeek(program.StartDate, in.Date, program.NumWeeks, program.IsLoop)
+				if week == 0 {
+					return nil, backfillField("program_week", "%s is past the last week of template %d; send program_week", in.Date, program.TemplateID)
+				}
+			}
+			if err := ValidateProgramDay(ctx, db, program, tmpl.Version, week, dayNum); err != nil {
+				var pde *ProgramDayError
+				if errors.As(err, &pde) {
+					return nil, backfillField(pde.Field, "%s", pde.Message)
+				}
+				return nil, err
+			}
+		} else {
+			slot, err := slotFor(ctx, db, program, in.Date)
+			if err != nil {
+				return nil, err
+			}
+			week, dayNum = slot.Position/program.NumDays+1, slot.Position%program.NumDays+1
+			cycleComplete = slot.CycleComplete
+			source = "derived"
 		}
-		week, dayNum := ProgramPosition(before+1, program.NumWeeks, program.NumDays)
+		var after int
+		if err := db.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM workouts
+			  WHERE assignment_id = ? AND date(date) > date(?) AND program_day IS NULL`,
+			program.ID, in.Date,
+		).Scan(&after); err != nil {
+			return nil, fmt.Errorf("models: backfill later sessions: %w", err)
+		}
 		bp := &BackfillProgram{
 			AssignmentID: program.ID, TemplateID: program.TemplateID, TemplateName: program.TemplateName,
 			TemplateVersion: tmpl.Version, StartDate: dayOnly(program.StartDate), Schedule: program.ScheduleDays(),
-			Week: week, Day: dayNum, Label: ProgramDayLabel(before+1, program.NumWeeks, program.NumDays),
+			Week: week, Day: dayNum, Label: ProgramDayLabelFor(week, dayNum), DaySource: source,
 			LaterSessions: after,
 		}
 		plan.Program = bp
-		if !program.IsLoop && before >= program.NumWeeks*program.NumDays {
+		if cycleComplete {
 			plan.Warnings = append(plan.Warnings, BackfillWarning{Code: "cycle_complete",
 				Message: fmt.Sprintf("Assignment %d already has a full cycle of sessions before %s; this one starts a new cycle.", program.ID, in.Date)})
 		}
@@ -273,13 +306,9 @@ func PlanBackfill(ctx context.Context, db *sql.DB, athleteID int64, in BackfillI
 			plan.Warnings = append(plan.Warnings, BackfillWarning{Code: "off_schedule",
 				Message: fmt.Sprintf("%s is a %s, which is not on assignment %d's schedule.", in.Date, noon.Weekday(), program.ID)})
 		}
-		if (in.ProgramDay > 0 && in.ProgramDay != dayNum) || (in.ProgramWeek > 0 && in.ProgramWeek != week) {
-			plan.Warnings = append(plan.Warnings, BackfillWarning{Code: "program_day_mismatch",
-				Message: fmt.Sprintf("RepLog will count this as %s (from the %d earlier linked sessions), not the week/day sent. Plan-vs-done compares against %s.", bp.Label, before, bp.Label)})
-		}
 		if after > 0 {
 			plan.Warnings = append(plan.Warnings, BackfillWarning{Code: "later_sessions_shift",
-				Message: fmt.Sprintf("%d later session(s) on assignment %d will each move one program day later. Backfill oldest first.", after, program.ID)})
+				Message: fmt.Sprintf("%d later session(s) on assignment %d have no stored program day and will each move one program day later.", after, program.ID)})
 		}
 	} else {
 		resolved, err := ResolveAssignment(ctx, db, athleteID, noon, loc.String())
@@ -426,9 +455,10 @@ func ApplyBackfill(ctx context.Context, db *sql.DB, plan *BackfillPlan) (int64, 
 	if exists > 0 {
 		return 0, ErrBackfillDuplicate
 	}
-	var assign sql.NullInt64
+	var assign, week, day sql.NullInt64
 	if plan.Program != nil {
 		assign = sql.NullInt64{Int64: plan.Program.AssignmentID, Valid: true}
+		week, day = programDayValues(plan.Program.AssignmentID, plan.Program.Week, plan.Program.Day)
 	}
 	var notes sql.NullString
 	if plan.Notes != "" {
@@ -436,8 +466,8 @@ func ApplyBackfill(ctx context.Context, db *sql.DB, plan *BackfillPlan) (int64, 
 	}
 	var workoutID int64
 	if err := tx.QueryRowContext(ctx,
-		`INSERT INTO workouts (athlete_id, date, assignment_id, notes) VALUES (?, ?, ?, ?) RETURNING id`,
-		plan.AthleteID, plan.Date, assign, notes).Scan(&workoutID); err != nil {
+		`INSERT INTO workouts (athlete_id, date, assignment_id, notes, program_week, program_day) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+		plan.AthleteID, plan.Date, assign, notes, week, day).Scan(&workoutID); err != nil {
 		if isUniqueViolation(err) {
 			return 0, ErrBackfillDuplicate
 		}
@@ -459,20 +489,4 @@ func ApplyBackfill(ctx context.Context, db *sql.DB, plan *BackfillPlan) (int64, 
 		return 0, fmt.Errorf("models: commit backfill: %w", err)
 	}
 	return workoutID, nil
-}
-
-// BackfillProgramLabel is the "Week N Day D" a linked session on date now
-// holds within its assignment.
-func BackfillProgramLabel(ctx context.Context, db *sql.DB, assignmentID int64, date string) (string, error) {
-	ap, err := GetAthleteProgramByID(ctx, db, assignmentID)
-	if err != nil {
-		return "", err
-	}
-	var before int
-	if err := db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) < date(?)`, assignmentID, date,
-	).Scan(&before); err != nil {
-		return "", fmt.Errorf("models: backfill label: %w", err)
-	}
-	return ProgramDayLabel(before+1, ap.NumWeeks, ap.NumDays), nil
 }

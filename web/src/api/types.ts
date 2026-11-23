@@ -69,6 +69,9 @@ export interface Workout {
   date: string;
   assignment_id?: number | null;
   notes?: string | null;
+  /** Program week/day stored on a linked session (ADR 028). */
+  program_week?: number | null;
+  program_day?: number | null;
   created_at: string;
   updated_at: string;
   athlete_name?: string;
@@ -479,7 +482,18 @@ export interface PrescriptionData {
   current_week: number;
   current_day: number;
   cycle_number: number;
+  num_weeks: number;
+  num_days: number;
+  /** stored | next_after_stored | count | chosen */
+  day_source: string;
   lines: PrescriptionLineData[];
+}
+
+/** How a new workout links to its program (ADR 028). */
+export interface ProgramDayChoice {
+  link?: boolean;
+  week?: number;
+  day?: number;
 }
 
 export interface AthleteExerciseData {

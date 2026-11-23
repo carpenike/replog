@@ -34,7 +34,7 @@ describe('openTodaySession', () => {
     const api = client()
 
     await expect(openTodaySession(api, 7, today)).resolves.toBe(sessionPath(7, 99))
-    expect(api.createWorkout).toHaveBeenCalledWith(7, today, '', false)
+    expect(api.createWorkout).toHaveBeenCalledWith(7, today, '', false, { link: true })
   })
 
   it('creates nothing when today is on a later page', async () => {

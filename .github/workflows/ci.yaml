@@ -53,7 +53,9 @@ jobs:
         # alone runs ~10m (41s locally); main was passing a hair under the
         # default until PR #44 added tests and tipped it over. 20m is
         # headroom, not a target — a genuinely hung test still fails the run.
-        run: go test -count=1 -race -timeout 20m -coverprofile=coverage.out ./...
+        # By PR #62/#63 internal/api ran ~16m under -race + coverage and main
+        # (2e2fc2b) timed out at 20m with no test hung; 40m is the new headroom.
+        run: go test -count=1 -race -timeout 40m -coverprofile=coverage.out ./...
 
   lint:
     name: Lint

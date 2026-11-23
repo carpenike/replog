@@ -31,7 +31,10 @@ atomic, and does not check the program link or a duplicate date.
   template. A template without an assignment resolves to the athlete's
   latest assignment of that template starting on or before the date. A
   date before the assignment's start is 400.
-- A session's program position is derived, as everywhere else, from the
+- *Superseded by [ADR 028](028-stored-program-day.md): the program
+  week/day is now stored on the session, and a `program_day` sent is the
+  day stored, with no `program_day_mismatch` warning.* A session's program
+  position is derived, as everywhere else, from the
   number of linked sessions before it (`GetPrescription`). It is not
   stored. Preview reports the position the session will take and warns
   when it differs from the `program_week`/`program_day` sent

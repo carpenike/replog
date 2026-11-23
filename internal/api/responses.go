@@ -86,6 +86,10 @@ type Workout struct {
 	Discipline   string  `json:"discipline"`
 	AssignmentID *int64  `json:"assignment_id,omitempty"`
 	Notes        *string `json:"notes,omitempty"`
+	// ProgramWeek/ProgramDay are the program day stored on a linked
+	// session (ADR 028); absent on unlinked and older sessions.
+	ProgramWeek  *int64  `json:"program_week,omitempty"`
+	ProgramDay   *int64  `json:"program_day,omitempty"`
 	CreatedAt    string  `json:"created_at"`
 	UpdatedAt    string  `json:"updated_at"`
 	AthleteName  string  `json:"athlete_name,omitempty"`

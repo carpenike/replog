@@ -31,3 +31,4 @@ Architecture Decision Records for RepLog.
 | [025](025-on-behalf-identity.md) | On-behalf Identity | Accepted | 2026-11-22 |
 | [026](026-exercise-aliases.md) | Exercise Aliases and Matching | Accepted | 2026-11-22 |
 | [027](027-session-backfill.md) | Session Backfill | Accepted | 2026-11-22 |
+| [028](028-stored-program-day.md) | Stored Program Day | Accepted | 2026-11-23 |
