@@ -157,6 +157,8 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/coach/progress", h.GetCoachProgress)
 			r.Get("/athletes/{id}/coach/position", h.GetCoachPosition)
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", h.GetCoachLastSession)
+			r.Post("/athletes/{id}/coach/sessions/backfill/preview", h.PreviewCoachBackfill)
+			r.Post("/athletes/{id}/coach/sessions/backfill/confirm", h.ConfirmCoachBackfill)
 			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/preview", h.PreviewCoachSessionNote)
 			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/confirm", h.ConfirmCoachSessionNote)
 			r.Get("/athletes/{id}/coach/exercises", h.ListCoachExercises)

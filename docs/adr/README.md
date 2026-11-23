@@ -30,3 +30,4 @@ Architecture Decision Records for RepLog.
 | [024](024-coach-program-import.md) | Coach Program Import | Accepted | 2026-11-22 |
 | [025](025-on-behalf-identity.md) | On-behalf Identity | Accepted | 2026-11-22 |
 | [026](026-exercise-aliases.md) | Exercise Aliases and Matching | Accepted | 2026-11-22 |
+| [027](027-session-backfill.md) | Session Backfill | Accepted | 2026-11-22 |

@@ -532,6 +532,176 @@ definitions:
       sets:
         type: integer
     type: object
+  api.CoachBackfillConfirmRequest:
+    properties:
+      confirm:
+        type: boolean
+      preview_token:
+        type: string
+    type: object
+  api.CoachBackfillConfirmResponse:
+    properties:
+      assignment_id:
+        type: integer
+      athlete_id:
+        type: integer
+      date:
+        type: string
+      program_day_label:
+        type: string
+      session_id:
+        type: integer
+      sets_written:
+        type: integer
+      warmup_sets:
+        type: integer
+      working_sets:
+        type: integer
+    type: object
+  api.CoachBackfillPreviewRequest:
+    properties:
+      assignment_id:
+        example: 1
+        type: integer
+      date:
+        example: "2026-11-06"
+        type: string
+      notes:
+        type: string
+      program_day:
+        example: 3
+        type: integer
+      program_week:
+        example: 1
+        type: integer
+      session_rpe:
+        example: 6
+        type: number
+      sets:
+        items:
+          $ref: '#/definitions/api.CoachBackfillSetRequest'
+        type: array
+      template_id:
+        example: 13
+        type: integer
+      template_version:
+        example: 1
+        type: integer
+    type: object
+  api.CoachBackfillPreviewResponse:
+    properties:
+      athlete_id:
+        type: integer
+      can_confirm:
+        type: boolean
+      date:
+        type: string
+      duplicate_session_id:
+        type: integer
+      exercises:
+        type: integer
+      expires_at:
+        type: string
+      notes:
+        type: string
+      preview_token:
+        type: string
+      program:
+        $ref: '#/definitions/api.CoachBackfillProgram'
+      session_rpe:
+        type: number
+      set_count:
+        type: integer
+      sets:
+        items:
+          $ref: '#/definitions/api.CoachBackfillSet'
+        type: array
+      warmup_sets:
+        type: integer
+      warnings:
+        items:
+          $ref: '#/definitions/api.CoachBackfillWarning'
+        type: array
+      weekday:
+        type: integer
+      working_sets:
+        type: integer
+    type: object
+  api.CoachBackfillProgram:
+    properties:
+      assignment_id:
+        type: integer
+      day:
+        type: integer
+      later_sessions:
+        type: integer
+      program_day_label:
+        type: string
+      schedule:
+        items:
+          type: integer
+        type: array
+      start_date:
+        type: string
+      template_id:
+        type: integer
+      template_name:
+        type: string
+      template_version:
+        type: integer
+      week:
+        type: integer
+    type: object
+  api.CoachBackfillSet:
+    properties:
+      exercise_id:
+        type: integer
+      exercise_name:
+        type: string
+      rep_type:
+        type: string
+      reps:
+        type: integer
+      set_number:
+        type: integer
+      set_order:
+        type: integer
+      set_type:
+        type: string
+      weight_lbs:
+        type: number
+    type: object
+  api.CoachBackfillSetRequest:
+    properties:
+      exercise_id:
+        example: 12
+        type: integer
+      rep_type:
+        example: reps
+        type: string
+      reps:
+        example: 5
+        type: integer
+      set_order:
+        example: 1
+        type: integer
+      warmup:
+        type: boolean
+      weight_lbs:
+        example: 135
+        type: number
+    type: object
+  api.CoachBackfillWarning:
+    properties:
+      code:
+        type: string
+      exercise_ids:
+        items:
+          type: integer
+        type: array
+      message:
+        type: string
+    type: object
   api.CoachBlockResponse:
     properties:
       exercises:
@@ -5678,6 +5848,101 @@ paths:
       summary: Preview a session note
       tags:
       - Workouts
+  /athletes/{id}/coach/sessions/backfill/confirm:
+    post:
+      consumes:
+      - application/json
+      description: 'confirm must be true. Writes the previewed workout and all of
+        its sets in one transaction, linked to the previewed assignment. Refuses with
+        409 when a resistance session already exists on that date; nothing is merged
+        or replaced. The token works once: a replay is refused. Existing workouts
+        and sets are not touched. PRs and plan-vs-done are read from sets, so the
+        new session counts like a live-logged one.'
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Preview token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachBackfillConfirmRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.CoachBackfillConfirmResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Write a session backfill
+      tags:
+      - Coach
+  /athletes/{id}/coach/sessions/backfill/preview:
+    post:
+      consumes:
+      - application/json
+      description: 'Checks and normalizes one past resistance session: date (not in
+        the future), an optional program link (assignment_id and/or template_id +
+        template_version, plus program_week/program_day) checked against the athlete''s
+        assignment, optional session_rpe and notes, and the sets in set_order. weight_lbs
+        null is bodyweight; warmup marks a non-working set. Returns the session as
+        it would be stored, warnings (unknown_exercise, off_schedule, program_day_mismatch,
+        later_sessions_shift, cycle_complete, unlinked, duplicate) and, when can_confirm
+        is true, a preview_token that works once within 15 minutes. A session already
+        on that date sets duplicate_session_id and no token is issued. Does not write.'
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Past session
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CoachBackfillPreviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CoachBackfillPreviewResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Preview a session backfill
+      tags:
+      - Coach
   /athletes/{id}/coach/week:
     get:
       description: Planned weekdays from stored program schedules. week_start defaults

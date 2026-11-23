@@ -434,6 +434,8 @@ func main() {
 			r.Get("/athletes/{id}/coach/progress", apiHandlers.GetCoachProgress)
 			r.Get("/athletes/{id}/coach/position", apiHandlers.GetCoachPosition)
 			r.Get("/athletes/{id}/coach/exercises/{exerciseID}/last-session", apiHandlers.GetCoachLastSession)
+			r.Post("/athletes/{id}/coach/sessions/backfill/preview", apiHandlers.PreviewCoachBackfill)
+			r.Post("/athletes/{id}/coach/sessions/backfill/confirm", apiHandlers.ConfirmCoachBackfill)
 			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/preview", apiHandlers.PreviewCoachSessionNote)
 			r.Post("/athletes/{id}/coach/sessions/{sessionID}/notes/confirm", apiHandlers.ConfirmCoachSessionNote)
 			r.Get("/athletes/{id}/coach/exercises", apiHandlers.ListCoachExercises)
