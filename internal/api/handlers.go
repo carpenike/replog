@@ -80,6 +80,10 @@ type Handlers struct {
 	// exerciseGrants holds one-time coach exercise alias and rename tokens.
 	exerciseGrantOnce  sync.Once
 	exerciseGrantStore *exerciseGrantStore
+
+	// backfillGrants holds one-time session backfill tokens.
+	backfillGrantOnce  sync.Once
+	backfillGrantStore *backfillGrantStore
 }
 
 // llmProvider returns the configured LLM provider, falling back to the
