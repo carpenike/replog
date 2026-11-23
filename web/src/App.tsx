@@ -57,6 +57,7 @@ const AdminSettings = lazy(() => import('@/pages/AdminSettings').then(m => ({ de
 const CatalogAdmin = lazy(() => import('@/pages/CatalogAdmin').then(m => ({ default: m.CatalogAdmin })))
 const CompliancePage = lazy(() => import('@/pages/CompliancePage').then(m => ({ default: m.CompliancePage })))
 const CalendarPage = lazy(() => import('@/pages/CalendarPage').then(m => ({ default: m.CalendarPage })))
+const PlateCalculatorPage = lazy(() => import('@/pages/PlateCalculatorPage').then(m => ({ default: m.PlateCalculatorPage })))
 const PreferencesPage = lazy(() => import('@/pages/PreferencesPage').then(m => ({ default: m.PreferencesPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
 const TokenLoginPage = lazy(() => import('@/pages/TokenLoginPage').then(m => ({ default: m.TokenLoginPage })))
@@ -174,6 +175,7 @@ function AuthedApp() {
         <Route path="/athletes/:id/export" element={<ExportPage />} />
         <Route path="/admin/settings" element={<RequireRole user={user} role="admin"><AdminSettings /></RequireRole>} />
         <Route path="/admin/catalog" element={<RequireRole user={user} role="admin"><CatalogAdmin /></RequireRole>} />
+        <Route path="/plates" element={<PlateCalculatorPage />} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />

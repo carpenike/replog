@@ -143,13 +143,29 @@ describe('ActiveWorkout session', () => {
     expect(screen.getByText('Kipping allowed')).toBeTruthy()
   })
 
-  it('shows kg plates per side for a lb target and offers the real loaded weight', async () => {
+  it('suggests 20s first for a lb target and offers the real loaded weight', async () => {
     renderSession()
-    const trigger = await screen.findByRole('button', { name: /Plates for Back Squat set 1: 25 \+ 15 \+ 1 kg per side, 224.9 lb loaded/ })
+    const trigger = await screen.findByRole('button', { name: /Plates for Back Squat set 1: 20 \+ 20 \+ 1 kg per side, 224.9 lb loaded/ })
     fireEvent.click(trigger)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Plates for 225 lb' }))
     const use = await screen.findByRole('button', { name: 'Use 224.9 lb' })
     fireEvent.click(use)
     expect((screen.getByLabelText('Back Squat set 1 weight') as HTMLInputElement).value).toBe('224.9')
+  })
+
+  it('totals the plates stacked on the bar and puts the weight in the set', async () => {
+    renderSession()
+    fireEvent.click(await screen.findByRole('button', { name: /Plates for Back Squat set 1/ }))
+    expect(await screen.findByRole('tab', { name: 'Count plates' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Add 20 kg, 2 of 2 pairs left' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add 20 kg, 1 of 2 pairs left' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add 2.5 kg' }))
+    // 20 kg bar + 2 × 42.5 kg = 105 kg = 231.5 lb
+    expect(screen.getByTestId('plate-total').textContent).toContain('231.5')
+    expect(screen.getByText('105 kg')).toBeTruthy()
+    expect((screen.getByRole('button', { name: /Add 20 kg/ }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Use 231.5 lb for this set' }))
+    expect((screen.getByLabelText('Back Squat set 1 weight') as HTMLInputElement).value).toBe('231.5')
   })
 
   it('generates a loadable warm-up ramp on request', async () => {
