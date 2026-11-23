@@ -2813,6 +2813,163 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/coach/sessions/backfill/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Write a session backfill
+         * @description confirm must be true. Writes the previewed workout and all of its sets in one transaction, linked to the previewed assignment. Refuses with 409 when a resistance session already exists on that date; nothing is merged or replaced. The token works once: a replay is refused. Existing workouts and sets are not touched. PRs and plan-vs-done are read from sets, so the new session counts like a live-logged one.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            /** @description Preview token */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachBackfillConfirmRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachBackfillConfirmResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/coach/sessions/backfill/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a session backfill
+         * @description Checks and normalizes one past resistance session: date (not in the future), an optional program link (assignment_id and/or template_id + template_version, plus program_week/program_day) checked against the athlete's assignment, optional session_rpe and notes, and the sets in set_order. weight_lbs null is bodyweight; warmup marks a non-working set. Returns the session as it would be stored, warnings (unknown_exercise, off_schedule, program_day_mismatch, later_sessions_shift, cycle_complete, unlinked, duplicate) and, when can_confirm is true, a preview_token that works once within 15 minutes. A session already on that date sets duplicate_session_id and no token is issued. Does not write.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                };
+                cookie?: never;
+            };
+            /** @description Past session */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.CoachBackfillPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CoachBackfillPreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/coach/week": {
         parameters: {
             query?: never;
@@ -4833,7 +4990,12 @@ export interface paths {
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description Program week to show instead of the next one (needs day) */
+                    week?: number;
+                    /** @description Program day to show instead of the next one */
+                    day?: number;
+                };
                 header?: never;
                 path: {
                     /** @description Athlete ID */
@@ -6408,7 +6570,7 @@ export interface paths {
         put?: never;
         /**
          * Create workout
-         * @description One workout per athlete per day (UNIQUE constraint). Date defaults to today if omitted.
+         * @description One workout per athlete per day (UNIQUE constraint). Date defaults to today if omitted. link_program (implied by from_prescription or program_day) links the workout to the program assigned on its date and stores its program week/day: program_week/program_day when sent (checked against the template), otherwise the next day the prescription shows (ADR 028).
          */
         post: {
             parameters: {
@@ -11415,6 +11577,110 @@ export interface components {
             rir_min?: number;
             sets?: number;
         };
+        "api.CoachBackfillConfirmRequest": {
+            confirm?: boolean;
+            preview_token?: string;
+        };
+        "api.CoachBackfillConfirmResponse": {
+            assignment_id?: number;
+            athlete_id?: number;
+            date?: string;
+            program_day?: number;
+            program_day_label?: string;
+            program_week?: number;
+            session_id?: number;
+            sets_written?: number;
+            warmup_sets?: number;
+            working_sets?: number;
+        };
+        "api.CoachBackfillPreviewRequest": {
+            /** @example 1 */
+            assignment_id?: number;
+            /** @example 2026-11-06 */
+            date?: string;
+            notes?: string;
+            /** @example 3 */
+            program_day?: number;
+            /**
+             * @description ProgramWeek/ProgramDay are the program day this session was. They are
+             *     stored on the session and plan-vs-done compares against that template
+             *     day (ADR 028). program_week defaults to the Monday–Sunday week of the
+             *     assignment the date falls in; with no program_day RepLog picks the next
+             *     day after the latest earlier stored one.
+             * @example 1
+             */
+            program_week?: number;
+            /** @example 6 */
+            session_rpe?: number;
+            sets?: components["schemas"]["api.CoachBackfillSetRequest"][];
+            /** @example 13 */
+            template_id?: number;
+            /** @example 1 */
+            template_version?: number;
+        };
+        "api.CoachBackfillPreviewResponse": {
+            athlete_id?: number;
+            can_confirm?: boolean;
+            date?: string;
+            duplicate_session_id?: number;
+            exercises?: number;
+            expires_at?: string;
+            notes?: string;
+            preview_token?: string;
+            program?: components["schemas"]["api.CoachBackfillProgram"];
+            session_rpe?: number;
+            set_count?: number;
+            sets?: components["schemas"]["api.CoachBackfillSet"][];
+            warmup_sets?: number;
+            warnings?: components["schemas"]["api.CoachBackfillWarning"][];
+            weekday?: number;
+            working_sets?: number;
+        };
+        "api.CoachBackfillProgram": {
+            assignment_id?: number;
+            day?: number;
+            later_sessions?: number;
+            program_day_label?: string;
+            /**
+             * @description ProgramDaySource is "given" (from program_day) or "derived".
+             * @enum {string}
+             */
+            program_day_source?: "given" | "derived";
+            schedule?: number[];
+            start_date?: string;
+            template_id?: number;
+            template_name?: string;
+            template_version?: number;
+            week?: number;
+        };
+        "api.CoachBackfillSet": {
+            exercise_id?: number;
+            exercise_name?: string;
+            rep_type?: string;
+            reps?: number;
+            set_number?: number;
+            set_order?: number;
+            set_type?: string;
+            weight_lbs?: number;
+        };
+        "api.CoachBackfillSetRequest": {
+            /** @example 12 */
+            exercise_id?: number;
+            /** @example reps */
+            rep_type?: string;
+            /** @example 5 */
+            reps?: number;
+            /** @example 1 */
+            set_order?: number;
+            warmup?: boolean;
+            /** @example 135 */
+            weight_lbs?: number;
+        };
+        "api.CoachBackfillWarning": {
+            code?: string;
+            exercise_ids?: number[];
+            message?: string;
+        };
         "api.CoachBlockResponse": {
             exercises?: components["schemas"]["api.CoachLineResponse"][];
             non_working?: boolean;
@@ -11750,6 +12016,12 @@ export interface components {
             completed_on?: string;
             date?: string;
             day?: number;
+            /**
+             * @description DaySource is stored (the session's stored day), next_after_stored, or
+             *     count (derived from older sessions without one) (ADR 028).
+             * @enum {string}
+             */
+            day_source?: "stored" | "next_after_stored" | "count";
             logged_exercises?: number;
             planned_exercises?: number;
             program_day?: components["schemas"]["api.CoachDayResponse"];
@@ -12451,7 +12723,17 @@ export interface components {
             current_day?: number;
             current_week?: number;
             cycle_number?: number;
+            /**
+             * @description DaySource says where current_week/current_day came from: stored (today's
+             *     session has one), next_after_stored, count (older sessions without a
+             *     stored day), or chosen (the week/day query) (ADR 028).
+             * @enum {string}
+             */
+            day_source?: "stored" | "next_after_stored" | "count" | "chosen";
             lines?: components["schemas"]["api.PrescriptionLineResponse"][];
+            num_days?: number;
+            /** @description NumWeeks/NumDays bound the program week/day a session can be started on. */
+            num_weeks?: number;
             program_name?: string;
         };
         "api.PrescriptionSetResponse": {
@@ -13061,7 +13343,13 @@ export interface components {
             discipline?: string;
             id?: number;
             notes?: string;
+            program_day?: number;
             program_name?: string;
+            /**
+             * @description ProgramWeek/ProgramDay are the program day stored on a linked
+             *     session (ADR 028); absent on unlinked and older sessions.
+             */
+            program_week?: number;
             review_status?: string;
             set_count?: number;
             updated_at?: string;
@@ -13088,7 +13376,23 @@ export interface components {
              *     the actuals while logging. Has no effect if no program is assigned today.
              */
             from_prescription?: boolean;
+            /**
+             * @description LinkProgram, when true, links the workout to the program assigned on
+             *     its date and stores the program week/day it is (ADR 028), without
+             *     prefilling sets. from_prescription implies it.
+             */
+            link_program?: boolean;
             notes?: string;
+            /** @example 1 */
+            program_day?: number;
+            /**
+             * @description ProgramWeek/ProgramDay choose the program day. Omitted, RepLog stores
+             *     the next day after the latest earlier session (the default the
+             *     prescription shows). program_week needs program_day; program_day
+             *     alone uses the Monday–Sunday week of the assignment the date is in.
+             * @example 2
+             */
+            program_week?: number;
         };
         "api.WorkoutReview": {
             coach_id?: number;

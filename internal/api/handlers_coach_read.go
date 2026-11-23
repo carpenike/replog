@@ -71,13 +71,16 @@ type CoachHistoryResponse struct {
 
 // CoachWeekDayResponse is one planned day and how it was logged.
 type CoachWeekDayResponse struct {
-	Date             string            `json:"date"`
-	Weekday          int               `json:"weekday"`
-	ProgramID        int64             `json:"program_id"`
-	ProgramName      string            `json:"program_name"`
-	ProgramDayLabel  *string           `json:"program_day_label"`
-	Week             *int              `json:"week"`
-	Day              *int              `json:"day"`
+	Date            string  `json:"date"`
+	Weekday         int     `json:"weekday"`
+	ProgramID       int64   `json:"program_id"`
+	ProgramName     string  `json:"program_name"`
+	ProgramDayLabel *string `json:"program_day_label"`
+	Week            *int    `json:"week"`
+	Day             *int    `json:"day"`
+	// DaySource is stored (the session's stored day), next_after_stored, or
+	// count (derived from older sessions without one) (ADR 028).
+	DaySource        *string           `json:"day_source" enums:"stored,next_after_stored,count"`
 	SessionID        *int64            `json:"session_id"`
 	Status           string            `json:"status"`
 	CompletedOn      *string           `json:"completed_on"`
@@ -353,6 +356,7 @@ func (h *Handlers) GetCoachWeek(w http.ResponseWriter, r *http.Request) {
 			week, d := day.Week, day.Day
 			item.Week = &week
 			item.Day = &d
+			item.DaySource = emptyStringPtr(day.DaySource)
 			if prog, _ := h.attachImportedDay(r, day.TemplateID, day.Week, day.Day); prog != nil {
 				item.ProgramDay = prog
 				if prog.Label != "" {

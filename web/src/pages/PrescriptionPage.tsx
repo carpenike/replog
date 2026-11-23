@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -13,6 +14,8 @@ import { CueNote } from '@/components/CueNote'
 import { Badge } from '@/components/ui/badge'
 import type { PrescriptionLineData, PrescriptionSetData } from '@/api/types'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 export function PrescriptionPage() {
@@ -26,11 +29,16 @@ export function PrescriptionPage() {
     enabled: !isNaN(athleteId),
   })
 
+  // The program day to start on. null is the default: the next day RepLog
+  // prescribes. Picking one shows that day and stores it on the session.
+  const [choice, setChoice] = useState<{ week: number; day: number } | null>(null)
+
   const query = useQuery({
-    queryKey: ['prescription', athleteId],
-    queryFn: () => api.getPrescription(athleteId),
+    queryKey: ['prescription', athleteId, choice],
+    queryFn: () => api.getPrescription(athleteId, choice ?? undefined),
     enabled: !isNaN(athleteId),
     retry: false,
+    placeholderData: prev => prev,
   })
 
   const startLogging = useMutation({
@@ -38,7 +46,9 @@ export function PrescriptionPage() {
     // completes them — pre-creating the full prescription would mark every
     // row done (and record volume that was never performed). Local date, not
     // UTC: near midnight toISOString() lands the workout on the wrong day.
-    mutationFn: () => api.createWorkout(athleteId, localDateISO(), '', false),
+    // The session links to today's program and stores its week/day: the one
+    // picked here, or RepLog's next day (ADR 028).
+    mutationFn: () => api.createWorkout(athleteId, localDateISO(), '', false, choice ? { link: true, ...choice } : { link: true }),
     meta: { skipGlobalError: true },
     onSuccess: (workout) => {
       navigate(`/athletes/${athleteId}/workouts/${workout.id}/session`)
@@ -84,6 +94,37 @@ export function PrescriptionPage() {
           </Button>
         )}
       />
+
+      {prescription && prescription.num_weeks * prescription.num_days > 1 && (
+        <div className="mb-4 max-w-xs">
+          <Label htmlFor="program-day">Program day</Label>
+          <Select
+            value={`${prescription.current_week}-${prescription.current_day}`}
+            onValueChange={val => {
+              const [week, day] = String(val ?? '').split('-').map(Number)
+              if (week && day) setChoice({ week, day })
+            }}
+          >
+            <SelectTrigger id="program-day" className="w-full">
+              <SelectValue>
+                {(value: string | null) => {
+                  const [week, day] = String(value ?? '').split('-')
+                  return `Week ${week}, Day ${day}`
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: prescription.num_weeks }, (_, w) =>
+                Array.from({ length: prescription.num_days }, (_, d) => (
+                  <SelectItem key={`${w + 1}-${d + 1}`} value={`${w + 1}-${d + 1}`}>
+                    Week {w + 1}, Day {d + 1}
+                  </SelectItem>
+                )),
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* A 404 means no program is assigned for today: an expected empty state. */}
       <QueryState

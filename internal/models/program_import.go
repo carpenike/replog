@@ -1021,10 +1021,15 @@ func ListImportedPrograms(ctx context.Context, db *sql.DB, athleteID int64) ([]S
 // LoadImportedDay returns the stored day for a template week and prescription day.
 // ok is false when this template has no imported day there.
 func LoadImportedDay(ctx context.Context, db *sql.DB, templateID int64, week, day int) (*CoachDay, *CoachCycle, error) {
+	// A weekly cycle stores week 1 only and repeats it (TemplateWeekFor).
+	templateWeek, err := TemplateWeekFor(ctx, db, templateID, week)
+	if err != nil {
+		return nil, nil, err
+	}
 	var dayID int64
-	err := db.QueryRowContext(ctx,
+	err = db.QueryRowContext(ctx,
 		`SELECT id FROM program_days WHERE template_id = ? AND week = ? AND day_number = ?`,
-		templateID, week, day,
+		templateID, templateWeek, day,
 	).Scan(&dayID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil, nil
@@ -1038,8 +1043,9 @@ func LoadImportedDay(ctx context.Context, db *sql.DB, templateID int64, week, da
 	}
 	var found *CoachDay
 	for i := range days {
-		if days[i].Week == week && days[i].Number == day {
+		if days[i].Week == templateWeek && days[i].Number == day {
 			found = &days[i]
+			found.Week = week
 			break
 		}
 	}

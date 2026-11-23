@@ -39,6 +39,9 @@ const prescription: PrescriptionData = {
   program_name: 'Block A',
   current_week: 1,
   current_day: 1,
+  num_weeks: 1,
+  num_days: 3,
+  day_source: 'count',
   cycle_number: 1,
   lines: [
     {

@@ -116,7 +116,7 @@ describe('linked athlete home', () => {
     await userEvent.click(open)
 
     expect(await screen.findByRole('heading', { name: 'Session' })).toBeTruthy()
-    expect(api.createWorkout).toHaveBeenCalledWith(7, localDateISO(), '', false)
+    expect(api.createWorkout).toHaveBeenCalledWith(7, localDateISO(), '', false, { link: true })
     expect(api.createWorkout).toHaveBeenCalledTimes(1)
   })
 
@@ -152,7 +152,7 @@ describe('other homes stay put', () => {
     await userEvent.click(open)
 
     expect(await screen.findByRole('heading', { name: 'Session' })).toBeTruthy()
-    expect(api.createWorkout).toHaveBeenCalledWith(7, localDateISO(), '', false)
+    expect(api.createWorkout).toHaveBeenCalledWith(7, localDateISO(), '', false, { link: true })
   })
 
   it('does not give a coach without an athlete profile the session control', async () => {

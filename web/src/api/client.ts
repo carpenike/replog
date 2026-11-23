@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, CalendarData, ComplianceData, PushConfig, RestAlertResult, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SetVideo, SettingCategoryData, CreatedVideoShare, SharedVideo, VideoShare, VideoShareList, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, WhiteboardData, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, CalendarData, ComplianceData, PushConfig, RestAlertResult, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgramDayChoice, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SetVideo, SettingCategoryData, CreatedVideoShare, SharedVideo, VideoShare, VideoShareList, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, WhiteboardData, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
 import type { AthleteProgram, PlateSetup, PlateSetupPreset, PlateSetupRequest } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
@@ -355,10 +355,27 @@ class ApiClient {
     await this.request(`/api/athletes/${athleteId}/workouts/${workoutId}/swaps/${swapId}`, { method: 'DELETE' });
   }
 
-  async createWorkout(athleteId: number, date: string, notes = '', fromPrescription = false): Promise<Workout> {
+  /**
+   * `program.link` links the session to the program assigned on `date` and
+   * stores its program week/day: `week`/`day` when given, otherwise the next
+   * day the prescription shows (ADR 028).
+   */
+  async createWorkout(
+    athleteId: number,
+    date: string,
+    notes = '',
+    fromPrescription = false,
+    program?: ProgramDayChoice,
+  ): Promise<Workout> {
+    const body: Record<string, unknown> = { date, notes, from_prescription: fromPrescription };
+    if (program?.link) body.link_program = true;
+    if (program?.day) {
+      body.program_day = program.day;
+      if (program.week) body.program_week = program.week;
+    }
     return this.request<Workout>(`/api/athletes/${athleteId}/workouts`, {
       method: 'POST',
-      body: JSON.stringify({ date, notes, from_prescription: fromPrescription }),
+      body: JSON.stringify(body),
     });
   }
 
@@ -513,8 +530,10 @@ class ApiClient {
   }
 
   // Prescription
-  async getPrescription(athleteId: number): Promise<PrescriptionData> {
-    return this.request(`/api/athletes/${athleteId}/prescription`);
+  /** Today's prescription, or the given program week/day's. */
+  async getPrescription(athleteId: number, choice?: { week: number; day: number }): Promise<PrescriptionData> {
+    const query = choice ? `?week=${choice.week}&day=${choice.day}` : '';
+    return this.request(`/api/athletes/${athleteId}/prescription${query}`);
   }
 
   // Programs

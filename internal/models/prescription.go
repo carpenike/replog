@@ -140,60 +140,66 @@ type Prescription struct {
 	// CycleComplete is true when a non-loop program has finished all workouts
 	// in its cycle and is awaiting coach review before advancing.
 	CycleComplete bool
+
+	// DaySource says where CurrentWeek/CurrentDay came from: DaySourceStored,
+	// DaySourceNext, DaySourceCount, or "chosen" (GetPrescriptionForDay).
+	DaySource string
 }
 
 // GetPrescription calculates training prescription for an athlete using a specific assignment.
-// Position in the program is determined by counting completed workouts with the same assignment_id.
-// The cycle repeats automatically when all weeks×days are exhausted.
-// If program is nil, returns nil (no prescription).
+// The program day is the one stored on the date's linked session; otherwise the
+// day after the latest earlier session with a stored day; otherwise the count
+// of linked sessions before the date (ADR 028). The cycle repeats when all
+// weeks×days are exhausted. If program is nil, returns nil (no prescription).
 func GetPrescription(ctx context.Context, db *sql.DB, program *AthleteProgram, today time.Time) (*Prescription, error) {
 	if program == nil {
 		return nil, nil // No assignment resolved.
 	}
-
 	todayStr := today.Format("2006-01-02")
-
-	// Count workouts linked to this assignment (not including today).
-	var completedWorkouts int
-	err := db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) < date(?)`,
-		program.ID, todayStr,
-	).Scan(&completedWorkouts)
+	slot, err := slotFor(ctx, db, program, todayStr)
 	if err != nil {
-		return nil, fmt.Errorf("models: count workouts for prescription: %w", err)
+		return nil, err
 	}
+	return buildPrescription(ctx, db, program, todayStr, slot)
+}
 
-	// Check if there's a workout today for this assignment.
-	var todayCount int
-	err = db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM workouts WHERE assignment_id = ? AND date(date) = date(?)`,
-		program.ID, todayStr,
-	).Scan(&todayCount)
+// GetPrescriptionForDay is the prescription for an explicit program
+// week/day on today, for a caller choosing the day before a session starts.
+func GetPrescriptionForDay(ctx context.Context, db *sql.DB, program *AthleteProgram, today time.Time, week, day int) (*Prescription, error) {
+	if program == nil {
+		return nil, nil
+	}
+	todayStr := today.Format("2006-01-02")
+	slot, err := slotFor(ctx, db, program, todayStr)
 	if err != nil {
-		return nil, fmt.Errorf("models: check today workout: %w", err)
+		return nil, err
 	}
-	hasWorkout := todayCount > 0
+	slot.Position = (week-1)*program.NumDays + (day - 1)
+	slot.CycleComplete = false
+	slot.Source = "chosen"
+	return buildPrescription(ctx, db, program, todayStr, slot)
+}
 
-	// Calculate position in the program cycle.
+func buildPrescription(ctx context.Context, db *sql.DB, program *AthleteProgram, todayStr string, slot programSlot) (*Prescription, error) {
 	cycleLength := program.NumWeeks * program.NumDays
 	if cycleLength == 0 {
 		return nil, fmt.Errorf("models: program has zero cycle length")
 	}
-
-	position := completedWorkouts % cycleLength
+	position := slot.Position
+	completedWorkouts := slot.Completed
+	hasWorkout := slot.HasWorkout
 	cycleNumber := (completedWorkouts / cycleLength) + 1
-
-	// For non-loop programs, detect when a full cycle is complete.
-	// The athlete has finished the cycle when completedWorkouts is an exact
-	// multiple of cycleLength (and > 0). In that case, show a "Cycle Complete"
-	// prompt instead of auto-advancing into the next cycle.
-	cycleComplete := !program.IsLoop && completedWorkouts > 0 && position == 0
+	cycleComplete := slot.CycleComplete
 
 	currentWeek := (position / program.NumDays) + 1
 	currentDay := (position % program.NumDays) + 1
 
-	// Get prescribed sets for this week/day.
-	sets, err := ListPrescribedSetsForDay(ctx, db, program.TemplateID, currentWeek, currentDay)
+	// Get prescribed sets for this week/day (a week-1-only template repeats week 1).
+	templateWeek, err := TemplateWeekFor(ctx, db, program.TemplateID, currentWeek)
+	if err != nil {
+		return nil, err
+	}
+	sets, err := ListPrescribedSetsForDay(ctx, db, program.TemplateID, templateWeek, currentDay)
 	if err != nil {
 		return nil, err
 	}
@@ -280,6 +286,7 @@ func GetPrescription(ctx context.Context, db *sql.DB, program *AthleteProgram, t
 		TotalInCycle:     cycleLength,
 		ProgressPercent:  progressPct,
 		CycleComplete:    cycleComplete,
+		DaySource:        slot.Source,
 	}, nil
 }
 
