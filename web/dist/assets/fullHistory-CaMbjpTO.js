@@ -1,1 +1,0 @@
-import{n as e}from"./vendor-query-CY67vr7o.js";import{j as t}from"./index-CCAdgLlp.js";var n=25;async function r(e,r){let i=[];for(let a=0;a<n;a++){let n=await t.listExerciseHistory(e,r,i.length);if(i.push(...n.days),!n.has_more)break}return i}function i(t,n){return e({queryKey:[`exercise-history-full`,t,n],queryFn:()=>r(t,n),staleTime:5*6e4})}export{i as t};

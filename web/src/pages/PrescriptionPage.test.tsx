@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -68,5 +68,48 @@ describe('PrescriptionPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Session' })).toBeTruthy()
     expect(api.createWorkout).toHaveBeenCalledWith(7, localDateISO(), '', false, { link: true })
+  })
+})
+
+const cue = 'Bench at 75 degrees; touch the shoulder at the bottom.'
+
+const compact: PrescriptionData = {
+  ...prescription,
+  lines: [
+    {
+      exercise_id: 1, exercise_name: 'Back Squat', training_max: 300,
+      sets: [
+        { set_number: 1, reps: 5, rep_type: 'standard', non_working: true, absolute_weight: 135 },
+        { set_number: 2, reps: 5, rep_type: 'standard', percentage: 75, target_weight: 225 },
+        { set_number: 3, reps: 5, rep_type: 'standard', percentage: 75, target_weight: 225 },
+        { set_number: 4, reps: 5, rep_type: 'amrap', percentage: 85, target_weight: 255 },
+      ],
+    },
+    {
+      exercise_id: 2, exercise_name: 'High Incline DB Press',
+      sets: [1, 2, 3].map(n => ({ set_number: n, reps: 5, reps_max: 8, rir_min: 1, rir_max: 2, rest_seconds: 90, rep_type: 'standard', notes: cue })),
+    },
+  ],
+}
+
+describe('compact prescription lines', () => {
+  beforeEach(() => {
+    vi.mocked(api.getPrescription).mockReset().mockResolvedValue(compact)
+  })
+
+  it('collapses matching sets into lines and keeps differing sets apart', async () => {
+    renderPage()
+    expect(await screen.findByText(/1 × 5 @ 135/)).toBeTruthy()
+    expect(screen.getByText(/2 × 5 @ 225 .*\(75%\)/)).toBeTruthy()
+    expect(screen.getByText(/1 × 5\+ @ 255 .*\(85%\)/)).toBeTruthy()
+    expect(screen.getByText('Warm-up')).toBeTruthy()
+  })
+
+  it('shows a repeated cue once', async () => {
+    renderPage()
+    expect(await screen.findByText('3 × 5–8')).toBeTruthy()
+    const card = screen.getByText('High Incline DB Press').closest('[data-slot="card"]') as HTMLElement
+    expect(within(card).getAllByText(cue)).toHaveLength(1)
+    expect(within(card).getByText('· 90s rest')).toBeTruthy()
   })
 })

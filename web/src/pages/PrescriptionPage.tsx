@@ -9,14 +9,14 @@ import { PageHeader } from '@/components/PageHeader'
 import { QueryState } from '@/components/QueryState'
 import { cn, formatDate, formatWeight, localDateISO } from '@/lib/utils'
 import { groupBlocks, groupKind, memberLabel } from '@/lib/groups'
-import { effortLabel, repTargetLabel } from '@/lib/session'
+import { distinctNotes, summarizeSets } from '@/lib/setSummary'
+import { CueNote } from '@/components/CueNote'
 import { Badge } from '@/components/ui/badge'
-import type { PrescriptionLineData } from '@/api/types'
+import type { PrescriptionLineData, PrescriptionSetData } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export function PrescriptionPage() {
   const navigate = useNavigate()
@@ -158,11 +158,23 @@ export function PrescriptionPage() {
   )
 }
 
-/** One exercise of today's prescription: warm-ups first (not counted), then working sets. */
+/** Target load for a prescription line: "225 lb (75%)", "135 lb", or null for bodyweight. */
+function prescriptionLoad(s: PrescriptionSetData): string | null {
+  if (s.target_weight) return s.percentage ? `${formatWeight(s.target_weight)} (${s.percentage}%)` : formatWeight(s.target_weight)
+  if (s.absolute_weight) return formatWeight(s.absolute_weight)
+  if (s.percentage) return `${s.percentage}%`
+  return null
+}
+
+/**
+ * One exercise of today's prescription: warm-ups first (not counted), then
+ * working sets. Matching sets share one line and the coach's cue shows once.
+ */
 function PrescriptionLineCard({ line, member }: { line: PrescriptionLineData; member?: string }) {
   // Warm-ups sort ahead of the working sets they lead into.
   const sets = [...line.sets].sort((a, b) => Number(!a.non_working) - Number(!b.non_working))
-  const firstWorking = sets.findIndex(st => !st.non_working)
+  const lines = summarizeSets(sets, { load: s => prescriptionLoad(s as PrescriptionSetData) })
+  const notes = distinctNotes(sets)
   return (
     <Card size="sm">
       <CardHeader>
@@ -174,49 +186,17 @@ function PrescriptionLineCard({ line, member }: { line: PrescriptionLineData; me
           <CardDescription>TM: {formatWeight(line.training_max)}</CardDescription>
         )}
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16">Set</TableHead>
-              <TableHead>Reps</TableHead>
-              <TableHead>Weight</TableHead>
-              <TableHead>%</TableHead>
-              <TableHead className="whitespace-normal">Notes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sets.map((set, j) => {
-              const warmup = !!set.non_working
-              const effort = effortLabel(set)
-              return (
-                <TableRow key={j} className={cn(warmup && 'bg-muted/40 text-muted-foreground')}>
-                  <TableCell className="text-muted-foreground">
-                    {warmup ? <Badge variant="outline" aria-label="Warm-up set">W</Badge> : j - firstWorking + 1}
-                  </TableCell>
-                  <TableCell className={cn(!warmup && 'font-medium')}>
-                    <span className="flex flex-wrap items-center gap-1">
-                      {repTargetLabel(set) ?? '—'}
-                      {effort && <Badge variant="outline" className="text-[11px]">{effort}</Badge>}
-                    </span>
-                  </TableCell>
-                  <TableCell className={cn('font-medium', !warmup && 'text-primary')}>
-                    {set.target_weight ? formatWeight(set.target_weight)
-                      : set.absolute_weight ? formatWeight(set.absolute_weight)
-                      : 'BW'}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {set.percentage ? `${set.percentage}%` : ''}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-normal wrap-break-word">
-                    {warmup && <span>Warm-up{set.notes ? ' · ' : ''}</span>}
-                    {set.notes ?? ''}
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+      <CardContent className="space-y-1">
+        <ul className="space-y-0.5 text-sm tabular-nums">
+          {lines.map((l, i) => (
+            <li key={i} className={cn(l.warmup && 'text-muted-foreground')}>
+              {l.warmup && <Badge variant="outline" className="mr-1.5 text-[11px]">Warm-up</Badge>}
+              <span className={cn('font-semibold', !l.warmup && 'text-foreground')}>{l.head}</span>
+              {l.detail.map(d => <span key={d} className="text-muted-foreground"> · {d}</span>)}
+            </li>
+          ))}
+        </ul>
+        {notes.map(n => <CueNote key={n} text={n} />)}
       </CardContent>
     </Card>
   )

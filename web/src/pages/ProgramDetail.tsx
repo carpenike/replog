@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, Lock, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Check, ChevronRight, Lock, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { api } from '@/api/client'
 import type { ProgramTemplate } from '@/api/types'
 import { EmptyState } from '@/components/ui'
@@ -13,7 +13,9 @@ import { useConfirm } from '@/lib/useConfirm'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
+import { Tabs, TabsList, TabsPanel, TabsTab } from '@/components/ui/tabs'
+import { PrescribedExercise } from '@/components/PrescribedExercise'
+import { formatRest, sharedValue } from '@/lib/setSummary'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -77,6 +79,20 @@ function setUpdatePayload(s: PrescribedSetData, overrides: Partial<Parameters<ty
   }
 }
 
+/** Working exercises on a day: "7 exercises". Warm-up-only exercises don't count. */
+function exerciseCount(exercises: Map<string, PrescribedSetData[]>): string {
+  const n = Array.from(exercises.values()).filter(sets => sets.some(s => !s.non_working)).length
+  return `${n} exercise${n !== 1 ? 's' : ''}`
+}
+
+/** Everything a week prescribes except ids and the week number, for "Same as Week N". */
+function weekSignature(sets: PrescribedSetData[], week: number): string {
+  return JSON.stringify(sets.filter(s => s.week === week).map(s => [
+    s.day, s.exercise_id, s.set_number, s.reps, s.reps_max, s.percentage, s.absolute_weight, s.rest_seconds,
+    s.prescribed_rpe, s.rir_min, s.rir_max, s.non_working, s.group_key, s.notes, s.rep_type,
+  ]))
+}
+
 /** Numeric input value → number, or null when blank. */
 function numOrNull(v: string, parse: (s: string) => number = parseFloat): number | null {
   return v.trim() === '' ? null : parse(v)
@@ -118,6 +134,8 @@ export function ProgramDetail() {
   const [editRirMax, setEditRirMax] = useState('')
   const [editWarmup, setEditWarmup] = useState(false)
   const [editGroup, setEditGroup] = useState<string | null>(null)
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
+  const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const programQuery = useQuery({
     queryKey: ['program', programId],
     queryFn: () => api.getProgramTemplate(programId),
@@ -283,6 +301,13 @@ export function ProgramDetail() {
     if (!exercises.has(key)) exercises.set(key, [])
     exercises.get(key)!.push(s)
   }
+  const weekNums = Array.from(weeks.keys()).sort((a, b) => a - b)
+  const activeWeek = selectedWeek != null && weeks.has(selectedWeek) ? selectedWeek : weekNums[0]
+  const activeDays = weeks.get(activeWeek) ?? new Map<number, Map<string, PrescribedSetData[]>>()
+  const dayNums = Array.from(activeDays.keys()).sort((a, b) => a - b)
+  const activeDay = selectedDay != null && activeDays.has(selectedDay) ? selectedDay : dayNums[0]
+  const dayExercises = Array.from(activeDays.get(activeDay)?.entries() ?? [])
+  const sameAsWeek = weekNums.find(w => w < activeWeek && weekSignature(sets, w) === weekSignature(sets, activeWeek))
   // Render helper (not a component): one exercise with its sets. label is
   // the superset position (A1) or a lone group key.
   function renderExercise(exerciseName: string, exSets: PrescribedSetData[], label: string | undefined, scope: string) {
@@ -446,51 +471,121 @@ export function ProgramDetail() {
           onAction={() => { setEditing(true); setShowAddSet(true) }}
         />
       ) : (
-        <div className="space-y-8">
-          {Array.from(weeks.entries()).sort((a, b) => a[0] - b[0]).map(([week, days]) => (
-            <div key={week}>
-              <h2 className="text-lg font-semibold mb-3">Week {week}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from(days.entries()).sort((a, b) => a[0] - b[0]).map(([day, exercises]) => (
-                  <Card key={day} size="sm" className="p-3 gap-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground px-0">Day {day}</h3>
-                    <div className="space-y-3">
-                      {groupBlocks(Array.from(exercises.entries()), ([, exSets]) => dominantGroupKey(exSets)).map((block, bi) => {
-                        const grouped = block.key != null && block.items.length > 1
-                        const content = block.items.map(([exerciseName, exSets], mi) => renderExercise(
-                          exerciseName,
-                          exSets,
-                          grouped ? memberLabel(block.key!, mi) : block.key ?? undefined,
-                          `w${week}-d${day}`,
-                        ))
-                        if (!grouped) return <div key={block.key ?? `solo-${bi}`}>{content}</div>
-                        return (
-                          <section
-                            key={block.key}
-                            aria-label={`${groupKind(block.items.length)} ${block.key}`}
-                            className="rounded-md border-l-4 border-primary/60 bg-primary/5 py-2 pl-3 pr-2 space-y-3"
-                          >
-                            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                              {groupKind(block.items.length)} {block.key}
-                              <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground">· alternate {block.items.map((_, i) => memberLabel(block.key!, i)).join(', ')}</span>
-                            </p>
-                            {content}
-                          </section>
-                        )
-                      })}
-                    </div>
-                  </Card>
+        <div className="space-y-4">
+          {weekNums.length > 1 && (
+            <div className="space-y-1">
+              <div role="group" aria-label="Week" className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+                <span className="mr-1 shrink-0 text-sm font-semibold">Week</span>
+                {weekNums.map(w => (
+                  <Button
+                    key={w}
+                    size="sm"
+                    variant={w === activeWeek ? 'default' : 'outline'}
+                    aria-pressed={w === activeWeek}
+                    aria-label={`Week ${w}`}
+                    className="min-h-11 min-w-11 shrink-0 rounded-full md:min-h-8 md:min-w-8"
+                    onClick={() => setSelectedWeek(w)}
+                  >
+                    {w}
+                  </Button>
                 ))}
               </div>
+              {sameAsWeek != null && <p className="text-xs text-muted-foreground">Same as Week {sameAsWeek}.</p>}
             </div>
-          ))}
+          )}
+          <Tabs className="min-w-0" value={String(activeDay)} onValueChange={(v) => setSelectedDay(Number(v))}>
+            {dayNums.length > 1 && (
+              <TabsList aria-label="Day">
+                {dayNums.map(d => (
+                  <TabsTab key={d} value={String(d)} className="flex-1 md:flex-none">
+                    Day {d}
+                    <span className="hidden text-xs font-normal text-muted-foreground sm:inline">· {exerciseCount(activeDays.get(d)!)}</span>
+                  </TabsTab>
+                ))}
+              </TabsList>
+            )}
+            <TabsPanel value={String(activeDay)} className="max-w-2xl space-y-3" aria-label={`Week ${activeWeek}, Day ${activeDay}`}>
+              {groupBlocks(dayExercises, ([, exSets]) => dominantGroupKey(exSets)).map((block, bi) => {
+                const grouped = block.key != null && block.items.length > 1
+                const scope = `w${activeWeek}-d${activeDay}`
+                if (editing) {
+                  const content = block.items.map(([exerciseName, exSets], mi) => renderExercise(
+                    exerciseName,
+                    exSets,
+                    grouped ? memberLabel(block.key!, mi) : block.key ?? undefined,
+                    scope,
+                  ))
+                  if (!grouped) return <div key={block.key ?? `solo-${bi}`}>{content}</div>
+                  return (
+                    <section key={block.key} aria-label={`${groupKind(block.items.length)} ${block.key}`}
+                      className="rounded-md border-l-4 border-primary/60 bg-primary/5 py-2 pl-3 pr-2 space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-primary">{groupKind(block.items.length)} {block.key}</p>
+                      {content}
+                    </section>
+                  )
+                }
+                if (!grouped) {
+                  const [exerciseName, exSets] = block.items[0]
+                  return <PrescribedExercise key={block.key ?? `solo-${bi}`} name={exerciseName} sets={exSets} label={block.key ?? undefined} />
+                }
+                const allSets = block.items.flatMap(([, s]) => s)
+                const warm = allSets.every(s => s.non_working)
+                const rounds = sharedValue(block.items, ([, s]) => s.length)
+                const rest = sharedValue(allSets, s => s.rest_seconds)
+                const kind = groupKind(block.items.length)
+                const meta = [
+                  rounds != null ? `${rounds} round${rounds !== 1 ? 's' : ''}` : null,
+                  rest != null ? `${formatRest(rest)} after each round` : null,
+                ].filter(Boolean).join(' · ')
+                const members = block.items.map(([exerciseName, exSets], mi) => (
+                  <PrescribedExercise
+                    key={exerciseName}
+                    name={exerciseName}
+                    sets={exSets}
+                    label={memberLabel(block.key!, mi)}
+                    omitRest={rest !== undefined}
+                    inWarmup={warm}
+                  />
+                ))
+                if (warm) {
+                  return (
+                    <details key={block.key} className="group rounded-md border-l-4 border-warning/70 bg-warning/10 py-2 pl-3 pr-2">
+                      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-warning-strong md:min-h-0 [&::-webkit-details-marker]:hidden">
+                        <span>
+                          <ChevronRight aria-hidden="true" className="mr-1 inline size-3.5 transition-transform group-open:rotate-90" />
+                          Warm-up {kind.toLowerCase()}
+                        </span>
+                        <span className="font-normal normal-case tracking-normal text-muted-foreground">
+                          {block.items.length} drills{meta && ` · ${meta}`}
+                        </span>
+                      </summary>
+                      <div className="mt-1">{members}</div>
+                    </details>
+                  )
+                }
+                return (
+                  <section key={block.key} aria-label={`${kind} ${block.key}`} className="rounded-md border-l-4 border-primary/60 bg-primary/5 py-2 pl-3 pr-2">
+                    <p className="flex flex-wrap justify-between gap-x-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                      <span>{kind} {block.key}</span>
+                      {meta && <span className="font-normal normal-case tracking-normal text-muted-foreground">{meta}</span>}
+                    </p>
+                    {members}
+                  </section>
+                )
+              })}
+            </TabsPanel>
+          </Tabs>
         </div>
       )}
       {/* Add Set */}
       {editing && (
       <div className="mt-6">
         {!showAddSet ? (
-          <Button variant="ghost" onClick={() => setShowAddSet(true)}
+          <Button variant="ghost" onClick={() => {
+            if (activeWeek != null) setSetWeek(String(activeWeek))
+            if (activeDay != null) setSetDay(String(activeDay))
+            setShowAddSet(true)
+          }}
             className="rounded-md border border-dashed border-border px-4 py-2 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors w-full">
             <Plus aria-hidden="true" /> Add Prescribed Set
           </Button>
