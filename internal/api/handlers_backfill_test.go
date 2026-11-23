@@ -179,10 +179,11 @@ func TestCoachBackfill_PreviewConfirmAndPlanVsDone(t *testing.T) {
 	if p.SetCount != 25 || p.WorkingSets != 19 || p.WarmupSets != 6 || p.Exercises != 11 || !p.CanConfirm || p.PreviewToken == nil || !strings.HasPrefix(*p.PreviewToken, "rlbf_") || p.ExpiresAt == nil {
 		t.Fatalf("preview = %+v", p)
 	}
-	if p.Program == nil || p.Program.AssignmentID != fx.program.ID || p.Program.ProgramDayLabel != "Week 1 Day 1" || p.Program.TemplateVersion != 1 || len(p.Program.Schedule) != 3 {
+	// The day sent is the day stored (ADR 028): no mismatch fallback.
+	if p.Program == nil || p.Program.AssignmentID != fx.program.ID || p.Program.ProgramDayLabel != "Week 1 Day 3" || p.Program.ProgramDaySource != "given" || p.Program.TemplateVersion != 1 || len(p.Program.Schedule) != 3 {
 		t.Fatalf("program = %+v", p.Program)
 	}
-	if !hasWarning(p, "program_day_mismatch") || hasWarning(p, "off_schedule") || p.Duplicate != nil {
+	if len(p.Warnings) != 0 || p.Duplicate != nil {
 		t.Fatalf("warnings = %+v", p.Warnings)
 	}
 	if p.Notes != "Session RPE: 6/10\nBackfilled from Trainerize" {
@@ -203,7 +204,7 @@ func TestCoachBackfill_PreviewConfirmAndPlanVsDone(t *testing.T) {
 	requireStatus(t, rr, http.StatusBadRequest)
 
 	c := fx.confirm(t, *p.PreviewToken, http.StatusCreated)
-	if c.SetsWritten != 25 || c.WorkingSets != 19 || c.WarmupSets != 6 || c.AssignmentID == nil || *c.AssignmentID != fx.program.ID || c.ProgramDayLabel != "Week 1 Day 1" || c.Date != fx.mon {
+	if c.SetsWritten != 25 || c.WorkingSets != 19 || c.WarmupSets != 6 || c.AssignmentID == nil || *c.AssignmentID != fx.program.ID || c.ProgramDayLabel != "Week 1 Day 3" || c.ProgramDay == nil || *c.ProgramDay != 3 || c.Date != fx.mon {
 		t.Fatalf("confirm = %+v", c)
 	}
 	if n := countRows(t, env, `SELECT COUNT(*) FROM workout_sets WHERE workout_id = ?`, c.SessionID); n != 25 {
@@ -226,7 +227,8 @@ func TestCoachBackfill_PreviewConfirmAndPlanVsDone(t *testing.T) {
 	rr = env.serveBearer(t, "GET", fmt.Sprintf("/api/athletes/%d/coach/week?week_start=%s", fx.athlete.ID, fx.weekStart), fx.token, nil, nil)
 	requireStatus(t, rr, http.StatusOK)
 	decodeJSON(t, rr, &week)
-	if week.DoneCount != 1 || week.Days[0].Status != "done" || week.Days[0].SessionID == nil || *week.Days[0].SessionID != c.SessionID {
+	if week.DoneCount != 1 || week.Days[0].Status != "done" || week.Days[0].SessionID == nil || *week.Days[0].SessionID != c.SessionID ||
+		*week.Days[0].Day != 3 || *week.Days[0].DaySource != models.DaySourceStored {
 		t.Fatalf("week after = %+v", week)
 	}
 
@@ -262,7 +264,8 @@ func TestCoachBackfill_PreviewConfirmAndPlanVsDone(t *testing.T) {
 	// Two previews for one date: the second confirm is 409 and writes nothing.
 	a := fx.preview(t, fx.payload(fx.wed, nil), http.StatusOK)
 	b := fx.preview(t, fx.payload(fx.wed, nil), http.StatusOK)
-	if a.Program.ProgramDayLabel != "Week 1 Day 2" {
+	// No day sent: the day after the stored Week 1 Day 3 wraps to Day 1.
+	if a.Program.ProgramDayLabel != "Week 1 Day 1" || a.Program.ProgramDaySource != "derived" {
 		t.Fatalf("wednesday label = %s", a.Program.ProgramDayLabel)
 	}
 	fx.confirm(t, *a.PreviewToken, http.StatusCreated)
@@ -327,9 +330,16 @@ func TestCoachBackfill_Validation(t *testing.T) {
 		t.Fatalf("unlinked preview = %+v", p)
 	}
 
-	// Backfilling before a linked session warns that it shifts.
-	later := fx.preview(t, fx.payload(fx.fri, nil), http.StatusOK)
-	fx.confirm(t, *later.PreviewToken, http.StatusCreated)
+	// Bad program days.
+	fx.preview(t, fx.payload(fx.mon, map[string]any{"program_day": 4}), http.StatusBadRequest)
+	fx.preview(t, fx.payload(fx.mon, map[string]any{"program_week": 2, "program_day": 1}), http.StatusBadRequest)
+	fx.preview(t, fx.payload(fx.mon, map[string]any{"program_week": 1}), http.StatusBadRequest)
+
+	// Backfilling before a linked session with no stored day (a row from
+	// before migration 0028) warns that it shifts.
+	if _, err := env.DB.Exec(`INSERT INTO workouts (athlete_id, date, assignment_id) VALUES (?, ?, ?)`, fx.athlete.ID, fx.fri, fx.program.ID); err != nil {
+		t.Fatal(err)
+	}
 	p = fx.preview(t, fx.payload(fx.wed, nil), http.StatusOK)
 	if !hasWarning(p, "later_sessions_shift") || p.Program.LaterSessions != 1 {
 		t.Fatalf("shift preview = %+v", p)

@@ -33,15 +33,20 @@ type CoachBackfillSetRequest struct {
 
 // CoachBackfillPreviewRequest is a past session to check.
 type CoachBackfillPreviewRequest struct {
-	Date            string                    `json:"date" example:"2026-11-06"`
-	AssignmentID    int64                     `json:"assignment_id,omitempty" example:"1"`
-	TemplateID      int64                     `json:"template_id,omitempty" example:"13"`
-	TemplateVersion int                       `json:"template_version,omitempty" example:"1"`
-	ProgramWeek     int                       `json:"program_week,omitempty" example:"1"`
-	ProgramDay      int                       `json:"program_day,omitempty" example:"3"`
-	SessionRPE      *float64                  `json:"session_rpe,omitempty" example:"6"`
-	Notes           string                    `json:"notes,omitempty"`
-	Sets            []CoachBackfillSetRequest `json:"sets"`
+	Date            string `json:"date" example:"2026-11-06"`
+	AssignmentID    int64  `json:"assignment_id,omitempty" example:"1"`
+	TemplateID      int64  `json:"template_id,omitempty" example:"13"`
+	TemplateVersion int    `json:"template_version,omitempty" example:"1"`
+	// ProgramWeek/ProgramDay are the program day this session was. They are
+	// stored on the session and plan-vs-done compares against that template
+	// day (ADR 028). program_week defaults to the Monday–Sunday week of the
+	// assignment the date falls in; with no program_day RepLog picks the next
+	// day after the latest earlier stored one.
+	ProgramWeek int                       `json:"program_week,omitempty" example:"1"`
+	ProgramDay  int                       `json:"program_day,omitempty" example:"3"`
+	SessionRPE  *float64                  `json:"session_rpe,omitempty" example:"6"`
+	Notes       string                    `json:"notes,omitempty"`
+	Sets        []CoachBackfillSetRequest `json:"sets"`
 }
 
 // CoachBackfillConfirmRequest writes a previewed session.
@@ -80,7 +85,9 @@ type CoachBackfillProgram struct {
 	Week            int    `json:"week"`
 	Day             int    `json:"day"`
 	ProgramDayLabel string `json:"program_day_label"`
-	LaterSessions   int    `json:"later_sessions"`
+	// ProgramDaySource is "given" (from program_day) or "derived".
+	ProgramDaySource string `json:"program_day_source" enums:"given,derived"`
+	LaterSessions    int    `json:"later_sessions"`
 }
 
 // CoachBackfillPreviewResponse is the checked session. Nothing is written.
@@ -110,6 +117,8 @@ type CoachBackfillConfirmResponse struct {
 	Date            string `json:"date"`
 	AssignmentID    *int64 `json:"assignment_id"`
 	ProgramDayLabel string `json:"program_day_label"`
+	ProgramWeek     *int   `json:"program_week"`
+	ProgramDay      *int   `json:"program_day"`
 	SetsWritten     int    `json:"sets_written"`
 	WorkingSets     int    `json:"working_sets"`
 	WarmupSets      int    `json:"warmup_sets"`
@@ -294,7 +303,8 @@ func backfillPreviewResponse(plan *models.BackfillPlan) CoachBackfillPreviewResp
 		resp.Program = &CoachBackfillProgram{
 			AssignmentID: p.AssignmentID, TemplateID: p.TemplateID, TemplateName: p.TemplateName,
 			TemplateVersion: p.TemplateVersion, StartDate: isoDay(p.StartDate), Schedule: schedule,
-			Week: p.Week, Day: p.Day, ProgramDayLabel: p.Label, LaterSessions: p.LaterSessions,
+			Week: p.Week, Day: p.Day, ProgramDayLabel: p.Label, ProgramDaySource: p.DaySource,
+			LaterSessions: p.LaterSessions,
 		}
 	}
 	for _, s := range plan.Sets {
@@ -379,11 +389,9 @@ func (h *Handlers) ConfirmCoachBackfill(w http.ResponseWriter, r *http.Request) 
 	if plan.Program != nil {
 		id := plan.Program.AssignmentID
 		resp.AssignmentID = &id
-		label, err := models.BackfillProgramLabel(r.Context(), h.DB, id, plan.Date)
-		if err != nil {
-			log.Printf("api: backfill label %d: %v", sessionID, err)
-		}
-		resp.ProgramDayLabel = label
+		week, day := plan.Program.Week, plan.Program.Day
+		resp.ProgramWeek, resp.ProgramDay = &week, &day
+		resp.ProgramDayLabel = plan.Program.Label
 	}
 	log.Printf("api: coach backfill session %d athlete %d sets %d by user %d", sessionID, athlete.ID, len(plan.Sets), user.ID)
 	WriteJSON(w, http.StatusCreated, resp)

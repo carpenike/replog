@@ -149,6 +149,8 @@ func WorkoutFromModel(m *models.Workout) *Workout {
 		Discipline:   m.Discipline,
 		AssignmentID: nullInt(m.AssignmentID),
 		Notes:        nullStr(m.Notes),
+		ProgramWeek:  nullInt(m.ProgramWeek),
+		ProgramDay:   nullInt(m.ProgramDay),
 		CreatedAt:    fmtTime(m.CreatedAt),
 		UpdatedAt:    fmtTime(m.UpdatedAt),
 		AthleteName:  m.AthleteName,

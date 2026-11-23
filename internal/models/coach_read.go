@@ -108,7 +108,8 @@ func ListCoachSessions(ctx context.Context, db *sql.DB, athleteID int64, start, 
 		                      OR (date(p.date) = date(w.date) AND p.id <= w.id))
 		            )
 		       END,
-		       COALESCE(pt.id, 0), COALESCE(pt.num_weeks, 0), COALESCE(pt.num_days, 0)
+		       COALESCE(pt.id, 0), COALESCE(pt.num_weeks, 0), COALESCE(pt.num_days, 0),
+		       w.program_week, w.program_day
 		  FROM workouts w
 		  LEFT JOIN athlete_programs ap ON ap.id = w.assignment_id
 		  LEFT JOIN program_templates pt ON pt.id = ap.template_id
@@ -135,12 +136,19 @@ func ListCoachSessions(ctx context.Context, db *sql.DB, athleteID int64, start, 
 	for rows.Next() {
 		var s CoachSession
 		var seq, weeks, days int
-		if err := rows.Scan(&s.ID, &s.AthleteID, &s.Date, &s.Notes, &seq, &s.TemplateID, &weeks, &days); err != nil {
+		var storedWeek, storedDay sql.NullInt64
+		if err := rows.Scan(&s.ID, &s.AthleteID, &s.Date, &s.Notes, &seq, &s.TemplateID, &weeks, &days, &storedWeek, &storedDay); err != nil {
 			return nil, false, fmt.Errorf("models: scan coach session: %w", err)
 		}
 		s.Date = isoDate(s.Date)
-		s.Week, s.Day = ProgramPosition(seq, weeks, days)
-		s.ProgramDayLabel = ProgramDayLabel(seq, weeks, days)
+		// A stored day wins (ADR 028); older rows keep the counted day.
+		if seq > 0 && storedWeek.Valid && storedDay.Valid {
+			s.Week, s.Day = int(storedWeek.Int64), int(storedDay.Int64)
+			s.ProgramDayLabel = ProgramDayLabelFor(s.Week, s.Day)
+		} else {
+			s.Week, s.Day = ProgramPosition(seq, weeks, days)
+			s.ProgramDayLabel = ProgramDayLabel(seq, weeks, days)
+		}
 		sessions = append(sessions, s)
 	}
 	if err := rows.Err(); err != nil {
@@ -496,6 +504,7 @@ type PlannedDay struct {
 	ProgramDayLabel  string
 	Week             int
 	Day              int
+	DaySource        string // see Prescription.DaySource
 	SessionID        sql.NullInt64
 	Status           string
 	CompletedOn      string
@@ -540,6 +549,10 @@ func WeekPlanForAthlete(ctx context.Context, db *sql.DB, athleteID int64, weekSt
 			return nil, err
 		}
 		if program == nil || !scheduleIncludes(program, isoWeekday(noon)) {
+			continue
+		}
+		// A day before the assignment starts is not planned for it.
+		if day.Format("2006-01-02") < dayOnly(program.StartDate) {
 			continue
 		}
 		rx, err := GetPrescription(ctx, db, program, noon)
@@ -589,6 +602,7 @@ func WeekPlanForAthlete(ctx context.Context, db *sql.DB, athleteID int64, weekSt
 			item.Week = rx.CurrentWeek
 			item.Day = rx.CurrentDay
 			item.ProgramDayLabel = fmt.Sprintf("Week %d Day %d", rx.CurrentWeek, rx.CurrentDay)
+			item.DaySource = rx.DaySource
 		}
 		if workout != nil {
 			item.SessionID = sql.NullInt64{Int64: workout.ID, Valid: true}

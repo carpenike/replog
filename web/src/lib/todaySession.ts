@@ -23,6 +23,7 @@ export interface TodaySessionApi {
     date: string,
     notes?: string,
     fromPrescription?: boolean,
+    program?: { link?: boolean; week?: number; day?: number },
   ): Promise<{ id: number }>
 }
 
@@ -63,7 +64,8 @@ export async function findWorkoutOnDate(
 /**
  * Resume today's resistance workout, or create an empty one and open it.
  * `fromPrescription` stays false: seeding every prescribed set would record
- * work the athlete has not done. A 409 means the day's row appeared between
+ * work the athlete has not done. The session is linked to today's program
+ * so it stores (and advances) the program day (ADR 028). A 409 means the day's row appeared between
  * the read and the insert (one workout per athlete per day) — resume it.
  */
 export async function openTodaySession(
@@ -74,7 +76,7 @@ export async function openTodaySession(
   const existing = await findWorkoutOnDate(client, athleteId, today)
   if (existing) return sessionPath(athleteId, existing.id)
   try {
-    const created = await client.createWorkout(athleteId, today, '', false)
+    const created = await client.createWorkout(athleteId, today, '', false, { link: true })
     return sessionPath(athleteId, created.id)
   } catch (err) {
     if (!(err instanceof ApiError) || err.code !== 409) throw err

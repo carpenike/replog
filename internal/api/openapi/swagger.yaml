@@ -547,8 +547,12 @@ definitions:
         type: integer
       date:
         type: string
+      program_day:
+        type: integer
       program_day_label:
         type: string
+      program_week:
+        type: integer
       session_id:
         type: integer
       sets_written:
@@ -572,6 +576,12 @@ definitions:
         example: 3
         type: integer
       program_week:
+        description: |-
+          ProgramWeek/ProgramDay are the program day this session was. They are
+          stored on the session and plan-vs-done compares against that template
+          day (ADR 028). program_week defaults to the Monday–Sunday week of the
+          assignment the date falls in; with no program_day RepLog picks the next
+          day after the latest earlier stored one.
         example: 1
         type: integer
       session_rpe:
@@ -636,6 +646,12 @@ definitions:
       later_sessions:
         type: integer
       program_day_label:
+        type: string
+      program_day_source:
+        description: ProgramDaySource is "given" (from program_day) or "derived".
+        enum:
+        - given
+        - derived
         type: string
       schedule:
         items:
@@ -1385,6 +1401,15 @@ definitions:
         type: string
       day:
         type: integer
+      day_source:
+        description: |-
+          DaySource is stored (the session's stored day), next_after_stored, or
+          count (derived from older sessions without one) (ADR 028).
+        enum:
+        - stored
+        - next_after_stored
+        - count
+        type: string
       logged_exercises:
         type: integer
       planned_exercises:
@@ -2645,10 +2670,27 @@ definitions:
         type: integer
       cycle_number:
         type: integer
+      day_source:
+        description: |-
+          DaySource says where current_week/current_day came from: stored (today's
+          session has one), next_after_stored, count (older sessions without a
+          stored day), or chosen (the week/day query) (ADR 028).
+        enum:
+        - stored
+        - next_after_stored
+        - count
+        - chosen
+        type: string
       lines:
         items:
           $ref: '#/definitions/api.PrescriptionLineResponse'
         type: array
+      num_days:
+        type: integer
+      num_weeks:
+        description: NumWeeks/NumDays bound the program week/day a session can be
+          started on.
+        type: integer
       program_name:
         type: string
     type: object
@@ -3683,8 +3725,15 @@ definitions:
         type: integer
       notes:
         type: string
+      program_day:
+        type: integer
       program_name:
         type: string
+      program_week:
+        description: |-
+          ProgramWeek/ProgramDay are the program day stored on a linked
+          session (ADR 028); absent on unlinked and older sessions.
+        type: integer
       review_status:
         type: string
       set_count:
@@ -3732,8 +3781,25 @@ definitions:
           sets (reps + target weights prefilled) so the athlete confirms or adjusts
           the actuals while logging. Has no effect if no program is assigned today.
         type: boolean
+      link_program:
+        description: |-
+          LinkProgram, when true, links the workout to the program assigned on
+          its date and stores the program week/day it is (ADR 028), without
+          prefilling sets. from_prescription implies it.
+        type: boolean
       notes:
         type: string
+      program_day:
+        example: 1
+        type: integer
+      program_week:
+        description: |-
+          ProgramWeek/ProgramDay choose the program day. Omitted, RepLog stores
+          the next day after the latest earlier session (the default the
+          prescription shows). program_week needs program_day; program_day
+          alone uses the Monday–Sunday week of the assignment the date is in.
+        example: 2
+        type: integer
     type: object
   api.WorkoutReview:
     properties:
@@ -7058,6 +7124,14 @@ paths:
         name: id
         required: true
         type: integer
+      - description: Program week to show instead of the next one (needs day)
+        in: query
+        name: week
+        type: integer
+      - description: Program day to show instead of the next one
+        in: query
+        name: day
+        type: integer
       produces:
       - application/json
       responses:
@@ -7909,8 +7983,11 @@ paths:
     post:
       consumes:
       - application/json
-      description: One workout per athlete per day (UNIQUE constraint). Date defaults
-        to today if omitted.
+      description: 'One workout per athlete per day (UNIQUE constraint). Date defaults
+        to today if omitted. link_program (implied by from_prescription or program_day)
+        links the workout to the program assigned on its date and stores its program
+        week/day: program_week/program_day when sent (checked against the template),
+        otherwise the next day the prescription shows (ADR 028).'
       parameters:
       - description: Athlete ID
         in: path

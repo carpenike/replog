@@ -46,6 +46,16 @@ type WorkoutRequest struct {
 	// sets (reps + target weights prefilled) so the athlete confirms or adjusts
 	// the actuals while logging. Has no effect if no program is assigned today.
 	FromPrescription bool `json:"from_prescription,omitempty" jsonschema:"When true, prefill the workout with today's prescribed sets. No effect if no program is assigned today."`
+	// LinkProgram, when true, links the workout to the program assigned on
+	// its date and stores the program week/day it is (ADR 028), without
+	// prefilling sets. from_prescription implies it.
+	LinkProgram bool `json:"link_program,omitempty" jsonschema:"When true, link the workout to the program assigned on its date and store its program week/day. Implied by from_prescription or program_day."`
+	// ProgramWeek/ProgramDay choose the program day. Omitted, RepLog stores
+	// the next day after the latest earlier session (the default the
+	// prescription shows). program_week needs program_day; program_day
+	// alone uses the Monday–Sunday week of the assignment the date is in.
+	ProgramWeek int `json:"program_week,omitempty" example:"2" jsonschema:"Program week to store. Needs program_day. Defaults to the calendar week of the assignment."`
+	ProgramDay  int `json:"program_day,omitempty" example:"1" jsonschema:"Program day to store. Defaults to the next day RepLog would prescribe."`
 }
 
 // WorkoutSetRequest is the body for POST /api/athletes/{id}/workouts/{workoutID}/sets.
