@@ -67,9 +67,11 @@ describe('program groups', () => {
     expect(within(superset).getByText('Hammer Curl')).toBeTruthy()
     expect(within(superset).getByText('B1')).toBeTruthy()
     expect(within(superset).getByText('B2')).toBeTruthy()
-    expect(screen.getByText(/5–8 reps .*RIR 1–2/)).toBeTruthy()
-    expect(screen.getByText(/Warm-up 8 reps/)).toBeTruthy()
+    expect(screen.getByText('1 × 5–8')).toBeTruthy()
+    expect(screen.getByText(/RIR 1–2/)).toBeTruthy()
+    expect(screen.getByText('Warm-up')).toBeTruthy()
   })
+
 
   it('shows a group picker per exercise while editing', async () => {
     vi.mocked(api.getProgramTemplate).mockResolvedValue({
@@ -98,6 +100,58 @@ describe('program groups', () => {
     expect(api.updatePrescribedSet).toHaveBeenCalledWith(4, 1, expect.objectContaining({
       rir_min: 2, rir_max: 2, sort_order: 3, prescribed_rpe: 8, group_key: 'A',
     }))
+  })
+})
+
+describe('compact read-only view', () => {
+  it('collapses identical sets, shows a repeated cue once and folds the warm-up circuit', async () => {
+    const cue = 'Bench at 75 degrees.'
+    vi.mocked(api.getProgramTemplate).mockResolvedValue({
+      program: program({ locked: true, num_days: 2 }),
+      sets: [
+        set(1, 'Cat to Cow', { group_key: 'A', non_working: true, reps: 10 }),
+        set(1, 'Cat to Cow', { group_key: 'A', non_working: true, reps: 10, set_number: 2 }),
+        set(2, 'Shoulder Hovers', { group_key: 'A', non_working: true, reps: 5 }),
+        set(2, 'Shoulder Hovers', { group_key: 'A', non_working: true, reps: 5, set_number: 2 }),
+        ...[1, 2, 3].map(n => set(3, 'High Incline DB Press', { set_number: n, reps: 5, reps_max: 8, rir_min: 1, rir_max: 2, rest_seconds: 90, notes: cue })),
+        set(4, 'Lateral Raise', { group_key: 'B', reps: 8, reps_max: 15, rest_seconds: 90 }),
+        set(5, 'Hammer Curl', { group_key: 'B', reps: 8, reps_max: 15, rest_seconds: 90 }),
+        set(6, 'Deadlift', { day: 2, reps: 5 }),
+      ],
+    } as unknown as Awaited<ReturnType<typeof api.getProgramTemplate>>)
+    renderPage()
+
+    expect(await screen.findByText('3 × 5–8')).toBeTruthy()
+    expect(screen.getByText('· 90s rest')).toBeTruthy()
+    expect(screen.getAllByText(cue)).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Show coaching cue for High Incline DB Press' })).toBeTruthy()
+
+    const warm = screen.getByText(/Warm-up superset/).closest('details')!
+    expect(warm.open).toBe(false)
+    expect(within(warm).getByText(/2 drills · 2 rounds/)).toBeTruthy()
+
+    const superset = screen.getByRole('region', { name: 'Superset B' })
+    expect(within(superset).getByText(/1 round · 90s rest after each round/)).toBeTruthy()
+
+    // One day at a time: Day 2 is behind its tab.
+    expect(screen.queryByText('Deadlift')).toBeNull()
+    await userEvent.click(screen.getByRole('tab', { name: /Day 2/ }))
+    expect(screen.getByText('Deadlift')).toBeTruthy()
+    expect(screen.queryByText('High Incline DB Press')).toBeNull()
+  })
+
+  it('picks a week and notes when it repeats an earlier one', async () => {
+    vi.mocked(api.getProgramTemplate).mockResolvedValue({
+      program: program({ num_weeks: 3 }),
+      sets: [set(1, 'Squat'), set(1, 'Squat', { week: 2 }), set(1, 'Squat', { week: 3, reps: 3 })],
+    } as unknown as Awaited<ReturnType<typeof api.getProgramTemplate>>)
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Week 2' }))
+    expect(screen.getByText('Same as Week 1.')).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Week 3' }))
+    expect(screen.queryByText(/Same as Week/)).toBeNull()
+    expect(screen.getByText('1 × 3')).toBeTruthy()
   })
 })
 
