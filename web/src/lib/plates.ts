@@ -84,33 +84,54 @@ function sortedPlates(inv: PlateInventory): (PlateStock & { kg: number })[] {
     .sort((a, b) => b.kg - a.kg)
 }
 
+// Plates heavier than a 20 kg / 45 lb plate (25 kg, 55 lb) are not the first
+// plate anyone puts on the bar. The solver loads the 20s first and reaches for
+// a heavier plate only when the 20s and smaller can't get as close.
+const LEAD_PLATE_MAX_KG = 20.5
+
+function greedyPerSide(remainingKg: number, plates: (PlateStock & { kg: number })[]) {
+  const perSide: PlateLoad[] = []
+  let remaining = remainingKg
+  let sideKg = 0
+  for (const p of plates) {
+    const n = Math.min(p.pairs, Math.floor((remaining + EPS) / p.kg))
+    if (n > 0) {
+      perSide.push({ weight: p.weight, unit: p.unit, count: n })
+      remaining -= n * p.kg
+      sideKg += n * p.kg
+    }
+  }
+  return { perSide, remaining, sideKg }
+}
+
 /**
  * Solve the plates for a target weight given in the logging unit. Per side,
  * take the heaviest plate that still fits under the remaining weight, as
- * many as the inventory allows (greedy). The loaded weight never exceeds the
- * target by more than rounding; use nearestLoadable for the next weight up.
+ * many as the inventory allows (greedy), preferring 20 kg / 45 lb plates over
+ * heavier ones when both reach the same weight. The loaded weight never
+ * exceeds the target by more than rounding; use nearestLoadable for the next
+ * weight up.
  */
 export function solvePlates(target: number, inv: PlateInventory, unit: WeightUnit): PlateSolution {
   const targetKg = toKg(Math.max(0, target), unit)
   const barKg = emptyBarKg(inv)
-  const perSide: PlateLoad[] = []
-  let remaining = (targetKg - barKg) / 2
-  const belowBar = remaining < -EPS
-  let sideKg = 0
+  const half = (targetKg - barKg) / 2
+  const belowBar = half < -EPS
+  const plates = sortedPlates(inv)
+  let side = { perSide: [] as PlateLoad[], remaining: half, sideKg: 0 }
   if (!belowBar) {
-    for (const p of sortedPlates(inv)) {
-      const n = Math.min(p.pairs, Math.floor((remaining + EPS) / p.kg))
-      if (n > 0) {
-        perSide.push({ weight: p.weight, unit: p.unit, count: n })
-        remaining -= n * p.kg
-        sideKg += n * p.kg
-      }
+    side = greedyPerSide(half, plates)
+    const leadFirst = plates.filter(p => p.kg <= LEAD_PLATE_MAX_KG)
+    if (leadFirst.length < plates.length) {
+      const alt = greedyPerSide(half, leadFirst)
+      if (alt.sideKg >= side.sideKg - EPS) side = alt
     }
   }
+  const { perSide, remaining, sideKg } = side
   const loadedKg = barKg + 2 * sideKg
   const loaded = round1(fromKg(loadedKg, unit))
   const difference = round1(fromKg(loadedKg, unit) - target)
-  const smallest = sortedPlates(inv).at(-1)?.kg ?? 0
+  const smallest = plates.at(-1)?.kg ?? 0
   return {
     perSide,
     loadedKg,
@@ -122,6 +143,34 @@ export function solvePlates(target: number, inv: PlateInventory, unit: WeightUni
     // at least the smallest plate means the fitting sizes ran out.
     overCapacity: !belowBar && smallest > 0 && remaining >= smallest - EPS,
   }
+}
+
+/** One plate size the athlete owns, as offered by the plate counter. */
+export interface PlateOption extends PlateStock {
+  /** Stable key, e.g. "20kg". */
+  key: string
+  kg: number
+}
+
+/** The owned plate sizes, heaviest first, keyed for the plate counter. */
+export function plateOptions(inv: PlateInventory): PlateOption[] {
+  return sortedPlates(inv).map(p => ({ ...p, key: `${p.weight}${p.unit}` }))
+}
+
+/**
+ * Total on the bar for plates the athlete has stacked. `stack` lists the plate
+ * keys on one sleeve in the order they went on; the other sleeve mirrors it.
+ * Returns kg; convert with fromKg for display.
+ */
+export function stackedTotalKg(inv: PlateInventory, stack: string[], useCollars = inv.useCollars): number {
+  const byKey = new Map(plateOptions(inv).map(p => [p.key, p.kg]))
+  const side = stack.reduce((sum, k) => sum + (byKey.get(k) ?? 0), 0)
+  return emptyBarKg({ ...inv, useCollars }) + 2 * side
+}
+
+/** Plate keys from a solution, in loading order (heaviest first). */
+export function stackFromSolution(perSide: PlateLoad[]): string[] {
+  return perSide.flatMap(p => Array.from({ length: p.count }, () => `${p.weight}${p.unit}`))
 }
 
 // Cap on distinct per-side totals tracked; real inventories stay far below it.

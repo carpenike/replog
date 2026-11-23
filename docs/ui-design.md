@@ -240,6 +240,16 @@ UI rules for anything that loads a bar (plate calculator, warm-up ramps,
   target, with an explicit "Use 225.9 lb" action. Never change a logged or
   prescribed weight without the athlete or coach tapping it.
 - Offer the nearest loadable weights above and below the target.
+- Suggestions load 20 kg / 45 lb plates first. A heavier plate (25 kg,
+  55 lb) goes on only when the 20s and smaller can't reach as close to the
+  target; nobody puts the 25 on first at home.
+- Counting works the other way round: the athlete taps the plates stacked on
+  one sleeve and reads the total in the logging unit and the other unit
+  (`components/PlateCounter.tsx`). It is a standalone page at `/plates`
+  ("Plate Calculator" in the nav) and the first tab of the session's plate
+  sheet, where "Use 231.5 lb for this set" fills the weight field. On a
+  session row with no weight typed, the sheet's trigger reads "Count plates"
+  when the lift was loaded on a bar last time.
 - The math lives in `web/src/lib/plates.ts` (greedy per side within the
   inventory, then the loadable totals either side) and the ramp in
   `web/src/lib/warmups.ts` (bar, 40%, 60%, 80%, each rounded to loadable).

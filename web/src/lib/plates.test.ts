@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   KG_COMPETITION,
   formatPerSide,
+  fromKg,
   inventoryFromSetup,
+  plateOptions,
+  round1,
+  stackFromSolution,
+  stackedTotalKg,
   loadableTotalsKg,
   maxLoadable,
   nearestLoadable,
@@ -65,8 +70,7 @@ describe('solvePlates', () => {
   it('loads 225 lb on a 20 kg bar with kg plates and reports the real weight', () => {
     const s = solvePlates(225, KG_COMPETITION, 'lbs')
     expect(s.perSide).toEqual([
-      { weight: 25, unit: 'kg', count: 1 },
-      { weight: 15, unit: 'kg', count: 1 },
+      { weight: 20, unit: 'kg', count: 2 },
       { weight: 1, unit: 'kg', count: 1 },
     ])
     expect(s.loadedKg).toBeCloseTo(102, 6)
@@ -75,7 +79,7 @@ describe('solvePlates', () => {
     expect(s.exact).toBe(false)
     expect(s.belowBar).toBe(false)
     expect(s.overCapacity).toBe(false)
-    expect(formatPerSide(s.perSide)).toBe('25 + 15 + 1 kg')
+    expect(formatPerSide(s.perSide)).toBe('20 + 20 + 1 kg')
   })
 
   it('offers the nearest loadable weights either side of 225 lb', () => {
@@ -84,13 +88,13 @@ describe('solvePlates', () => {
 
   it('counts collars in the bar weight when they are used', () => {
     const s = solvePlates(225, { ...KG_COMPETITION, useCollars: true }, 'lbs')
-    expect(s.perSide.map(p => p.weight)).toEqual([25, 10, 2.5, 1])
+    expect(s.perSide.map(p => p.weight)).toEqual([20, 15, 2.5, 1])
     expect(s.loaded).toBe(224.9)
   })
 
   it('solves an exact kg target logged in kg and gives its neighbours', () => {
     const s = solvePlates(100, KG_COMPETITION, 'kg')
-    expect(s.perSide.map(p => p.weight)).toEqual([25, 15])
+    expect(s.perSide).toEqual([{ weight: 20, unit: 'kg', count: 2 }])
     expect(s.loaded).toBe(100)
     expect(s.difference).toBe(0)
     expect(s.exact).toBe(true)
@@ -126,6 +130,47 @@ describe('solvePlates', () => {
     const s = solvePlates(135, mixed, 'lbs')
     expect(s.perSide).toEqual([{ weight: 45, unit: 'lbs', count: 1 }])
     expect(s.loaded).toBe(134.1)
+  })
+})
+
+describe('leading with 20s, not the 25 kg plate', () => {
+  it('never puts the 25 kg plate on while the 20s and smaller reach the same weight', () => {
+    for (let target = 45; target <= 385; target += 2.5) { // 387.5 lb is everything but the 25
+      const s = solvePlates(target, KG_COMPETITION, 'lbs')
+      expect(s.perSide.some(p => p.weight === 25), `${target} lb`).toBe(false)
+    }
+  })
+
+  it('still loads the heaviest weight at or under every target', () => {
+    const totals = loadableTotalsKg(KG_COMPETITION)
+    for (let target = 45; target <= 497; target += 0.5) {
+      const best = totals.filter(t => t <= target / 2.20462 + 1e-6).at(-1)!
+      expect(solvePlates(target, KG_COMPETITION, 'lbs').loadedKg).toBeCloseTo(best, 6)
+    }
+  })
+
+  it('reaches for the 25 only when the 20s run out', () => {
+    expect(solvePlates(480, KG_COMPETITION, 'lbs').perSide[0]).toEqual({ weight: 25, unit: 'kg', count: 1 })
+  })
+})
+
+describe('counting stacked plates', () => {
+  it('totals what is on the bar from the plates on one sleeve', () => {
+    // 20 + 20 + 1 per side on a 20 kg bar = 102 kg = 224.9 lb
+    const kg = stackedTotalKg(KG_COMPETITION, ['20kg', '20kg', '1kg'])
+    expect(kg).toBeCloseTo(102, 6)
+    expect(round1(fromKg(kg, 'lbs'))).toBe(224.9)
+  })
+
+  it('is the empty bar with nothing stacked, and counts collars when on', () => {
+    expect(stackedTotalKg(KG_COMPETITION, [])).toBe(20)
+    expect(stackedTotalKg(KG_COMPETITION, ['5kg'], true)).toBe(35)
+  })
+
+  it('lists the owned plates heaviest first and round-trips a solution', () => {
+    expect(plateOptions(KG_COMPETITION).map(p => p.key).slice(0, 3)).toEqual(['25kg', '20kg', '15kg'])
+    const s = solvePlates(225, KG_COMPETITION, 'lbs')
+    expect(stackFromSolution(s.perSide)).toEqual(['20kg', '20kg', '1kg'])
   })
 })
 

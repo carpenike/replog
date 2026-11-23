@@ -653,12 +653,16 @@ export function ActiveWorkout() {
     )
   }
 
-  function plateLine(key: string, label: string, weightStr: string) {
+  function plateLine(key: string, label: string, weightStr: string, barbellBefore = false) {
     const w = parseFloat(weightStr)
-    if (isNaN(w) || w <= 0 || w < emptyBar - 0.05) return null
+    const hasTarget = !isNaN(w) && w > 0 && w >= emptyBar - 0.05
+    // With no weight typed yet, still offer the plate counter on a lift that
+    // was loaded on the bar last time, so the weight can come from the plates
+    // actually stacked. Bodyweight rows stay clean.
+    if (!hasTarget && !(barbellBefore && weightStr.trim() === '')) return null
     return (
       <PlateCalculator
-        target={w}
+        target={hasTarget ? w : undefined}
         inventory={inventory}
         unit={unit}
         label={label}
@@ -800,7 +804,7 @@ export function ActiveWorkout() {
             })}
           ><Check aria-hidden="true" /></Button>
         </div>
-        {plateLine(key, setName, weightStr)}
+        {plateLine(key, setName, weightStr, prevSet?.weight != null && prevSet.weight >= emptyBar - 0.05)}
         {showRpe && (
           <div className="mt-2 flex items-center justify-end gap-2">
             <Label htmlFor={`rpe-${key}`} className="text-xs text-muted-foreground">RPE</Label>
