@@ -36,6 +36,9 @@ import (
 	"github.com/carpenike/replog/internal/models"
 )
 
+// testShareIndexHTML stands in for the built SPA index.html in tests.
+const testShareIndexHTML = "<!doctype html><title>RepLog</title><div id=root></div>"
+
 // testEnv bundles the per-test database, session manager, handlers, and an HTTP
 // router that mirrors the production /api wiring.
 type testEnv struct {
@@ -88,6 +91,12 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/auth/token/{token}", h.TokenLogin)
 		})
 
+		// Public share-link routes: outside withAuth, as in main.go.
+		r.Group(func(r chi.Router) {
+			r.Get("/share/{token}", h.GetSharedVideo)
+			r.Get("/share/{token}/video", h.GetSharedVideoFile)
+		})
+
 		// Authenticated endpoints — mirror main.go's /api group.
 		r.Group(func(r chi.Router) {
 			r.Use(withAuth)
@@ -129,6 +138,9 @@ func setupTest(t *testing.T) *testEnv {
 			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", h.GetSetVideoFile)
 			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", h.DeleteSetVideo)
 			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/comment", h.CommentSetVideo)
+			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares", h.ListVideoShares)
+			r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares", h.CreateVideoShare)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares/{shareID}", h.RevokeVideoShare)
 
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", h.UpdateWorkoutNotes)
 
@@ -340,6 +352,9 @@ func setupTest(t *testing.T) *testEnv {
 			r.Post("/athletes/{id}/wod/{genID}/log", h.WODLog)
 		})
 	})
+
+	// Share viewer page, served outside /api like main.go does.
+	r.Get("/s/{token}", h.SharePage([]byte(testShareIndexHTML)))
 
 	return &testEnv{
 		DB:       db,

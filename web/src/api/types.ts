@@ -118,6 +118,44 @@ export interface SetVideo {
   created_at: string;
 }
 
+export type VideoShareStatus = 'active' | 'expired' | 'revoked';
+
+/** A no-login share link to one form-check clip. Never carries the token. */
+export interface VideoShare {
+  id: number;
+  label?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  expires_at: string;
+  revoked_at?: string | null;
+  last_accessed_at?: string | null;
+  access_count: number;
+  status: VideoShareStatus;
+}
+
+export interface VideoShareList {
+  /** False when the server's REPLOG_VIDEO_SHARING_DISABLED kill switch is on. */
+  sharing_enabled: boolean;
+  shares: VideoShare[];
+}
+
+/** Create response: the token and viewer path are shown this once. */
+export interface CreatedVideoShare {
+  share: VideoShare;
+  token: string;
+  /** Viewer path, /s/{token}, relative to the app origin. */
+  url: string;
+}
+
+/** What a share-link viewer sees (no athlete or account data). */
+export interface SharedVideo {
+  exercise_name: string;
+  date: string;
+  expires_at: string;
+  content_type: string;
+  video_url: string;
+}
+
 export type SetType = 'working' | 'warmup' | 'drop' | 'failure';
 
 export interface TrainingMax {

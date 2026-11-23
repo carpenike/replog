@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Film, MessageSquare, RefreshCw, Trash2, Upload } from 'lucide-react'
+import { Film, MessageSquare, RefreshCw, Share2, Trash2, Upload } from 'lucide-react'
 import { api } from '@/api/client'
 import type { SetVideo } from '@/api/types'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { checkClip, formatBytes, FORM_CHECK_ACCEPT } from '@/lib/formCheck'
 import { useConfirm } from '@/lib/useConfirm'
+import { VideoShareSheet } from '@/components/VideoShareSheet'
 
 interface SetVideoProps {
   athleteId: number
@@ -108,10 +109,12 @@ function CommentForm({ athleteId, workoutId, setId, video }: { athleteId: number
 /**
  * The form-check control on a logged set: an upload button when the set has
  * no clip, otherwise a button that opens the clip with the coach's comment.
- * The clip streams from the authenticated set route; it is never public.
+ * The clip streams from the authenticated set route; it is never public
+ * unless someone with access creates an expiring share link (Share).
  */
 export function SetVideoControl({ athleteId, workoutId, setId, setNumber, exerciseName, video, canComment }: SetVideoProps) {
   const [open, setOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const upload = useUploadClip(athleteId, workoutId, setId)
   const invalidate = useWorkoutInvalidate(athleteId, workoutId)
   const { confirm, dialog } = useConfirm()
@@ -172,6 +175,10 @@ export function SetVideoControl({ athleteId, workoutId, setId, setNumber, exerci
               <p className="text-sm text-muted-foreground">No coach comment yet.</p>
             )}
             <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="touch" aria-label={`Share form check for set ${setNumber}`}
+                onClick={() => { setOpen(false); setShareOpen(true) }}>
+                <Share2 aria-hidden="true" /> Share
+              </Button>
               <ClipPicker onPick={f => upload.mutate(f)} disabled={upload.isPending} label="Replace clip" icon="replace" variant="outline" />
               <Button variant="ghost" size="touch" className="text-muted-foreground hover:text-destructive" disabled={remove.isPending}
                 onClick={async () => {
@@ -184,6 +191,8 @@ export function SetVideoControl({ athleteId, workoutId, setId, setNumber, exerci
           </div>
         </SheetContent>
       </Sheet>
+      <VideoShareSheet open={shareOpen} onOpenChange={setShareOpen} athleteId={athleteId} workoutId={workoutId}
+        setId={setId} setNumber={setNumber} exerciseName={exerciseName} />
       {dialog()}
     </>
   )

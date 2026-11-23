@@ -490,6 +490,16 @@ type SetVideoCommentRequest struct {
 	Comment string `json:"comment" example:"Knees caving on rep 3 — cue knees out." jsonschema:"Coach comment on the clip (at most 2000 characters). Empty clears it."`
 }
 
+// VideoShareCreateRequest is the body for POST .../sets/{setID}/video/shares.
+type VideoShareCreateRequest struct {
+	// ExpiresInHours is 24, 168 (7 days, the default when 0 or omitted) or
+	// 720 (30 days). Anything else, including more than 30 days, is a 400.
+	ExpiresInHours int `json:"expires_in_hours,omitempty" example:"168" enums:"24,168,720"`
+	// Label is an optional note for the owner's list, such as who the link
+	// was sent to (at most 100 characters). The viewer never sees it.
+	Label string `json:"label,omitempty" example:"Grandpa"`
+}
+
 // BioSampleImportRequest is the body for POST /api/athletes/{id}/bio-samples/import.
 // Send either samples (the generic shape, easy to build in an iOS Shortcut)
 // or data (the Health Auto Export REST export as-is), or both.

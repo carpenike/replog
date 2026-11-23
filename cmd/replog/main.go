@@ -256,6 +256,13 @@ func main() {
 		VideoDir:      videoDir,
 		VideoMaxBytes: videoMaxBytes,
 		Push:          pushService,
+
+		// Share-link kill switch: no new links, and every public share
+		// URL answers 404 while it is set.
+		VideoSharingDisabled: os.Getenv("REPLOG_VIDEO_SHARING_DISABLED") == "true",
+	}
+	if apiHandlers.VideoSharingDisabled {
+		log.Printf("Form-check video sharing disabled by REPLOG_VIDEO_SHARING_DISABLED")
 	}
 
 	// Avatar file server (public — no auth required to load avatar images).
@@ -285,6 +292,13 @@ func main() {
 		log.Printf("Trusted proxies: %v", trustedProxies)
 	}
 	authLimiter := middleware.NewRateLimiter(10, time.Minute, trustedProxies...)
+
+	// Rate limiter for the public, no-login video share routes. A player
+	// makes several Range requests while seeking, so the budget is higher
+	// than the login limiter's, but it still makes guessing tokens hopeless
+	// on top of their 256 bits. Access logs use the same client-IP logic.
+	shareLimiter := middleware.NewRateLimiter(120, time.Minute, trustedProxies...)
+	apiHandlers.ClientIP = shareLimiter.ClientIP
 
 	// Middleware adapter — converts existing RequireAuth middleware to chi-compatible.
 	withAuth := func(next http.Handler) http.Handler {
@@ -328,6 +342,14 @@ func main() {
 			r.Use(authLimiter.Limit)
 			r.Post("/login", apiHandlers.Login)
 			r.Get("/auth/token/{token}", apiHandlers.TokenLogin)
+		})
+
+		// Public form-check video share links — no login, rate limited per
+		// client IP. They expose one clip plus its exercise and date.
+		r.Group(func(r chi.Router) {
+			r.Use(shareLimiter.Limit)
+			r.Get("/share/{token}", apiHandlers.GetSharedVideo)
+			r.Get("/share/{token}/video", apiHandlers.GetSharedVideoFile)
 		})
 
 		// Authenticated API endpoints.
@@ -389,6 +411,10 @@ func main() {
 			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", apiHandlers.GetSetVideoFile)
 			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video", apiHandlers.DeleteSetVideo)
 			r.Put("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/comment", apiHandlers.CommentSetVideo)
+			// No-login share links to a clip (same access as the clip).
+			r.Get("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares", apiHandlers.ListVideoShares)
+			r.Post("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares", apiHandlers.CreateVideoShare)
+			r.Delete("/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares/{shareID}", apiHandlers.RevokeVideoShare)
 
 			// Workout Notes.
 			r.Put("/athletes/{id}/workouts/{workoutID}/notes", apiHandlers.UpdateWorkoutNotes)
@@ -641,6 +667,14 @@ func main() {
 		})
 	}
 
+	// --- Video share viewer page (public, no login) ---
+	// The SPA shell with share headers (no-store, noindex, no-referrer,
+	// strict CSP); 404 for an unusable token. Outside the auth middleware.
+	r.Group(func(r chi.Router) {
+		r.Use(shareLimiter.Limit)
+		r.Get("/s/{token}", apiHandlers.SharePage(spaIndexHTML()))
+	})
+
 	// --- SPA fallback for all other routes ---
 	// React Router handles client-side routing; the SPA serves all browser navigation.
 	spaHandler := spaFallbackHandler()
@@ -689,6 +723,7 @@ func main() {
 
 	// Stop background goroutines.
 	authLimiter.Stop()
+	shareLimiter.Stop()
 	maintenance.Stop()
 	sessionStore.StopCleanup()
 
@@ -964,6 +999,16 @@ func handleReadyz(db *sql.DB) http.HandlerFunc {
 		}
 		fmt.Fprintln(w, "ok")
 	}
+}
+
+// spaIndexHTML returns the embedded SPA index.html, or nil when the
+// frontend is not embedded (dev mode).
+func spaIndexHTML() []byte {
+	b, err := fs.ReadFile(frontend.DistFS, "dist/index.html")
+	if err != nil {
+		return nil
+	}
+	return b
 }
 
 // spaFallbackHandler returns a handler that serves the React SPA from the

@@ -18,7 +18,7 @@ import { NetworkFirst, NetworkOnly } from 'workbox-strategies'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { ExpirationPlugin } from 'workbox-expiration'
 import { BackgroundSyncPlugin } from 'workbox-background-sync'
-import { isSetVideoPath } from './lib/swRoutes'
+import { isSetVideoPath, isSharePath } from './lib/swRoutes'
 
 declare let self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<PrecacheEntry | string>
@@ -47,9 +47,12 @@ cleanupOutdatedCaches()
 //     (note: /auth/token/:token IS a client-side SPA route, so only the
 //     /auth/oidc subtree is denied)
 //   /avatars/** — backend-served images
+//   /s/**       — public video share links: the server sends them with
+//     no-store, noindex and a strict CSP (and a 404 for a dead link), so
+//     they always come from the network and never from the shell cache
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('/index.html'), {
-    denylist: [/^\/api\//, /^\/metrics/, /^\/healthz/, /^\/auth\/oidc/, /^\/avatars\//],
+    denylist: [/^\/api\//, /^\/metrics/, /^\/healthz/, /^\/auth\/oidc/, /^\/avatars\//, /^\/s\//],
   }),
 )
 
@@ -58,9 +61,10 @@ registerRoute(
 // back to the last-known-good response if the network doesn't answer within
 // 3s. GET only (registerRoute defaults to GET); never cache errors.
 // Form-check video routes are not registered at all (see isSetVideoPath):
-// the browser fetches clips directly, uncached, with Range support.
+// the browser fetches clips directly, uncached, with Range support. Public
+// share-link responses (isSharePath) are never cached either.
 registerRoute(
-  ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/api/') && !isSetVideoPath(url.pathname),
+  ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/api/') && !isSetVideoPath(url.pathname) && !isSharePath(url.pathname),
   new NetworkFirst({
     cacheName: 'api-cache',
     networkTimeoutSeconds: 3,

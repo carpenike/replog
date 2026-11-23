@@ -1446,6 +1446,17 @@ definitions:
         example: 2
         type: integer
     type: object
+  api.CreatedVideoShare:
+    properties:
+      share:
+        $ref: '#/definitions/api.VideoShare'
+      token:
+        description: Token is the secret in the link. It cannot be retrieved again.
+        type: string
+      url:
+        description: URL is the viewer path, /s/{token}, relative to the app's origin.
+        type: string
+    type: object
   api.CycleSummaryResponse:
     properties:
       cycle_end:
@@ -2964,6 +2975,20 @@ definitions:
       value:
         type: string
     type: object
+  api.SharedVideo:
+    properties:
+      content_type:
+        type: string
+      date:
+        type: string
+      exercise_name:
+        type: string
+      expires_at:
+        type: string
+      video_url:
+        description: 'VideoURL streams the clip: /api/share/{token}/video.'
+        type: string
+    type: object
   api.SkillSession:
     properties:
       athlete_id:
@@ -3293,6 +3318,63 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  api.VideoShare:
+    properties:
+      access_count:
+        type: integer
+      created_at:
+        type: string
+      created_by:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: integer
+      label:
+        type: string
+      last_accessed_at:
+        type: string
+      revoked_at:
+        type: string
+      status:
+        description: Status is active, expired or revoked.
+        enum:
+        - active
+        - expired
+        - revoked
+        type: string
+    type: object
+  api.VideoShareCreateRequest:
+    properties:
+      expires_in_hours:
+        description: |-
+          ExpiresInHours is 24, 168 (7 days, the default when 0 or omitted) or
+          720 (30 days). Anything else, including more than 30 days, is a 400.
+        enum:
+        - 24
+        - 168
+        - 720
+        example: 168
+        type: integer
+      label:
+        description: |-
+          Label is an optional note for the owner's list, such as who the link
+          was sent to (at most 100 characters). The viewer never sees it.
+        example: Grandpa
+        type: string
+    type: object
+  api.VideoShareList:
+    properties:
+      shares:
+        items:
+          $ref: '#/definitions/api.VideoShare'
+        type: array
+      sharing_enabled:
+        description: |-
+          SharingEnabled is false when REPLOG_VIDEO_SHARING_DISABLED is set:
+          no new link can be created and existing links do not open.
+        type: boolean
     type: object
   api.WODCollisionResponse:
     properties:
@@ -8093,6 +8175,150 @@ paths:
       summary: Comment on a form-check video
       tags:
       - Workouts
+  /athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares:
+    get:
+      description: Same access as the clip, browser session only. Active links by
+        default; include_inactive=true adds expired and revoked ones. Tokens are never
+        returned. sharing_enabled is false when REPLOG_VIDEO_SHARING_DISABLED is set.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Set ID
+        in: path
+        name: setID
+        required: true
+        type: integer
+      - description: Include expired and revoked links
+        in: query
+        name: include_inactive
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.VideoShareList'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List a form-check video's share links
+      tags:
+      - Workouts
+    post:
+      consumes:
+      - application/json
+      description: 'Same access as the clip (the athlete, their coach or an admin),
+        browser session only. Returns the link''s secret token and viewer URL (/s/{token})
+        exactly once: only the token''s SHA-256 hash is stored, so it cannot be shown
+        again. expires_in_hours is 24, 168 (default) or 720; anything else, including
+        more than 30 days, is a 400. Refused with 403 when REPLOG_VIDEO_SHARING_DISABLED
+        is set. Replacing or deleting the clip revokes all of its links.'
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Set ID
+        in: path
+        name: setID
+        required: true
+        type: integer
+      - description: Expiry and optional label
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.VideoShareCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.CreatedVideoShare'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create a form-check video share link
+      tags:
+      - Workouts
+  /athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares/{shareID}:
+    delete:
+      description: Same access as the clip, browser session only. The link stops working
+        at once. Revoking an already revoked link is a no-op that returns it. A link
+        on another clip is a 404.
+      parameters:
+      - description: Athlete ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workout ID
+        in: path
+        name: workoutID
+        required: true
+        type: integer
+      - description: Set ID
+        in: path
+        name: setID
+        required: true
+        type: integer
+      - description: Share link ID
+        in: path
+        name: shareID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.VideoShare'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Revoke a form-check video share link
+      tags:
+      - Workouts
   /athletes/{id}/workouts/{workoutID}/swaps:
     post:
       consumes:
@@ -9572,6 +9798,73 @@ paths:
       summary: List unreviewed workouts
       tags:
       - Reviews
+  /share/{token}:
+    get:
+      description: Public, no login. Returns only the exercise name, the workout date,
+        when the link expires and the clip URL; no athlete name or account data. Unknown,
+        malformed, expired and revoked tokens (and every token when sharing is disabled)
+        get the same 404. Each call counts as one view. Rate limited per client IP;
+        responses are never cached.
+      parameters:
+      - description: Share token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.SharedVideo'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "429":
+          description: rate limited
+          schema:
+            type: string
+      summary: Open a form-check video share link
+      tags:
+      - Share
+  /share/{token}/video:
+    get:
+      description: Public, no login. Streams the one clip the link opens, with its
+        sniffed Content-Type and HTTP Range support. The file is found only through
+        the stored clip row, never from the token. Unusable tokens get the same 404
+        as the metadata route. Responses are private, no-store and noindex.
+      parameters:
+      - description: Share token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - video/mp4
+      - video/quicktime
+      - video/webm
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "206":
+          description: Partial Content
+          schema:
+            type: file
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "429":
+          description: rate limited
+          schema:
+            type: string
+      summary: Stream a shared form-check video
+      tags:
+      - Share
   /users:
     get:
       produces:
@@ -9961,3 +10254,5 @@ tags:
   name: Users
 - description: Admin-only impersonation, settings, and catalog import/export
   name: Admin
+- description: Public, no-login form-check video share links (token in the path)
+  name: Share

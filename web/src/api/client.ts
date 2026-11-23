@@ -1,4 +1,4 @@
-import type { AccessoryPlanData, APIError, Athlete, AthleteCard, CalendarData, ComplianceData, PushConfig, RestAlertResult, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SetVideo, SettingCategoryData, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, WhiteboardData, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
+import type { AccessoryPlanData, APIError, Athlete, AthleteCard, CalendarData, ComplianceData, PushConfig, RestAlertResult, AthleteEquipmentData, AthleteExerciseData, BodyWeight, BodyWeightPage, ConditioningSession, CreatedLoginToken, CycleReviewData, EquipmentData, Exercise, ExerciseEquipmentData, ExerciseSwap, ExerciseHistoryPageData, IssuedServiceToken, JournalEntry, LoadSummary, LoginTokenData, MilestonesData, MissingTMData, Notification, PitchSmartStatus, PrescriptionData, ProgramCompatibilityData, ProgressData, ProgressionRuleData, ProgramTemplate, RecordsData, RecoveryCheckin, SeasonPhase, ServiceTokenData, SetType, SetVideo, SettingCategoryData, CreatedVideoShare, SharedVideo, VideoShare, VideoShareList, SkillSession, ThrowingSession, TrainingMax, UnreviewedWorkoutData, User, UserPreferences, UserWithAthlete, WhiteboardData, Workout, WorkoutDetailData, WorkoutPage, WorkoutSet } from './types';
 import type { AthleteProgram, PlateSetup, PlateSetupPreset, PlateSetupRequest } from './schemas';
 
 // Request payload shapes for the multi-modal logbook (HOF-011), mirroring the
@@ -295,6 +295,41 @@ class ApiClient {
 
   async commentSetVideo(athleteId: number, workoutId: number, setId: number, comment: string): Promise<SetVideo> {
     return this.request(`${setVideoPath(athleteId, workoutId, setId)}/comment`, { method: 'PUT', body: JSON.stringify({ comment }) })
+  }
+
+  // Form-check share links (owner side). The paths sit under .../video, so
+  // the service worker neither caches nor queues them (see swRoutes).
+  async listVideoShares(athleteId: number, workoutId: number, setId: number, includeInactive = false): Promise<VideoShareList> {
+    const q = includeInactive ? '?include_inactive=true' : ''
+    return this.request(`${setVideoPath(athleteId, workoutId, setId)}/shares${q}`, { cache: 'no-store' })
+  }
+
+  async createVideoShare(athleteId: number, workoutId: number, setId: number, body: { expires_in_hours: number; label?: string }): Promise<CreatedVideoShare> {
+    return this.request(`${setVideoPath(athleteId, workoutId, setId)}/shares`, { method: 'POST', body: JSON.stringify(body), cache: 'no-store' })
+  }
+
+  async revokeVideoShare(athleteId: number, workoutId: number, setId: number, shareId: number): Promise<VideoShare> {
+    return this.request(`${setVideoPath(athleteId, workoutId, setId)}/shares/${shareId}`, { method: 'DELETE' })
+  }
+
+  // Public share-link viewer. Bypasses request(): no session cookie is sent
+  // and a failure never redirects to login (the viewer has no account).
+  async getSharedVideo(token: string): Promise<SharedVideo> {
+    let res: Response
+    try {
+      res = await fetch(`${this.baseUrl}${sharedVideoPath(token)}`, {
+        credentials: 'omit',
+        cache: 'no-store',
+        referrerPolicy: 'no-referrer',
+        headers: { 'Accept': 'application/json' },
+      })
+    } catch {
+      throw new ApiError('Unable to reach the server. Please try again.', 0)
+    }
+    if (!res.ok) {
+      throw new ApiError(res.status === 429 ? 'Too many requests. Wait a minute and try again.' : 'This link is not available.', res.status)
+    }
+    return res.json()
   }
 
   // Whiteboard / TV mode (read-only).
@@ -944,6 +979,11 @@ export class ApiError extends Error {
     this.code = code
     this.details = details
   }
+}
+
+/** Public metadata path for a share token. */
+export function sharedVideoPath(token: string): string {
+  return `/api/share/${encodeURIComponent(token)}`
 }
 
 /** The authenticated route that streams (GET) or changes a set's clip. */

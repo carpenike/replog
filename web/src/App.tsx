@@ -7,6 +7,7 @@ import { Layout } from '@/components/Layout'
 import { Login } from '@/pages/Login'
 import { LoadingPage, Spinner } from '@/components/ui'
 import type { User } from '@/api/types'
+import { isSharePath } from '@/lib/swRoutes'
 
 /** Route guard — redirects to / if the user doesn't have the required role. */
 function RequireRole({ user, role, children }: { user: User; role: 'coach' | 'admin'; children: ReactNode }) {
@@ -68,7 +69,24 @@ const RecordsPage = lazy(() => import('@/pages/RecordsPage').then(m => ({ defaul
 const WhiteboardPage = lazy(() => import('@/pages/WhiteboardPage').then(m => ({ default: m.WhiteboardPage })))
 const LoadDashboard = lazy(() => import('@/pages/LoadDashboard').then(m => ({ default: m.LoadDashboard })))
 
+const SharedVideoPage = lazy(() => import('@/pages/SharedVideoPage').then(m => ({ default: m.SharedVideoPage })))
+
 export function App() {
+  const location = useLocation()
+  // Public form-check share links (/s/{token}) are for viewers with no
+  // account: render them before, and instead of, the auth bootstrap so the
+  // page never calls /api/me or redirects to login.
+  if (isSharePath(location.pathname)) {
+    return (
+      <Suspense fallback={<LoadingPage />}>
+        <SharedVideoPage />
+      </Suspense>
+    )
+  }
+  return <AuthedApp />
+}
+
+function AuthedApp() {
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const { data: user, isLoading, error } = useQuery({

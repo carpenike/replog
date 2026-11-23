@@ -138,6 +138,51 @@ type SetVideo struct {
 	CreatedAt    string  `json:"created_at"`
 }
 
+// VideoShare is a no-login share link to one form-check clip, as its owner
+// sees it. It never carries the token: that is returned once, on create.
+type VideoShare struct {
+	ID             int64   `json:"id"`
+	Label          *string `json:"label,omitempty"`
+	CreatedBy      *string `json:"created_by,omitempty"`
+	CreatedAt      string  `json:"created_at"`
+	ExpiresAt      string  `json:"expires_at"`
+	RevokedAt      *string `json:"revoked_at,omitempty"`
+	LastAccessedAt *string `json:"last_accessed_at,omitempty"`
+	AccessCount    int64   `json:"access_count"`
+	// Status is active, expired or revoked.
+	Status string `json:"status" enums:"active,expired,revoked"`
+}
+
+// VideoShareList is the share links on one clip.
+type VideoShareList struct {
+	// SharingEnabled is false when REPLOG_VIDEO_SHARING_DISABLED is set:
+	// no new link can be created and existing links do not open.
+	SharingEnabled bool          `json:"sharing_enabled"`
+	Shares         []*VideoShare `json:"shares"`
+}
+
+// CreatedVideoShare is the response to creating a share link. Token and URL
+// are shown this once; only the token's hash is stored.
+type CreatedVideoShare struct {
+	Share *VideoShare `json:"share"`
+	// Token is the secret in the link. It cannot be retrieved again.
+	Token string `json:"token"`
+	// URL is the viewer path, /s/{token}, relative to the app's origin.
+	URL string `json:"url"`
+}
+
+// SharedVideo is what a share-link viewer sees: the exercise, the date and
+// when the link expires. It holds no athlete name, account data or links
+// into the app.
+type SharedVideo struct {
+	ExerciseName string `json:"exercise_name"`
+	Date         string `json:"date"`
+	ExpiresAt    string `json:"expires_at"`
+	ContentType  string `json:"content_type"`
+	// VideoURL streams the clip: /api/share/{token}/video.
+	VideoURL string `json:"video_url"`
+}
+
 // ExerciseGroup represents sets grouped by exercise in a workout.
 type ExerciseGroup struct {
 	ExerciseID   int64         `json:"exercise_id"`

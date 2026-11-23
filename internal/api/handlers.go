@@ -44,6 +44,16 @@ type Handlers struct {
 	VideoDir      string
 	VideoMaxBytes int64
 
+	// VideoSharingDisabled is the share-link kill switch
+	// (REPLOG_VIDEO_SHARING_DISABLED=true): creating a link is refused and
+	// every public share URL answers 404. Listing and revoking still work.
+	VideoSharingDisabled bool
+
+	// ClientIP returns the caller's address for share-link access logs. It
+	// should be the rate limiter's trusted-proxy-aware extractor; nil falls
+	// back to the connection's remote address.
+	ClientIP func(*http.Request) string
+
 	// Push delivers Web Push rest alerts. Nil when push is disabled; the
 	// push routes then report it and the SPA hides the opt-in.
 	Push *push.Service

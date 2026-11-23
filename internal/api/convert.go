@@ -592,3 +592,18 @@ func SetVideoFromModel(m *models.SetVideo) *SetVideo {
 		CreatedAt:    fmtTime(m.CreatedAt),
 	}
 }
+
+// VideoShareFromModel converts a models.VideoShare to its API shape.
+func VideoShareFromModel(m *models.VideoShare, now time.Time) *VideoShare {
+	return &VideoShare{
+		ID:             m.ID,
+		Label:          nullStr(m.Label),
+		CreatedBy:      nullStr(m.CreatorName),
+		CreatedAt:      fmtTime(m.CreatedAt),
+		ExpiresAt:      fmtTime(m.ExpiresAt),
+		RevokedAt:      fmtNullTimeStr(m.RevokedAt),
+		LastAccessedAt: fmtNullTimeStr(m.LastAccessedAt),
+		AccessCount:    m.AccessCount,
+		Status:         m.Status(now),
+	}
+}

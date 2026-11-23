@@ -42,6 +42,8 @@ func (w *statusWriter) Unwrap() http.ResponseWriter {
 // logs. Anything matching is logged as "<prefix>/<redacted>".
 var redactedPaths = []string{
 	"/api/auth/token/",
+	"/api/share/",
+	"/s/",
 }
 
 // scrubPath replaces secret-bearing path tails with "<redacted>" so they

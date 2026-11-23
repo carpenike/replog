@@ -7244,6 +7244,210 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a form-check video's share links
+         * @description Same access as the clip, browser session only. Active links by default; include_inactive=true adds expired and revoked ones. Tokens are never returned. sharing_enabled is false when REPLOG_VIDEO_SHARING_DISABLED is set.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Include expired and revoked links */
+                    include_inactive?: boolean;
+                };
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Workout ID */
+                    workoutID: number;
+                    /** @description Set ID */
+                    setID: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.VideoShareList"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Create a form-check video share link
+         * @description Same access as the clip (the athlete, their coach or an admin), browser session only. Returns the link's secret token and viewer URL (/s/{token}) exactly once: only the token's SHA-256 hash is stored, so it cannot be shown again. expires_in_hours is 24, 168 (default) or 720; anything else, including more than 30 days, is a 400. Refused with 403 when REPLOG_VIDEO_SHARING_DISABLED is set. Replacing or deleting the clip revokes all of its links.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Workout ID */
+                    workoutID: number;
+                    /** @description Set ID */
+                    setID: number;
+                };
+                cookie?: never;
+            };
+            /** @description Expiry and optional label */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["api.VideoShareCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.CreatedVideoShare"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/athletes/{id}/workouts/{workoutID}/sets/{setID}/video/shares/{shareID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a form-check video share link
+         * @description Same access as the clip, browser session only. The link stops working at once. Revoking an already revoked link is a no-op that returns it. A link on another clip is a 404.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Athlete ID */
+                    id: number;
+                    /** @description Workout ID */
+                    workoutID: number;
+                    /** @description Set ID */
+                    setID: number;
+                    /** @description Share link ID */
+                    shareID: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.VideoShare"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/athletes/{id}/workouts/{workoutID}/swaps": {
         parameters: {
             query?: never;
@@ -10131,6 +10335,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/share/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Open a form-check video share link
+         * @description Public, no login. Returns only the exercise name, the workout date, when the link expires and the clip URL; no athlete name or account data. Unknown, malformed, expired and revoked tokens (and every token when sharing is disabled) get the same 404. Each call counts as one view. Rate limited per client IP; responses are never cached.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Share token */
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.SharedVideo"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description rate limited */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/share/{token}/video": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream a shared form-check video
+         * @description Public, no login. Streams the one clip the link opens, with its sniffed Content-Type and HTTP Range support. The file is found only through the stored clip row, never from the token. Unusable tokens get the same 404 as the metadata route. Responses are private, no-store and noindex.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Share token */
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": string;
+                        "video/quicktime": string;
+                        "video/webm": string;
+                    };
+                };
+                /** @description Partial Content */
+                206: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": string;
+                        "video/quicktime": string;
+                        "video/webm": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": components["schemas"]["api.APIError"];
+                        "video/quicktime": components["schemas"]["api.APIError"];
+                        "video/webm": components["schemas"]["api.APIError"];
+                    };
+                };
+                /** @description rate limited */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "video/mp4": string;
+                        "video/quicktime": string;
+                        "video/webm": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -11533,6 +11874,13 @@ export interface components {
             /** @example 2 */
             target_week?: number;
         };
+        "api.CreatedVideoShare": {
+            share?: components["schemas"]["api.VideoShare"];
+            /** @description Token is the secret in the link. It cannot be retrieved again. */
+            token?: string;
+            /** @description URL is the viewer path, /s/{token}, relative to the app's origin. */
+            url?: string;
+        };
         "api.CycleSummaryResponse": {
             cycle_end?: string;
             cycle_number?: number;
@@ -12402,6 +12750,14 @@ export interface components {
             source?: string;
             value?: string;
         };
+        "api.SharedVideo": {
+            content_type?: string;
+            date?: string;
+            exercise_name?: string;
+            expires_at?: string;
+            /** @description VideoURL streams the clip: /api/share/{token}/video. */
+            video_url?: string;
+        };
         "api.SkillSession": {
             athlete_id?: number;
             created_at?: string;
@@ -12594,6 +12950,44 @@ export interface components {
             real_user_id?: number;
             updated_at?: string;
             username?: string;
+        };
+        "api.VideoShare": {
+            access_count?: number;
+            created_at?: string;
+            created_by?: string;
+            expires_at?: string;
+            id?: number;
+            label?: string;
+            last_accessed_at?: string;
+            revoked_at?: string;
+            /**
+             * @description Status is active, expired or revoked.
+             * @enum {string}
+             */
+            status?: "active" | "expired" | "revoked";
+        };
+        "api.VideoShareCreateRequest": {
+            /**
+             * @description ExpiresInHours is 24, 168 (7 days, the default when 0 or omitted) or
+             *     720 (30 days). Anything else, including more than 30 days, is a 400.
+             * @example 168
+             * @enum {integer}
+             */
+            expires_in_hours?: 24 | 168 | 720;
+            /**
+             * @description Label is an optional note for the owner's list, such as who the link
+             *     was sent to (at most 100 characters). The viewer never sees it.
+             * @example Grandpa
+             */
+            label?: string;
+        };
+        "api.VideoShareList": {
+            shares?: components["schemas"]["api.VideoShare"][];
+            /**
+             * @description SharingEnabled is false when REPLOG_VIDEO_SHARING_DISABLED is set:
+             *     no new link can be created and existing links do not open.
+             */
+            sharing_enabled?: boolean;
         };
         "api.WODCollisionResponse": {
             collision?: boolean;

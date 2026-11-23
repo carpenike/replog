@@ -233,6 +233,15 @@ rejects every clip with a 413 before RepLog sees it.
 REPLOG_VIDEO_MAX_MB=100
 ```
 
+Optional: turn off form-check video share links (see
+[Form-check video share links](#form-check-video-share-links)). With the
+kill switch set, nobody can create a link and every existing link answers
+404 until it is unset; owners can still list and revoke links.
+
+```bash
+REPLOG_VIDEO_SHARING_DISABLED=true
+```
+
 Optional: health import. Athletes (or their coach) can send sleep, resting
 HR, HRV and step counts from Apple Health with an iOS Shortcut or Health
 Auto Export. Nothing to configure server-side beyond a service token for
@@ -687,11 +696,73 @@ proxy if you don't need to — bind them to an internal listener instead
 
 ### Sensitive paths are redacted
 
-The access logger redacts magic-link login tokens. A request to
-`/api/auth/token/abc123def...` is logged as
-`/api/auth/token/<redacted>`. If you add a new route that carries a
+The access logger redacts magic-link login tokens and video share-link
+tokens. A request to `/api/auth/token/abc123def...` is logged as
+`/api/auth/token/<redacted>`; `/s/<token>` and `/api/share/<token>/...`
+are logged as `/s/<redacted>` and `/api/share/<redacted>`. If you add a new route that carries a
 secret in the path, append the prefix to `redactedPaths` in
 `internal/middleware/logging.go`.
+
+### Form-check video share links
+
+Anyone who can see a set's form-check clip (the athlete it belongs to,
+their coach, or an admin) can open **Share** on the clip and create a link
+that lets a person **with no login** watch that one clip until the link
+expires. These clips are often of minors, so the feature is built to give
+away as little as possible.
+
+**What a link exposes.** The viewer page `/s/<token>` and the public API
+under `/api/share/<token>` show the one clip, its exercise name, the
+workout date and when the link expires. They do not show the athlete's
+name, any account data, other sets or links into the app. The routes sit
+outside the auth middleware; nothing else becomes public.
+
+**How links work.**
+
+- The token is 32 random bytes (base64url, 43 characters). It is shown
+  once, when the link is created. Only its SHA-256 hash is stored, in
+  `set_video_shares.token_hash`, so a database copy cannot open a link.
+- Expiry is chosen at creation: 24 hours, 7 days (the default) or 30 days.
+  The server refuses anything else.
+- An unknown, malformed, expired or revoked token gets the same 404 body,
+  so a response does not say which. The page and the API are rate limited
+  to 120 requests a minute per client IP (the same `REPLOG_TRUSTED_PROXIES`
+  rule as the login limiter decides the client IP).
+- Responses are `Cache-Control: private, no-store`,
+  `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow,
+  noarchive`, `X-Content-Type-Options: nosniff`, with a strict CSP
+  (`default-src 'none'`, media and fetches from this origin only, no
+  frames). The service worker never caches or serves them. The clip is
+  streamed with Range support and is found only through its stored row,
+  never from anything in the URL.
+- Each link records who created it, when, its expiry, an optional label,
+  `last_accessed_at` and `access_count` (one per viewer page load or plain
+  download; seeking while playing does not count).
+
+**Audit trail.** Creating and revoking a link writes `audit_log` rows with
+action `video_share_create` / `video_share_revoke` (link id, clip, set,
+athlete, expiry; never the token). Each public request is logged by slog as
+`video share access` with the endpoint, client IP, outcome and, for a link
+that resolved, its `share_id`:
+
+```bash
+journalctl -u replog | grep 'video share access'
+```
+
+**Revoking.** In the app: open the clip, **Share**, then **Revoke** next to
+the link (tick *Show expired and revoked* to see old ones). It takes effect
+at once. Deleting the clip, or uploading a replacement, removes every link
+to it (the rows cascade). To revoke from the shell, for example every
+active link at once:
+
+```bash
+sqlite3 /var/lib/replog/replog.db \
+  "UPDATE set_video_shares SET revoked_at = CURRENT_TIMESTAMP WHERE revoked_at IS NULL;"
+```
+
+To stop all sharing immediately without touching the rows, set
+`REPLOG_VIDEO_SHARING_DISABLED=true` and restart: creating a link returns
+403 and every share URL returns 404.
 
 ### Metrics
 
@@ -1005,6 +1076,10 @@ change.
       `X-Forwarded-Proto`.
 - [ ] Health endpoints `/healthz` and `/readyz` are reachable from
       whatever monitors them, but ideally not from the public internet.
+- [ ] You have decided whether form-check video share links should be
+      available. If not, `REPLOG_VIDEO_SHARING_DISABLED=true` is set. If
+      so, `REPLOG_TRUSTED_PROXIES` is right, so the share rate limit and
+      access logs see the real client IP.
 - [ ] The data directory is owned by the service user and chmod 750.
 - [ ] systemd unit (or container) sets `NoNewPrivileges`, `PrivateTmp`,
       `ProtectSystem=strict`, `ProtectHome` — the shipped NixOS module

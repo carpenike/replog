@@ -2084,6 +2084,40 @@ Migrations `0012`–`0014` extend the AI-Coach `generations` table (ADR 015):
   (athlete delete) leave a file the scheduler sweeps after an hour.
 - Counted per workout in pending reviews (`video_count`).
 
+### `set_video_shares` (migration `0027`)
+
+| Column             | Type     | Constraints                                                     |
+|--------------------|----------|-----------------------------------------------------------------|
+| `id`               | INTEGER  | PRIMARY KEY AUTOINCREMENT                                       |
+| `video_id`         | INTEGER  | NOT NULL, FK → workout_set_videos(id) ON DELETE CASCADE         |
+| `token_hash`       | TEXT     | NOT NULL UNIQUE, CHECK length = 64 (hex SHA-256 of the token)   |
+| `label`            | TEXT     | NULL, CHECK at most 100 characters                              |
+| `created_by`       | INTEGER  | NULL, FK → users(id) ON DELETE SET NULL                         |
+| `created_at`       | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP                              |
+| `expires_at`       | DATETIME | NOT NULL                                                        |
+| `revoked_at`       | DATETIME | NULL                                                            |
+| `revoked_by`       | INTEGER  | NULL, FK → users(id) ON DELETE SET NULL                         |
+| `last_accessed_at` | DATETIME | NULL                                                            |
+| `access_count`     | INTEGER  | NOT NULL DEFAULT 0, CHECK >= 0                                  |
+
+Index: `idx_set_video_shares_video (video_id)`.
+
+- A no-login link to one form-check clip. Anyone with access to the clip
+  (the athlete, their coach, an admin; ADR 021 scoping) can create one;
+  browser session only. The token (32 random bytes, base64url) is returned
+  once on create; only its SHA-256 is stored and lookups are by hash.
+- Expiry is 24 h, 7 d (default) or 30 d, chosen at creation; the API
+  refuses anything else. Expired and revoked rows stay for the owner's
+  history (`include_inactive=true`) and never resolve.
+- Public routes: the viewer page `GET /s/{token}`, `GET
+  /api/share/{token}` (exercise name, workout date, expiry) and `GET
+  /api/share/{token}/video` (the bytes, Range supported). Every unusable
+  token gets the same 404. `access_count` counts metadata loads and plain
+  (non-Range) downloads; `last_accessed_at` is stamped on every access.
+- Deleting or replacing the clip deletes its `workout_set_videos` row, and
+  the cascade removes every link to it. `REPLOG_VIDEO_SHARING_DISABLED`
+  turns all links off without touching rows.
+
 ## Future Considerations (v2+)
 
 - **Exercise categories/tags**: Muscle group, movement pattern (push/pull/hinge/squat/carry).
